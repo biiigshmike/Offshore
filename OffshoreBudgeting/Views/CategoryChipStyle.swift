@@ -51,9 +51,9 @@ struct CategoryChipStyle {
         let selectionGlassTint = tintedColor(
             baseNeutral: DS.Colors.chipSelectedFill,
             accent: categoryColor,
-            fraction: 0.6,
+            fraction: 0.8,
             colorScheme: colorScheme,
-            fallbackOpacity: 0.28
+            fallbackOpacity: 0.5
         )
 
         return CategoryChipStyle(

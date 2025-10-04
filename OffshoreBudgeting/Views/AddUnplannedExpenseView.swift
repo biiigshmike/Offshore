@@ -27,6 +27,7 @@ struct AddUnplannedExpenseView: View {
     // MARK: State
     @StateObject private var vm: AddUnplannedExpenseViewModel
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var cardPickerStore: CardPickerStore
     @State private var isPresentingAddCard = false
     
     // MARK: - Layout
@@ -160,8 +161,10 @@ struct AddUnplannedExpenseView: View {
                     .accessibilityLabel("Transaction Date")
             }
         }
-        .onAppear { CoreDataService.shared.ensureLoaded() }
-        .task { await vm.load() }
+        .onAppear {
+            vm.attachCardPickerStoreIfNeeded(cardPickerStore)
+            vm.startIfNeeded()
+        }
         // Make sure our chips & sheet share the same context.
         .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         .sheet(isPresented: $isPresentingAddCard) {

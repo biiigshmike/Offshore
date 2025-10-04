@@ -8,6 +8,7 @@
 
 import Foundation
 import CoreData
+import Combine
 
 // MARK: - AddUnplannedExpenseViewModel
 @MainActor
@@ -15,6 +16,11 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
 
     // MARK: Dependencies
     private let context: NSManagedObjectContext
+
+    // MARK: Card Picker Store
+    private var cardPickerStore: CardPickerStore?
+    private var cardPickerCancellables: Set<AnyCancellable> = []
+    private var hasStartedLoading = false
 
     // MARK: Identity
     private let unplannedExpenseID: NSManagedObjectID?
@@ -47,18 +53,38 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
          allowedCardIDs: Set<NSManagedObjectID>? = nil,
          initialCardID: NSManagedObjectID? = nil,
          initialDate: Date? = nil,
+         cardPickerStore: CardPickerStore? = nil,
          context: NSManagedObjectContext = CoreDataService.shared.viewContext) {
         self.unplannedExpenseID = unplannedExpenseID
         self.allowedCardIDs = allowedCardIDs
         self.initialCardID = initialCardID
         self.context = context
         self.isEditing = unplannedExpenseID != nil
+        self.cardPickerStore = cardPickerStore
+        if let store = cardPickerStore {
+            bindToCardPickerStore(store, preserveSelection: false)
+        }
         if let d = initialDate { self.transactionDate = d }
+    }
+
+    func attachCardPickerStoreIfNeeded(_ store: CardPickerStore) {
+        guard cardPickerStore !== store else { return }
+        cardPickerCancellables.removeAll()
+        cardPickerStore = store
+        bindToCardPickerStore(store, preserveSelection: true)
+    }
+
+    func startIfNeeded() {
+        guard !hasStartedLoading else { return }
+        hasStartedLoading = true
+        Task { [weak self] in
+            await self?.load()
+        }
     }
 
     // MARK: load()
     func load() async {
-        cardsLoaded = false
+        cardsLoaded = cardPickerStore?.isReady ?? false
         await CoreDataService.shared.waitUntilStoresLoaded()
         reloadLists()
 
@@ -82,8 +108,12 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
         }
 
         // Monitor for external inserts/updates/deletes of cards or categories.
+        var entities = ["ExpenseCategory"]
+        if cardPickerStore == nil {
+            entities.append("Card")
+        }
         changeMonitor = CoreDataEntityChangeMonitor(
-            entityNames: ["Card", "ExpenseCategory"]
+            entityNames: entities
         ) { [weak self] in
             guard let self else { return }
             Task { @MainActor in
@@ -166,8 +196,7 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
             NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
         ]
         let cards = (try? context.fetch(req)) ?? []
-        guard let allowed = allowedCardIDs, !allowed.isEmpty else { return cards }
-        return cards.filter { allowed.contains($0.objectID) }
+        return filteredCards(from: cards)
     }
 
     private func fetchCategories() -> [ExpenseCategory] {
@@ -183,9 +212,14 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
         let previousCard = selectedCardID
         let previousCategory = selectedCategoryID
 
-        allCards = fetchCards()
+        if let store = cardPickerStore {
+            updateCardsFromStore(store.cards, preserveSelection: preserveSelection)
+            cardsLoaded = store.isReady
+        } else {
+            allCards = fetchCards()
+            cardsLoaded = true
+        }
         allCategories = fetchCategories()
-        cardsLoaded = true
 
         guard preserveSelection else { return }
 
@@ -196,6 +230,43 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
         if let prev = previousCategory, !allCategories.contains(where: { $0.objectID == prev }) {
             selectedCategoryID = allCategories.first?.objectID
         }
+    }
+
+    private func bindToCardPickerStore(_ store: CardPickerStore, preserveSelection: Bool) {
+        updateCardsFromStore(store.cards, preserveSelection: preserveSelection)
+        cardsLoaded = store.isReady
+
+        store.$cards
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] cards in
+                guard let self else { return }
+                self.updateCardsFromStore(cards, preserveSelection: true)
+            }
+            .store(in: &cardPickerCancellables)
+
+        store.$isReady
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] ready in
+                self?.cardsLoaded = ready
+            }
+            .store(in: &cardPickerCancellables)
+    }
+
+    private func updateCardsFromStore(_ cards: [Card], preserveSelection: Bool) {
+        let previousCard = selectedCardID
+        allCards = filteredCards(from: cards)
+
+        guard preserveSelection else { return }
+
+        if let previousCard,
+           !allCards.contains(where: { $0.objectID == previousCard }) {
+            selectedCardID = allCards.first?.objectID
+        }
+    }
+
+    private func filteredCards(from cards: [Card]) -> [Card] {
+        guard let allowed = allowedCardIDs, !allowed.isEmpty else { return cards }
+        return cards.filter { allowed.contains($0.objectID) }
     }
 
     private func formatAmount(_ value: Double) -> String {

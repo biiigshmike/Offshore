@@ -13,6 +13,7 @@ struct CategoryChipPill<Label: View>: View {
 
     let isSelected: Bool
     let selectionColor: Color?
+    let selectionLineWidth: CGFloat
     let glassTextColor: Color
     let fallbackTextColor: Color
     let fallbackFill: Color
@@ -25,6 +26,7 @@ struct CategoryChipPill<Label: View>: View {
     init(
         isSelected: Bool,
         selectionColor: Color? = nil,
+        selectionLineWidth: CGFloat = 2,
         glassTextColor: Color = .primary,
         fallbackTextColor: Color = .primary,
         fallbackFill: Color = DS.Colors.chipFill,
@@ -34,6 +36,7 @@ struct CategoryChipPill<Label: View>: View {
     ) {
         self.isSelected = isSelected
         self.selectionColor = selectionColor
+        self.selectionLineWidth = selectionLineWidth
         self.glassTextColor = glassTextColor
         self.fallbackTextColor = fallbackTextColor
         self.fallbackFill = fallbackFill
@@ -66,7 +69,7 @@ struct CategoryChipPill<Label: View>: View {
         }
         .overlay {
             if isSelected, let selectionColor {
-                capsule.strokeBorder(selectionColor, lineWidth: 2)
+                capsule.strokeBorder(selectionColor, lineWidth: selectionLineWidth)
             }
         }
         .frame(height: controlHeight)

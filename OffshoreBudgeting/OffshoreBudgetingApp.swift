@@ -104,11 +104,7 @@ struct OffshoreBudgetingApp: App {
         let osVersion = ProcessInfo.processInfo.operatingSystemVersion
         let versionString = "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
         let runtimeVersion = ProcessInfo.processInfo.environment["SIMULATOR_RUNTIME_VERSION"] ?? "n/a"
-        AppLog.ui.info(
-            "PlatformCapabilities.current supportsOS26Translucency=\(platformCapabilities.supportsOS26Translucency, privacy: .public) " +
-            "supportsAdaptiveKeypad=\(platformCapabilities.supportsAdaptiveKeypad, privacy: .public) " +
-            "osVersion=\(versionString, privacy: .public) runtimeVersion=\(runtimeVersion, privacy: .public)"
-        )
+        AppLog.ui.info("PlatformCapabilities.current supportsOS26Translucency=\(platformCapabilities.supportsOS26Translucency, privacy: .public) supportsAdaptiveKeypad=\(platformCapabilities.supportsAdaptiveKeypad, privacy: .public) osVersion=\(versionString, privacy: .public) runtimeVersion=\(runtimeVersion, privacy: .public)")
     }
 
 #if targetEnvironment(macCatalyst)

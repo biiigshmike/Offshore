@@ -97,7 +97,6 @@ struct AddUnplannedExpenseView: View {
                 CategoryChipsRow(
                     selectedCategoryID: $vm.selectedCategoryID
                 )
-                .padding(.vertical, DS.Spacing.xs)
                 .accessibilityElement(children: .contain)
             }
             .ub_formSectionClearBackground()
@@ -233,6 +232,8 @@ private struct CategoryChipsRow: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Namespace private var glassNamespace
 
+    private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
+
     var body: some View {
         HStack(spacing: DS.Spacing.m) {
             // MARK: Static Add Button (doesn't scroll)
@@ -298,9 +299,9 @@ private struct CategoryChipsRow: View {
         .listRowBackground(Color.clear)
         .listRowInsets(
             EdgeInsets(
-                top: DS.Spacing.s,
+                top: verticalInset,
                 leading: DS.Spacing.l,
-                bottom: DS.Spacing.s,
+                bottom: verticalInset,
                 trailing: DS.Spacing.l
             )
         )

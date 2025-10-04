@@ -49,25 +49,26 @@ struct CategoryChipStyle {
         )
 
         let selectionStroke: Color
+        let selectedLineWidth: CGFloat = 2.75
         #if canImport(UIKit)
         if #available(iOS 14.0, macCatalyst 14.0, *) {
             let traitCollection = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
             let resolvedColor = UIColor(categoryColor).resolvedColor(with: traitCollection)
-            selectionStroke = Color(uiColor: resolvedColor).opacity(0.9)
+            selectionStroke = Color(uiColor: resolvedColor)
         } else {
-            selectionStroke = categoryColor.opacity(0.9)
+            selectionStroke = categoryColor
         }
         #else
-        selectionStroke = categoryColor.opacity(0.9)
+        selectionStroke = categoryColor
         #endif
 
         return CategoryChipStyle(
             scale: 1.0,
             fallbackTextColor: .primary,
             fallbackFill: selectionFill,
-            fallbackStroke: Stroke(color: selectionStroke, lineWidth: 2),
+            fallbackStroke: Stroke(color: selectionStroke, lineWidth: selectedLineWidth),
             glassTextColor: .primary,
-            glassStroke: Stroke(color: selectionStroke, lineWidth: 2),
+            glassStroke: Stroke(color: selectionStroke, lineWidth: selectedLineWidth),
             shadowColor: .clear,
             shadowRadius: 0,
             shadowY: 0

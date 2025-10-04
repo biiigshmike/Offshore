@@ -48,7 +48,6 @@ struct EditSheetScaffold<Content: View>: View {
 
     // MARK: Environment
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.platformCapabilities) private var platformCapabilities
     @EnvironmentObject private var themeManager: ThemeManager
 
     // Selection state for detents (compat type)
@@ -80,29 +79,37 @@ struct EditSheetScaffold<Content: View>: View {
 
     // MARK: body
     var body: some View {
-        applySheetChrome(
-            to: navigationContainer {
-                formContent
-                    .navigationTitle(title)
-                    .toolbar {
-                        // Cancel
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(cancelButtonTitle) {
-                                onCancel?()
-                                dismiss()
-                            }
-                            .tint(themeManager.selectedTheme.resolvedTint)
+        navigationContainer {
+            formContent
+                .navigationTitle(title)
+                .toolbar {
+                    // Cancel
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(cancelButtonTitle) {
+                            onCancel?()
+                            dismiss()
                         }
-                        // Save
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button(saveButtonTitle) {
-                                if onSave() { dismiss() }
-                            }
-                            .tint(themeManager.selectedTheme.resolvedTint)
-                            .disabled(!isSaveEnabled)
-                        }
+                        .tint(themeManager.selectedTheme.resolvedTint)
                     }
-            }
+                    // Save
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(saveButtonTitle) {
+                            if onSave() { dismiss() }
+                        }
+                        .tint(themeManager.selectedTheme.resolvedTint)
+                        .disabled(!isSaveEnabled)
+                    }
+                }
+        }
+        .ub_navigationBackground(
+            theme: themeManager.selectedTheme,
+            configuration: themeManager.glassConfiguration
+        )
+        .accentColor(themeManager.selectedTheme.resolvedTint)
+        .tint(themeManager.selectedTheme.resolvedTint)
+        .ub_surfaceBackground(
+            themeManager.selectedTheme,
+            configuration: themeManager.glassConfiguration
         )
         // MARK: Standard sheet behavior (platform-aware)
         .applyDetentsIfAvailable(detents: detents, selection: detentSelectionBinding)
@@ -163,54 +170,6 @@ struct EditSheetScaffold<Content: View>: View {
 
     // MARK: Detent selection binding (iOS only)
     private var detentSelectionBinding: Binding<UBPresentationDetent>? { $detentSelection }
-
-    // MARK: - Chrome styling
-    private func applySheetChrome<Inner: View>(to view: Inner) -> some View {
-        view.modifier(
-            EditSheetChromeModifier(
-                theme: themeManager.selectedTheme,
-                glassConfiguration: themeManager.glassConfiguration,
-                platformCapabilities: platformCapabilities
-            )
-        )
-    }
-
-    private struct EditSheetChromeModifier: ViewModifier {
-        let theme: AppTheme
-        let glassConfiguration: AppTheme.GlassConfiguration
-        let platformCapabilities: PlatformCapabilities
-
-        @ViewBuilder
-        func body(content: Content) -> some View {
-            let styledContent = content
-                .accentColor(theme.resolvedTint)
-                .tint(theme.resolvedTint)
-                .ub_surfaceBackground(
-                    theme,
-                    configuration: glassConfiguration
-                )
-
-#if targetEnvironment(macCatalyst)
-            if platformCapabilities.supportsOS26Translucency {
-                styledContent
-                    .ub_navigationBackground(
-                        theme: theme,
-                        configuration: glassConfiguration
-                    )
-            } else {
-                styledContent
-                    .toolbarBackground(.visible, for: .navigationBar)
-                    .toolbarBackground(.clear, for: .navigationBar)
-            }
-#else
-            styledContent
-                .ub_navigationBackground(
-                    theme: theme,
-                    configuration: glassConfiguration
-                )
-#endif
-        }
-    }
 }
 
 // MARK: - Detents application helper

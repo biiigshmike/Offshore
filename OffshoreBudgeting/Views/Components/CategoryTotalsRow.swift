@@ -44,7 +44,10 @@ struct CategoryChipPill<Label: View>: View {
 
     var body: some View {
         Group {
-            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macCatalyst 26.0, *) {
+            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+#if DEBUG && LIQUID_GLASS_QA
+                capabilities.qaLogLiquidGlassDecision(component: "CategoryChipPill", path: "glass")
+#endif
                 if isSelected, let glassTint {
                     baseLabel
                         .foregroundStyle(glassTextColor)
@@ -55,6 +58,9 @@ struct CategoryChipPill<Label: View>: View {
                         .glassEffect(.regular, in: capsule)
                 }
             } else {
+#if DEBUG && LIQUID_GLASS_QA
+                capabilities.qaLogLiquidGlassDecision(component: "CategoryChipPill", path: "legacy")
+#endif
                 baseLabel
                     .foregroundStyle(fallbackTextColor)
                     .background {
@@ -132,7 +138,7 @@ struct CategoryTotalsRow: View {
                                 .font(chipFont)
                         }
                     }
-                    if capabilities.supportsOS26Translucency, #available(iOS 26.0, macCatalyst 26.0, *) {
+                    if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
                         pill
                             .glassEffectID(String(describing: cat.id), in: glassNamespace)
                             .glassEffectTransition(.matchedGeometry)

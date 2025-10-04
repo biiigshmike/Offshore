@@ -897,12 +897,18 @@ private struct IncomeCalendarGlassButtonModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+#if DEBUG && LIQUID_GLASS_QA
+            capabilities.qaLogLiquidGlassDecision(component: "IncomeCalendarGlassButtonModifier", path: "glass")
+#endif
             content
                 .buttonStyle(.glass)
                 .tint(themeManager.selectedTheme.resolvedTint)
                 .buttonBorderShape(.roundedRectangle(radius: cornerRadius))
                 .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         } else {
+#if DEBUG && LIQUID_GLASS_QA
+            capabilities.qaLogLiquidGlassDecision(component: "IncomeCalendarGlassButtonModifier", path: "legacy")
+#endif
             content
                 .buttonStyle(CalendarNavigationButtonStyle(role: role))
                 .buttonBorderShape(.roundedRectangle(radius: cornerRadius))

@@ -35,8 +35,14 @@ struct GlassCTAButton<Label: View>: View {
     var body: some View {
         Group {
             if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+#if DEBUG && LIQUID_GLASS_QA
+                capabilities.qaLogLiquidGlassDecision(component: "GlassCTAButton", path: "glass")
+#endif
                 glassButton()
             } else {
+#if DEBUG && LIQUID_GLASS_QA
+                capabilities.qaLogLiquidGlassDecision(component: "GlassCTAButton", path: "legacy")
+#endif
                 legacyButton()
             }
         }

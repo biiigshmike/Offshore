@@ -31,11 +31,13 @@ struct AddPlannedExpenseView: View {
     /// but we keep this in case future platform-specific work needs it.
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var cardPickerStore: CardPickerStore
     @StateObject private var vm: AddPlannedExpenseViewModel
     @State private var isAssigningToBudget: Bool
 
     /// Guard to apply `defaultSaveAsGlobalPreset` only once on first load.
     @State private var didApplyDefaultGlobal = false
+    @State private var didApplyInitialCardSelection = false
 
     @State private var budgetSearchText = ""
 
@@ -220,22 +222,17 @@ struct AddPlannedExpenseView: View {
                 Toggle("Use in future budgets?", isOn: $vm.saveAsGlobalPreset)
             }
         }
-        .task {
-            // MARK: Lifecycle
-            await vm.load()
-
-            // Apply the default only when adding and only once.
-            if !vm.isEditing && !didApplyDefaultGlobal {
-                vm.saveAsGlobalPreset = defaultSaveAsGlobalPreset
-                didApplyDefaultGlobal = true
-            }
-
-            // Preselect card if provided and none chosen yet
-            if let initialCardID,
-               vm.selectedCardID == nil,
-               vm.allCards.contains(where: { $0.objectID == initialCardID }) {
-                vm.selectedCardID = initialCardID
-            }
+        .onAppear {
+            vm.attachCardPickerStoreIfNeeded(cardPickerStore)
+            vm.startIfNeeded()
+        }
+        .onChange(of: vm.cardsLoaded) { _ in
+            guard vm.cardsLoaded else { return }
+            applyDefaultSaveAsGlobalPresetIfNeeded()
+            applyInitialCardSelectionIfNeeded()
+        }
+        .onChange(of: vm.allCards) { _ in
+            applyInitialCardSelectionIfNeeded()
         }
         .ub_onChange(of: isAssigningToBudget) { newValue in
             guard showAssignBudgetToggle else { return }
@@ -355,6 +352,22 @@ struct AddPlannedExpenseView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+
+    private func applyDefaultSaveAsGlobalPresetIfNeeded() {
+        guard !vm.isEditing, !didApplyDefaultGlobal else { return }
+        vm.saveAsGlobalPreset = defaultSaveAsGlobalPreset
+        didApplyDefaultGlobal = true
+    }
+
+    private func applyInitialCardSelectionIfNeeded() {
+        guard !didApplyInitialCardSelection,
+              let initialCardID,
+              vm.selectedCardID == nil,
+              vm.cardsLoaded,
+              vm.allCards.contains(where: { $0.objectID == initialCardID }) else { return }
+        vm.selectedCardID = initialCardID
+        didApplyInitialCardSelection = true
     }
 }
 

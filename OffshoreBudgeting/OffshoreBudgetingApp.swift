@@ -12,6 +12,7 @@ import UIKit
 struct OffshoreBudgetingApp: App {
     // MARK: Dependencies
     @StateObject private var themeManager = ThemeManager()
+    @StateObject private var cardPickerStore: CardPickerStore
     private let platformCapabilities = PlatformCapabilities.current
     @Environment(\.colorScheme) private var systemColorScheme
 
@@ -21,8 +22,11 @@ struct OffshoreBudgetingApp: App {
 
     // MARK: Init
     init() {
+        let cardPickerStore = CardPickerStore()
+        _cardPickerStore = StateObject(wrappedValue: cardPickerStore)
         CoreDataService.shared.ensureLoaded()
         UITestDataSeeder.applyIfNeeded()
+        cardPickerStore.start()
         // No macOS-specific setup required at the moment.
         // Reduce the chance of text truncation across the app by allowing
         // UILabel-backed Text views to shrink when space is constrained.
@@ -73,6 +77,7 @@ struct OffshoreBudgetingApp: App {
         content()
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
             .environmentObject(themeManager)
+            .environmentObject(cardPickerStore)
             .environment(\.platformCapabilities, platformCapabilities)
             // Apply the selected theme's accent color to all controls.
             // `tint` covers most modern SwiftUI controls, while `accentColor`

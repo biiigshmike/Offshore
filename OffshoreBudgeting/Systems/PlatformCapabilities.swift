@@ -7,7 +7,7 @@ import SwiftUI
 struct PlatformCapabilities: Equatable {
     /// Whether the current OS supports the refreshed translucent chrome
     /// treatments Apple shipped alongside the OS 26 cycle (iOS/iPadOS,
-    /// macCatalyst, visionOS 2, etc.).
+    /// macCatalyst).
     let supportsOS26Translucency: Bool
 
     /// Whether the adaptive numeric keyboard layout from OS 26 is available on
@@ -57,9 +57,6 @@ extension PlatformCapabilities {
         return false
 #elseif os(iOS)
         if #available(iOS 26.0, *) { return true }
-        return false
-#elseif os(visionOS)
-        if #available(visionOS 2.0, *) { return true }
         return false
 #else
         return false

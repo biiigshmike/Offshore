@@ -56,7 +56,7 @@ struct PresetBudgetAssignmentSheet: View {
             .toolbar {
                 // MARK: Toolbar Buttons
                 // Cross-platform placements:
-                #if os(iOS) || os(visionOS)
+                #if os(iOS)
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
                 }

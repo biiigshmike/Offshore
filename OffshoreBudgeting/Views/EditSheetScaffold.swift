@@ -101,7 +101,6 @@ struct EditSheetScaffold<Content: View>: View {
                     }
                 }
         }
-        .ub_captureSafeAreaInsets()
         .ub_navigationBackground(
             theme: themeManager.selectedTheme,
             configuration: themeManager.glassConfiguration

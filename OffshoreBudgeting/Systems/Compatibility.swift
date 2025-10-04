@@ -517,44 +517,13 @@ private struct UBChromeBackgroundModifier: ViewModifier {
 private struct UBNavigationBackgroundModifier: ViewModifier {
     @Environment(\.platformCapabilities) private var capabilities
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.ub_safeAreaInsets) private var safeAreaInsets
 
     let theme: AppTheme
     let configuration: AppTheme.GlassConfiguration
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        let usesGlass = UBGlassBackgroundPolicy.shouldUseGlassSurfaces(theme: theme, capabilities: capabilities)
-
-#if targetEnvironment(macCatalyst)
-        if capabilities.supportsOS26Translucency, #available(macCatalyst 26.0, *) {
-            if usesGlass {
-                content.modifier(
-                    CatalystNavigationGlassBackgroundModifier(
-                        configuration: configuration,
-                        palette: theme.glassPalette,
-                        baseColor: theme.glassBaseColor,
-                        colorScheme: colorScheme,
-                        safeAreaInsets: safeAreaInsets
-                    )
-                )
-            } else {
-                content
-                    .toolbarBackground(.visible, for: .navigationBar)
-                    .toolbarBackground(.clear, for: .navigationBar)
-                    .toolbarColorScheme(colorScheme == .dark ? .dark : .light, for: .navigationBar)
-            }
-        } else {
-            legacyNavigationBackground(for: content, usesGlass: usesGlass)
-        }
-#else
-        legacyNavigationBackground(for: content, usesGlass: usesGlass)
-#endif
-    }
-
-    @ViewBuilder
-    private func legacyNavigationBackground(for content: Content, usesGlass: Bool) -> some View {
-        if usesGlass {
+        if UBGlassBackgroundPolicy.shouldUseGlassSurfaces(theme: theme, capabilities: capabilities) {
             content.modifier(
                 UBNavigationGlassModifier(
                     baseColor: theme.glassBaseColor,
@@ -573,127 +542,6 @@ private struct UBNavigationBackgroundModifier: ViewModifier {
         }
     }
 }
-
-#if targetEnvironment(macCatalyst)
-@available(macCatalyst 26.0, *)
-private struct CatalystNavigationGlassBackgroundModifier: ViewModifier {
-    let configuration: AppTheme.GlassConfiguration
-    let palette: AppTheme.GlassConfiguration.Palette
-    let baseColor: Color
-    let colorScheme: ColorScheme
-    let safeAreaInsets: EdgeInsets
-
-    func body(content: Content) -> some View {
-        content
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(.clear, for: .navigationBar)
-            .toolbarColorScheme(colorScheme == .dark ? .dark : .light, for: .navigationBar)
-            .overlay(alignment: .top) {
-                CatalystNavigationGlassHeader(
-                    safeAreaInsets: safeAreaInsets,
-                    configuration: configuration,
-                    palette: palette,
-                    baseColor: baseColor,
-                    colorScheme: colorScheme
-                )
-            }
-    }
-}
-
-@available(macCatalyst 26.0, *)
-private struct CatalystNavigationGlassHeader: View {
-    let safeAreaInsets: EdgeInsets
-    let configuration: AppTheme.GlassConfiguration
-    let palette: AppTheme.GlassConfiguration.Palette
-    let baseColor: Color
-    let colorScheme: ColorScheme
-
-    private var capsule: Capsule { Capsule(style: .continuous) }
-
-    var body: some View {
-        GlassEffectContainer(spacing: 0) {
-            capsule
-                .fill(headerGradient)
-                .overlay(specularOverlay)
-                .overlay(rimOverlay)
-                .frame(height: capsuleHeight)
-                .glassEffect(
-                    .regular.tint(glassTint).interactive(),
-                    in: capsule
-                )
-        }
-        .padding(.horizontal, horizontalPadding)
-        .padding(.top, topPadding)
-        .padding(.bottom, bottomPadding)
-        .frame(maxWidth: .infinity)
-        .shadow(color: dropShadowColor, radius: shadowRadius, x: 0, y: shadowOffset)
-        .allowsHitTesting(false)
-    }
-
-    private var capsuleHeight: CGFloat {
-        let baseHeight: CGFloat = 64
-        return baseHeight + safeAreaInsets.top
-    }
-
-    private var horizontalPadding: CGFloat { 16 }
-
-    private var topPadding: CGFloat {
-        max(10, safeAreaInsets.top * 0.6)
-    }
-
-    private var bottomPadding: CGFloat { 8 }
-
-    private var shadowRadius: CGFloat { 22 }
-    private var shadowOffset: CGFloat { 18 }
-
-    private var dropShadowColor: Color {
-        palette.shadow.opacity(min(configuration.glass.shadowOpacity + 0.22, 0.62))
-    }
-
-    private var glassTint: Color {
-        palette.accent.opacity(colorScheme == .dark ? 0.78 : 0.92)
-    }
-
-    private var headerGradient: LinearGradient {
-        let highlight = configuration.glass.highlightColor.opacity(min(configuration.glass.highlightOpacity * 0.7, 0.34))
-        let tint = baseColor.opacity(min(configuration.liquid.tintOpacity + 0.18, 0.9))
-        let shadow = palette.shadow.opacity(min(configuration.glass.shadowOpacity + 0.18, 0.7))
-
-        return LinearGradient(
-            colors: [highlight, tint, shadow],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    private var specularOverlay: some View {
-        capsule
-            .stroke(
-                LinearGradient(
-                    colors: [
-                        palette.specular.opacity(configuration.glass.specularOpacity),
-                        Color.clear
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                ),
-                lineWidth: max(configuration.glass.specularWidth * 9.0, 0.75)
-            )
-            .blendMode(.screen)
-            .opacity(configuration.glass.specularOpacity)
-    }
-
-    private var rimOverlay: some View {
-        capsule
-            .stroke(
-                palette.rim.opacity(configuration.glass.rimOpacity),
-                lineWidth: max(configuration.glass.rimWidth, 0.9)
-            )
-            .blur(radius: configuration.glass.rimBlur)
-            .opacity(configuration.glass.rimOpacity)
-    }
-}
-#endif
 
 private struct UBGlassBackgroundView: View {
     let capabilities: PlatformCapabilities

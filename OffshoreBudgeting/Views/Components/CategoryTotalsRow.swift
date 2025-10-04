@@ -12,8 +12,7 @@ struct CategoryChipPill<Label: View>: View {
     private var capsule: Capsule { Capsule(style: .continuous) }
 
     let isSelected: Bool
-    let selectionColor: Color?
-    let selectionLineWidth: CGFloat
+    let glassTint: Color?
     let glassTextColor: Color
     let fallbackTextColor: Color
     let fallbackFill: Color
@@ -25,8 +24,7 @@ struct CategoryChipPill<Label: View>: View {
 
     init(
         isSelected: Bool,
-        selectionColor: Color? = nil,
-        selectionLineWidth: CGFloat = 2,
+        glassTint: Color? = nil,
         glassTextColor: Color = .primary,
         fallbackTextColor: Color = .primary,
         fallbackFill: Color = DS.Colors.chipFill,
@@ -35,8 +33,7 @@ struct CategoryChipPill<Label: View>: View {
         @ViewBuilder label: @escaping () -> Label
     ) {
         self.isSelected = isSelected
-        self.selectionColor = selectionColor
-        self.selectionLineWidth = selectionLineWidth
+        self.glassTint = glassTint
         self.glassTextColor = glassTextColor
         self.fallbackTextColor = fallbackTextColor
         self.fallbackFill = fallbackFill
@@ -48,9 +45,15 @@ struct CategoryChipPill<Label: View>: View {
     var body: some View {
         Group {
             if capabilities.supportsOS26Translucency, #available(iOS 26.0, macCatalyst 26.0, *) {
-                baseLabel
-                    .foregroundStyle(glassTextColor)
-                    .glassEffect(.regular, in: capsule)
+                if isSelected, let glassTint {
+                    baseLabel
+                        .foregroundStyle(glassTextColor)
+                        .glassEffect(.regular.tint(glassTint).interactive(), in: capsule)
+                } else {
+                    baseLabel
+                        .foregroundStyle(glassTextColor)
+                        .glassEffect(.regular, in: capsule)
+                }
             } else {
                 baseLabel
                     .foregroundStyle(fallbackTextColor)
@@ -65,11 +68,6 @@ struct CategoryChipPill<Label: View>: View {
                             )
                         }
                     }
-            }
-        }
-        .overlay {
-            if isSelected, let selectionColor {
-                capsule.strokeBorder(selectionColor, lineWidth: selectionLineWidth)
             }
         }
         .frame(height: controlHeight)
@@ -118,7 +116,6 @@ struct CategoryTotalsRow: View {
                 ForEach(categories) { cat in
                     let pill = CategoryChipPill(
                         isSelected: false,
-                        selectionColor: nil,
                         glassTextColor: .primary,
                         fallbackTextColor: .primary,
                         fallbackFill: DS.Colors.chipFill,

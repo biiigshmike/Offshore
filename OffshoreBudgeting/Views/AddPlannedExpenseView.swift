@@ -90,7 +90,11 @@ struct AddPlannedExpenseView: View {
         ) {
             // MARK: Card Selection
             UBFormSection("Card", isUppercased: true) {
-                if vm.allCards.isEmpty {
+                if !vm.cardsLoaded {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: cardRowHeight)
+                } else if vm.allCards.isEmpty {
                     VStack(spacing: DS.Spacing.m) {
                         Text("No cards yet. Add one to assign this expense.")
                             .foregroundStyle(.secondary)

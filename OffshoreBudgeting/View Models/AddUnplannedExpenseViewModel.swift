@@ -22,6 +22,7 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
 
     // MARK: Loaded Data
     @Published private(set) var allCards: [Card] = []
+    @Published private(set) var cardsLoaded = false
     @Published private(set) var allCategories: [ExpenseCategory] = []
 
     // MARK: Allowed filter (e.g., only cards tracked by a given budget)
@@ -57,6 +58,7 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
 
     // MARK: load()
     func load() async {
+        cardsLoaded = false
         await CoreDataService.shared.waitUntilStoresLoaded()
         reloadLists()
 
@@ -183,6 +185,7 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
 
         allCards = fetchCards()
         allCategories = fetchCategories()
+        cardsLoaded = true
 
         guard preserveSelection else { return }
 

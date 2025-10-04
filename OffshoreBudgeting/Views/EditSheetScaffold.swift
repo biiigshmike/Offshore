@@ -48,7 +48,6 @@ struct EditSheetScaffold<Content: View>: View {
 
     // MARK: Environment
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.platformCapabilities) private var capabilities
     @EnvironmentObject private var themeManager: ThemeManager
 
     // Selection state for detents (compat type)
@@ -80,115 +79,40 @@ struct EditSheetScaffold<Content: View>: View {
 
     // MARK: body
     var body: some View {
-        let scaffold = navigationContainer {
+        navigationContainer {
             formContent
                 .navigationTitle(title)
-                .toolbar { toolbarContent }
+                .toolbar {
+                    // Cancel
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(cancelButtonTitle) {
+                            onCancel?()
+                            dismiss()
+                        }
+                        .tint(themeManager.selectedTheme.resolvedTint)
+                    }
+                    // Save
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(saveButtonTitle) {
+                            if onSave() { dismiss() }
+                        }
+                        .tint(themeManager.selectedTheme.resolvedTint)
+                        .disabled(!isSaveEnabled)
+                    }
+                }
         }
-
-        let theme = themeManager.selectedTheme
-
-        return Group {
-            if capabilities.supportsOS26Translucency,
-               #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                scaffold
-                    .toolbarBackground(.hidden, for: .navigationBar)
-                    .toolbarTitleDisplayMode(.inline)
-            } else {
-                scaffold
-                    .ub_navigationBackground(
-                        theme: theme,
-                        configuration: themeManager.glassConfiguration
-                    )
-            }
-        }
-        .accentColor(theme.resolvedTint)
-        .tint(theme.resolvedTint)
+        .ub_navigationBackground(
+            theme: themeManager.selectedTheme,
+            configuration: themeManager.glassConfiguration
+        )
+        .accentColor(themeManager.selectedTheme.resolvedTint)
+        .tint(themeManager.selectedTheme.resolvedTint)
         .ub_surfaceBackground(
-            theme,
+            themeManager.selectedTheme,
             configuration: themeManager.glassConfiguration
         )
         // MARK: Standard sheet behavior (platform-aware)
         .applyDetentsIfAvailable(detents: detents, selection: detentSelectionBinding)
-    }
-
-    // MARK: Toolbar Content
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        if capabilities.supportsOS26Translucency,
-           #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            ToolbarItem(placement: .principal) {
-                navigationTitleCapsule
-            }
-        }
-
-        ToolbarItem(placement: .cancellationAction) {
-            cancelToolbarButton
-        }
-
-        ToolbarItem(placement: .confirmationAction) {
-            saveToolbarButton
-        }
-    }
-
-    @ViewBuilder
-    private var cancelToolbarButton: some View {
-        if capabilities.supportsOS26Translucency,
-           #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            GlassEffectContainer {
-                Button(cancelButtonTitle, role: .cancel) {
-                    onCancel?()
-                    dismiss()
-                }
-                .tint(themeManager.selectedTheme.glassPalette.accent)
-                .buttonStyle(.glass)
-            }
-        } else {
-            Button(cancelButtonTitle, role: .cancel) {
-                onCancel?()
-                dismiss()
-            }
-            .tint(themeManager.selectedTheme.resolvedTint)
-        }
-    }
-
-    @ViewBuilder
-    private var saveToolbarButton: some View {
-        if capabilities.supportsOS26Translucency,
-           #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            GlassEffectContainer {
-                Button(saveButtonTitle) {
-                    if onSave() { dismiss() }
-                }
-                .tint(themeManager.selectedTheme.glassPalette.accent)
-                .buttonStyle(.glassProminent)
-                .disabled(!isSaveEnabled)
-            }
-        } else {
-            Button(saveButtonTitle) {
-                if onSave() { dismiss() }
-            }
-            .tint(themeManager.selectedTheme.resolvedTint)
-            .disabled(!isSaveEnabled)
-        }
-    }
-
-    @available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *)
-    private var navigationTitleCapsule: some View {
-        let capsule = Capsule(style: .continuous)
-
-        return GlassEffectContainer {
-            Text(title)
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .padding(.horizontal, DS.Spacing.xl)
-                .padding(.vertical, DS.Spacing.s)
-                .glassEffect(
-                    .regular.tint(themeManager.selectedTheme.glassPalette.accent).interactive(),
-                    in: capsule
-                )
-        }
     }
 
     // MARK: - Subviews

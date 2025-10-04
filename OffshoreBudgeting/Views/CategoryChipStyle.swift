@@ -14,7 +14,7 @@ struct CategoryChipStyle {
     let fallbackFill: Color
     let fallbackStroke: Stroke
     let glassTextColor: Color
-    let glassStroke: Stroke?
+    let glassTint: Color?
     let shadowColor: Color
     let shadowRadius: CGFloat
     let shadowY: CGFloat
@@ -33,7 +33,7 @@ struct CategoryChipStyle {
                 fallbackFill: DS.Colors.chipFill,
                 fallbackStroke: neutralStroke,
                 glassTextColor: .primary,
-                glassStroke: nil,
+                glassTint: nil,
                 shadowColor: .clear,
                 shadowRadius: 0,
                 shadowY: 0
@@ -48,27 +48,21 @@ struct CategoryChipStyle {
             fallbackOpacity: 0.22
         )
 
-        let selectionStroke: Color
-        let selectedLineWidth: CGFloat = 2.75
-        #if canImport(UIKit)
-        if #available(iOS 14.0, macCatalyst 14.0, *) {
-            let traitCollection = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
-            let resolvedColor = UIColor(categoryColor).resolvedColor(with: traitCollection)
-            selectionStroke = Color(uiColor: resolvedColor)
-        } else {
-            selectionStroke = categoryColor
-        }
-        #else
-        selectionStroke = categoryColor
-        #endif
+        let selectionGlassTint = tintedColor(
+            baseNeutral: DS.Colors.chipSelectedFill,
+            accent: categoryColor,
+            fraction: 0.6,
+            colorScheme: colorScheme,
+            fallbackOpacity: 0.28
+        )
 
         return CategoryChipStyle(
             scale: 1.0,
             fallbackTextColor: .primary,
             fallbackFill: selectionFill,
-            fallbackStroke: Stroke(color: selectionStroke, lineWidth: selectedLineWidth),
+            fallbackStroke: neutralStroke,
             glassTextColor: .primary,
-            glassStroke: Stroke(color: selectionStroke, lineWidth: selectedLineWidth),
+            glassTint: selectionGlassTint,
             shadowColor: .clear,
             shadowRadius: 0,
             shadowY: 0

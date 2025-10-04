@@ -388,8 +388,7 @@ private struct CategoryChip: View {
 
         let pill = CategoryChipPill(
             isSelected: isSelected,
-            selectionColor: isSelected ? (style.glassStroke?.color ?? categoryColor) : nil,
-            selectionLineWidth: style.glassStroke?.lineWidth ?? style.fallbackStroke.lineWidth,
+            glassTint: style.glassTint,
             glassTextColor: style.glassTextColor,
             fallbackTextColor: style.fallbackTextColor,
             fallbackFill: style.fallbackFill,
@@ -450,7 +449,6 @@ private struct AddCategoryPillStyle: ButtonStyle {
 
         return CategoryChipPill(
             isSelected: false,
-            selectionColor: nil,
             glassTextColor: .primary,
             fallbackTextColor: .primary,
             fallbackFill: DS.Colors.chipFill,

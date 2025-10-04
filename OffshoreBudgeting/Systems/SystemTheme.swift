@@ -7,23 +7,26 @@ import UIKit
 enum SystemThemeAdapter {
     enum Flavor { case liquid, classic }
 
-    static var currentFlavor: Flavor {
-        // Treat OS 26 as the threshold for the native Liquid Glass cycle.
-        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            return .liquid
-        } else {
-            return .classic
-        }
+    static var currentFlavor: Flavor { flavor() }
+
+    static func flavor(for capabilities: PlatformCapabilities = .current) -> Flavor {
+        capabilities.supportsOS26Translucency ? .liquid : .classic
     }
 
     /// Apply minimal, system-friendly global chrome. On OS 26 we avoid
     /// overriding system appearances per Apple guidance. On earlier OS versions,
     /// we set plain, opaque backgrounds to respect the classic, flat style.
-    static func applyGlobalChrome(theme: AppTheme, colorScheme: ColorScheme?) {
+    /// The supplied `platformCapabilities` snapshot ensures every scene makes
+    /// the same chrome decision without re-evaluating availability checks.
+    static func applyGlobalChrome(
+        theme: AppTheme,
+        colorScheme: ColorScheme?,
+        platformCapabilities: PlatformCapabilities = .current
+    ) {
         // Always prefer large titles so OS26 shows the big title on initial load.
         UINavigationBar.appearance().prefersLargeTitles = true
 
-        guard currentFlavor == .classic else { return }
+        guard !platformCapabilities.supportsOS26Translucency else { return }
 
         // UINavigationBar
         let navAppearance = UINavigationBarAppearance()

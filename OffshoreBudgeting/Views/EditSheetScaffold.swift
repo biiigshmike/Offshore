@@ -33,7 +33,7 @@ enum UBPresentationDetent: Equatable, Hashable {
 }
 
 // MARK: - EditSheetScaffold
-struct EditSheetScaffold<Content: View>: View {
+struct EditSheetScaffold<SheetContent: View>: View {
 
     // MARK: Inputs
     let title: String
@@ -44,7 +44,7 @@ struct EditSheetScaffold<Content: View>: View {
     let isSaveEnabled: Bool
     var onCancel: (() -> Void)?
     var onSave: () -> Bool
-    @ViewBuilder var content: Content
+    @ViewBuilder var content: SheetContent
 
     // MARK: Environment
     @Environment(\.dismiss) private var dismiss
@@ -65,7 +65,7 @@ struct EditSheetScaffold<Content: View>: View {
         isSaveEnabled: Bool = true,
         onCancel: (() -> Void)? = nil,
         onSave: @escaping () -> Bool,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: () -> SheetContent
     ) {
         self.title = title
         self.detents = detents

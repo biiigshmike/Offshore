@@ -131,7 +131,6 @@ struct AddPlannedExpenseView: View {
             // MARK: Category Selection
             UBFormSection("Category", isUppercased: true) {
                 CategoryChipsRow(selectedCategoryID: $vm.selectedCategoryID)
-                    .padding(.vertical, DS.Spacing.xs)
             }
             .ub_formSectionClearBackground()
             .accessibilityElement(children: .contain)
@@ -374,6 +373,8 @@ private struct CategoryChipsRow: View {
 
     @State private var isPresentingNewCategory = false
 
+    private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
+
     var body: some View {
         HStack(spacing: DS.Spacing.m) {
             AddCategoryPill { isPresentingNewCategory = true }
@@ -435,9 +436,9 @@ private struct CategoryChipsRow: View {
         .listRowBackground(Color.clear)
         .listRowInsets(
             EdgeInsets(
-                top: DS.Spacing.s,
+                top: verticalInset,
                 leading: DS.Spacing.l,
-                bottom: DS.Spacing.s,
+                bottom: verticalInset,
                 trailing: DS.Spacing.l
             )
         )

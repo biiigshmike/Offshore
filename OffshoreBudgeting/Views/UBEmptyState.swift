@@ -78,6 +78,8 @@ struct UBEmptyState: View {
 
     // MARK: Body
     var body: some View {
+        let localCapabilities = correctedCapabilities
+
         VStack(spacing: DS.Spacing.l) {
             // MARK: Icon
             Image(systemName: iconSystemName)
@@ -99,12 +101,17 @@ struct UBEmptyState: View {
 
             // MARK: Primary CTA (optional)
             if let primaryButtonTitle, let onPrimaryTap {
-                primaryButton(title: primaryButtonTitle, action: onPrimaryTap)
+                primaryButton(
+                    title: primaryButtonTitle,
+                    action: onPrimaryTap,
+                    capabilities: localCapabilities
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: containerAlignment)
         .padding(.horizontal, DS.Spacing.xl)
         .padding(.vertical, resolvedVerticalPadding)
+        .environment(\.platformCapabilities, localCapabilities)
     }
 
     private var resolvedVerticalPadding: CGFloat {
@@ -117,7 +124,11 @@ struct UBEmptyState: View {
 
     // MARK: Primary Button Helpers
     @ViewBuilder
-    private func primaryButton(title: String, action: @escaping () -> Void) -> some View {
+    private func primaryButton(
+        title: String,
+        action: @escaping () -> Void,
+        capabilities: PlatformCapabilities
+    ) -> some View {
         let fallbackTint = isOnboardingPresentation ? onboardingTint : primaryButtonTint
         let glassTint = isOnboardingPresentation ? onboardingTint : primaryButtonGlassTint
 
@@ -125,7 +136,8 @@ struct UBEmptyState: View {
             title: title,
             fallbackTint: fallbackTint,
             glassTint: glassTint,
-            action: action
+            action: action,
+            capabilities: capabilities
         )
     }
 
@@ -150,7 +162,8 @@ struct UBEmptyState: View {
         title: String,
         fallbackTint: Color,
         glassTint: Color,
-        action: @escaping () -> Void
+        action: @escaping () -> Void,
+        capabilities: PlatformCapabilities
     ) -> some View {
         if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             glassStyledPrimaryButton(title: title, glassTint: glassTint, action: action)
@@ -166,17 +179,26 @@ struct UBEmptyState: View {
         glassTint: Color,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: "plus")
-                .labelStyle(.titleAndIcon)
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                .foregroundStyle(primaryButtonForegroundColor())
-                .padding(.horizontal, DS.Spacing.xl)
-                .padding(.vertical, DS.Spacing.m)
+        let capsule = Capsule(style: .continuous)
+
+        GlassEffectContainer {
+            Button(action: action) {
+                Label(title, systemImage: "plus")
+                    .labelStyle(.titleAndIcon)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundStyle(primaryButtonForegroundColor())
+                    .padding(.horizontal, DS.Spacing.xl)
+                    .padding(.vertical, DS.Spacing.m)
+            }
+            .tint(glassTint)
+            .buttonStyle(.glass)
+            .frame(maxWidth: 320)
+            .glassEffect(.regular.tint(glassTint).interactive(), in: capsule)
         }
-        .tint(glassTint)
-        .buttonStyle(.glass)
-        .frame(maxWidth: 320)
+    }
+
+    private var correctedCapabilities: PlatformCapabilities {
+        capabilities.correctingForLiquidGlassIfNeeded(component: "UBEmptyState")
     }
 
     @Environment(\.verticalSizeClass) private var verticalSizeClass

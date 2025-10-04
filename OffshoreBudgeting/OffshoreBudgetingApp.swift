@@ -27,6 +27,7 @@ struct OffshoreBudgetingApp: App {
         CoreDataService.shared.ensureLoaded()
         UITestDataSeeder.applyIfNeeded()
         cardPickerStore.start()
+        logPlatformCapabilities()
         // No macOS-specific setup required at the moment.
         // Reduce the chance of text truncation across the app by allowing
         // UILabel-backed Text views to shrink when space is constrained.
@@ -97,6 +98,17 @@ struct OffshoreBudgetingApp: App {
             .ub_onChange(of: themeManager.selectedTheme) {
                 SystemThemeAdapter.applyGlobalChrome(theme: themeManager.selectedTheme, colorScheme: systemColorScheme)
             }
+    }
+
+    private func logPlatformCapabilities() {
+        let osVersion = ProcessInfo.processInfo.operatingSystemVersion
+        let versionString = "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
+        let runtimeVersion = ProcessInfo.processInfo.environment["SIMULATOR_RUNTIME_VERSION"] ?? "n/a"
+        AppLog.ui.info(
+            "PlatformCapabilities.current supportsOS26Translucency=\(platformCapabilities.supportsOS26Translucency, privacy: .public) " +
+            "supportsAdaptiveKeypad=\(platformCapabilities.supportsAdaptiveKeypad, privacy: .public) " +
+            "osVersion=\(versionString, privacy: .public) runtimeVersion=\(runtimeVersion, privacy: .public)"
+        )
     }
 
 #if targetEnvironment(macCatalyst)

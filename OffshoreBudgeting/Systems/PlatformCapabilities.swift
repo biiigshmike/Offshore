@@ -51,7 +51,7 @@ extension PlatformCapabilities {
     private static func resolveOS26TranslucencySupport() -> Bool {
 #if targetEnvironment(macCatalyst)
         if #available(macCatalyst 26.0, *) { return true }
-        return false
+        return fallbackMacCatalyst26Support()
 #elseif os(macOS)
         if #available(macOS 26.0, *) { return true }
         return false
@@ -62,6 +62,38 @@ extension PlatformCapabilities {
         return false
 #endif
     }
+
+#if targetEnvironment(macCatalyst)
+    /// Some early macCatalyst 26 runtimes may not satisfy the availability
+    /// checks that Xcode bakes into the binary. As a safety net, inspect the
+    /// host's `ProcessInfo` so modern macOS 15+ builds still opt into glass.
+    private static func fallbackMacCatalyst26Support(
+        processInfo: ProcessInfo = .processInfo
+    ) -> Bool {
+        if processInfo.isOperatingSystemAtLeast(
+            OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0)
+        ) {
+            return true
+        }
+
+        if let runtimeVersion = processInfo.environment["SIMULATOR_RUNTIME_VERSION"],
+           runtimeVersionIndicatesOS26(runtimeVersion) {
+            return true
+        }
+
+        return false
+    }
+
+    /// Returns `true` when the Simulator runtime string maps to the iOS 26
+    /// family (e.g. `"26.0"`, `"26.1"`).
+    private static func runtimeVersionIndicatesOS26(_ version: String) -> Bool {
+        guard let majorComponent = version.split(separator: ".").first,
+              let major = Int(majorComponent) else {
+            return false
+        }
+        return major >= 26
+    }
+#endif
 
     /// Baseline set of capabilities used as a default value in the environment.
     static let fallback = PlatformCapabilities(supportsOS26Translucency: false, supportsAdaptiveKeypad: false)

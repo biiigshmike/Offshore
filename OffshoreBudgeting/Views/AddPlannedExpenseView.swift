@@ -432,6 +432,15 @@ private struct CategoryChipsRow: View {
                 }
             }
         }
+        .listRowBackground(Color.clear)
+        .listRowInsets(
+            EdgeInsets(
+                top: DS.Spacing.s,
+                leading: DS.Spacing.l,
+                bottom: DS.Spacing.s,
+                trailing: DS.Spacing.l
+            )
+        )
         .sheet(isPresented: $isPresentingNewCategory) {
             ExpenseCategoryEditorSheet(
                 initialName: "",

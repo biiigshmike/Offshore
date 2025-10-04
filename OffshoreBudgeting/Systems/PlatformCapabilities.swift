@@ -19,15 +19,11 @@ extension PlatformCapabilities {
     /// Snapshot the current process' capabilities using the most specific
     /// availability information we have at launch.
     static var current: PlatformCapabilities {
-        var supportsModernTranslucency: Bool
         // Liquid Glass is available starting with the OS 26 system releases.
-        // Align the feature gate to iOS/macCatalyst 26 so "modern translucency"
-        // only activates when native Liquid Glass APIs are present.
-        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            supportsModernTranslucency = true
-        } else {
-            supportsModernTranslucency = false
-        }
+        // Align the feature gate to each platform's modern availability so the
+        // macCatalyst runtime on macOS 26 correctly opts into glass alongside
+        // iOS/iPadOS peers.
+        var supportsModernTranslucency = resolveOS26TranslucencySupport()
 
         #if DEBUG
         // Developer / QA override to simulate legacy behaviour on devices
@@ -52,6 +48,24 @@ extension PlatformCapabilities {
         )
     }
 
+    private static func resolveOS26TranslucencySupport() -> Bool {
+#if targetEnvironment(macCatalyst)
+        if #available(macCatalyst 26.0, *) { return true }
+        return false
+#elseif os(macOS)
+        if #available(macOS 26.0, *) { return true }
+        return false
+#elseif os(iOS)
+        if #available(iOS 26.0, *) { return true }
+        return false
+#elseif os(visionOS)
+        if #available(visionOS 2.0, *) { return true }
+        return false
+#else
+        return false
+#endif
+    }
+
     /// Baseline set of capabilities used as a default value in the environment.
     static let fallback = PlatformCapabilities(supportsOS26Translucency: false, supportsAdaptiveKeypad: false)
 }
@@ -68,3 +82,13 @@ extension EnvironmentValues {
         set { self[PlatformCapabilitiesKey.self] = newValue }
     }
 }
+
+#if DEBUG && LIQUID_GLASS_QA
+extension PlatformCapabilities {
+    func qaLogLiquidGlassDecision(component: String, path: String) {
+        AppLog.ui.debug(
+            "LiquidGlassQA component=\(component, privacy: .public) path=\(path, privacy: .public) supportsOS26Translucency=\(supportsOS26Translucency, privacy: .public)"
+        )
+    }
+}
+#endif

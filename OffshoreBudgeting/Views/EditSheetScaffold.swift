@@ -198,9 +198,17 @@ struct EditSheetScaffold<Content: View>: View {
                         configuration: glassConfiguration
                     )
             } else {
-                styledContent
-                    .toolbarBackground(.visible, for: .navigationBar)
-                    .toolbarBackground(.clear, for: .navigationBar)
+                if #available(iOS 16.0, macCatalyst 16.0, *) {
+                    styledContent
+                        .toolbarBackground(.visible, for: .navigationBar)
+                        .toolbarBackground(.clear, for: .navigationBar)
+                } else {
+                    styledContent
+                        .ub_navigationBackground(
+                            theme: theme,
+                            configuration: glassConfiguration
+                        )
+                }
             }
 #else
             styledContent

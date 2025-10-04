@@ -93,11 +93,12 @@ struct EditSheetScaffold<Content: View>: View {
                     }
                     // Save
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(saveButtonTitle) {
+                        ToolbarCTAButton(
+                            title: saveButtonTitle,
+                            isEnabled: isSaveEnabled
+                        ) {
                             if onSave() { dismiss() }
                         }
-                        .tint(themeManager.selectedTheme.resolvedTint)
-                        .disabled(!isSaveEnabled)
                     }
                 }
         }
@@ -170,6 +171,123 @@ struct EditSheetScaffold<Content: View>: View {
 
     // MARK: Detent selection binding (iOS only)
     private var detentSelectionBinding: Binding<UBPresentationDetent>? { $detentSelection }
+}
+
+// MARK: - ToolbarCTAButton
+@MainActor
+private struct ToolbarCTAButton: View {
+    @Environment(\.platformCapabilities) private var capabilities
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.colorScheme) private var colorScheme
+
+    private let title: String
+    private let role: ButtonRole?
+    private let isEnabled: Bool
+    private let overrideTint: Color?
+    private let accessibilityIdentifier: String?
+    private let action: () -> Void
+
+    init(
+        title: String,
+        role: ButtonRole? = nil,
+        isEnabled: Bool = true,
+        tint: Color? = nil,
+        accessibilityIdentifier: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.role = role
+        self.isEnabled = isEnabled
+        self.overrideTint = tint
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.action = action
+    }
+
+    @ViewBuilder
+    var body: some View {
+        if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+#if DEBUG && LIQUID_GLASS_QA
+            capabilities.qaLogLiquidGlassDecision(component: "ToolbarCTAButton", path: "glass")
+#endif
+            baseButton(glassPath: true)
+                .buttonStyle(.glass)
+                .buttonBorderShape(.capsule)
+                .tint(glassTint)
+                .glassEffect(
+                    .regular.tint(glassTint).interactive(),
+                    in: Capsule(style: .continuous)
+                )
+        } else {
+#if DEBUG && LIQUID_GLASS_QA
+            capabilities.qaLogLiquidGlassDecision(component: "ToolbarCTAButton", path: "legacy")
+#endif
+            baseButton(glassPath: false)
+                .buttonStyle(
+                    TranslucentButtonStyle(
+                        tint: resolvedTint,
+                        metrics: .rootActionLabel,
+                        appearance: .tinted
+                    )
+                )
+                .tint(resolvedTint)
+        }
+    }
+
+    @ViewBuilder
+    private func baseButton(glassPath: Bool) -> some View {
+        Button(role: role) {
+            action()
+        } label: {
+            labelContent(glassPath: glassPath)
+        }
+        .disabled(!isEnabled)
+        .optionalAccessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    @ViewBuilder
+    private func labelContent(glassPath: Bool) -> some View {
+        let base = Text(title)
+            .font(labelFont)
+            .padding(.horizontal, labelHorizontalPadding)
+            .padding(.vertical, labelVerticalPadding)
+            .frame(width: labelWidth, height: labelHeight)
+            .contentShape(Capsule(style: .continuous))
+            .lineLimit(1)
+
+        if glassPath {
+            base.foregroundStyle(glassLabelForeground)
+        } else {
+            base
+        }
+    }
+
+    private var labelFont: Font {
+        Self.labelMetrics.font ?? .system(size: 17, weight: .semibold, design: .rounded)
+    }
+
+    private var labelWidth: CGFloat? { Self.labelMetrics.width }
+
+    private var labelHeight: CGFloat {
+        Self.labelMetrics.height ?? 44
+    }
+
+    private var labelHorizontalPadding: CGFloat { Self.labelMetrics.horizontalPadding }
+
+    private var labelVerticalPadding: CGFloat { Self.labelMetrics.verticalPadding }
+
+    private var resolvedTint: Color {
+        overrideTint ?? themeManager.selectedTheme.resolvedTint
+    }
+
+    private var glassTint: Color {
+        overrideTint ?? themeManager.selectedTheme.glassPalette.accent
+    }
+
+    private var glassLabelForeground: Color {
+        colorScheme == .light ? .black : .primary
+    }
+
+    private static let labelMetrics = TranslucentButtonStyle.Metrics.rootActionLabel
 }
 
 // MARK: - Detents application helper

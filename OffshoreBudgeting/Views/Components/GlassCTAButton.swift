@@ -32,9 +32,15 @@ struct GlassCTAButton<Label: View>: View {
         self.fallbackMetrics = fallbackMetrics
     }
 
+    private var correctedCapabilities: PlatformCapabilities {
+        capabilities.correctingForLiquidGlassIfNeeded(component: "GlassCTAButton")
+    }
+
     var body: some View {
-        Group {
-            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+        let localCapabilities = correctedCapabilities
+
+        return Group {
+            if localCapabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
 #if DEBUG && LIQUID_GLASS_QA
                 capabilities.qaLogLiquidGlassDecision(component: "GlassCTAButton", path: "glass")
 #endif
@@ -47,6 +53,7 @@ struct GlassCTAButton<Label: View>: View {
             }
         }
         .frame(maxWidth: resolvedMaxWidth)
+        .environment(\.platformCapabilities, localCapabilities)
     }
 
     // MARK: - Private Helpers
@@ -67,16 +74,21 @@ struct GlassCTAButton<Label: View>: View {
     @available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *)
     @ViewBuilder
     private func glassButton() -> some View {
-        Button(action: action) {
-            labelBuilder()
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                .foregroundStyle(glassLabelForeground)
-                .padding(.horizontal, DS.Spacing.xl)
-                .padding(.vertical, DS.Spacing.m)
-                .frame(maxWidth: fillHorizontally ? .infinity : nil, alignment: .center)
+        let capsule = Capsule(style: .continuous)
+
+        GlassEffectContainer {
+            Button(action: action) {
+                labelBuilder()
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundStyle(glassLabelForeground)
+                    .padding(.horizontal, DS.Spacing.xl)
+                    .padding(.vertical, DS.Spacing.m)
+            }
+            .frame(maxWidth: fillHorizontally ? .infinity : nil, alignment: .center)
+            .buttonStyle(.glass)
+            .tint(glassTint)
+            .glassEffect(.regular.tint(glassTint).interactive(), in: capsule)
         }
-        .buttonStyle(.glass)
-        .tint(glassTint)
     }
 
     private var fallbackTint: Color {

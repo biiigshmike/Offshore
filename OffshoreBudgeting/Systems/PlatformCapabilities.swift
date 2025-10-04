@@ -101,6 +101,39 @@ extension PlatformCapabilities {
 
 // MARK: - Environment support
 
+extension PlatformCapabilities {
+    /// Verifies the OS 26 translucent toggle is enabled for the supplied
+    /// component. When we detect a modern OS but the capability evaluates to
+    /// `false`, log the mismatch and return a corrected copy so downstream
+    /// views can still opt into Liquid Glass.
+    ///
+    /// Temporary instrumentation while we chase down remaining call sites that
+    /// might be missing the shared capability environment injection.
+    func correctingForLiquidGlassIfNeeded(component: String) -> PlatformCapabilities {
+        if supportsOS26Translucency {
+            AppLog.ui.info(
+                "LiquidGlassDiagnostics component=\(component, privacy: .public) supportsOS26Translucency=true"
+            )
+            return self
+        }
+
+        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            AppLog.ui.error(
+                "LiquidGlassDiagnostics component=\(component, privacy: .public) supportsOS26Translucency=false overriding=true"
+            )
+            return PlatformCapabilities(
+                supportsOS26Translucency: true,
+                supportsAdaptiveKeypad: supportsAdaptiveKeypad
+            )
+        }
+
+        AppLog.ui.info(
+            "LiquidGlassDiagnostics component=\(component, privacy: .public) supportsOS26Translucency=false (legacy path)"
+        )
+        return self
+    }
+}
+
 private struct PlatformCapabilitiesKey: EnvironmentKey {
     static let defaultValue: PlatformCapabilities = .fallback
 }

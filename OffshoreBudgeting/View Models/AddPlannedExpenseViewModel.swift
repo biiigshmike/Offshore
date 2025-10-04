@@ -28,6 +28,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
     @Published private(set) var allBudgets: [Budget] = []
     @Published private(set) var allCategories: [ExpenseCategory] = []
     @Published private(set) var allCards: [Card] = []
+    @Published private(set) var cardsLoaded = false
 
     // MARK: Live Updates
     /// Listens for Core Data changes and reloads cards/categories/budgets on demand.
@@ -63,6 +64,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
 
     // MARK: load()
     func load() async {
+        cardsLoaded = false
         CoreDataService.shared.ensureLoaded()
         allBudgets = fetchBudgets()
         allCategories = fetchCategories()
@@ -103,8 +105,11 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                 self.allCards = self.fetchCards()
                 self.allCategories = self.fetchCategories()
                 self.allBudgets = self.fetchBudgets()
+                self.cardsLoaded = true
             }
         }
+
+        cardsLoaded = true
     }
 
     // MARK: Validation

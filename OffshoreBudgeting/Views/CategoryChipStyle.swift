@@ -48,19 +48,24 @@ struct CategoryChipStyle {
             fallbackOpacity: 0.22
         )
 
-        let selectionStroke = tintedColor(
-            baseNeutral: DS.Colors.chipSelectedStroke,
-            accent: categoryColor,
-            fraction: 0.65,
-            colorScheme: colorScheme,
-            fallbackOpacity: 0.75
-        )
+        let selectionStroke: Color
+        #if canImport(UIKit)
+        if #available(iOS 14.0, macCatalyst 14.0, *) {
+            let traitCollection = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
+            let resolvedColor = UIColor(categoryColor).resolvedColor(with: traitCollection)
+            selectionStroke = Color(uiColor: resolvedColor).opacity(0.9)
+        } else {
+            selectionStroke = categoryColor.opacity(0.9)
+        }
+        #else
+        selectionStroke = categoryColor.opacity(0.9)
+        #endif
 
         return CategoryChipStyle(
             scale: 1.0,
             fallbackTextColor: .primary,
             fallbackFill: selectionFill,
-            fallbackStroke: Stroke(color: selectionStroke, lineWidth: 1.5),
+            fallbackStroke: Stroke(color: selectionStroke, lineWidth: 2),
             glassTextColor: .primary,
             glassStroke: Stroke(color: selectionStroke, lineWidth: 2),
             shadowColor: .clear,

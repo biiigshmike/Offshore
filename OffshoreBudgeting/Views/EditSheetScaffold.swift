@@ -49,6 +49,7 @@ struct EditSheetScaffold<Content: View>: View {
     // MARK: Environment
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.platformCapabilities) private var capabilities
 
     // Selection state for detents (compat type)
     @State private var detentSelection: UBPresentationDetent
@@ -155,13 +156,39 @@ struct EditSheetScaffold<Content: View>: View {
     }
 
     // MARK: Row Background
+    @ViewBuilder
     private var rowBackground: some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
+        if capabilities.supportsOS26Translucency,
+           #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            glassRowBackground
+        } else {
+            legacyRowBackground
+        }
+    }
+
+    @available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *)
+    private var glassRowBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous)
+
+        return shape
+            .fill(glassRowFill)
+            .glassEffect(.regular.interactive(), in: shape)
+    }
+
+    private var glassRowFill: Color {
+        themeManager.selectedTheme.secondaryBackground.opacity(0.6)
+    }
+
+    private var legacyRowBackground: some View {
+        RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous)
             .fill(themeManager.selectedTheme.secondaryBackground)
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous)
                     .stroke(separatorColor, lineWidth: 1)
             )
+    }
+
+    private var rowCornerRadius: CGFloat { 8 }
     }
 
     private var separatorColor: Color {

@@ -295,6 +295,15 @@ private struct CategoryChipsRow: View {
             // Hide scroll indicators consistently across platforms
             .ub_hideScrollIndicators()
         }
+        .listRowBackground(Color.clear)
+        .listRowInsets(
+            EdgeInsets(
+                top: DS.Spacing.s,
+                leading: DS.Spacing.l,
+                bottom: DS.Spacing.s,
+                trailing: DS.Spacing.l
+            )
+        )
         .sheet(isPresented: $isPresentingNewCategory) {
             // Build as a single expression to avoid opaque 'some View' type mismatches.
             let base = ExpenseCategoryEditorSheet(

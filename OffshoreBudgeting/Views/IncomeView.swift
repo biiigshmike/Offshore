@@ -159,6 +159,10 @@ struct IncomeView: View {
 
     private let landscapeLayoutMinimumWidth: CGFloat = 780
     private let landscapeSummarySpansFullWidth: Bool = true
+    private let landscapeCalendarWidthFractionRange: ClosedRange<CGFloat> = 0.52...0.62
+    private let landscapeCalendarFractionExpansionRange: CGFloat = 800
+    private let landscapeCalendarMinimumWidth: CGFloat = 360
+    private let landscapeDetailMinimumWidth: CGFloat = 340
 
     private struct IncomeCardHeights {
         let calendar: CGFloat
@@ -263,22 +267,21 @@ struct IncomeView: View {
         )
         let calendarChromeHeight = navigationButtonRowHeight + CalendarSectionMetrics.headerSpacing + (calendarSectionContentPadding * 2)
         let minimumCalendarCardHeight = minimums.calendar + calendarChromeHeight
-        let sharedTargetHeight = max(
-            heights.summary,
-            heights.selected,
-            minimums.selected,
-            minimums.summary,
+        let resolvedCalendarTotalHeight = max(
             minimumCalendarCardHeight,
             heights.calendar + calendarChromeHeight
         )
-        let calendarCardHeight = max(sharedTargetHeight - calendarChromeHeight, minimums.calendar)
+        let calendarCardHeight = max(resolvedCalendarTotalHeight - calendarChromeHeight, minimums.calendar)
         let horizontalPadding = horizontalInset * 2
         let columnSpacing = DS.Spacing.l
         let availableWidth = max(proxy.layoutContext.containerSize.width - horizontalPadding - columnSpacing, 0)
-        let calendarFraction: CGFloat = 0.58
-        let calendarWidth = max(availableWidth * calendarFraction, 0)
-
-        let summaryTargetHeight = max(heights.summary, minimums.summary, sharedTargetHeight)
+        let calendarWidth = resolveLandscapeCalendarWidth(using: proxy, availableWidth: availableWidth)
+        let selectedContentTargetHeight = max(
+            heights.selected,
+            minimums.selected,
+            max(resolvedCalendarTotalHeight - (DS.Spacing.l * 2), 0)
+        )
+        let summaryContentTargetHeight = max(heights.summary, minimums.summary)
 
         return Group {
             if landscapeSummarySpansFullWidth {
@@ -287,14 +290,13 @@ struct IncomeView: View {
                         calendarSection(using: proxy, cardHeight: calendarCardHeight)
                             .frame(width: calendarWidth, alignment: .top)
 
-                        selectedDaySection(minHeight: minimums.selected)
+                        selectedDaySection(minHeight: selectedContentTargetHeight)
                             .frame(maxWidth: .infinity, alignment: .top)
-                            .frame(height: sharedTargetHeight, alignment: .top)
                     }
 
                     weeklySummaryBar(minHeight: minimums.summary)
                         .frame(maxWidth: .infinity, alignment: .top)
-                        .frame(height: summaryTargetHeight, alignment: .top)
+                        .frame(minHeight: summaryContentTargetHeight, alignment: .top)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -303,13 +305,12 @@ struct IncomeView: View {
                         .frame(width: calendarWidth, alignment: .top)
 
                     VStack(spacing: DS.Spacing.m) {
-                        selectedDaySection(minHeight: minimums.selected)
+                        selectedDaySection(minHeight: selectedContentTargetHeight)
                             .frame(maxWidth: .infinity, alignment: .top)
-                            .frame(height: sharedTargetHeight, alignment: .top)
 
                         weeklySummaryBar(minHeight: minimums.summary)
                             .frame(maxWidth: .infinity, alignment: .top)
-                            .frame(height: sharedTargetHeight, alignment: .top)
+                            .frame(minHeight: summaryContentTargetHeight, alignment: .top)
                     }
                     .frame(maxWidth: .infinity, alignment: .top)
                 }
@@ -329,6 +330,28 @@ struct IncomeView: View {
             minHeight: minimumNonScrollingHeight(using: proxy, tabBarGutter: gutter),
             alignment: .top
         )
+    }
+
+    private func resolveLandscapeCalendarWidth(using proxy: RootTabPageProxy, availableWidth: CGFloat) -> CGFloat {
+        guard availableWidth > 0 else { return 0 }
+
+        let containerWidth = proxy.layoutContext.containerSize.width
+        let widthProgress = max(
+            min((containerWidth - landscapeLayoutMinimumWidth) / landscapeCalendarFractionExpansionRange, 1),
+            0
+        )
+        let fractionDelta = landscapeCalendarWidthFractionRange.upperBound - landscapeCalendarWidthFractionRange.lowerBound
+        let dynamicFraction = landscapeCalendarWidthFractionRange.lowerBound + (fractionDelta * widthProgress)
+        let preferredWidth = availableWidth * dynamicFraction
+
+        let minimumCalendarWidth = min(landscapeCalendarMinimumWidth, availableWidth)
+        let maximumCalendarWidth = min(
+            max(availableWidth - landscapeDetailMinimumWidth, minimumCalendarWidth),
+            availableWidth
+        )
+        let clampedWidth = min(max(preferredWidth, minimumCalendarWidth), maximumCalendarWidth)
+
+        return clampedWidth
     }
 
     private func nonScrollingLayout(using proxy: RootTabPageProxy, availableHeight: CGFloat) -> some View {

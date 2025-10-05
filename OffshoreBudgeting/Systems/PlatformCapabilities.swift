@@ -112,7 +112,6 @@ extension EnvironmentValues {
     }
 }
 
-#if DEBUG && LIQUID_GLASS_QA
 extension PlatformCapabilities {
     func qaLogLiquidGlassDecision(component: String, path: String) {
         AppLog.ui.debug(
@@ -120,4 +119,3 @@ extension PlatformCapabilities {
         )
     }
 }
-#endif

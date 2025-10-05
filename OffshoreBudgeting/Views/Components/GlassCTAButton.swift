@@ -34,17 +34,7 @@ struct GlassCTAButton<Label: View>: View {
 
     var body: some View {
         Group {
-            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-#if DEBUG && LIQUID_GLASS_QA
-                capabilities.qaLogLiquidGlassDecision(component: "GlassCTAButton", path: "glass")
-#endif
-                glassButton()
-            } else {
-#if DEBUG && LIQUID_GLASS_QA
-                capabilities.qaLogLiquidGlassDecision(component: "GlassCTAButton", path: "legacy")
-#endif
-                legacyButton()
-            }
+            glassButton()
         }
         .frame(maxWidth: resolvedMaxWidth)
     }
@@ -64,39 +54,19 @@ struct GlassCTAButton<Label: View>: View {
         )
     }
 
-    @available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *)
     @ViewBuilder
     private func glassButton() -> some View {
-        if shouldUseSystemGlassStyle {
-            systemGlassButton()
+        if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            capabilities.qaLogLiquidGlassDecision(component: "GlassCTAButton", path: "glass")
+            Button(action: action) {
+                buttonLabel()
+            }
+            .buttonStyle(.glass)
+            .tint(glassTint)
         } else {
-            flatLightingButton()
+            capabilities.qaLogLiquidGlassDecision(component: "GlassCTAButton", path: "legacy")
+            legacyButton()
         }
-    }
-
-    @available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *)
-    @ViewBuilder
-    private func systemGlassButton() -> some View {
-        Button(action: action) {
-            buttonLabel()
-        }
-        .buttonStyle(.glass)
-        .tint(glassTint)
-    }
-
-    @available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *)
-    @ViewBuilder
-    private func flatLightingButton() -> some View {
-        Button(action: action) {
-            buttonLabel()
-        }
-        .buttonStyle(
-            TranslucentButtonStyle(
-                tint: glassTint,
-                metrics: flatLightingMetrics,
-                appearance: .tinted
-            )
-        )
     }
 
     @ViewBuilder
@@ -119,21 +89,6 @@ struct GlassCTAButton<Label: View>: View {
 
     private var glassLabelForeground: Color {
         colorScheme == .light ? .black : .primary
-    }
-
-    private var shouldUseSystemGlassStyle: Bool {
-        let glass = themeManager.glassConfiguration.glass
-        return glass.shadowOpacity > 0 && glass.shadowBlur > 0
-    }
-
-    private var flatLightingMetrics: TranslucentButtonStyle.Metrics {
-        var metrics = TranslucentButtonStyle.Metrics.standard
-        metrics.horizontalPadding = 0
-        metrics.verticalPadding = 0
-        metrics.overridesLabelForeground = false
-        metrics.pressedScale = 0.97
-        metrics.font = nil
-        return metrics
     }
 
     private var resolvedFallbackMetrics: TranslucentButtonStyle.Metrics {

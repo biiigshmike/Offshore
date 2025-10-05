@@ -243,10 +243,16 @@ private struct CategoryChipsRow: View {
     private let chipRowClipShape = Rectangle()
 
     var body: some View {
-        Group {
-            addCategoryButtonRow
-            categoryChipsListRow
+        UBFormRow {
+            HStack(spacing: DS.Spacing.s) {
+                addCategoryButton
+                chipsScrollContainer()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
+        .listRowInsets(rowInsets)
+        .listRowSeparator(.hidden)
         .sheet(isPresented: $isPresentingNewCategory) {
             // Build as a single expression to avoid opaque 'some View' type mismatches.
             let base = ExpenseCategoryEditorSheet(
@@ -285,19 +291,6 @@ private struct CategoryChipsRow: View {
                 selectedCategoryID = first.objectID
             }
         }
-    }
-
-    private var addCategoryButtonRow: some View {
-        addCategoryButton
-            .padding(.horizontal, DS.Spacing.s)
-            .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
-            .listRowInsets(rowInsets)
-    }
-
-    private var categoryChipsListRow: some View {
-        chipsScrollContainer()
-            .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
-            .listRowInsets(rowInsets)
     }
 
     private var rowInsets: EdgeInsets {
@@ -362,9 +355,10 @@ private extension CategoryChipsRow {
     }
 
     private var addCategoryButton: some View {
-        AddCategoryPill(fillsWidth: true) {
+        AddCategoryPill {
             isPresentingNewCategory = true
         }
+        .padding(.leading, DS.Spacing.s)
     }
 }
 

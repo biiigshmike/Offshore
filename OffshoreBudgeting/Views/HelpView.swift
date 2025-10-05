@@ -62,7 +62,7 @@ struct HelpView: View {
     private var intro: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Welcome to Offshore Budgeting! This guide highlights the app's major areas so you can quickly build budgets, track income, and log expenses across platforms.")
+                Text("Welcome to Offshore Budgeting, the budgeting app where all data is processed on your device and where you will never be asked to enter bank account information to budget and track expenses. This guide highlights the app's major areas so you can quickly build budgets, track income, and log expenses across platforms.")
             }
             .padding()
             .navigationTitle("Introduction")

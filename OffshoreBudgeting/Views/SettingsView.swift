@@ -27,6 +27,7 @@ struct SettingsView: View {
     @State private var availabilityCancellable: AnyCancellable?
     @State private var cloudAvailability: CloudAccountStatusProvider.Availability = .unknown
     @State private var showResetAlert: Bool = false
+    @State private var wipeResultAlert: WipeResultAlert?
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
     @AppStorage("UBForceLegacyChrome") private var forceLegacyChrome: Bool = false
 
@@ -47,11 +48,18 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .alert("Erase All Data?", isPresented: $showResetAlert) {
             Button("Erase", role: .destructive) {
-                try? CoreDataService.shared.wipeAllData()
+                performDataWipe()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will remove all budgets, cards, incomes, and expenses. This action cannot be undone.")
+        }
+        .alert(item: $wipeResultAlert) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                dismissButton: .default(Text("OK"))
+            )
         }
         .task {
             if viewModel.enableCloudSync {
@@ -380,6 +388,46 @@ struct SettingsView: View {
             // remains fully visible above the opaque tab bar.
             let required = tabChromeHeight + proxy.safeAreaBottomInset
             return max(required + base - gutter, 0)
+        }
+    }
+
+    @MainActor
+    private func performDataWipe() {
+        do {
+            try CoreDataService.shared.wipeAllData()
+            AppLog.ui.info("SettingsView successfully wiped all Core Data stores")
+            wipeResultAlert = .success
+        } catch {
+            AppLog.ui.error("SettingsView wipeAllData failed: \(error.localizedDescription)")
+            wipeResultAlert = .failure(errorDescription: error.localizedDescription)
+        }
+    }
+
+    private struct WipeResultAlert: Identifiable {
+        enum Kind {
+            case success
+            case failure
+        }
+
+        let id = UUID()
+        let kind: Kind
+        let title: String
+        let message: String
+
+        static var success: WipeResultAlert {
+            WipeResultAlert(
+                kind: .success,
+                title: "Data Erased",
+                message: "All budgets, cards, incomes, and expenses have been removed."
+            )
+        }
+
+        static func failure(errorDescription: String) -> WipeResultAlert {
+            WipeResultAlert(
+                kind: .failure,
+                title: "Erase Failed",
+                message: "We couldn't remove your data. \(errorDescription)"
+            )
         }
     }
 

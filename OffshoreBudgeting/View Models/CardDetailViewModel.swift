@@ -51,10 +51,27 @@ enum CardDetailLoadState: Equatable {
     case error(String)
 }
 
+enum CardDetailViewModelError: LocalizedError {
+    case missingObjectID
+    case expenseNotFound
+    case unsupportedExpenseType
+
+    var errorDescription: String? {
+        switch self {
+        case .missingObjectID:
+            return "This expense could not be identified for deletion."
+        case .expenseNotFound:
+            return "The expense could not be found. It may have already been removed."
+        case .unsupportedExpenseType:
+            return "This expense could not be deleted because its data type was unexpected."
+        }
+    }
+}
+
 // MARK: - CardDetailViewModel
 @MainActor
 final class CardDetailViewModel: ObservableObject {
-    
+
     // MARK: Inputs
     let card: CardItem
     let allowedInterval: DateInterval?   // nil = all time
@@ -62,6 +79,7 @@ final class CardDetailViewModel: ObservableObject {
     // MARK: Services
     private let unplannedService = UnplannedExpenseService()
     private let plannedService = PlannedExpenseService()
+    private let viewContext: NSManagedObjectContext
     
     // MARK: Outputs
     @Published var state: CardDetailLoadState = .initial
@@ -91,9 +109,10 @@ final class CardDetailViewModel: ObservableObject {
     }
     
     // MARK: Init
-    init(card: CardItem, allowedInterval: DateInterval? = nil) {
+    init(card: CardItem, allowedInterval: DateInterval? = nil, context: NSManagedObjectContext = CoreDataService.shared.viewContext) {
         self.card = card
         self.allowedInterval = allowedInterval
+        self.viewContext = context
     }
     
     // MARK: load()
@@ -102,7 +121,14 @@ final class CardDetailViewModel: ObservableObject {
             state = .error("Missing card ID")
             return
         }
-        state = .loading
+        let shouldShowLoadingState: Bool
+        switch state {
+        case .initial, .loading, .error:
+            shouldShowLoadingState = true
+        default:
+            shouldShowLoadingState = false
+        }
+        if shouldShowLoadingState { state = .loading }
         do {
             let unplanned = try unplannedService.fetchForCard(uuid, in: allowedInterval, sortedByDateAscending: false)
             let planned: [PlannedExpense]
@@ -157,6 +183,63 @@ final class CardDetailViewModel: ObservableObject {
             state = .loaded(total: total, categories: categories, expenses: combined)
         } catch {
             state = .error(error.localizedDescription)
+        }
+    }
+
+    func delete(expense: CardExpense) async throws {
+        guard let objectID = expense.objectID else {
+            AppLog.ui.error("CardDetailViewModel.delete missing objectID for expense id=\(expense.id)")
+            throw CardDetailViewModelError.missingObjectID
+        }
+
+        do {
+            let managedObject: NSManagedObject
+            do {
+                managedObject = try viewContext.existingObject(with: objectID)
+            } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == CocoaError.Code.managedObjectNotFound.rawValue {
+                AppLog.ui.error("CardDetailViewModel.delete missing managed object for id=\(objectID)")
+                throw CardDetailViewModelError.expenseNotFound
+            }
+
+            if expense.isPlanned {
+                guard let planned = managedObject as? PlannedExpense else {
+                    AppLog.ui.error("CardDetailViewModel.delete unexpected managed object type for planned expense: \(type(of: managedObject))")
+                    throw CardDetailViewModelError.unsupportedExpenseType
+                }
+                try plannedService.delete(planned)
+            } else {
+                guard let unplanned = managedObject as? UnplannedExpense else {
+                    AppLog.ui.error("CardDetailViewModel.delete unexpected managed object type for unplanned expense: \(type(of: managedObject))")
+                    throw CardDetailViewModelError.unsupportedExpenseType
+                }
+                try unplannedService.delete(unplanned)
+            }
+
+            if viewContext.hasChanges {
+                try viewContext.save()
+            }
+
+            if case .loaded(_, _, var expenses) = state,
+               let index = expenses.firstIndex(of: expense) {
+                expenses.remove(at: index)
+                if expenses.isEmpty {
+                    withAnimation { state = .empty }
+                } else {
+                    let total = expenses.reduce(0) { $0 + $1.amount }
+                    let categories = buildCategories(from: expenses)
+                    withAnimation {
+                        state = .loaded(total: total, categories: categories, expenses: expenses)
+                    }
+                }
+            } else {
+                await load()
+            }
+        } catch let error as CardDetailViewModelError {
+            AppLog.ui.error("CardDetailViewModel.delete error: \(error.localizedDescription)")
+            throw error
+        } catch {
+            AppLog.ui.error("CardDetailViewModel.delete error: \(error.localizedDescription)")
+            throw error
         }
     }
 

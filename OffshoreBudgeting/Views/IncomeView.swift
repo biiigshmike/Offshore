@@ -126,9 +126,9 @@ struct IncomeView: View {
             TranslucentButtonStyle.Metrics.calendarNavigationIcon.height ?? 0,
             TranslucentButtonStyle.Metrics.calendarNavigationLabel.height ?? 0
         )
-        static let headerSpacing: CGFloat = DS.Spacing.s
+        static let headerSpacing: CGFloat = DS.Spacing.m
         static let calendarGrid = CalendarGridMetrics(
-            headerHeight: DS.Spacing.xl + DS.Spacing.s + DS.Spacing.l,
+            headerHeight: DS.Spacing.xxl + DS.Spacing.l,
             compactRowHeight: DS.Spacing.xl + DS.Spacing.m,
             regularRowHeight: DS.Spacing.xl + DS.Spacing.l,
             rowCount: 6
@@ -144,6 +144,10 @@ struct IncomeView: View {
     }
 
     private let calendarSectionContentPadding: CGFloat = 10
+
+    private func calendarChromeHeight() -> CGFloat {
+        navigationButtonRowHeight + CalendarSectionMetrics.headerSpacing + (calendarSectionContentPadding * 2)
+    }
 
     private func minimumCardHeights(using proxy: RootTabPageProxy?) -> IncomeCardHeights {
         IncomeCardHeights(
@@ -261,17 +265,17 @@ struct IncomeView: View {
             minimums: minimums,
             splitExtraEvenly: true
         )
-        let calendarChromeHeight = navigationButtonRowHeight + CalendarSectionMetrics.headerSpacing + (calendarSectionContentPadding * 2)
-        let minimumCalendarCardHeight = minimums.calendar + calendarChromeHeight
+        let chromeHeight = calendarChromeHeight()
+        let minimumCalendarCardHeight = minimums.calendar + chromeHeight
         let sharedTargetHeight = max(
             heights.summary,
             heights.selected,
             minimums.selected,
             minimums.summary,
             minimumCalendarCardHeight,
-            heights.calendar + calendarChromeHeight
+            heights.calendar + chromeHeight
         )
-        let calendarCardHeight = max(sharedTargetHeight - calendarChromeHeight, minimums.calendar)
+        let calendarCardHeight = max(sharedTargetHeight - chromeHeight, minimums.calendar)
         let horizontalPadding = horizontalInset * 2
         let columnSpacing = DS.Spacing.l
         let availableWidth = max(proxy.layoutContext.containerSize.width - horizontalPadding - columnSpacing, 0)
@@ -406,7 +410,8 @@ struct IncomeView: View {
         let minimums = providedMinimums ?? minimumCardHeights(using: proxy)
         let bottomPadding = proxy.tabBarGutterSpacing(tabBarGutter)
         let availableContentHeight = max(availableHeight - bottomPadding, 0)
-        let minimumLayoutHeight = minimums.calendar + minimums.selected + minimums.summary + cardSpacing
+        let chromeHeight = calendarChromeHeight()
+        let minimumLayoutHeight = minimums.calendar + minimums.selected + minimums.summary + cardSpacing + chromeHeight
         let adjustedHeight = max(availableContentHeight, minimumLayoutHeight)
         let extra = max(adjustedHeight - minimumLayoutHeight, 0)
 
@@ -422,7 +427,7 @@ struct IncomeView: View {
 
         let calendar = minimums.calendar + (extra * 0.22)
         let summary = minimums.summary + (extra * 0.08)
-        let selected = adjustedHeight - calendar - summary - cardSpacing
+        let selected = adjustedHeight - chromeHeight - cardSpacing - calendar - summary
 
         return IncomeCardHeights(
             calendar: max(calendar, minimums.calendar),
@@ -438,9 +443,10 @@ struct IncomeView: View {
         let minimums = minimumCardHeights(using: proxy)
         let baseCards = minimums.calendar + minimums.selected + minimums.summary
         let verticalSpacing = proxy.spacing + (DS.Spacing.m * 2)
+        let chromeHeight = calendarChromeHeight()
         let fallbackHeader = headerBaselineHeight + proxy.effectiveSafeAreaInsets.top
         let headerHeight = proxy.headerHeight > 0 ? proxy.headerHeight : fallbackHeader
-        return headerHeight + verticalSpacing + baseCards + proxy.tabBarGutterSpacing(tabBarGutter)
+        return headerHeight + verticalSpacing + baseCards + chromeHeight + proxy.tabBarGutterSpacing(tabBarGutter)
     }
 
     // MARK: - Calendar Section

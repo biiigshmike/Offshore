@@ -293,9 +293,8 @@ struct IncomeView: View {
                             .frame(width: calendarWidth, alignment: .top)
                             .frame(height: sharedTargetHeight, alignment: .top)
 
-                        selectedDaySection(minHeight: minimums.selected)
+                        selectedDaySection(minHeight: minimums.selected, cardHeight: sharedTargetHeight)
                             .frame(maxWidth: .infinity, alignment: .top)
-                            .frame(height: sharedTargetHeight, alignment: .top)
                     }
 
                     weeklySummaryBar(minHeight: minimums.summary)
@@ -310,9 +309,8 @@ struct IncomeView: View {
                         .frame(height: sharedTargetHeight, alignment: .top)
 
                     VStack(spacing: DS.Spacing.m) {
-                        selectedDaySection(minHeight: minimums.selected)
+                        selectedDaySection(minHeight: minimums.selected, cardHeight: sharedTargetHeight)
                             .frame(maxWidth: .infinity, alignment: .top)
-                            .frame(height: sharedTargetHeight, alignment: .top)
 
                         weeklySummaryBar(minHeight: minimums.summary)
                             .frame(maxWidth: .infinity, alignment: .top)
@@ -569,7 +567,7 @@ struct IncomeView: View {
     /// Displays the selected date and a list of income entries for that day.
     /// The list supports native swipe actions; it also scrolls when tall; pill styling preserved.
     @ViewBuilder
-    private func selectedDaySection(minHeight: CGFloat) -> some View {
+    private func selectedDaySection(minHeight: CGFloat, cardHeight: CGFloat? = nil) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.m) {
             let date = viewModel.selectedDate ?? Date()
             let entries: [Income] = viewModel.incomesForDay   // Explicit type trims solver work
@@ -581,7 +579,12 @@ struct IncomeView: View {
         }
         .padding(DS.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: minHeight, alignment: .top)
+        .frame(
+            minHeight: minHeight,
+            idealHeight: cardHeight,
+            maxHeight: cardHeight,
+            alignment: .top
+        )
         .incomeSectionContainerStyle(theme: themeManager.selectedTheme, capabilities: capabilities)
         .layoutPriority(2)
         .alert("Delete Income?", isPresented: $showDeleteAlert, presenting: incomeToDelete) { income in

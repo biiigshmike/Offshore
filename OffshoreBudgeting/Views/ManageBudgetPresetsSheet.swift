@@ -4,9 +4,7 @@ import CoreData
 /// Sheet that allows toggling global planned expense presets for a specific budget.
 struct ManageBudgetPresetsSheet: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.platformCapabilities) private var capabilities
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var themeManager: ThemeManager
 
     let budget: Budget
     let onDone: () -> Void
@@ -14,7 +12,6 @@ struct ManageBudgetPresetsSheet: View {
     @FetchRequest private var templates: FetchedResults<PlannedExpense>
 
     @State private var assignedTemplateObjectIDs: Set<NSManagedObjectID> = []
-    @State private var isCloseButtonPressed: Bool = false
 
     init(budget: Budget, onDone: @escaping () -> Void) {
         self.budget = budget
@@ -39,18 +36,17 @@ struct ManageBudgetPresetsSheet: View {
                     emptyState
                 } else {
                     List {
-                        Section {
-                            ForEach(templates, id: \.objectID) { template in
-                                presetRow(for: template)
-                            }
+                        ForEach(templates, id: \.objectID) { template in
+                            presetRow(for: template)
                         }
                     }
-                    .ub_listStyleLiquidAware()
                 }
             }
             .navigationTitle("Budget Presets")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { closeButton }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done", action: dismissAndComplete)
+                }
             }
             .onAppear(perform: loadAssignments)
             .onReceive(
@@ -60,10 +56,6 @@ struct ManageBudgetPresetsSheet: View {
                 loadAssignments()
             }
         }
-        .ub_navigationBackground(
-            theme: themeManager.selectedTheme,
-            configuration: themeManager.glassConfiguration
-        )
     }
 
     // MARK: - Rows
@@ -153,44 +145,8 @@ struct ManageBudgetPresetsSheet: View {
         assignedTemplateObjectIDs = resolved
     }
 
-    // MARK: - Close
-    private var closeButton: some View {
-        Group {
-            if capabilities.supportsOS26Translucency,
-               #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                Button(action: closeSheet) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 34, height: 34)
-                }
-                .buttonStyle(.glass)
-                .tint(themeManager.selectedTheme.glassPalette.accent)
-                .pressFeedback(isPressed: $isCloseButtonPressed)
-                .scaleEffect(isCloseButtonPressed ? 0.88 : 1.0)
-                .animation(.spring(response: 0.32, dampingFraction: 0.68), value: isCloseButtonPressed)
-                .accessibilityLabel("Close")
-            } else {
-                Button(action: closeSheet) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .semibold))
-                }
-                .buttonStyle(
-                    TranslucentButtonStyle(
-                        tint: themeManager.selectedTheme.resolvedTint,
-                        metrics: .calendarNavigationIcon,
-                        appearance: .neutral
-                    )
-                )
-                .accessibilityLabel("Close")
-            }
-        }
-    }
-
-    private func closeSheet() {
-        isCloseButtonPressed = false
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
-            dismiss()
-        }
+    private func dismissAndComplete() {
+        dismiss()
         onDone()
     }
 
@@ -220,29 +176,5 @@ struct ManageBudgetPresetsSheet: View {
         } else {
             NavigationView { content() }
         }
-    }
-}
-
-// MARK: - Press Feedback Modifier
-private struct PressFeedbackModifier: ViewModifier {
-    @Binding var isPressed: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        if !isPressed { isPressed = true }
-                    }
-                    .onEnded { _ in
-                        isPressed = false
-                    }
-            )
-    }
-}
-
-private extension View {
-    func pressFeedback(isPressed: Binding<Bool>) -> some View {
-        modifier(PressFeedbackModifier(isPressed: isPressed))
     }
 }

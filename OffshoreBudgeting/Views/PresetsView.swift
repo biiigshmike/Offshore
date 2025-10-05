@@ -34,7 +34,7 @@ struct PresetsView: View {
         RootTabPageScaffold(
             scrollBehavior: .always,
             spacing: DS.Spacing.s,
-            wrapsContentInScrollView: false
+            wrapsContentInScrollView: viewModel.items.isEmpty
         ) {
             EmptyView()
         } content: { proxy in

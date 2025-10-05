@@ -1042,12 +1042,7 @@ private enum HomeHeaderOverviewMetrics {
             return RootTabHeaderLayout.defaultHorizontalPadding
         }
 
-        let safeAreaInset = max(layoutContext.safeArea.leading, 0)
-        if safeAreaInset > 0 {
-            return safeAreaInset
-        }
-
-        return RootTabHeaderLayout.defaultHorizontalPadding
+        return max(layoutContext.safeArea.leading, 0)
     }
 }
 

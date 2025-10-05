@@ -70,9 +70,7 @@ struct PresetsView: View {
                 UBEmptyState(
                     iconSystemName: "list.bullet.rectangle",
                     title: "Presets",
-                    message: "Presets are recurring expenses you have every month. Add them here so budgets are faster to create.",
-                    primaryButtonTitle: "Add Preset",
-                    onPrimaryTap: { isPresentingAddSheet = true }
+                    message: "Presets are recurring expenses you have every month. Add them here so budgets are faster to create. Press the '+' on the top right to get started."
                 )
                 .padding(.horizontal, contentInset)
                 .frame(maxWidth: .infinity)

@@ -177,9 +177,7 @@ struct ExpenseCategoryManagerView: View {
         UBEmptyState(
             iconSystemName: "tag",
             title: "Categories",
-            message: "Create categories to track your spending. You can always edit them later.",
-            primaryButtonTitle: "Add Category",
-            onPrimaryTap: { isPresentingAddSheet = true }
+            message: "Create categories to track your spending. You can always edit them later. Press the '+' on the top right to get started."
         )
         .padding(.horizontal, DS.Spacing.l)
     }

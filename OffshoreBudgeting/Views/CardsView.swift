@@ -183,9 +183,7 @@ struct CardsView: View {
         UBEmptyState(
             iconSystemName: "creditcard",
             title: "Cards",
-            message: "Add the cards you use for spending. We'll use them in budgets later.",
-            primaryButtonTitle: "Add Card",
-            onPrimaryTap: { isPresentingAddCard = true }
+            message: "Add the cards you use for spending. We'll use them in budgets later. Press the '+' on the top right to get started."
         )
         .padding(.horizontal, DS.Spacing.l)
         .frame(maxWidth: .infinity)

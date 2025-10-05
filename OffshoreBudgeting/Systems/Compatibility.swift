@@ -609,6 +609,10 @@ private struct UBGlassBackgroundView: View {
         backgroundLayer
     }
 
+    private var hasShadowOverlay: Bool {
+        configuration.glass.shadowOpacity > 0 && configuration.glass.shadowBlur > 0
+    }
+
     @ViewBuilder
     private var backgroundLayer: some View {
         if ignoresSafeAreaEdges.isEmpty {
@@ -642,7 +646,7 @@ private struct UBGlassBackgroundView: View {
                 bloomOverlay
             }
 
-            if configuration.glass.shadowOpacity > 0 {
+            if hasShadowOverlay {
                 shadowOverlay
             }
 

@@ -306,16 +306,10 @@ private extension CategoryChipsRow {
     }
 
     private func chipRowLayout() -> some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.xs) {
-            HStack(spacing: DS.Spacing.s) {
-                addCategoryButton
-                    .zIndex(1)
-                Spacer(minLength: 0)
-            }
-
-            HStack(alignment: .center, spacing: 0) {
-                chipsScrollView()
-            }
+        HStack(alignment: .center, spacing: DS.Spacing.s) {
+            addCategoryButton
+                .zIndex(1)
+            chipsScrollView()
         }
         .padding(.horizontal, DS.Spacing.s)
         .frame(maxWidth: .infinity, alignment: .leading)

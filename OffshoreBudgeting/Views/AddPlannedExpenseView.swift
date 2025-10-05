@@ -393,43 +393,58 @@ private struct CategoryChipsRow: View {
     private let chipRowClipShape = Rectangle()
 
     var body: some View {
-        chipsScrollContainer()
-//            .listRowBackground(Color.clear)
+        Group {
+            addCategoryButtonRow
+            categoryChipsListRow
+        }
+        .sheet(isPresented: $isPresentingNewCategory) {
+            ExpenseCategoryEditorSheet(
+                initialName: "",
+                initialHex: "#4E9CFF"
+            ) { name, hex in
+                let category = ExpenseCategory(context: viewContext)
+                category.id = UUID()
+                category.name = name
+                category.color = hex
+                do {
+                    try viewContext.obtainPermanentIDs(for: [category])
+                    try viewContext.save()
+                    selectedCategoryID = category.objectID
+                } catch {
+                    AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
+                }
+            }
+            // Guard presentationDetents for iOS 16+ only.
+            .modifier(PresentationDetentsCompat())
+            .environment(\.managedObjectContext, viewContext)
+        }
+        .ub_onChange(of: categories.count) {
+            if selectedCategoryID == nil, let first = categories.first {
+                selectedCategoryID = first.objectID
+            }
+        }
+    }
+
+    private var addCategoryButtonRow: some View {
+        addCategoryButton
+            .padding(.horizontal, DS.Spacing.s)
             .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
-            .listRowInsets(
-                EdgeInsets(
-                    top: verticalInset,
-                    leading: DS.Spacing.l,
-                    bottom: verticalInset,
-                    trailing: DS.Spacing.l
-                )
-            )
-            .sheet(isPresented: $isPresentingNewCategory) {
-                ExpenseCategoryEditorSheet(
-                    initialName: "",
-                    initialHex: "#4E9CFF"
-                ) { name, hex in
-                    let category = ExpenseCategory(context: viewContext)
-                    category.id = UUID()
-                    category.name = name
-                    category.color = hex
-                    do {
-                        try viewContext.obtainPermanentIDs(for: [category])
-                        try viewContext.save()
-                        selectedCategoryID = category.objectID
-                    } catch {
-                        AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
-                    }
-                }
-                // Guard presentationDetents for iOS 16+ only.
-                .modifier(PresentationDetentsCompat())
-                .environment(\.managedObjectContext, viewContext)
-            }
-            .ub_onChange(of: categories.count) {
-                if selectedCategoryID == nil, let first = categories.first {
-                    selectedCategoryID = first.objectID
-                }
-            }
+            .listRowInsets(rowInsets)
+    }
+
+    private var categoryChipsListRow: some View {
+        chipsScrollContainer()
+            .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
+            .listRowInsets(rowInsets)
+    }
+
+    private var rowInsets: EdgeInsets {
+        EdgeInsets(
+            top: verticalInset,
+            leading: DS.Spacing.l,
+            bottom: verticalInset,
+            trailing: DS.Spacing.l
+        )
     }
 }
 
@@ -447,13 +462,9 @@ private extension CategoryChipsRow {
     }
 
     private func chipRowLayout() -> some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.s) {
-            addCategoryButton
-                .frame(maxWidth: .infinity, alignment: .center)
-            chipsScrollView()
-        }
-        .padding(.horizontal, DS.Spacing.s)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        chipsScrollView()
+            .padding(.horizontal, DS.Spacing.s)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func chipsScrollView() -> some View {

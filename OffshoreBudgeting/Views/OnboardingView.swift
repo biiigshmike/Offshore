@@ -134,10 +134,9 @@ private struct WelcomeStep: View {
 private struct CardsStep: View {
     let onNext: () -> Void
     let onBack: () -> Void
-    @EnvironmentObject private var themeManager: ThemeManager
 
     var body: some View {
-        navigationContainer {
+        OnboardingNavigationContainer {
             ZStack(alignment: .bottom) {
                 CardsView()
                 OnboardingButtonRow(
@@ -148,30 +147,6 @@ private struct CardsStep: View {
                 )
             }
         }
-        .ub_navigationBackground(
-            theme: themeManager.selectedTheme,
-            configuration: themeManager.glassConfiguration
-        )
-    }
-
-    // MARK: - Navigation container compatibility
-    @ViewBuilder
-    private func navigationContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
-            navigationStack(content: content)
-        } else {
-            navigationView(content: content)
-        }
-    }
-
-    @available(iOS 16.0, macCatalyst 16.0, *)
-    private func navigationStack<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        NavigationStack { content() }
-    }
-
-    private func navigationView<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        NavigationView { content() }
-            .navigationViewStyle(.stack)
     }
 }
 
@@ -185,14 +160,44 @@ private struct PresetsStep: View {
     let onBack: () -> Void
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            PresetsView()
-            OnboardingButtonRow(
-                buttons: [
-                    .secondary("Back", action: onBack),
-                    .primary("Done", action: onNext)
-                ]
+        OnboardingNavigationContainer {
+            ZStack(alignment: .bottom) {
+                PresetsView()
+                OnboardingButtonRow(
+                    buttons: [
+                        .secondary("Back", action: onBack),
+                        .primary("Done", action: onNext)
+                    ]
+                )
+            }
+        }
+    }
+}
+
+// MARK: - OnboardingNavigationContainer
+private struct OnboardingNavigationContainer<Content: View>: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+    private let content: () -> Content
+
+    init(@ViewBuilder content: @escaping () -> Content) {
+        self.content = content
+    }
+
+    var body: some View {
+        navigationContent
+            .ub_navigationBackground(
+                theme: themeManager.selectedTheme,
+                configuration: themeManager.glassConfiguration
             )
+    }
+
+    @ViewBuilder
+    private var navigationContent: some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            NavigationStack { content() }
+        } else {
+            NavigationView { content() }
+                .navigationViewStyle(.stack)
         }
     }
 }

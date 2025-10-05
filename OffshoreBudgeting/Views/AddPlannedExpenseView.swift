@@ -387,9 +387,18 @@ private struct CategoryChipsRow: View {
     private var categories: FetchedResults<ExpenseCategory>
 
     @State private var isPresentingNewCategory = false
+    @State private var addButtonWidth: CGFloat = 0
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
     private let chipRowClipShape = Capsule(style: .continuous)
+
+    private struct AddButtonWidthPreferenceKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = max(value, nextValue())
+        }
+    }
 
     var body: some View {
         chipsScrollContainer()
@@ -445,13 +454,22 @@ private extension CategoryChipsRow {
     }
 
     private func chipRowLayout() -> some View {
-        HStack(alignment: .center, spacing: DS.Spacing.s) {
-            addCategoryButton
-                .zIndex(1)
+        ZStack(alignment: .leading) {
             chipsScrollView()
+                .padding(.horizontal, DS.Spacing.s)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, DS.Spacing.s)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .leading) {
+            addCategoryButton
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear
+                            .preference(key: AddButtonWidthPreferenceKey.self, value: proxy.size.width)
+                    }
+                )
+                .padding(.leading, DS.Spacing.s)
+        }
+        .onPreferenceChange(AddButtonWidthPreferenceKey.self) { addButtonWidth = $0 }
     }
 
     private func chipsScrollView() -> some View {
@@ -468,6 +486,9 @@ private extension CategoryChipsRow {
     @ViewBuilder
     private var categoryChips: some View {
         LazyHStack(spacing: DS.Spacing.s) {
+            Color.clear
+                .frame(width: addButtonWidth + DS.Spacing.s)
+
             if categories.isEmpty {
                 Text("No categories yet")
                     .foregroundStyle(.secondary)

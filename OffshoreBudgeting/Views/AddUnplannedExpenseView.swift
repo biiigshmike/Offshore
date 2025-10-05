@@ -431,7 +431,8 @@ private struct AddCategoryPillStyle: ButtonStyle {
         let capsule = Capsule(style: .continuous)
 
         return CategoryChipPill(
-            isSelected: false,
+            isSelected: configuration.isPressed,
+            glassTint: tint,
             glassTextColor: .primary,
             fallbackTextColor: .primary,
             fallbackFill: DS.Colors.chipFill,

@@ -18,7 +18,7 @@ struct UBFormListRowBackground: View {
                 .fill(Color(.systemBackground))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.separator, lineWidth: 1)
+                        .stroke(Color(.separator), lineWidth: 1)
                 )
         }
     }

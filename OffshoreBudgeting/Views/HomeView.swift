@@ -639,6 +639,10 @@ struct HomeView: View {
     }
 
     private var emptyShellMessage: String {
+        guard actionableSummaryForSelectedPeriod != nil else {
+            return inactiveBudgetGuidanceMessage
+        }
+
         switch selectedSegment {
         case .planned:
             return "No planned expenses in this period."
@@ -650,9 +654,13 @@ struct HomeView: View {
     // MARK: Empty-period CTA helpers
     private var addExpenseCTATitle: String {
         guard actionableSummaryForSelectedPeriod != nil else {
-            return "+ Create Budget"
+            return "Create Budget"
         }
         return selectedSegment == .planned ? "Add Planned Expense" : "Add Variable Expense"
+    }
+
+    private var inactiveBudgetGuidanceMessage: String {
+        "This budget is not currently active. Press the button above to get started budgeting for \(periodHeaderTitle)."
     }
 
     private func addExpenseCTAAction() {

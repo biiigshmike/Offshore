@@ -243,55 +243,70 @@ private struct CategoryChipsRow: View {
     private let chipRowClipShape = Rectangle()
 
     var body: some View {
-        chipsScrollContainer()
-//            .listRowBackground(Color.clear)
-            .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
-            .listRowInsets(
-                EdgeInsets(
-                    top: verticalInset,
-                    leading: DS.Spacing.l,
-                    bottom: verticalInset,
-                    trailing: DS.Spacing.l
-                )
-            )
-            .sheet(isPresented: $isPresentingNewCategory) {
-                // Build as a single expression to avoid opaque 'some View' type mismatches.
-                let base = ExpenseCategoryEditorSheet(
-                    initialName: "",
-                    initialHex: "#4E9CFF"
-                ) { name, hex in
-                    // Persist the new category and auto-select it.
-                    let category = ExpenseCategory(context: viewContext)
-                    category.id = UUID()
-                    category.name = name
-                    category.color = hex
-                    do {
-                        // Obtain a permanent ID so the fetch request updates immediately.
-                        try viewContext.obtainPermanentIDs(for: [category])
-                        try viewContext.save()
-                        // Auto-select the newly created category.
-                        selectedCategoryID = category.objectID
-                    } catch {
-                        AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
-                    }
+        Group {
+            addCategoryButtonRow
+            categoryChipsListRow
+        }
+        .sheet(isPresented: $isPresentingNewCategory) {
+            // Build as a single expression to avoid opaque 'some View' type mismatches.
+            let base = ExpenseCategoryEditorSheet(
+                initialName: "",
+                initialHex: "#4E9CFF"
+            ) { name, hex in
+                // Persist the new category and auto-select it.
+                let category = ExpenseCategory(context: viewContext)
+                category.id = UUID()
+                category.name = name
+                category.color = hex
+                do {
+                    // Obtain a permanent ID so the fetch request updates immediately.
+                    try viewContext.obtainPermanentIDs(for: [category])
+                    try viewContext.save()
+                    // Auto-select the newly created category.
+                    selectedCategoryID = category.objectID
+                } catch {
+                    AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
                 }
-                .environment(\.managedObjectContext, viewContext)
+            }
+            .environment(\.managedObjectContext, viewContext)
 
-                // Apply detents on supported OS versions without changing the opaque type.
-                Group {
-                    if #available(iOS 16.0, *) {
-                        base.presentationDetents([.medium])
-                    } else {
-                        base
-                    }
+            // Apply detents on supported OS versions without changing the opaque type.
+            Group {
+                if #available(iOS 16.0, *) {
+                    base.presentationDetents([.medium])
+                } else {
+                    base
                 }
             }
-            .ub_onChange(of: categories.count) {
-                // Auto-pick first category if none selected yet
-                if selectedCategoryID == nil, let first = categories.first {
-                    selectedCategoryID = first.objectID
-                }
+        }
+        .ub_onChange(of: categories.count) {
+            // Auto-pick first category if none selected yet
+            if selectedCategoryID == nil, let first = categories.first {
+                selectedCategoryID = first.objectID
             }
+        }
+    }
+
+    private var addCategoryButtonRow: some View {
+        addCategoryButton
+            .padding(.horizontal, DS.Spacing.s)
+            .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
+            .listRowInsets(rowInsets)
+    }
+
+    private var categoryChipsListRow: some View {
+        chipsScrollContainer()
+            .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
+            .listRowInsets(rowInsets)
+    }
+
+    private var rowInsets: EdgeInsets {
+        EdgeInsets(
+            top: verticalInset,
+            leading: DS.Spacing.l,
+            bottom: verticalInset,
+            trailing: DS.Spacing.l
+        )
     }
 }
 
@@ -309,13 +324,9 @@ private extension CategoryChipsRow {
     }
 
     private func chipRowLayout() -> some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.s) {
-            addCategoryButton
-                .frame(maxWidth: .infinity, alignment: .center)
-            chipsScrollView()
-        }
-        .padding(.horizontal, DS.Spacing.s)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        chipsScrollView()
+            .padding(.horizontal, DS.Spacing.s)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func chipsScrollView() -> some View {

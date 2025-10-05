@@ -602,8 +602,8 @@ extension AppTheme {
             shadowTone,
             amount: tintBlend
         )
-        configuration.glass.shadowOpacity = 0.06
-        configuration.glass.shadowBlur = 44
+        configuration.glass.shadowOpacity = 0.0
+        configuration.glass.shadowBlur = 0
         configuration.glass.specularColor = AppThemeColorUtilities.mix(
             neutralSpecular,
             specularTone,
@@ -760,8 +760,8 @@ extension AppTheme.GlassConfiguration {
             highlightOpacity: 0.32,
             highlightBlur: 36,
             shadowColor: Color(.sRGB, red: 0.10, green: 0.12, blue: 0.18, opacity: 1.0),
-            shadowOpacity: 0.16,
-            shadowBlur: 40,
+            shadowOpacity: 0.0,
+            shadowBlur: 0,
             specularColor: .white,
             specularOpacity: 0.22,
             specularWidth: 0.08,
@@ -790,8 +790,8 @@ extension AppTheme.GlassConfiguration {
 
         let highlightOpacity = Double.lerp(0.2, 0.44, clampedGlass)
         let highlightBlur = Double.lerp(22, 60, clampedGlass)
-        let shadowOpacity = Double.lerp(0.08, 0.26, clampedGlass)
-        let shadowBlur = Double.lerp(20, 64, clampedGlass)
+        let shadowOpacity = 0.0
+        let shadowBlur = 0.0
         let specularOpacity = Double.lerp(0.14, 0.46, clampedGlass)
         let specularWidth = Double.lerp(0.04, 0.12, clampedGlass)
         let noiseOpacity = Double.lerp(0.02, 0.06, clampedGlass)

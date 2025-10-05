@@ -379,7 +379,7 @@ private extension View {
     @ViewBuilder
     func glassEffectTransitionIfNeeded(using namespace: Namespace.ID?) -> some View {
         if let namespace, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            self.glassEffectTransition(.matchedGeometry, in: namespace)
+            self.glassEffectTransition(.matchedGeometry)
         } else {
             self
         }

@@ -1042,7 +1042,21 @@ private enum HomeHeaderOverviewMetrics {
             return RootTabHeaderLayout.defaultHorizontalPadding
         }
 
-        return max(layoutContext.safeArea.leading, 0)
+        if let safeAreaInset = legacySafeAreaHorizontalInset(from: layoutContext.safeArea) {
+            return safeAreaInset
+        }
+
+        return RootTabHeaderLayout.defaultHorizontalPadding
+    }
+
+    private static func legacySafeAreaHorizontalInset(from safeArea: EdgeInsets) -> CGFloat? {
+        let leadingInset = max(safeArea.leading, 0)
+        if leadingInset > 0 { return leadingInset }
+
+        let trailingInset = max(safeArea.trailing, 0)
+        if trailingInset > 0 { return trailingInset }
+
+        return nil
     }
 }
 

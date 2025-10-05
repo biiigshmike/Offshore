@@ -286,6 +286,7 @@ struct IncomeView: View {
                     HStack(alignment: .top, spacing: columnSpacing) {
                         calendarSection(using: proxy, cardHeight: calendarCardHeight)
                             .frame(width: calendarWidth, alignment: .top)
+                            .frame(height: sharedTargetHeight, alignment: .top)
 
                         selectedDaySection(minHeight: minimums.selected)
                             .frame(maxWidth: .infinity, alignment: .top)
@@ -301,6 +302,7 @@ struct IncomeView: View {
                 HStack(alignment: .top, spacing: columnSpacing) {
                     calendarSection(using: proxy, cardHeight: calendarCardHeight)
                         .frame(width: calendarWidth, alignment: .top)
+                        .frame(height: sharedTargetHeight, alignment: .top)
 
                     VStack(spacing: DS.Spacing.m) {
                         selectedDaySection(minHeight: minimums.selected)

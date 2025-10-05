@@ -451,8 +451,8 @@ struct HomeView: View {
                 header
 
                 VStack(alignment: .leading, spacing: DS.Spacing.m) {
-                    // Always-offer Add button when no budget exists so users can
-                    // quickly create an expense for this period.
+                    // Always-offer primary CTA when no budget exists so users can
+                    // quickly create a budget or add expenses for this period.
                     Group {
                         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
                             Button(action: addExpenseCTAAction) {
@@ -648,10 +648,17 @@ struct HomeView: View {
 
     // MARK: Empty-period CTA helpers
     private var addExpenseCTATitle: String {
-        selectedSegment == .planned ? "Add Planned Expense" : "Add Variable Expense"
+        guard actionableSummaryForSelectedPeriod != nil else {
+            return "+ Create Budget"
+        }
+        return selectedSegment == .planned ? "Add Planned Expense" : "Add Variable Expense"
     }
 
     private func addExpenseCTAAction() {
+        guard actionableSummaryForSelectedPeriod != nil else {
+            isPresentingAddBudget = true
+            return
+        }
         if selectedSegment == .planned {
             isPresentingAddPlannedFromHome = true
         } else {

@@ -389,7 +389,7 @@ private struct CategoryChipsRow: View {
     @State private var isPresentingNewCategory = false
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
-    private let chipRowClipShape = Capsule(style: .continuous)
+    private let chipRowClipShape = RoundedRectangle(cornerRadius: DS.Radius.l, style: .continuous)
 
     var body: some View {
         chipsScrollContainer()
@@ -462,7 +462,6 @@ private extension CategoryChipsRow {
         .ub_hideScrollIndicators()
         .ub_disableHorizontalBounce()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .clipped()
     }
 
     @ViewBuilder

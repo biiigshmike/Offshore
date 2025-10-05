@@ -104,7 +104,7 @@ struct AddUnplannedExpenseView: View {
                 )
                 .accessibilityElement(children: .contain)
             }
-            .ub_formSectionClearBackground()
+//            .ub_formSectionClearBackground()
 
 
             // MARK: Individual Fields
@@ -225,6 +225,8 @@ private struct CategoryChipsRow: View {
 
     // MARK: Environment
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var themeManager: ThemeManager
+
 
     // MARK: Live Fetch
     @FetchRequest(
@@ -242,7 +244,8 @@ private struct CategoryChipsRow: View {
 
     var body: some View {
         chipsScrollContainer()
-            .listRowBackground(Color.clear)
+//            .listRowBackground(Color.clear)
+            .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
             .listRowInsets(
                 EdgeInsets(
                     top: verticalInset,

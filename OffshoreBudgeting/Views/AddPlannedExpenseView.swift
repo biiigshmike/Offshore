@@ -138,7 +138,7 @@ struct AddPlannedExpenseView: View {
             UBFormSection("Category", isUppercased: true) {
                 CategoryChipsRow(selectedCategoryID: $vm.selectedCategoryID)
             }
-            .ub_formSectionClearBackground()
+//            .ub_formSectionClearBackground()
             .accessibilityElement(children: .contain)
 
             // MARK: Individual Fields
@@ -379,6 +379,7 @@ private struct CategoryChipsRow: View {
     @Binding var selectedCategoryID: NSManagedObjectID?
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.platformCapabilities) private var capabilities
+    @EnvironmentObject private var themeManager: ThemeManager
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(key: "name", ascending: true,
@@ -393,7 +394,8 @@ private struct CategoryChipsRow: View {
 
     var body: some View {
         chipsScrollContainer()
-            .listRowBackground(Color.clear)
+//            .listRowBackground(Color.clear)
+            .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
             .listRowInsets(
                 EdgeInsets(
                     top: verticalInset,

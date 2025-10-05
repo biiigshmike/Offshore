@@ -1606,10 +1606,16 @@ private enum BudgetListHorizontalPaddingMetrics {
 
         let safeArea = layoutContext.safeArea
         if safeArea.hasNonZeroInsets {
-            return Insets(leading: safeArea.leading, trailing: safeArea.trailing)
+            let leading = safeArea.leading > 0 ? safeArea.leading : RootTabHeaderLayout.defaultHorizontalPadding
+            let trailing = safeArea.trailing > 0 ? safeArea.trailing : RootTabHeaderLayout.defaultHorizontalPadding
+
+            return Insets(leading: leading, trailing: trailing)
         }
 
-        return Insets(leading: 0, trailing: 0)
+        return Insets(
+            leading: RootTabHeaderLayout.defaultHorizontalPadding,
+            trailing: RootTabHeaderLayout.defaultHorizontalPadding
+        )
     }
 }
 

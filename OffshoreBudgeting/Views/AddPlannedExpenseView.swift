@@ -389,7 +389,7 @@ private struct CategoryChipsRow: View {
     @State private var isPresentingNewCategory = false
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
-    private let chipRowClipShape = RoundedRectangle(cornerRadius: DS.Radius.l, style: .continuous)
+    private let chipRowClipShape = Rectangle()
 
     var body: some View {
         chipsScrollContainer()
@@ -438,7 +438,7 @@ private extension CategoryChipsRow {
             GlassEffectContainer(spacing: DS.Spacing.s) {
                 chipRowLayout()
             }
-            .clipShape(chipRowClipShape)
+            //.clipShape(chipRowClipShape)
         } else {
             chipRowLayout()
         }

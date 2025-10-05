@@ -279,7 +279,7 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
         case .system:
             return Color(UIColor { trait in
                 if trait.userInterfaceStyle == .dark {
-                    return UIColor.secondarySystemGroupedBackground
+                    return UIColor.systemGroupedBackground
                 } else {
                     return UIColor.systemGroupedBackground
                 }

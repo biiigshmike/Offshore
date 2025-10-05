@@ -488,7 +488,7 @@ private extension CategoryChipsRow {
     }
 
     private var addCategoryButton: some View {
-        AddCategoryPill { isPresentingNewCategory = true }
+        AddCategoryPill(fillsWidth: true) { isPresentingNewCategory = true }
     }
 }
 
@@ -505,6 +505,7 @@ private struct PresentationDetentsCompat: ViewModifier {
 
 // MARK: - AddCategoryPill
 private struct AddCategoryPill: View {
+    var fillsWidth: Bool = false
     var onTap: () -> Void
     @EnvironmentObject private var themeManager: ThemeManager
 
@@ -515,11 +516,13 @@ private struct AddCategoryPill: View {
         }
         .buttonStyle(
             AddCategoryPillStyle(
-                tint: themeManager.selectedTheme.resolvedTint
+                tint: themeManager.selectedTheme.resolvedTint,
+                fillsWidth: fillsWidth
             )
         )
         .controlSize(.regular)
         .accessibilityLabel("Add Category")
+        .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .center)
     }
 }
 
@@ -567,6 +570,7 @@ private struct CategoryChip: View {
 // MARK: - Styles
 private struct AddCategoryPillStyle: ButtonStyle {
     let tint: Color
+    var fillsWidth: Bool = false
 
     func makeBody(configuration: Configuration) -> some View {
         let isActive = configuration.isPressed
@@ -583,7 +587,9 @@ private struct AddCategoryPillStyle: ButtonStyle {
         ) {
             configuration.label
                 .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .center)
         }
+        .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .center)
         .overlay {
             if isActive {
                 capsule.strokeBorder(tint.opacity(0.35), lineWidth: 2)

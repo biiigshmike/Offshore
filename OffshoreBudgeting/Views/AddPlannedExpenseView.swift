@@ -447,6 +447,7 @@ private extension CategoryChipsRow {
     private func chipRowLayout() -> some View {
         HStack(alignment: .center, spacing: DS.Spacing.s) {
             addCategoryButton
+                .fixedSize(horizontal: true, vertical: false)
             chipsScrollView()
         }
         .padding(.horizontal, DS.Spacing.s)

@@ -2,6 +2,10 @@
 
 This document guides code agents on how to safely read, plan, and modify this repository. It is optimized for step-based tools that generate full-file patches. Keep changes scoped, reversible, and consistent with existing patterns.
 
+## Instructions
+
+- Follow the instructions given by the user. You have to come up with a plan first, User will review the plan and let you know what to change or ok to proceed. You can record the plan using your own way like using the todo tool, but in additional, give user a version of the plan to read. Only start implementing after getting the approval.
+
 ## Coding
 - Coding should be reusable, scalable, and OOP-oriented. 
 - The codebase should also try to be simple and easy-to-read. 

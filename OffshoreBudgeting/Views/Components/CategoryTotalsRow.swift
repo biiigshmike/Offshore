@@ -12,6 +12,7 @@ struct CategoryChipPill<Label: View>: View {
     private var capsule: Capsule { Capsule(style: .continuous) }
 
     let isSelected: Bool
+    let isInteractive: Bool
     let glassTint: Color?
     let glassTextColor: Color
     let fallbackTextColor: Color
@@ -30,9 +31,11 @@ struct CategoryChipPill<Label: View>: View {
         fallbackFill: Color = DS.Colors.chipFill,
         fallbackStrokeColor: Color = DS.Colors.chipFill,
         fallbackStrokeLineWidth: CGFloat = 1,
+        isInteractive: Bool = false,
         @ViewBuilder label: @escaping () -> Label
     ) {
         self.isSelected = isSelected
+        self.isInteractive = isInteractive
         self.glassTint = glassTint
         self.glassTextColor = glassTextColor
         self.fallbackTextColor = fallbackTextColor
@@ -55,7 +58,7 @@ struct CategoryChipPill<Label: View>: View {
                 } else {
                     baseLabel
                         .foregroundStyle(glassTextColor)
-                        .glassEffect(.regular, in: capsule)
+                        .glassEffect(isInteractive ? .regular.interactive() : .regular, in: capsule)
                 }
             } else {
 #if DEBUG && LIQUID_GLASS_QA

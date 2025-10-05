@@ -26,7 +26,6 @@ struct AddUnplannedExpenseView: View {
 
     // MARK: State
     @StateObject private var vm: AddUnplannedExpenseViewModel
-    @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var cardPickerStore: CardPickerStore
     @State private var isPresentingAddCard = false
     
@@ -225,7 +224,6 @@ private struct CategoryChipsRow: View {
 
     // MARK: Environment
     @Environment(\.managedObjectContext) private var viewContext
-    @EnvironmentObject private var themeManager: ThemeManager
 
 
     // MARK: Live Fetch
@@ -250,7 +248,6 @@ private struct CategoryChipsRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
         .listRowInsets(rowInsets)
         .listRowSeparator(.hidden)
         .sheet(isPresented: $isPresentingNewCategory) {

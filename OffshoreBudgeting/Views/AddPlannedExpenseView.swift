@@ -30,7 +30,6 @@ struct AddPlannedExpenseView: View {
     /// We don't call `dismiss()` directly anymore (the scaffold handles it),
     /// but we keep this in case future platform-specific work needs it.
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var cardPickerStore: CardPickerStore
     @StateObject private var vm: AddPlannedExpenseViewModel
     @State private var isAssigningToBudget: Bool
@@ -379,7 +378,6 @@ private struct CategoryChipsRow: View {
     @Binding var selectedCategoryID: NSManagedObjectID?
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.platformCapabilities) private var capabilities
-    @EnvironmentObject private var themeManager: ThemeManager
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(key: "name", ascending: true,
@@ -400,7 +398,6 @@ private struct CategoryChipsRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .listRowBackground(UBFormListRowBackground(theme: themeManager.selectedTheme))
         .listRowInsets(rowInsets)
         .listRowSeparator(.hidden)
         .sheet(isPresented: $isPresentingNewCategory) {

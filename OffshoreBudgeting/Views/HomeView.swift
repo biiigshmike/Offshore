@@ -158,9 +158,15 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $isPresentingManagePresets) {
-            PresetsView()
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-                .environment(\.platformCapabilities, capabilities)
+            if let budgetID = primarySummary?.id,
+               let budget = try? CoreDataService.shared.viewContext.existingObject(with: budgetID) as? Budget {
+                ManageBudgetPresetsSheet(budget: budget) { Task { await vm.refresh() } }
+                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+                    .environment(\.platformCapabilities, capabilities)
+            } else {
+                Text("No budget selected")
+                    .environment(\.platformCapabilities, capabilities)
+            }
         }
         .sheet(isPresented: $isPresentingManageCategories) {
             ExpenseCategoryManagerView()

@@ -235,73 +235,21 @@ private struct CategoryChipsRow: View {
 
     // MARK: Local State
     @State private var isPresentingNewCategory = false
+    @State private var addButtonWidth: CGFloat = .zero
     @Environment(\.platformCapabilities) private var capabilities
     @EnvironmentObject private var themeManager: ThemeManager
     @Namespace private var glassNamespace
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
+    private let addButtonSpacing: CGFloat = DS.Spacing.m
+    private let chipRowClipShape = Capsule(style: .continuous)
 
     var body: some View {
-        HStack(spacing: DS.Spacing.m) {
-            // MARK: Static Add Button (doesn't scroll)
-            AddCategoryPill {
-                isPresentingNewCategory = true
-            }
+        ZStack(alignment: .leading) {
+            chipsScrollContainer()
+                .padding(.leading, chipsLeadingPadding)
 
-            // MARK: Scrolling Chips (wrapped in a single GlassEffectContainer on OS26)
-            Group {
-                if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                    GlassEffectContainer(spacing: DS.Spacing.s) {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            LazyHStack(spacing: DS.Spacing.s) {
-                                if categories.isEmpty {
-                                    Text("No categories yet")
-                                        .foregroundStyle(.secondary)
-                                        .padding(.vertical, 10)
-                                } else {
-                                    ForEach(categories, id: \.objectID) { cat in
-                                        let isSel = selectedCategoryID == cat.objectID
-                                        CategoryChip(
-                                            id: cat.objectID.uriRepresentation().absoluteString,
-                                            name: cat.name ?? "Untitled",
-                                            colorHex: cat.color ?? "#999999",
-                                            isSelected: isSel,
-                                            namespace: glassNamespace
-                                        )
-                                        .onTapGesture { selectedCategoryID = cat.objectID }
-                                        .glassEffectTransition(.matchedGeometry)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, DS.Spacing.s)
-                        }
-                    }
-                } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack(spacing: DS.Spacing.s) {
-                            if categories.isEmpty {
-                                Text("No categories yet")
-                                    .foregroundStyle(.secondary)
-                                    .padding(.vertical, 10)
-                            } else {
-                                ForEach(categories, id: \.objectID) { cat in
-                                    CategoryChip(
-                                        id: cat.objectID.uriRepresentation().absoluteString,
-                                        name: cat.name ?? "Untitled",
-                                        colorHex: cat.color ?? "#999999",
-                                        isSelected: selectedCategoryID == cat.objectID,
-                                        namespace: nil
-                                    )
-                                    .onTapGesture { selectedCategoryID = cat.objectID }
-                                }
-                            }
-                        }
-                        .padding(.horizontal, DS.Spacing.s)
-                    }
-                }
-            }
-            // Hide scroll indicators consistently across platforms
-            .ub_hideScrollIndicators()
+            addCategoryButton
         }
         .listRowBackground(Color.clear)
         .listRowInsets(
@@ -349,6 +297,91 @@ private struct CategoryChipsRow: View {
             if selectedCategoryID == nil, let first = categories.first {
                 selectedCategoryID = first.objectID
             }
+        }
+    }
+}
+
+private extension CategoryChipsRow {
+    private var chipsLeadingPadding: CGFloat { addButtonWidth + addButtonSpacing }
+
+    private var addCategoryButton: some View {
+        AddCategoryPill {
+            isPresentingNewCategory = true
+        }
+        .zIndex(1)
+        .background(addButtonWidthReader)
+    }
+
+    private var addButtonWidthReader: some View {
+        GeometryReader { proxy in
+            Color.clear
+                .onAppear { updateAddButtonWidth(proxy.size.width) }
+                .ub_onChange(of: proxy.size.width) { newWidth in
+                    updateAddButtonWidth(newWidth)
+                }
+        }
+    }
+
+    @ViewBuilder
+    private func chipsScrollContainer() -> some View {
+        if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            GlassEffectContainer(spacing: DS.Spacing.s) {
+                chipsScrollView(namespace: glassNamespace)
+            }
+            .clipShape(chipRowClipShape)
+        } else {
+            chipsScrollView(namespace: nil)
+        }
+    }
+
+    @ViewBuilder
+    private func chipsScrollView(namespace: Namespace.ID?) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: DS.Spacing.s) {
+                if categories.isEmpty {
+                    Text("No categories yet")
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 10)
+                } else {
+                    ForEach(categories, id: \.objectID) { cat in
+                        let isSelected = selectedCategoryID == cat.objectID
+                        CategoryChip(
+                            id: cat.objectID.uriRepresentation().absoluteString,
+                            name: cat.name ?? "Untitled",
+                            colorHex: cat.color ?? "#999999",
+                            isSelected: isSelected,
+                            namespace: namespace
+                        )
+                        .onTapGesture { selectedCategoryID = cat.objectID }
+                        .glassEffectTransitionIfNeeded(using: namespace)
+                    }
+                }
+            }
+            .padding(.horizontal, DS.Spacing.s)
+        }
+        .ub_hideScrollIndicators()
+        .clipped()
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func updateAddButtonWidth(_ width: CGFloat) {
+        let quantized = (width * 2).rounded() / 2
+        let tolerance: CGFloat = 0.5
+        DispatchQueue.main.async {
+            if abs(addButtonWidth - quantized) > tolerance {
+                addButtonWidth = max(0, quantized)
+            }
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func glassEffectTransitionIfNeeded(using namespace: Namespace.ID?) -> some View {
+        if let namespace, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            self.glassEffectTransition(.matchedGeometry, in: namespace)
+        } else {
+            self
         }
     }
 }

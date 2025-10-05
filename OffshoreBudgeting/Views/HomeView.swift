@@ -513,6 +513,7 @@ struct HomeView: View {
                 onSegmentChange: { newSegment in
                     self.selectedSegment = newSegment
                 },
+                onRequestCreateBudget: { isPresentingAddBudget = true },
                 headerManagesPadding: true,
                 header: header,
                 listHeaderBehavior: .omitsHeader,

@@ -86,16 +86,22 @@ struct CardDetailView: View {
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
-        .alert("Delete Expense?", isPresented: $isConfirmingDelete, presenting: expensePendingDeletion) { expense in
-            Button("Delete", role: .destructive) { performDelete(expense) }
+        .alert("Delete Expense?", isPresented: $isConfirmingDelete) {
+            Button("Delete", role: .destructive) {
+                if let expense = expensePendingDeletion {
+                    performDelete(expense)
+                }
+            }
             Button("Cancel", role: .cancel) { expensePendingDeletion = nil }
-        } message: { _ in
+        } message: {
             Text("This will remove the expense from the card.")
         }
-        .alert("Couldn't Delete Expense", presenting: $deletionError) { _ in
-            Button("OK", role: .cancel) { }
-        } message: { error in
-            Text(error.message)
+        .alert(item: $deletionError) { error in
+            Alert(
+                title: Text("Couldn't Delete Expense"),
+                message: Text(error.message),
+                dismissButton: .cancel(Text("OK"))
+            )
         }
         .ub_surfaceBackground(
             themeManager.selectedTheme,
@@ -141,9 +147,14 @@ struct CardDetailView: View {
     @ViewBuilder
     private func listContent(cardMaxWidth: CGFloat?, total: Double) -> some View {
         if #available(iOS 16.0, macCatalyst 16.0, *) {
-            baseList(cardMaxWidth: cardMaxWidth, total: total)
-                .scrollContentBackground(.hidden)
-                .listSectionSpacing(20)
+            if #available(iOS 17.0, macCatalyst 17.0, *) {
+                baseList(cardMaxWidth: cardMaxWidth, total: total)
+                    .scrollContentBackground(.hidden)
+                    .listSectionSpacing(20)
+            } else {
+                baseList(cardMaxWidth: cardMaxWidth, total: total)
+                    .scrollContentBackground(.hidden)
+            }
         } else {
             baseList(cardMaxWidth: cardMaxWidth, total: total)
         }
@@ -151,12 +162,41 @@ struct CardDetailView: View {
 
     private func baseList(cardMaxWidth: CGFloat?, total: Double) -> some View {
         List {
-            cardRow(maxWidth: cardMaxWidth)
-            totalsListRow(total: total)
-            categoryListRow(categories: viewModel.filteredCategories)
+            // Card header as its own section to ensure consistent rendering
+            // with modern List defaults across iOS 16/17.
+            Section {
+                cardRow(maxWidth: cardMaxWidth)
+            }
+
+            // Totals + categories grouped together so they remain visible
+            // above the expenses list, regardless of List section spacing.
+            Section {
+                totalsListRow(total: total)
+                categoryListRow(categories: viewModel.filteredCategories)
+            }
+
+            // Expenses list (already returns a Section)
             expensesSection
         }
         .ub_listStyleLiquidAware()
+        .ub_hideScrollIndicators()
+#if os(iOS)
+        // Neutralize UIKit's automatic bottom padding and provide our own
+        // spacer so the list always scrolls and doesn't get constrained by
+        // the tab bar.
+        .background(UBScrollViewInsetAdjustmentDisabler())
+#endif
+        .cardDetailListBottomInset(layoutContext: layoutContext)
+    }
+
+    // MARK: Bottom inset for comfortable/infinite scrolling
+    // Mirrors the strategy used in BudgetDetailsView so lists remain scrollable
+    // even when content is short, and to keep spacing consistent above the tab bar.
+    @ViewBuilder
+    private func cardDetailBottomSpacer() -> some View {
+        Color.clear.frame(height: CardDetailListBottomInsetMetrics.bottomInset(for: layoutContext))
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -472,4 +512,51 @@ private struct IconOnlyButton: View {
 private struct DeletionError: Identifiable {
     let id = UUID()
     let message: String
+}
+
+// MARK: - List Bottom Inset Helpers
+private extension View {
+    @ViewBuilder
+    func cardDetailListBottomInset(layoutContext: ResponsiveLayoutContext) -> some View {
+        #if os(iOS)
+        #if targetEnvironment(macCatalyst)
+        self
+        #else
+        self.safeAreaInset(edge: .bottom) {
+            Color.clear
+                .frame(height: CardDetailListBottomInsetMetrics.bottomInset(for: layoutContext))
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        #endif
+        #else
+        self
+        #endif
+    }
+}
+
+private enum CardDetailListBottomInsetMetrics {
+    #if os(iOS)
+    #if targetEnvironment(macCatalyst)
+    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat { 0 }
+    #else
+    // Match BudgetDetailsView behavior: ensure at least the tab bar height is
+    // represented so the list always scrolls comfortably.
+    private static let compactTabBarHeight: CGFloat = 49
+    private static let regularTabBarHeight: CGFloat = 49
+
+    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat {
+        let safeAreaBottom = layoutContext.safeArea.bottom
+        let sizeClass = layoutContext.horizontalSizeClass ?? .compact
+        let tabBarHeight = sizeClass == .regular ? regularTabBarHeight : compactTabBarHeight
+        if safeAreaBottom >= tabBarHeight - 1 {
+            return safeAreaBottom
+        } else {
+            return safeAreaBottom + tabBarHeight
+        }
+    }
+    #endif
+    #else
+    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat { 0 }
+    #endif
 }

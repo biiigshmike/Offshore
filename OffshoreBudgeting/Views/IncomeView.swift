@@ -144,6 +144,7 @@ struct IncomeView: View {
     }
 
     private let calendarSectionContentPadding: CGFloat = 10
+    private let calendarScrollResetDelay: DispatchTimeInterval = .milliseconds(150)
 
     private func calendarChromeHeight() -> CGFloat {
         navigationButtonRowHeight + CalendarSectionMetrics.headerSpacing + (calendarSectionContentPadding * 2)
@@ -512,7 +513,7 @@ struct IncomeView: View {
                     .monthLabel(UBMonthLabel.init)
                     .startMonth(start)
                     .endMonth(end)
-                    .scrollTo(date: calendarScrollDate)
+                    .scrollTo(date: calendarScrollDate ?? viewModel.selectedDate)
             }
             .transaction { t in
                 t.animation = nil
@@ -704,7 +705,8 @@ struct IncomeView: View {
             calendarScrollDate = target
         }
         // Reset the scroll target on the next run loop cycle without animation
-        DispatchQueue.main.async {
+        DispatchQueue.main.asyncAfter(deadline: .now() + calendarScrollResetDelay) {
+            guard calendarScrollDate == target else { return }
             withTransaction(Transaction(animation: nil)) {
                 calendarScrollDate = nil
             }

@@ -144,7 +144,7 @@ struct EditSheetScaffold<SheetContent: View>: View {
     // MARK: Row Background
     private var rowBackground: some View {
         RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(themeManager.selectedTheme.background)
+            .fill(themeManager.selectedTheme.groupedRowBackground)
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(separatorColor, lineWidth: 1)

@@ -20,13 +20,17 @@ struct CardDetailView: View {
 
     // MARK: State
     @StateObject private var viewModel: CardDetailViewModel
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.responsiveLayoutContext) private var layoutContext
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.managedObjectContext) private var viewContext
+    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
     @State private var isSearchActive: Bool = false
     @FocusState private var isSearchFieldFocused: Bool
     // Add flows
     @State private var isPresentingAddPlanned: Bool = false
+    @State private var expensePendingDeletion: CardExpense?
+    @State private var isConfirmingDelete: Bool = false
+    @State private var deletionError: DeletionError?
 
     // No longer tracking header offset via state; the header is rendered
     // outside of the scroll view and does not need to drive layout of the
@@ -82,6 +86,17 @@ struct CardDetailView: View {
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
+        .alert("Delete Expense?", isPresented: $isConfirmingDelete, presenting: expensePendingDeletion) { expense in
+            Button("Delete", role: .destructive) { performDelete(expense) }
+            Button("Cancel", role: .cancel) { expensePendingDeletion = nil }
+        } message: { _ in
+            Text("This will remove the expense from the card.")
+        }
+        .alert("Couldn't Delete Expense", presenting: $deletionError) { _ in
+            Button("OK", role: .cancel) { }
+        } message: { error in
+            Text(error.message)
+        }
         .ub_surfaceBackground(
             themeManager.selectedTheme,
             configuration: themeManager.glassConfiguration,
@@ -119,20 +134,147 @@ struct CardDetailView: View {
             .padding()
         case .loaded(let total, _, _):
             let cardMaxWidth = resolvedCardMaxWidth(in: layoutContext)
-            ScrollView {
-                VStack(spacing: 20) {
-                    CardTileView(card: card, enableMotionShine: true)
-                        .frame(maxWidth: cardMaxWidth)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    totalsSection(total: total)
-                    categoryBreakdown(categories: viewModel.filteredCategories)
-                    expensesList
-                }
-                .padding(.horizontal)
-                .padding(.top, initialHeaderTopPadding)
-                .padding(.bottom, 24)
-            }
+            listContent(cardMaxWidth: cardMaxWidth, total: total)
     }
+    }
+
+    @ViewBuilder
+    private func listContent(cardMaxWidth: CGFloat?, total: Double) -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            baseList(cardMaxWidth: cardMaxWidth, total: total)
+                .scrollContentBackground(.hidden)
+                .listSectionSpacing(20)
+        } else {
+            baseList(cardMaxWidth: cardMaxWidth, total: total)
+        }
+    }
+
+    private func baseList(cardMaxWidth: CGFloat?, total: Double) -> some View {
+        List {
+            cardRow(maxWidth: cardMaxWidth)
+            totalsListRow(total: total)
+            categoryListRow(categories: viewModel.filteredCategories)
+            expensesSection
+        }
+        .ub_listStyleLiquidAware()
+    }
+
+    @ViewBuilder
+    private func cardRow(maxWidth: CGFloat?) -> some View {
+        CardTileView(card: card, enableMotionShine: true)
+            .frame(maxWidth: maxWidth)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 16)
+            .padding(.top, initialHeaderTopPadding)
+            .padding(.bottom, 12)
+            .listRowInsets(.init())
+            .listRowBackground(Color.clear)
+    }
+
+    @ViewBuilder
+    private func totalsListRow(total: Double) -> some View {
+        totalsSection(total: total)
+            .padding(.horizontal, 16)
+            .listRowInsets(.init(top: 0, leading: 0, bottom: 12, trailing: 0))
+            .listRowBackground(Color.clear)
+    }
+
+    @ViewBuilder
+    private func categoryListRow(categories: [CardCategoryTotal]) -> some View {
+        categoryBreakdown(categories: categories)
+            .padding(.horizontal, 16)
+            .listRowInsets(.init(top: 0, leading: 0, bottom: 12, trailing: 0))
+            .listRowBackground(Color.clear)
+    }
+
+    private var expensesSection: some View {
+        Section {
+            let expenses = viewModel.filteredExpenses
+            if expenses.isEmpty {
+                Text(viewModel.searchText.isEmpty ? "No expenses found." : "No results for “\(viewModel.searchText)”")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .padding(.horizontal, 16)
+                    .contentShape(Rectangle())
+                    .listRowInsets(.init(top: 0, leading: 0, bottom: 24, trailing: 0))
+                    .listRowBackground(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
+                    .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
+            } else {
+                ForEach(Array(expenses.enumerated()), id: \.element.id) { pair in
+                    let isFirst = pair.offset == 0
+                    let isLast = pair.offset == expenses.count - 1
+                    ExpenseRow(expense: pair.element, currencyCode: currencyCode)
+                        .padding()
+                        .padding(.horizontal, 16)
+                        .contentShape(Rectangle())
+                        .listRowInsets(.init(top: isFirst ? 0 : 4, leading: 0, bottom: isLast ? 24 : 12, trailing: 0))
+                        .listRowBackground(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
+                        .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
+                        .unifiedSwipeActions(
+                            UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
+                            onEdit: nil,
+                            onDelete: { requestDelete(pair.element) }
+                        )
+                }
+                .onDelete { handleDelete($0) }
+            }
+        } header: {
+            Text("EXPENSES")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 16)
+                .padding(.trailing, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+                .textCase(nil)
+        }
+    }
+
+    private func requestDelete(_ expense: CardExpense) {
+        if confirmBeforeDelete {
+            expensePendingDeletion = expense
+            isConfirmingDelete = true
+        } else {
+            performDelete(expense)
+        }
+    }
+
+    private func handleDelete(_ offsets: IndexSet) {
+        let expenses = viewModel.filteredExpenses
+        let targets = offsets.compactMap { index in
+            expenses.indices.contains(index) ? expenses[index] : nil
+        }
+        guard !targets.isEmpty else { return }
+
+        if confirmBeforeDelete, let first = targets.first {
+            expensePendingDeletion = first
+            isConfirmingDelete = true
+        } else {
+            targets.forEach { performDelete($0) }
+        }
+    }
+
+    private func performDelete(_ expense: CardExpense) {
+        Task { @MainActor in
+            expensePendingDeletion = nil
+            isConfirmingDelete = false
+
+            do {
+                try await viewModel.delete(expense: expense)
+                await viewModel.load()
+            } catch {
+                if viewContext.hasChanges { viewContext.rollback() }
+                deletionError = DeletionError(message: error.localizedDescription)
+            }
+        }
+    }
+
+    private func rowBackground(color: Color) -> some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(color)
     }
 
     private var currencyCode: String {
@@ -245,29 +387,6 @@ struct CardDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
     
-    // MARK: expensesList
-    private var expensesList: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("EXPENSES")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-            if viewModel.filteredExpenses.isEmpty {
-                Text(viewModel.searchText.isEmpty ? "No expenses found." : "No results for “\(viewModel.searchText)”")
-                    .font(.callout).foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
-            } else {
-                ForEach(viewModel.filteredExpenses) { expense in
-                    ExpenseRow(expense: expense, currencyCode: currencyCode)
-                    Divider().opacity(0.15)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(themeManager.selectedTheme.secondaryBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
     // MARK: Layout Helpers
     private func resolvedCardMaxWidth(in context: ResponsiveLayoutContext) -> CGFloat? {
         let availableWidth = max(context.containerSize.width - context.safeArea.leading - context.safeArea.trailing, 0)
@@ -348,4 +467,9 @@ private struct IconOnlyButton: View {
         default: return "Action"
         }
     }
+}
+
+private struct DeletionError: Identifiable {
+    let id = UUID()
+    let message: String
 }

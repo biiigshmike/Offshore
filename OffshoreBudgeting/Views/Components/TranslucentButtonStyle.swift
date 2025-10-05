@@ -206,12 +206,12 @@ struct TranslucentButtonStyle: ButtonStyle {
             shape
                 .fill(.ultraThinMaterial)
                 .overlay(shape.fill(fillColor(for: theme, isPressed: isPressed)))
-                .shadow(
-                    color: shadowColor(for: theme, isPressed: isPressed),
-                    radius: shadowRadius(isPressed: isPressed),
-                    x: 0,
-                    y: shadowY(isPressed: isPressed)
-                )
+//                .shadow(
+//                    color: shadowColor(for: theme, isPressed: isPressed),
+//                    radius: shadowRadius(isPressed: isPressed),
+//                    x: 0,
+//                    y: shadowY(isPressed: isPressed)
+//                )
                 .compositingGroup()
         } else {
             // Classic OS: flat, no drop shadow per legacyOptions guidance.

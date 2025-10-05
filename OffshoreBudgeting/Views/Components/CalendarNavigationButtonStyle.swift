@@ -44,12 +44,12 @@ struct CalendarNavigationButtonStyle: ButtonStyle {
                         .fill(fillColor(for: theme, isPressed: isPressed))
                         .blendMode(.plusLighter)
                 )
-                .shadow(
-                    color: shadowColor(for: theme, isPressed: isPressed),
-                    radius: isPressed ? 8 : 12,
-                    x: 0,
-                    y: isPressed ? 4 : 8
-                )
+//                .shadow(
+//                    color: shadowColor(for: theme, isPressed: isPressed),
+//                    radius: isPressed ? 8 : 12,
+//                    x: 0,
+//                    y: isPressed ? 4 : 8
+//                )
                 .compositingGroup()
         } else {
             // Classic OS: no background; keep controls as plain glyphs.

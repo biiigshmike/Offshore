@@ -609,17 +609,17 @@ private struct CategoryChip: View {
 
         let shouldApplyShadow = style.shadowRadius > 0 || style.shadowY != 0
 
-        if shouldApplyShadow {
-            base
-                .shadow(
-                    color: style.shadowColor,
-                    radius: style.shadowRadius,
-                    x: 0,
-                    y: style.shadowY
-                )
-        } else {
-            base
-        }
+//        if shouldApplyShadow {
+//            base
+//                .shadow(
+//                    color: style.shadowColor,
+//                    radius: style.shadowRadius,
+//                    x: 0,
+//                    y: style.shadowY
+//                )
+//        } else {
+//            base
+//        }
     }
 
 }

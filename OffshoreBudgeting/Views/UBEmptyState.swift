@@ -89,7 +89,7 @@ struct UBEmptyState: View {
             Text(title)
                 .font(.largeTitle.bold())
                 .foregroundStyle(UBTypography.cardTitleStatic)
-                .ub_cardTitleShadow()
+                //.ub_cardTitleShadow()
 
             // MARK: Message
             Text(message)

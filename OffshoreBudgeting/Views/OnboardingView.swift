@@ -732,7 +732,7 @@ private struct OnboardingGlassBackground: View {
                             .stroke(tint.opacity(0.18), lineWidth: 0.8)
                             .blendMode(.overlay)
                     )
-                    .shadow(color: tint.opacity(0.14), radius: 26, x: 0, y: 16)
+                    //.shadow(color: tint.opacity(0.14), radius: 26, x: 0, y: 16)
                     .compositingGroup()
             } else {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -746,7 +746,7 @@ private struct OnboardingGlassBackground: View {
                             .stroke(Color.white.opacity(0.16), lineWidth: 0.6)
                             .blendMode(.screen)
                     )
-                    .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 8)
+                    //.shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 8)
             }
         }
     }

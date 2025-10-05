@@ -66,7 +66,7 @@ struct CardTileView: View {
             .overlay(selectionRingOverlay) // <- inner visible ring
             .overlay(selectionGlowOverlay) // <- outer glow (pretty when not clipped)
             .overlay(thinEdgeOverlay)
-            .shadow(color: .black.opacity(showsBaseShadow ? 0.20 : 0), radius: showsBaseShadow ? 6 : 0, x: 0, y: showsBaseShadow ? 4 : 0)
+            //.shadow(color: .black.opacity(showsBaseShadow ? 0.20 : 0), radius: showsBaseShadow ? 6 : 0, x: 0, y: showsBaseShadow ? 4 : 0)
         }
         .buttonStyle(.plain) // avoid system blue highlight
         .accessibilityElement(children: .ignore)

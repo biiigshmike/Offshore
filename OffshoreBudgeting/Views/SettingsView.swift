@@ -376,7 +376,7 @@ struct SettingsView: View {
         tabBarGutter: RootTabPageProxy.TabBarGutter
     ) -> CGFloat {
         let base = horizontalSizeClass == .compact ? 0 : DS.Spacing.l
-        let scrollTailAllowance = DS.Spacing.m // Provide gentle overscroll consistency with other tabs.
+        let scrollTailAllowance = DS.Spacing.l 
         let tabChromeHeight: CGFloat = horizontalSizeClass == .compact ? 49 : 50
         let gutter = proxy.tabBarGutterSpacing(tabBarGutter)
 

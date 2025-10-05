@@ -854,6 +854,7 @@ private struct PlannedListFR: View {
     private let onTotalsChanged: () -> Void
     private let header: AnyView?
     private let headerManagesPadding: Bool
+    private let inactiveBudgetMessage: String
     @State private var editingItem: PlannedExpense?
     @State private var itemToDelete: PlannedExpense?
     @State private var showDeleteAlert = false
@@ -895,6 +896,7 @@ private struct PlannedListFR: View {
         self.onTotalsChanged = onTotalsChanged
         self.header = header
         self.headerManagesPadding = headerManagesPadding
+        self.inactiveBudgetMessage = inactiveBudgetGuidanceMessage(startDate: startDate, endDate: endDate)
 
         let (s, e) = Self.clamp(startDate...endDate)
         let req: NSFetchRequest<PlannedExpense> = NSFetchRequest(entityName: "PlannedExpense")
@@ -917,12 +919,13 @@ private struct PlannedListFR: View {
         Group {
             if items.isEmpty {
                 // MARK: Compact empty state (single Add button)
+                let message = isBudgetActive ? "No planned expenses in this period." : inactiveBudgetMessage
                 List {
                     if let header {
                         headerSection(header, applyDefaultInsets: !headerManagesPadding)
                     }
-                    BudgetListEmptyStateSection(message: "No planned expenses in this period.") {
-                        let title = isBudgetActive ? "Add Planned Expense" : "+ Create Budget"
+                    BudgetListEmptyStateSection(message: message) {
+                        let title = isBudgetActive ? "Add Planned Expense" : "Create Budget"
                         let action = isBudgetActive ? onAddTapped : onCreateBudgetTapped
                         addActionButton(title: title, action: action)
                     }
@@ -1207,6 +1210,7 @@ private struct VariableListFR: View {
     private let onTotalsChanged: () -> Void
     private let header: AnyView?
     private let headerManagesPadding: Bool
+    private let inactiveBudgetMessage: String
     @State private var editingItem: UnplannedExpense?
     @State private var itemToDelete: UnplannedExpense?
     @State private var showDeleteAlert = false
@@ -1249,6 +1253,7 @@ private struct VariableListFR: View {
         self.onTotalsChanged = onTotalsChanged
         self.header = header
         self.headerManagesPadding = headerManagesPadding
+        self.inactiveBudgetMessage = inactiveBudgetGuidanceMessage(startDate: startDate, endDate: endDate)
 
         let (s, e) = Self.clamp(startDate...endDate)
         let req: NSFetchRequest<UnplannedExpense> = NSFetchRequest(entityName: "UnplannedExpense")
@@ -1277,12 +1282,13 @@ private struct VariableListFR: View {
         Group {
             if items.isEmpty {
                 // MARK: Compact empty state (single Add button)
+                let message = isBudgetActive ? "No variable expenses in this period." : inactiveBudgetMessage
                 List {
                     if let header {
                         headerSection(header, applyDefaultInsets: !headerManagesPadding)
                     }
-                    BudgetListEmptyStateSection(message: "No variable expenses in this period.") {
-                        let title = isBudgetActive ? "Add Variable Expense" : "+ Create Budget"
+                    BudgetListEmptyStateSection(message: message) {
+                        let title = isBudgetActive ? "Add Variable Expense" : "Create Budget"
                         let action = isBudgetActive ? onAddTapped : onCreateBudgetTapped
                         addActionButton(title: title, action: action)
                     }
@@ -1491,6 +1497,25 @@ private func budgetDetailsCTAButtonLabel(_ title: String) -> some View {
         .font(.system(size: 17, weight: .semibold, design: .rounded))
         .frame(maxWidth: .infinity)
         .frame(minHeight: 44)
+}
+
+private func inactiveBudgetGuidanceMessage(startDate: Date, endDate: Date) -> String {
+    let periodTitle = resolvedInactiveBudgetPeriodTitle(startDate: startDate, endDate: endDate)
+    return "This budget is not currently active. Press the button above to get started budgeting for \(periodTitle)."
+}
+
+private func resolvedInactiveBudgetPeriodTitle(startDate: Date, endDate: Date) -> String {
+    if let period = BudgetPeriod.selectableCases.first(where: { $0.matches(startDate: startDate, endDate: endDate) }) {
+        let baseTitle = period.title(for: startDate)
+        if !baseTitle.isEmpty {
+            return "\(baseTitle) Budget"
+        }
+    }
+
+    let formatter = DateIntervalFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .none
+    return "\(formatter.string(from: startDate, to: endDate)) Budget"
 }
 
 // MARK: - Shared List Styling Helpers

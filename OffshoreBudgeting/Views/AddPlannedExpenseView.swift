@@ -379,8 +379,6 @@ private struct CategoryChipsRow: View {
     @Binding var selectedCategoryID: NSManagedObjectID?
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.platformCapabilities) private var capabilities
-    @EnvironmentObject private var themeManager: ThemeManager
-    @Namespace private var glassNamespace
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(key: "name", ascending: true,
@@ -389,92 +387,67 @@ private struct CategoryChipsRow: View {
     private var categories: FetchedResults<ExpenseCategory>
 
     @State private var isPresentingNewCategory = false
-    @State private var addButtonWidth: CGFloat = .zero
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
-    private let addButtonSpacing: CGFloat = DS.Spacing.m
     private let chipRowClipShape = Capsule(style: .continuous)
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            chipsScrollContainer()
-                .padding(.leading, chipsLeadingPadding)
-
-            addCategoryButton
-        }
-        .listRowBackground(Color.clear)
-        .listRowInsets(
-            EdgeInsets(
-                top: verticalInset,
-                leading: DS.Spacing.l,
-                bottom: verticalInset,
-                trailing: DS.Spacing.l
+        chipsScrollContainer()
+            .listRowBackground(Color.clear)
+            .listRowInsets(
+                EdgeInsets(
+                    top: verticalInset,
+                    leading: DS.Spacing.l,
+                    bottom: verticalInset,
+                    trailing: DS.Spacing.l
+                )
             )
-        )
-        .sheet(isPresented: $isPresentingNewCategory) {
-            ExpenseCategoryEditorSheet(
-                initialName: "",
-                initialHex: "#4E9CFF"
-            ) { name, hex in
-                let category = ExpenseCategory(context: viewContext)
-                category.id = UUID()
-                category.name = name
-                category.color = hex
-                do {
-                    try viewContext.obtainPermanentIDs(for: [category])
-                    try viewContext.save()
-                    selectedCategoryID = category.objectID
-                } catch {
-                    AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
+            .sheet(isPresented: $isPresentingNewCategory) {
+                ExpenseCategoryEditorSheet(
+                    initialName: "",
+                    initialHex: "#4E9CFF"
+                ) { name, hex in
+                    let category = ExpenseCategory(context: viewContext)
+                    category.id = UUID()
+                    category.name = name
+                    category.color = hex
+                    do {
+                        try viewContext.obtainPermanentIDs(for: [category])
+                        try viewContext.save()
+                        selectedCategoryID = category.objectID
+                    } catch {
+                        AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
+                    }
+                }
+                // Guard presentationDetents for iOS 16+ only.
+                .modifier(PresentationDetentsCompat())
+                .environment(\.managedObjectContext, viewContext)
+            }
+            .ub_onChange(of: categories.count) {
+                if selectedCategoryID == nil, let first = categories.first {
+                    selectedCategoryID = first.objectID
                 }
             }
-            // Guard presentationDetents for iOS 16+ only.
-            .modifier(PresentationDetentsCompat())
-            .environment(\.managedObjectContext, viewContext)
-        }
-        .ub_onChange(of: categories.count) {
-            if selectedCategoryID == nil, let first = categories.first {
-                selectedCategoryID = first.objectID
-            }
-        }
     }
 }
 
 private extension CategoryChipsRow {
-    private var chipsLeadingPadding: CGFloat { addButtonWidth + addButtonSpacing }
-
-    private var addCategoryButton: some View {
-        AddCategoryPill { isPresentingNewCategory = true }
-            .zIndex(1)
-            .background(addButtonWidthReader)
-    }
-
-    private var addButtonWidthReader: some View {
-        GeometryReader { proxy in
-            Color.clear
-                .onAppear { updateAddButtonWidth(proxy.size.width) }
-                .ub_onChange(of: proxy.size.width) { newWidth in
-                    updateAddButtonWidth(newWidth)
-                }
-        }
-    }
-
     @ViewBuilder
     private func chipsScrollContainer() -> some View {
         if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             GlassEffectContainer(spacing: DS.Spacing.s) {
-                chipsScrollView(namespace: glassNamespace)
+                chipsScrollView()
             }
             .clipShape(chipRowClipShape)
         } else {
-            chipsScrollView(namespace: nil)
+            chipsScrollView()
         }
     }
 
-    @ViewBuilder
-    private func chipsScrollView(namespace: Namespace.ID?) -> some View {
+    private func chipsScrollView() -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: DS.Spacing.s) {
+                addCategoryButton
                 if categories.isEmpty {
                     Text("No categories yet")
                         .foregroundStyle(.secondary)
@@ -486,11 +459,9 @@ private extension CategoryChipsRow {
                             id: cat.objectID.uriRepresentation().absoluteString,
                             name: cat.name ?? "Untitled",
                             colorHex: cat.color ?? "#999999",
-                            isSelected: isSelected,
-                            namespace: namespace
+                            isSelected: isSelected
                         )
                         .onTapGesture { selectedCategoryID = cat.objectID }
-                        .glassEffectTransitionIfNeeded(using: namespace)
                     }
                 }
             }
@@ -502,25 +473,8 @@ private extension CategoryChipsRow {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func updateAddButtonWidth(_ width: CGFloat) {
-        let quantized = (width * 2).rounded() / 2
-        let tolerance: CGFloat = 0.5
-        DispatchQueue.main.async {
-            if abs(addButtonWidth - quantized) > tolerance {
-                addButtonWidth = max(0, quantized)
-            }
-        }
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func glassEffectTransitionIfNeeded(using namespace: Namespace.ID?) -> some View {
-        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            self.glassEffectTransition(.matchedGeometry)
-        } else {
-            self
-        }
+    private var addCategoryButton: some View {
+        AddCategoryPill { isPresentingNewCategory = true }
     }
 }
 
@@ -561,8 +515,6 @@ private struct CategoryChip: View {
     let name: String
     let colorHex: String
     let isSelected: Bool
-    let namespace: Namespace.ID?
-    @Environment(\.platformCapabilities) private var capabilities
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -590,21 +542,10 @@ private struct CategoryChip: View {
                     .font(.subheadline.weight(.semibold))
             }
         }
-        Group {
-            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macCatalyst 26.0, *) {
-                if let ns = namespace {
-                    pill
-                        .glassEffectID(id, in: ns)
-                } else {
-                    pill
-                }
-            } else {
-                pill
-            }
-        }
-        .scaleEffect(style.scale)
-        .animation(.easeOut(duration: 0.15), value: isSelected)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        pill
+            .scaleEffect(style.scale)
+            .animation(.easeOut(duration: 0.15), value: isSelected)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
 }

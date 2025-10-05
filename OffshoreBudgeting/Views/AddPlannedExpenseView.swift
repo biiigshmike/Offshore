@@ -387,7 +387,6 @@ private struct CategoryChipsRow: View {
     private var categories: FetchedResults<ExpenseCategory>
 
     @State private var isPresentingNewCategory = false
-    @State private var addPillWidth: CGFloat = 0
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
     private let chipRowClipShape = Capsule(style: .continuous)
@@ -446,24 +445,18 @@ private extension CategoryChipsRow {
     }
 
     private func chipRowLayout() -> some View {
-        ZStack(alignment: .leading) {
-            chipsScrollView()
-
+        HStack(alignment: .center, spacing: DS.Spacing.s) {
             addCategoryButton
                 .zIndex(1)
+            chipsScrollView()
         }
         .padding(.horizontal, DS.Spacing.s)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onPreferenceChange(AddCategoryWidthPreferenceKey.self) { width in
-            guard addPillWidth != width else { return }
-            addPillWidth = width
-        }
     }
 
     private func chipsScrollView() -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             categoryChips
-                .padding(.leading, addPillWidth + DS.Spacing.s)
                 .padding(.trailing, DS.Spacing.s)
         }
         .ub_hideScrollIndicators()
@@ -496,20 +489,6 @@ private extension CategoryChipsRow {
 
     private var addCategoryButton: some View {
         AddCategoryPill { isPresentingNewCategory = true }
-            .background(
-                GeometryReader { proxy in
-                    Color.clear
-                        .preference(key: AddCategoryWidthPreferenceKey.self, value: proxy.size.width)
-                }
-            )
-    }
-}
-
-private struct AddCategoryWidthPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
     }
 }
 

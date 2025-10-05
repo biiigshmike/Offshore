@@ -273,6 +273,24 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// Neutral grouped container background that mirrors the system's form canvas.
+    var sheetBackground: Color {
+        switch self {
+        case .system:
+            return Color(UIColor { trait in
+                if trait.userInterfaceStyle == .dark {
+                    return UIColor.secondarySystemGroupedBackground
+                } else {
+                    return UIColor.systemGroupedBackground
+                }
+            })
+        case .classic, .ocean, .sunrise, .blossom, .lavender, .mint:
+            return Color(UIColor.systemGroupedBackground)
+        case .midnight, .forest, .sunset, .nebula:
+            return background
+        }
+    }
+
     /// Neutral foreground color suitable for primary labels within the theme.
     /// - Parameter colorScheme: The environment's resolved scheme. Used so that the
     ///   System theme can mirror the platform default of dark text in light mode and

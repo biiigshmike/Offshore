@@ -200,17 +200,36 @@ final class CoreDataService: ObservableObject {
         try context.performAndWait {
             var deletedObjectIDs = Set<NSManagedObjectID>()
 
-            for entity in container.managedObjectModel.entities {
-                guard let name = entity.name else { continue }
-                let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: name)
-                let request = NSBatchDeleteRequest(fetchRequest: fetch)
-                request.resultType = .resultTypeObjectIDs
+            let allEntityNames = container.managedObjectModel.entities.compactMap { $0.name }
+            let allEntityNameSet = Set(allEntityNames)
+            let orderedNames = [
+                "PlannedExpense",
+                "UnplannedExpense",
+                "Card",
+                "Budget",
+                "Income",
+                "ExpenseCategory"
+            ]
+            let orderedNameSet = Set(orderedNames)
 
-                let result = try context.execute(request) as? NSBatchDeleteResult
-                if let ids = result?.result as? [NSManagedObjectID] {
-                    deletedObjectIDs.formUnion(ids)
+            func deleteEntities(named entityNames: [String]) throws {
+                for name in entityNames {
+                    guard allEntityNameSet.contains(name) else { continue }
+                    let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: name)
+                    let request = NSBatchDeleteRequest(fetchRequest: fetch)
+                    request.resultType = .resultTypeObjectIDs
+
+                    let result = try context.execute(request) as? NSBatchDeleteResult
+                    if let ids = result?.result as? [NSManagedObjectID] {
+                        deletedObjectIDs.formUnion(ids)
+                    }
                 }
             }
+
+            try deleteEntities(named: orderedNames)
+
+            let remainingNames = allEntityNames.filter { !orderedNameSet.contains($0) }
+            try deleteEntities(named: remainingNames)
 
             guard !deletedObjectIDs.isEmpty else { return }
 

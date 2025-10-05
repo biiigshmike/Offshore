@@ -1042,10 +1042,7 @@ private enum HomeHeaderOverviewMetrics {
             return RootTabHeaderLayout.defaultHorizontalPadding
         }
 
-        return max(
-            layoutContext.safeArea.leading,
-            RootTabHeaderLayout.defaultHorizontalPadding
-        )
+        return max(layoutContext.safeArea.leading, 0)
     }
 }
 

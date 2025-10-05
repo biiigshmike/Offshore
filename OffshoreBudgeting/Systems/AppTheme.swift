@@ -291,6 +291,19 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// Theme-aware background for grouped form rows to match system styling.
+    /// - Parameter colorScheme: The resolved environment scheme for the view.
+    func formRowBackground(for colorScheme: ColorScheme) -> Color {
+        switch self {
+        case .system:
+            return colorScheme == .dark
+                ? Color(UIColor.secondarySystemGroupedBackground)
+                : Color(UIColor.systemBackground)
+        default:
+            return background
+        }
+    }
+
     /// Neutral foreground color suitable for primary labels within the theme.
     /// - Parameter colorScheme: The environment's resolved scheme. Used so that the
     ///   System theme can mirror the platform default of dark text in light mode and

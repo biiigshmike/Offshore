@@ -67,16 +67,46 @@ struct GlassCTAButton<Label: View>: View {
     @available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *)
     @ViewBuilder
     private func glassButton() -> some View {
+        if shouldUseSystemGlassStyle {
+            systemGlassButton()
+        } else {
+            flatLightingButton()
+        }
+    }
+
+    @available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *)
+    @ViewBuilder
+    private func systemGlassButton() -> some View {
         Button(action: action) {
-            labelBuilder()
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                .foregroundStyle(glassLabelForeground)
-                .padding(.horizontal, DS.Spacing.xl)
-                .padding(.vertical, DS.Spacing.m)
-                .frame(maxWidth: fillHorizontally ? .infinity : nil, alignment: .center)
+            buttonLabel()
         }
         .buttonStyle(.glass)
         .tint(glassTint)
+    }
+
+    @available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *)
+    @ViewBuilder
+    private func flatLightingButton() -> some View {
+        Button(action: action) {
+            buttonLabel()
+        }
+        .buttonStyle(
+            TranslucentButtonStyle(
+                tint: glassTint,
+                metrics: flatLightingMetrics,
+                appearance: .tinted
+            )
+        )
+    }
+
+    @ViewBuilder
+    private func buttonLabel() -> some View {
+        labelBuilder()
+            .font(.system(size: 17, weight: .semibold, design: .rounded))
+            .foregroundStyle(glassLabelForeground)
+            .padding(.horizontal, DS.Spacing.xl)
+            .padding(.vertical, DS.Spacing.m)
+            .frame(maxWidth: fillHorizontally ? .infinity : nil, alignment: .center)
     }
 
     private var fallbackTint: Color {
@@ -89,6 +119,21 @@ struct GlassCTAButton<Label: View>: View {
 
     private var glassLabelForeground: Color {
         colorScheme == .light ? .black : .primary
+    }
+
+    private var shouldUseSystemGlassStyle: Bool {
+        let glass = themeManager.glassConfiguration.glass
+        return glass.shadowOpacity > 0 && glass.shadowBlur > 0
+    }
+
+    private var flatLightingMetrics: TranslucentButtonStyle.Metrics {
+        var metrics = TranslucentButtonStyle.Metrics.standard
+        metrics.horizontalPadding = 0
+        metrics.verticalPadding = 0
+        metrics.overridesLabelForeground = false
+        metrics.pressedScale = 0.97
+        metrics.font = nil
+        return metrics
     }
 
     private var resolvedFallbackMetrics: TranslucentButtonStyle.Metrics {

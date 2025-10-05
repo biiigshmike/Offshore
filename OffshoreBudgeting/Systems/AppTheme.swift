@@ -291,6 +291,20 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// Row background used within grouped forms and lists.
+    /// Mirrors the native grouped appearance by matching the system's
+    /// secondary grouped surface when following the platform theme and
+    /// reusing each custom palette's secondary background so their
+    /// tailored grouped shades remain consistent in light and dark modes.
+    var groupedRowBackground: Color {
+        switch self {
+        case .system:
+            return Color(UIColor.secondarySystemGroupedBackground)
+        default:
+            return secondaryBackground
+        }
+    }
+
     /// Neutral foreground color suitable for primary labels within the theme.
     /// - Parameter colorScheme: The environment's resolved scheme. Used so that the
     ///   System theme can mirror the platform default of dark text in light mode and

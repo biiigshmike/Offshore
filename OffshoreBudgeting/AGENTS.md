@@ -13,7 +13,7 @@ This document guides code agents on how to safely read, plan, and modify this re
 - Align header pills, grids, and info panels using shared layout environment values when present.
 - Keep text sizing, spacing, and padding consistent with existing design tokens.
 - Avoid hard-coded device checks when layout modifiers can adapt.
-- Ensure that iOS 26/iPadOS26/macOS 26 Liquid Glass is prioritized and provide legacy fallback for older OSes. The app supports as low as iOS/iPadOS 15.4 and macOS 15.4; due to this, Liquid Glass should only be for OS 26 and then older, legacy OS versions have their UI elements that are consistent with their current OS.
+- Ensure that iOS 26/iPadOS26/macOS 26 Liquid Glass is prioritized and provide legacy fallback for older OSes. The app supports as low as iOS/iPadOS/macOS 16. iOS/iPadOS latest version is 16.6 and macOS latest version is 16.6; due to this, Liquid Glass should only be for OS 26 and then older, legacy OS versions have their UI elements that are consistent with their current OS.
 - I prefer my legacy members to only see plain text buttons while I prefer my iOS26 users to see Liquid Glass buttons.
 - Always reference the Apple Documentation folder, especially when making adjustments to Liquid Glass elements throughout the app. It's very important you do this each time you are coding that you constantly refresh yourself on Apple's official documentation on Liquid Glass.
 

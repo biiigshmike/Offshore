@@ -436,7 +436,8 @@ private struct AddCategoryPillStyle: ButtonStyle {
             fallbackTextColor: .primary,
             fallbackFill: DS.Colors.chipFill,
             fallbackStrokeColor: DS.Colors.chipFill,
-            fallbackStrokeLineWidth: 1
+            fallbackStrokeLineWidth: 1,
+            isInteractive: true
         ) {
             configuration.label
                 .font(.subheadline.weight(.semibold))

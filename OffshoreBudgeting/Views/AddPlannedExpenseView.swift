@@ -436,41 +436,54 @@ private extension CategoryChipsRow {
     private func chipsScrollContainer() -> some View {
         if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             GlassEffectContainer(spacing: DS.Spacing.s) {
-                chipsScrollView()
+                chipRowLayout()
             }
             .clipShape(chipRowClipShape)
         } else {
+            chipRowLayout()
+        }
+    }
+
+    private func chipRowLayout() -> some View {
+        HStack(alignment: .center, spacing: DS.Spacing.s) {
+            addCategoryButton
             chipsScrollView()
         }
+        .padding(.horizontal, DS.Spacing.s)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func chipsScrollView() -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: DS.Spacing.s) {
-                addCategoryButton
-                if categories.isEmpty {
-                    Text("No categories yet")
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, 10)
-                } else {
-                    ForEach(categories, id: \.objectID) { cat in
-                        let isSelected = selectedCategoryID == cat.objectID
-                        CategoryChip(
-                            id: cat.objectID.uriRepresentation().absoluteString,
-                            name: cat.name ?? "Untitled",
-                            colorHex: cat.color ?? "#999999",
-                            isSelected: isSelected
-                        )
-                        .onTapGesture { selectedCategoryID = cat.objectID }
-                    }
-                }
-            }
-            .padding(.horizontal, DS.Spacing.s)
+            categoryChips
+                .padding(.trailing, DS.Spacing.s)
         }
         .ub_hideScrollIndicators()
         .ub_disableHorizontalBounce()
         .clipped()
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var categoryChips: some View {
+        LazyHStack(spacing: DS.Spacing.s) {
+            if categories.isEmpty {
+                Text("No categories yet")
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 10)
+            } else {
+                ForEach(categories, id: \.objectID) { cat in
+                    let isSelected = selectedCategoryID == cat.objectID
+                    CategoryChip(
+                        id: cat.objectID.uriRepresentation().absoluteString,
+                        name: cat.name ?? "Untitled",
+                        colorHex: cat.color ?? "#999999",
+                        isSelected: isSelected
+                    )
+                    .onTapGesture { selectedCategoryID = cat.objectID }
+                }
+            }
+        }
     }
 
     private var addCategoryButton: some View {

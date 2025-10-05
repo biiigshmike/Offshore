@@ -683,7 +683,8 @@ private struct HomeHeaderTablePage<Content: View>: View {
     private var headerContent: some View {
         let horizontalPadding = HomeHeaderOverviewMetrics.horizontalPadding(
             for: capabilities,
-            layoutContext: layoutContext
+            layoutContext: layoutContext,
+            requiresLegacyBaselinePadding: summary == nil
         )
 
         return VStack(spacing: HomeHeaderOverviewMetrics.sectionSpacing) {
@@ -1032,7 +1033,8 @@ private enum HomeHeaderOverviewMetrics {
 
     static func horizontalPadding(
         for capabilities: PlatformCapabilities,
-        layoutContext: ResponsiveLayoutContext
+        layoutContext: ResponsiveLayoutContext,
+        requiresLegacyBaselinePadding: Bool = false
     ) -> CGFloat {
         if capabilities.supportsOS26Translucency {
             return RootTabHeaderLayout.defaultHorizontalPadding
@@ -1042,7 +1044,13 @@ private enum HomeHeaderOverviewMetrics {
             return RootTabHeaderLayout.defaultHorizontalPadding
         }
 
-        return max(layoutContext.safeArea.leading, 0)
+        let safeAreaLeading = max(layoutContext.safeArea.leading, 0)
+
+        if safeAreaLeading == 0, requiresLegacyBaselinePadding {
+            return RootTabHeaderLayout.defaultHorizontalPadding
+        }
+
+        return safeAreaLeading
     }
 }
 

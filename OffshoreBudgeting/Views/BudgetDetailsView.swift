@@ -29,6 +29,7 @@ struct BudgetDetailsView: View {
     private let appliesSurfaceBackground: Bool
     private let showsCategoryChips: Bool
     let onSegmentChange: ((BudgetDetailsViewModel.Segment) -> Void)?
+    private let onRequestCreateBudget: (() -> Void)?
     enum ListHeaderBehavior {
         case rendersHeader
         case omitsHeader
@@ -104,6 +105,20 @@ struct BudgetDetailsView: View {
         return true
     }
 
+    private var isBudgetActiveForDisplayedPeriod: Bool {
+        let range = normalizedDisplayedPeriodRange()
+        return range.contains(Date())
+    }
+
+    private func normalizedDisplayedPeriodRange() -> ClosedRange<Date> {
+        let lower = min(vm.startDate, vm.endDate)
+        let upper = max(vm.startDate, vm.endDate)
+        let calendar = Calendar.current
+        let startOfLower = calendar.startOfDay(for: lower)
+        let endOfUpper = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: calendar.startOfDay(for: upper)) ?? upper
+        return startOfLower...endOfUpper
+    }
+
     // MARK: Init
     init(
         budgetObjectID: NSManagedObjectID,
@@ -115,6 +130,7 @@ struct BudgetDetailsView: View {
         selectedSegment: Binding<BudgetDetailsViewModel.Segment>,
         sort: Binding<BudgetDetailsViewModel.SortOption>,
         onSegmentChange: ((BudgetDetailsViewModel.Segment) -> Void)? = nil,
+        onRequestCreateBudget: (() -> Void)? = nil,
         headerManagesPadding: Bool = false,
         header: AnyView? = nil,
         listHeaderBehavior: ListHeaderBehavior = .rendersHeader,
@@ -127,6 +143,7 @@ struct BudgetDetailsView: View {
         self.appliesSurfaceBackground = appliesSurfaceBackground
         self.showsCategoryChips = showsCategoryChips
         self.onSegmentChange = onSegmentChange
+        self.onRequestCreateBudget = onRequestCreateBudget
         self.embeddedListHeader = header
         self.embeddedHeaderManagesPadding = headerManagesPadding
         self.listHeaderBehavior = listHeaderBehavior
@@ -147,6 +164,7 @@ struct BudgetDetailsView: View {
         selectedSegment: Binding<BudgetDetailsViewModel.Segment>,
         sort: Binding<BudgetDetailsViewModel.SortOption>,
         onSegmentChange: ((BudgetDetailsViewModel.Segment) -> Void)? = nil,
+        onRequestCreateBudget: (() -> Void)? = nil,
         headerManagesPadding: Bool = false,
         header: AnyView? = nil,
         listHeaderBehavior: ListHeaderBehavior = .rendersHeader,
@@ -159,6 +177,7 @@ struct BudgetDetailsView: View {
         self.appliesSurfaceBackground = appliesSurfaceBackground
         self.showsCategoryChips = showsCategoryChips
         self.onSegmentChange = onSegmentChange
+        self.onRequestCreateBudget = onRequestCreateBudget
         self.embeddedListHeader = header
         self.embeddedHeaderManagesPadding = headerManagesPadding
         self.listHeaderBehavior = listHeaderBehavior
@@ -178,6 +197,7 @@ struct BudgetDetailsView: View {
         selectedSegment: Binding<BudgetDetailsViewModel.Segment>,
         sort: Binding<BudgetDetailsViewModel.SortOption>,
         onSegmentChange: ((BudgetDetailsViewModel.Segment) -> Void)? = nil,
+        onRequestCreateBudget: (() -> Void)? = nil,
         headerManagesPadding: Bool = false,
         listHeaderBehavior: ListHeaderBehavior = .rendersHeader,
         @ViewBuilder header headerBuilder: @escaping () -> Header,
@@ -193,6 +213,7 @@ struct BudgetDetailsView: View {
             selectedSegment: selectedSegment,
             sort: sort,
             onSegmentChange: onSegmentChange,
+            onRequestCreateBudget: onRequestCreateBudget,
             headerManagesPadding: headerManagesPadding,
             header: AnyView(headerBuilder()),
             listHeaderBehavior: listHeaderBehavior,
@@ -257,7 +278,9 @@ struct BudgetDetailsView: View {
                             startDate: vm.startDate,
                             endDate: vm.endDate,
                             sort: vm.sort,
+                            isBudgetActive: isBudgetActiveForDisplayedPeriod,
                             onAddTapped: { isPresentingAddPlannedSheet = true },
+                            onCreateBudgetTapped: requestCreateBudget,
                             onTotalsChanged: { Task { await vm.refreshRows() } },
                             header: embeddedListHeader,
                             headerManagesPadding: embeddedHeaderManagesPadding
@@ -275,7 +298,9 @@ struct BudgetDetailsView: View {
                         startDate: vm.startDate,
                         endDate: vm.endDate,
                         sort: vm.sort,
+                        isBudgetActive: isBudgetActiveForDisplayedPeriod,
                         onAddTapped: { isPresentingAddUnplannedSheet = true },
+                        onCreateBudgetTapped: requestCreateBudget,
                         onTotalsChanged: { Task { await vm.refreshRows() } },
                         header: embeddedListHeader,
                         headerManagesPadding: embeddedHeaderManagesPadding
@@ -392,6 +417,10 @@ struct BudgetDetailsView: View {
         if externalSort != vm.sort {
             externalSort = vm.sort
         }
+    }
+
+    private func requestCreateBudget() {
+        onRequestCreateBudget?()
     }
 
     private func placeholderView() -> some View {
@@ -819,7 +848,9 @@ private enum BudgetIncomeSavingsSummaryMetrics {
 private struct PlannedListFR: View {
     @FetchRequest private var rows: FetchedResults<PlannedExpense>
     private let sort: BudgetDetailsViewModel.SortOption
+    private let isBudgetActive: Bool
     private let onAddTapped: () -> Void
+    private let onCreateBudgetTapped: () -> Void
     private let onTotalsChanged: () -> Void
     private let header: AnyView?
     private let headerManagesPadding: Bool
@@ -850,13 +881,17 @@ private struct PlannedListFR: View {
         startDate: Date,
         endDate: Date,
         sort: BudgetDetailsViewModel.SortOption,
+        isBudgetActive: Bool,
         onAddTapped: @escaping () -> Void,
+        onCreateBudgetTapped: @escaping () -> Void,
         onTotalsChanged: @escaping () -> Void,
         header: AnyView? = nil,
         headerManagesPadding: Bool = false
     ) {
         self.sort = sort
+        self.isBudgetActive = isBudgetActive
         self.onAddTapped = onAddTapped
+        self.onCreateBudgetTapped = onCreateBudgetTapped
         self.onTotalsChanged = onTotalsChanged
         self.header = header
         self.headerManagesPadding = headerManagesPadding
@@ -887,7 +922,9 @@ private struct PlannedListFR: View {
                         headerSection(header, applyDefaultInsets: !headerManagesPadding)
                     }
                     BudgetListEmptyStateSection(message: "No planned expenses in this period.") {
-                        addActionButton(title: "Add Planned Expense", action: onAddTapped)
+                        let title = isBudgetActive ? "Add Planned Expense" : "+ Create Budget"
+                        let action = isBudgetActive ? onAddTapped : onCreateBudgetTapped
+                        addActionButton(title: title, action: action)
                     }
                 }
                 .refreshable { onTotalsChanged() }
@@ -1164,7 +1201,9 @@ private struct VariableListFR: View {
     @FetchRequest private var rows: FetchedResults<UnplannedExpense>
     private let sort: BudgetDetailsViewModel.SortOption
     private let attachedCards: [Card]
+    private let isBudgetActive: Bool
     private let onAddTapped: () -> Void
+    private let onCreateBudgetTapped: () -> Void
     private let onTotalsChanged: () -> Void
     private let header: AnyView?
     private let headerManagesPadding: Bool
@@ -1195,14 +1234,18 @@ private struct VariableListFR: View {
         startDate: Date,
         endDate: Date,
         sort: BudgetDetailsViewModel.SortOption,
+        isBudgetActive: Bool,
         onAddTapped: @escaping () -> Void,
+        onCreateBudgetTapped: @escaping () -> Void,
         onTotalsChanged: @escaping () -> Void,
         header: AnyView? = nil,
         headerManagesPadding: Bool = false
     ) {
         self.sort = sort
         self.attachedCards = attachedCards
+        self.isBudgetActive = isBudgetActive
         self.onAddTapped = onAddTapped
+        self.onCreateBudgetTapped = onCreateBudgetTapped
         self.onTotalsChanged = onTotalsChanged
         self.header = header
         self.headerManagesPadding = headerManagesPadding
@@ -1239,7 +1282,9 @@ private struct VariableListFR: View {
                         headerSection(header, applyDefaultInsets: !headerManagesPadding)
                     }
                     BudgetListEmptyStateSection(message: "No variable expenses in this period.") {
-                        addActionButton(title: "Add Variable Expense", action: onAddTapped)
+                        let title = isBudgetActive ? "Add Variable Expense" : "+ Create Budget"
+                        let action = isBudgetActive ? onAddTapped : onCreateBudgetTapped
+                        addActionButton(title: title, action: action)
                     }
                 }
                 .refreshable { onTotalsChanged() }

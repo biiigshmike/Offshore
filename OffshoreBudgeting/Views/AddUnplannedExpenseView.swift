@@ -444,7 +444,7 @@ private struct CategoryChip: View {
                     .font(.subheadline.weight(.semibold))
             }
         }
-        let resolvedChip = Group {
+        Group {
             if capabilities.supportsOS26Translucency, #available(iOS 26.0, macCatalyst 26.0, *) {
                 if let ns = namespace {
                     pill
@@ -456,25 +456,9 @@ private struct CategoryChip: View {
                 pill
             }
         }
-
-        let base = resolvedChip
-            .scaleEffect(style.scale)
-            .animation(.easeOut(duration: 0.15), value: isSelected)
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
-
-        let shouldApplyShadow = style.shadowRadius > 0 || style.shadowY != 0
-
-//        if shouldApplyShadow {
-//            base
-//                .shadow(
-//                    color: style.shadowColor,
-//                    radius: style.shadowRadius,
-//                    x: 0,
-//                    y: style.shadowY
-//                )
-//        } else {
-//            base
-//        }
+        .scaleEffect(style.scale)
+        .animation(.easeOut(duration: 0.15), value: isSelected)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
 }

@@ -823,7 +823,6 @@ private struct HomeHeaderOverviewTable: View {
                 CategoryTotalsRow(
                     categories: categorySpending,
                     isPlaceholder: false,
-                    isInteractive: false,
                     horizontalInset: 0
                 )
                 .frame(height: HomeHeaderOverviewMetrics.categoryControlHeight)
@@ -832,7 +831,6 @@ private struct HomeHeaderOverviewTable: View {
                 CategoryTotalsRow(
                     categories: globalCategorySpending,
                     isPlaceholder: false,
-                    isInteractive: false,
                     horizontalInset: 0
                 )
                 .frame(height: HomeHeaderOverviewMetrics.categoryControlHeight)

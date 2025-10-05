@@ -224,6 +224,18 @@ extension View {
         }
     }
 
+    // MARK: ub_disableHorizontalBounce()
+    /// Disables horizontal bouncing on the enclosing `UIScrollView`. SwiftUI does not
+    /// expose this knob directly, so we bridge via a lightweight `UIViewRepresentable`
+    /// that walks up the view hierarchy and toggles the UIKit flags.
+    func ub_disableHorizontalBounce() -> some View {
+        overlay(alignment: .topLeading) {
+            UBHorizontalBounceDisabler()
+                .frame(width: 0, height: 0)
+                .allowsHitTesting(false)
+        }
+    }
+
     // MARK: ub_listStyleLiquidAware()
     /// Applies OS-aware list styling:
     /// - On OS 26: use `.automatic` so the system’s Liquid Glass list treatment shows through.
@@ -238,6 +250,50 @@ extension View {
     /// the system’s default row background (Liquid Glass) can be used.
     func ub_preOS26ListRowBackground(_ color: Color) -> some View {
         modifier(UBPreOS26ListRowBackgroundModifier(color: color))
+    }
+}
+
+// MARK: - UIKit Bridges
+
+private struct UBHorizontalBounceDisabler: UIViewRepresentable {
+    func makeUIView(context: Context) -> UBHorizontalBounceDisablingView {
+        UBHorizontalBounceDisablingView()
+    }
+
+    func updateUIView(_ uiView: UBHorizontalBounceDisablingView, context: Context) {
+        uiView.updateScrollViewIfNeeded()
+    }
+}
+
+private final class UBHorizontalBounceDisablingView: UIView {
+    override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+        updateScrollViewIfNeeded()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        updateScrollViewIfNeeded()
+    }
+
+    func updateScrollViewIfNeeded() {
+        guard let scrollView = findEnclosingScrollView() else { return }
+        if scrollView.bounces || scrollView.alwaysBounceHorizontal || scrollView.clipsToBounds == false {
+            scrollView.bounces = false
+            scrollView.alwaysBounceHorizontal = false
+            scrollView.clipsToBounds = true
+        }
+    }
+
+    private func findEnclosingScrollView() -> UIScrollView? {
+        var candidate = superview
+        while let view = candidate {
+            if let scrollView = view as? UIScrollView {
+                return scrollView
+            }
+            candidate = view.superview
+        }
+        return nil
     }
 }
 

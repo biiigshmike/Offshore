@@ -497,6 +497,7 @@ private extension CategoryChipsRow {
             .padding(.horizontal, DS.Spacing.s)
         }
         .ub_hideScrollIndicators()
+        .ub_disableHorizontalBounce()
         .clipped()
         .frame(maxWidth: .infinity, alignment: .leading)
     }

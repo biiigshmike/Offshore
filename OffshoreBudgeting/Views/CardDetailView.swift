@@ -28,7 +28,6 @@ struct CardDetailView: View {
     @FocusState private var isSearchFieldFocused: Bool
     // Add flows
     @State private var isPresentingAddPlanned: Bool = false
-    @State private var expensePendingEdit: CardExpense?
     @State private var expensePendingDeletion: CardExpense?
     @State private var isConfirmingDelete: Bool = false
     @State private var deletionError: DeletionError?
@@ -87,9 +86,6 @@ struct CardDetailView: View {
                 initialCardID: card.objectID
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .sheet(item: $expensePendingEdit) { expense in
-            editingSheet(for: expense)
         }
         .alert("Delete Expense?", isPresented: $isConfirmingDelete) {
             Button("Delete", role: .destructive) {
@@ -266,7 +262,7 @@ struct CardDetailView: View {
                     }
                         .unifiedSwipeActions(
                             UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
-                            onEdit: { presentEdit(for: pair.element) },
+                            onEdit: nil,
                             onDelete: { requestDelete(pair.element) }
                         )
                 }
@@ -309,29 +305,6 @@ struct CardDetailView: View {
             .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
     }
 
-    @ViewBuilder
-    private func editingSheet(for expense: CardExpense) -> some View {
-        if expense.isPlanned {
-            AddPlannedExpenseView(
-                plannedExpenseID: expense.objectID,
-                preselectedBudgetID: nil,
-                defaultSaveAsGlobalPreset: false,
-                showAssignBudgetToggle: true,
-                onSaved: { handleExpenseEdited() },
-                initialCardID: card.objectID
-            )
-            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        } else {
-            AddUnplannedExpenseView(
-                unplannedExpenseID: expense.objectID,
-                initialCardID: card.objectID,
-                initialDate: expense.date,
-                onSaved: { handleExpenseEdited() }
-            )
-            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-    }
-
     private func requestDelete(_ expense: CardExpense) {
         if confirmBeforeDelete {
             expensePendingDeletion = expense
@@ -339,16 +312,6 @@ struct CardDetailView: View {
         } else {
             performDelete(expense)
         }
-    }
-
-    private func presentEdit(for expense: CardExpense) {
-        guard expense.objectID != nil else { return }
-        expensePendingEdit = expense
-    }
-
-    private func handleExpenseEdited() {
-        expensePendingEdit = nil
-        Task { await viewModel.load() }
     }
 
     private func handleDelete(_ offsets: IndexSet) {

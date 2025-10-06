@@ -147,7 +147,8 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
             spacing: spacing,
             combinedHeight: combinedHeight,
             availableHeight: availableHeight,
-            isScrollEnabled: isScrollEnabled
+            isScrollEnabled: isScrollEnabled,
+            platformCapabilities: platformCapabilities
         )
 
         Group {
@@ -198,6 +199,7 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
                     .modifier(IgnoreBottomSafeAreaIfClassic(capabilities: platformCapabilities))
             }
         }
+        .environment(\.rootTabLegacyChromeInset, proxy.legacyTabBarOverlayInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: stackAlignment)
         .onPreferenceChange(RootTabSectionHeightPreferenceKey.self, perform: updateHeights)
         .ub_captureSafeAreaInsets()
@@ -310,6 +312,9 @@ struct RootTabPageProxy {
     let combinedHeight: CGFloat
     let availableHeight: CGFloat
     let isScrollEnabled: Bool
+    let platformCapabilities: PlatformCapabilities
+
+    private static let legacyTabBarChromeHeight: CGFloat = 49
 
     /// Controls the amount of vertical spacing inserted between tab content and the tab bar.
     enum TabBarGutter {
@@ -377,7 +382,7 @@ struct RootTabPageProxy {
     }
 
     var standardTabContentBottomPadding: CGFloat {
-        safeAreaBottomInset + tabBarGutterSpacing
+        tabContentBottomPadding()
     }
 
     func tabContentBottomPadding(
@@ -387,7 +392,31 @@ struct RootTabPageProxy {
     ) -> CGFloat {
         let safeAreaContribution = includeSafeArea ? safeAreaBottomInset : 0
         let gutterSpacing = tabBarGutterSpacing(tabBarGutter)
-        return gutterSpacing + safeAreaContribution + extraBottom
+        let legacyChromeContribution = legacyTabBarChromePadding(includeSafeArea: includeSafeArea)
+        return gutterSpacing + safeAreaContribution + legacyChromeContribution + extraBottom
+    }
+
+    var legacyTabBarOverlayInset: CGFloat {
+        #if os(iOS)
+        guard !platformCapabilities.supportsOS26Translucency else { return 0 }
+        return safeAreaBottomInset + Self.legacyTabBarChromeHeight
+        #else
+        return 0
+        #endif
+    }
+
+    private func legacyTabBarChromePadding(includeSafeArea: Bool) -> CGFloat {
+        #if os(iOS)
+        guard !platformCapabilities.supportsOS26Translucency else { return 0 }
+        let chromeHeight = Self.legacyTabBarChromeHeight
+        if includeSafeArea {
+            return chromeHeight
+        } else {
+            return chromeHeight + safeAreaBottomInset
+        }
+        #else
+        return 0
+        #endif
     }
 
     func standardContentInsets(
@@ -480,5 +509,16 @@ extension View {
                     tabBarGutter: tabBarGutter
                 )
             )
+    }
+}
+
+private struct RootTabLegacyChromeInsetKey: EnvironmentKey {
+    static var defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    var rootTabLegacyChromeInset: CGFloat {
+        get { self[RootTabLegacyChromeInsetKey.self] }
+        set { self[RootTabLegacyChromeInsetKey.self] = newValue }
     }
 }

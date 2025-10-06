@@ -696,10 +696,15 @@ private struct HomeHeaderTablePage<Content: View>: View {
     let onAddCategory: () -> Void
     let topPaddingStyle: RootTabHeaderLayout.TopPaddingStyle
     let content: (AnyView) -> Content
+    @State private var globalCategoryCache: [BudgetSummary.CategorySpending] = []
 
     var body: some View {
         let header = AnyView(headerContent)
         return content(header)
+            .task { loadGlobalCategories() }
+            .onReceive(NotificationCenter.default.publisher(for: .dataStoreDidChange)) { _ in
+                loadGlobalCategories()
+            }
     }
 
     private var headerContent: some View {
@@ -722,7 +727,7 @@ private struct HomeHeaderTablePage<Content: View>: View {
                 displayTitle: displayTitle,
                 displayDetail: displayDetail,
                 categorySpending: categorySpending,
-                globalCategorySpending: globalCategorySpending,
+                globalCategorySpending: globalCategoryCache,
                 selectedSegment: $selectedSegment,
                 sort: $sort,
                 periodNavigationTitle: periodNavigationTitle,
@@ -735,16 +740,18 @@ private struct HomeHeaderTablePage<Content: View>: View {
 
     // Build zero-amount placeholders for all categories in the system so
     // inactive/empty periods still show chips rather than the Add Category CTA.
-    private var globalCategorySpending: [BudgetSummary.CategorySpending] {
+    @MainActor
+    private func loadGlobalCategories() {
         let ctx = CoreDataService.shared.viewContext
         let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
         req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
         let all: [ExpenseCategory] = (try? ctx.fetch(req)) ?? []
-        return all.compactMap { cat in
+        let categories = all.compactMap { cat -> BudgetSummary.CategorySpending? in
             let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { return nil }
             return BudgetSummary.CategorySpending(categoryName: name, hexColor: cat.color, amount: 0)
         }
+        globalCategoryCache = categories
     }
 }
 

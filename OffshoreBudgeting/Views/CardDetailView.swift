@@ -54,6 +54,7 @@ struct CardDetailView: View {
     // MARK: Body
     var body: some View {
         navigationContainer
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .ub_navigationBackground(
             theme: themeManager.selectedTheme,
             configuration: themeManager.glassConfiguration

@@ -160,7 +160,7 @@ struct IncomeView: View {
     }
 
     private func contentBottomInset(using proxy: RootTabPageProxy) -> CGFloat {
-        proxy.safeAreaBottomInset + DS.Spacing.s
+        DS.Spacing.s
     }
 
     private let landscapeLayoutMinimumWidth: CGFloat = 780
@@ -328,7 +328,6 @@ struct IncomeView: View {
             horizontal: horizontalInset,
             extraTop: DS.Spacing.s,
             extraBottom: contentBottomInset(using: proxy),
-            includeSafeArea: false,
             tabBarGutter: gutter
         )
         .frame(
@@ -364,7 +363,6 @@ struct IncomeView: View {
             horizontal: horizontalInset,
             extraTop: DS.Spacing.s,
             extraBottom: contentBottomInset(using: proxy),
-            includeSafeArea: false,
             tabBarGutter: gutter
         )
         .frame(
@@ -392,7 +390,6 @@ struct IncomeView: View {
                 horizontal: horizontalInset,
                 extraTop: DS.Spacing.s,
                 extraBottom: contentBottomInset(using: proxy),
-                includeSafeArea: false,
                 tabBarGutter: gutter
             )
         }
@@ -409,7 +406,8 @@ struct IncomeView: View {
         let cardSpacing = DS.Spacing.m * 2
         let minimums = providedMinimums ?? minimumCardHeights(using: proxy)
         let bottomPadding = proxy.tabBarGutterSpacing(tabBarGutter)
-        let availableContentHeight = max(availableHeight - bottomPadding, 0)
+        let legacyChrome = proxy.legacyTabChromeHeight
+        let availableContentHeight = max(availableHeight - bottomPadding - legacyChrome, 0)
         let chromeHeight = calendarChromeHeight()
         let minimumLayoutHeight = minimums.calendar + minimums.selected + minimums.summary + cardSpacing + chromeHeight
         let adjustedHeight = max(availableContentHeight, minimumLayoutHeight)
@@ -446,7 +444,7 @@ struct IncomeView: View {
         let chromeHeight = calendarChromeHeight()
         let fallbackHeader = headerBaselineHeight + proxy.effectiveSafeAreaInsets.top
         let headerHeight = proxy.headerHeight > 0 ? proxy.headerHeight : fallbackHeader
-        return headerHeight + verticalSpacing + baseCards + chromeHeight + proxy.tabBarGutterSpacing(tabBarGutter)
+        return headerHeight + verticalSpacing + baseCards + chromeHeight + proxy.tabBarGutterSpacing(tabBarGutter) + proxy.legacyTabChromeHeight
     }
 
     // MARK: - Calendar Section

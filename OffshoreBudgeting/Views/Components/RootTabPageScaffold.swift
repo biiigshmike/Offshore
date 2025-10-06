@@ -147,8 +147,7 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
             spacing: spacing,
             combinedHeight: combinedHeight,
             availableHeight: availableHeight,
-            isScrollEnabled: isScrollEnabled,
-            platformCapabilities: platformCapabilities
+            isScrollEnabled: isScrollEnabled
         )
 
         Group {
@@ -311,7 +310,6 @@ struct RootTabPageProxy {
     let combinedHeight: CGFloat
     let availableHeight: CGFloat
     let isScrollEnabled: Bool
-    let platformCapabilities: PlatformCapabilities
 
     /// Controls the amount of vertical spacing inserted between tab content and the tab bar.
     enum TabBarGutter {
@@ -379,7 +377,7 @@ struct RootTabPageProxy {
     }
 
     var standardTabContentBottomPadding: CGFloat {
-        tabContentBottomPadding()
+        safeAreaBottomInset + tabBarGutterSpacing
     }
 
     func tabContentBottomPadding(
@@ -387,16 +385,9 @@ struct RootTabPageProxy {
         extraBottom: CGFloat = 0,
         tabBarGutter: TabBarGutter = .standard
     ) -> CGFloat {
+        let safeAreaContribution = includeSafeArea ? safeAreaBottomInset : 0
         let gutterSpacing = tabBarGutterSpacing(tabBarGutter)
-        if platformCapabilities.supportsOS26Translucency {
-            let safeAreaContribution = includeSafeArea ? safeAreaBottomInset : 0
-            return gutterSpacing + safeAreaContribution + extraBottom
-        } else {
-            // Classic chrome ignores the safe area so always include the visible
-            // tab bar height and bottom inset before layering on any caller
-            // provided spacing.
-            return gutterSpacing + legacyTabBarChromeBottomInset + extraBottom
-        }
+        return gutterSpacing + safeAreaContribution + extraBottom
     }
 
     func standardContentInsets(
@@ -433,28 +424,6 @@ extension RootTabPageProxy {
         if layoutContext.containerSize.width >= 600 { return RootTabHeaderLayout.defaultHorizontalPadding }
 
         return max(effectiveSafeAreaInsets.leading, DS.Spacing.s)
-    }
-
-    func resolvedSymmetricHorizontalInset() -> CGFloat {
-        resolvedSymmetricHorizontalInset(capabilities: platformCapabilities)
-    }
-
-    /// Returns the visible height of the classic tab bar chrome (opaque styles
-    /// on iOS ≤ 18) including the bottom safe-area inset so callers can space
-    /// content appropriately when the scaffold ignores the safe area.
-    var legacyTabBarChromeBottomInset: CGFloat {
-        guard !platformCapabilities.supportsOS26Translucency else { return 0 }
-        return legacyTabBarChromeHeight + safeAreaBottomInset
-    }
-
-    private var legacyTabBarChromeHeight: CGFloat {
-        guard !platformCapabilities.supportsOS26Translucency else { return 0 }
-
-        if let horizontalSizeClass = layoutContext.horizontalSizeClass, horizontalSizeClass == .regular {
-            return 50
-        }
-
-        return 49
     }
 }
 

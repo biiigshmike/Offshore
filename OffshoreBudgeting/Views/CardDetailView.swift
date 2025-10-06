@@ -605,12 +605,12 @@ private enum CardDetailListBottomInsetMetrics {
     // Match BudgetDetailsView behavior: ensure at least the tab bar height is
     // represented so the list always scrolls comfortably.
     private static let compactTabBarHeight: CGFloat = 49
-    private static let regularTabBarHeight: CGFloat = 50
+    private static let regularTabBarHeight: CGFloat = 49
 
     static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat {
         let safeAreaBottom = layoutContext.safeArea.bottom
-        let horizontalSizeClass = layoutContext.horizontalSizeClass ?? .compact
-        let tabBarHeight = horizontalSizeClass == .regular ? regularTabBarHeight : compactTabBarHeight
+        let sizeClass = layoutContext.horizontalSizeClass ?? .compact
+        let tabBarHeight = sizeClass == .regular ? regularTabBarHeight : compactTabBarHeight
         if safeAreaBottom >= tabBarHeight - 1 {
             return safeAreaBottom
         } else {

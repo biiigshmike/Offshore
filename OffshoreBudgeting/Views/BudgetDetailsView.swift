@@ -1701,12 +1701,12 @@ private enum BudgetListBottomInsetMetrics {
     static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat { 0 }
     #else
     private static let compactTabBarHeight: CGFloat = 49
-    private static let regularTabBarHeight: CGFloat = 50
+    private static let regularTabBarHeight: CGFloat = 49
 
     static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat {
         let safeArea = layoutContext.safeArea.bottom
-        let horizontalSizeClass = layoutContext.horizontalSizeClass ?? .compact
-        let tabBarHeight = horizontalSizeClass == .regular ? regularTabBarHeight : compactTabBarHeight
+        let sizeClass = layoutContext.horizontalSizeClass ?? .compact
+        let tabBarHeight = sizeClass == .regular ? regularTabBarHeight : compactTabBarHeight
         if safeArea >= tabBarHeight - 1 {
             return safeArea
         } else {

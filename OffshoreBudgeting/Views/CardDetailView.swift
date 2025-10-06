@@ -232,33 +232,21 @@ struct CardDetailView: View {
         Section {
             let expenses = viewModel.filteredExpenses
             if expenses.isEmpty {
-                Text(viewModel.searchText.isEmpty ? "No expenses found." : "No results for “\(viewModel.searchText)”")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, DesignSystem.Spacing.l)
-                    .padding(.horizontal, listRowHorizontalPadding)
-                    .contentShape(Rectangle())
-                    .listRowInsets(.init(top: 0,
-                                         leading: listRowHorizontalPadding,
-                                         bottom: 24,
-                                         trailing: listRowHorizontalPadding))
-                    .listRowBackground(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
-                    .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
+                expenseRowContainer(topInset: 0, bottomInset: 24) {
+                    Text(viewModel.searchText.isEmpty ? "No expenses found." : "No results for “\(viewModel.searchText)”")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
             } else {
                 ForEach(Array(expenses.enumerated()), id: \.element.id) { pair in
                     let isFirst = pair.offset == 0
                     let isLast = pair.offset == expenses.count - 1
-                    ExpenseRow(expense: pair.element, currencyCode: currencyCode)
-                        .padding(.vertical, DesignSystem.Spacing.l)
-                        .padding(.horizontal, listRowHorizontalPadding)
-                        .contentShape(Rectangle())
-                        .listRowInsets(.init(top: isFirst ? 0 : 4,
-                                             leading: listRowHorizontalPadding,
-                                             bottom: isLast ? 24 : 12,
-                                             trailing: listRowHorizontalPadding))
-                        .listRowBackground(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
-                        .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
+                    expenseRowContainer(
+                        topInset: isFirst ? 0 : 4,
+                        bottomInset: isLast ? 24 : 12
+                    ) {
+                        ExpenseRow(expense: pair.element, currencyCode: currencyCode)
+                    }
                         .unifiedSwipeActions(
                             UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
                             onEdit: nil,
@@ -278,6 +266,22 @@ struct CardDetailView: View {
                 .padding(.bottom, 4)
                 .textCase(nil)
         }
+    }
+
+    private func expenseRowContainer<Content: View>(
+        topInset: CGFloat,
+        bottomInset: CGFloat,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        content()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, DesignSystem.Spacing.l)
+            .background(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
+            .padding(.horizontal, listRowHorizontalPadding)
+            .contentShape(Rectangle())
+            .listRowInsets(.init(top: topInset, leading: 0, bottom: bottomInset, trailing: 0))
+            .listRowBackground(Color.clear)
+            .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
     }
 
     private func requestDelete(_ expense: CardExpense) {

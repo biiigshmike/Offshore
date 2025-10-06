@@ -150,9 +150,11 @@ struct ExpenseCategoryManagerView: View {
     // MARK: - Row Builders
     @ViewBuilder
     private func categoryRow(for category: ExpenseCategory) -> some View {
-        Button { categoryToEdit = category } label: { rowLabel(for: category) }
-            .buttonStyle(.plain)
-            .contentShape(Rectangle())
+        CategoryRowView {
+            rowLabel(for: category)
+        } onTap: {
+            categoryToEdit = category
+        }
     }
 
     @ViewBuilder
@@ -230,6 +232,22 @@ struct ExpenseCategoryManagerView: View {
     private func saveContext() {
         do { try viewContext.save() }
         catch { AppLog.ui.error("Failed to save categories: \(error.localizedDescription)") }
+    }
+}
+
+// MARK: - CategoryRowView
+private struct CategoryRowView<Label: View>: View {
+
+    // MARK: Properties
+    @ViewBuilder var label: () -> Label
+    var onTap: () -> Void
+
+    // MARK: Body
+    var body: some View {
+        label()
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onTap)
+            .accessibilityAddTraits(.isButton)
     }
 }
 

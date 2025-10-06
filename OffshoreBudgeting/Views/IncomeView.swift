@@ -30,6 +30,7 @@ struct IncomeView: View {
     /// Controls which date the calendar should scroll to when navigation buttons are used.
     /// A `nil` value means no programmatic scroll is requested.
     @State private var calendarScrollDate: Date? = nil
+    @State private var calendarScrollInitialized: Bool = false
     /// Tracks the measured height of the navigation controls above the calendar so the
     /// landscape layout can align the calendar card with the adjacent column.
     @State private var navigationButtonRowHeight: CGFloat = CalendarSectionMetrics.navigationRowHeight
@@ -496,7 +497,7 @@ struct IncomeView: View {
                 selectedDate: $viewModel.selectedDate,
                 selectedRange: .constant(nil)
             ) { config in
-                config
+                var resolved = config
                     .dayView { date, isCurrentMonth, selectedDate, selectedRange in
                         UBDayView(
                             date: date,
@@ -511,7 +512,12 @@ struct IncomeView: View {
                     .monthLabel(UBMonthLabel.init)
                     .startMonth(start)
                     .endMonth(end)
-                    .scrollTo(date: calendarScrollDate ?? viewModel.selectedDate)
+
+                if let target = calendarScrollDate {
+                    resolved = resolved.scrollTo(date: target)
+                }
+
+                return resolved
             }
             .transaction { t in
                 t.animation = nil
@@ -528,6 +534,17 @@ struct IncomeView: View {
         .incomeSectionContainerStyle(theme: themeManager.selectedTheme, capabilities: capabilities)
         .onPreferenceChange(NavigationRowHeightPreferenceKey.self) { value in
             navigationButtonRowHeight = max(value, CalendarSectionMetrics.navigationRowHeight)
+        }
+        .onAppear {
+            guard !calendarScrollInitialized else { return }
+            calendarScrollInitialized = true
+            if let initial = viewModel.selectedDate {
+                scheduleCalendarScroll(to: initial)
+            }
+        }
+        .onChange(of: viewModel.selectedDate) { newValue in
+            guard let date = newValue else { return }
+            scheduleCalendarScroll(to: date)
         }
     }
 
@@ -705,15 +722,8 @@ struct IncomeView: View {
         // Update without animation to prevent visible jumps
         withTransaction(Transaction(animation: nil)) {
             viewModel.selectedDate = target
-            calendarScrollDate = target
         }
-        // Reset the scroll target on the next run loop cycle without animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + calendarScrollResetDelay) {
-            guard calendarScrollDate == target else { return }
-            withTransaction(Transaction(animation: nil)) {
-                calendarScrollDate = nil
-            }
-        }
+        scheduleCalendarScroll(to: target)
     }
     /// Normalizes a date to noon so the calendar highlights the correct day.
     private func normalize(_ date: Date) -> Date {
@@ -722,6 +732,19 @@ struct IncomeView: View {
         comps.minute = 0
         comps.second = 0
         return Calendar.current.date(from: comps) ?? date
+    }
+
+    private func scheduleCalendarScroll(to date: Date) {
+        let target = normalize(date)
+        withTransaction(Transaction(animation: nil)) {
+            calendarScrollDate = target
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + calendarScrollResetDelay) {
+            guard calendarScrollDate == target else { return }
+            withTransaction(Transaction(animation: nil)) {
+                calendarScrollDate = nil
+            }
+        }
     }
     /// Scrolls to the first day of the previous month.
     private func goToPreviousMonth() {

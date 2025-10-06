@@ -219,6 +219,7 @@ struct CardDetailView: View {
             .padding(.bottom, 12)
             .listRowInsets(.init())
             .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 
     @ViewBuilder
@@ -227,6 +228,7 @@ struct CardDetailView: View {
             .padding(.horizontal, listRowHorizontalPadding)
             .listRowInsets(.init(top: 0, leading: 0, bottom: 12, trailing: 0))
             .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 
     @ViewBuilder
@@ -235,10 +237,12 @@ struct CardDetailView: View {
             .padding(.horizontal, listRowHorizontalPadding)
             .listRowInsets(.init(top: 0, leading: 0, bottom: 12, trailing: 0))
             .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 
+    @ViewBuilder
     private var expensesSection: some View {
-        Section {
+        let section = Section {
             let expenses = viewModel.filteredExpenses
             if expenses.isEmpty {
                 expenseRowContainer(topInset: 0, bottomInset: 24) {
@@ -275,6 +279,12 @@ struct CardDetailView: View {
                 .padding(.bottom, 4)
                 .textCase(nil)
         }
+        if #available(iOS 15.0, macCatalyst 15.0, *) {
+            section
+                .listSectionSeparator(.hidden, edges: .top)
+        } else {
+            section
+        }
     }
 
     private func expenseRowContainer<Content: View>(
@@ -290,6 +300,7 @@ struct CardDetailView: View {
             .contentShape(Rectangle())
             .listRowInsets(.init(top: topInset, leading: 0, bottom: bottomInset, trailing: 0))
             .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
             .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
     }
 

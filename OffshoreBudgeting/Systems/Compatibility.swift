@@ -245,6 +245,26 @@ extension View {
         modifier(UBListStyleLiquidAwareModifier())
     }
 
+    // MARK: ub_hideListSeparators()
+    /// Hides row and (where available) section separators while gracefully falling back on
+    /// platforms that don’t expose the newer SwiftUI APIs. This is useful when custom row
+    /// backgrounds or glass treatments would otherwise render double borders on iOS 15+.
+    @ViewBuilder
+    func ub_hideListSeparators() -> some View {
+        if #available(iOS 15.0, macCatalyst 15.0, *) {
+            if #available(iOS 16.0, macCatalyst 16.0, *) {
+                self
+                    .listRowSeparator(.hidden)
+                    .listSectionSeparator(.hidden)
+            } else {
+                self
+                    .listRowSeparator(.hidden)
+            }
+        } else {
+            self
+        }
+    }
+
     // MARK: ub_preOS26ListRowBackground(_:)
     /// Applies a list row background only on pre‑OS26 systems. On OS26 this is a no-op so
     /// the system’s default row background (Liquid Glass) can be used.

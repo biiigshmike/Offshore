@@ -177,15 +177,6 @@ struct CardDetailView: View {
 
             // Expenses list (already returns a Section)
             expensesSection
-
-            Section {
-                cardDetailBottomSpacer()
-            }
-            .listRowInsets(.init())
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-            .accessibilityHidden(true)
-            .allowsHitTesting(false)
         }
         .ub_listStyleLiquidAware()
         .ub_hideScrollIndicators()
@@ -203,10 +194,7 @@ struct CardDetailView: View {
     // even when content is short, and to keep spacing consistent above the tab bar.
     @ViewBuilder
     private func cardDetailBottomSpacer() -> some View {
-        let inset = CardDetailListBottomInsetMetrics.bottomInset(for: layoutContext)
-        Color.clear
-            .frame(height: inset)
-            .listRowBackground(Color.clear)
+        Color.clear.frame(height: CardDetailListBottomInsetMetrics.bottomInset(for: layoutContext))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
@@ -550,9 +538,7 @@ private extension View {
 private enum CardDetailListBottomInsetMetrics {
     #if os(iOS)
     #if targetEnvironment(macCatalyst)
-    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat {
-        max(layoutContext.safeArea.bottom, DS.Spacing.xxl)
-    }
+    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat { 0 }
     #else
     // Match BudgetDetailsView behavior: ensure at least the tab bar height is
     // represented so the list always scrolls comfortably.
@@ -571,8 +557,6 @@ private enum CardDetailListBottomInsetMetrics {
     }
     #endif
     #else
-    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat {
-        max(layoutContext.safeArea.bottom, DS.Spacing.xxl)
-    }
+    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat { 0 }
     #endif
 }

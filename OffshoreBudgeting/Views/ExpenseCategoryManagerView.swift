@@ -109,20 +109,6 @@ struct ExpenseCategoryManagerView: View {
                             categoryRow(for: category)
                                 .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
                                 .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
-                                .unifiedSwipeActions(
-                                    UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
-                                    onEdit: { categoryToEdit = category },
-                                    onDelete: {
-                                        let counts = usageCounts(for: category)
-                                        if counts.total > 0 {
-                                            categoryToDelete = category
-                                        } else if confirmBeforeDelete {
-                                            categoryToDelete = category
-                                        } else {
-                                            deleteCategory(category)
-                                        }
-                                    }
-                                )
                         }
                         .onDelete { offsets in
                             let targets = offsets.map { categories[$0] }
@@ -150,10 +136,22 @@ struct ExpenseCategoryManagerView: View {
     // MARK: - Row Builders
     @ViewBuilder
     private func categoryRow(for category: ExpenseCategory) -> some View {
-        CategoryRowView {
+        CategoryRowView(
+            config: UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
+            onTap: { categoryToEdit = category },
+            onEdit: { categoryToEdit = category },
+            onDelete: {
+                let counts = usageCounts(for: category)
+                if counts.total > 0 {
+                    categoryToDelete = category
+                } else if confirmBeforeDelete {
+                    categoryToDelete = category
+                } else {
+                    deleteCategory(category)
+                }
+            }
+        ) {
             rowLabel(for: category)
-        } onTap: {
-            categoryToEdit = category
         }
     }
 
@@ -239,14 +237,22 @@ struct ExpenseCategoryManagerView: View {
 private struct CategoryRowView<Label: View>: View {
 
     // MARK: Properties
+    var config: UnifiedSwipeConfig
     @ViewBuilder var label: () -> Label
     var onTap: () -> Void
+    var onEdit: () -> Void
+    var onDelete: () -> Void
 
     // MARK: Body
     var body: some View {
         label()
             .contentShape(Rectangle())
             .onTapGesture(perform: onTap)
+            .unifiedSwipeActions(
+                config,
+                onEdit: onEdit,
+                onDelete: onDelete
+            )
             .accessibilityAddTraits(.isButton)
     }
 }

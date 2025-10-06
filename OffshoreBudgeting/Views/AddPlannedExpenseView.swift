@@ -271,16 +271,24 @@ struct AddPlannedExpenseView: View {
             isPresented: $isShowingScopeDialog
         ) {
             Button("Only this expense") {
-                _ = performSave(scope: .onlyThis)
+                if performSave(scope: .onlyThis) {
+                    dismiss()
+                }
             }
             Button("Past instances") {
-                _ = performSave(scope: .past(referenceDate: vm.transactionDate))
+                if performSave(scope: .past(referenceDate: vm.transactionDate)) {
+                    dismiss()
+                }
             }
             Button("Future instances") {
-                _ = performSave(scope: .future(referenceDate: vm.transactionDate))
+                if performSave(scope: .future(referenceDate: vm.transactionDate)) {
+                    dismiss()
+                }
             }
             Button("All instances") {
-                _ = performSave(scope: .all(referenceDate: vm.transactionDate))
+                if performSave(scope: .all(referenceDate: vm.transactionDate)) {
+                    dismiss()
+                }
             }
             Button("Cancel", role: .cancel) { }
         }

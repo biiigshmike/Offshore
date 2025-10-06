@@ -13,6 +13,48 @@ import CoreData
 /// This extends your existing service (no extra class here).
 extension PlannedExpenseService {
 
+    // MARK: Date Alignment
+    private func alignedTransactionDate(for template: PlannedExpense, budget: Budget) -> Date? {
+        guard let budgetStart = budget.startDate else {
+            return template.transactionDate ?? budget.startDate
+        }
+
+        let calendar = Calendar.current
+        let templateDate = template.transactionDate ?? budgetStart
+
+        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second, .nanosecond], from: budgetStart)
+
+        let templateComponents = calendar.dateComponents([.day, .hour, .minute, .second, .nanosecond], from: templateDate)
+        if let day = templateComponents.day {
+            components.day = day
+        }
+        if let hour = templateComponents.hour {
+            components.hour = hour
+        }
+        if let minute = templateComponents.minute {
+            components.minute = minute
+        }
+        if let second = templateComponents.second {
+            components.second = second
+        }
+        if let nanosecond = templateComponents.nanosecond {
+            components.nanosecond = nanosecond
+        }
+
+        let candidate = calendar.date(from: components) ?? budgetStart
+        var aligned = candidate
+
+        if aligned < budgetStart {
+            aligned = budgetStart
+        }
+
+        if let budgetEnd = budget.endDate, aligned > budgetEnd {
+            aligned = budgetEnd
+        }
+
+        return aligned
+    }
+
     // MARK: Fetch Global Templates
     /// Returns all PlannedExpense where isGlobal == true.
     /// - Parameter context: NSManagedObjectContext
@@ -63,6 +105,37 @@ extension PlannedExpenseService {
                      attachedTo budget: Budget,
                      in context: NSManagedObjectContext) -> PlannedExpense {
         if let existing = child(of: template, for: budget, in: context) {
+            let correctedDate = alignedTransactionDate(for: template, budget: budget)
+
+            var didUpdate = false
+            if let correctedDate {
+                if let currentDate = existing.transactionDate {
+                    var needsCorrection = false
+                    if let startDate = budget.startDate, currentDate < startDate {
+                        needsCorrection = true
+                    }
+                    if let endDate = budget.endDate, currentDate > endDate {
+                        needsCorrection = true
+                    }
+
+                    if needsCorrection {
+                        existing.transactionDate = correctedDate
+                        didUpdate = true
+                    }
+                } else {
+                    existing.transactionDate = correctedDate
+                    didUpdate = true
+                }
+            }
+
+            if didUpdate, context.hasChanges {
+                do {
+                    try context.save()
+                } catch {
+                    AppLog.service.error("ensureChild save error: \(String(describing: error))")
+                }
+            }
+
             return existing
         }
 
@@ -72,7 +145,10 @@ extension PlannedExpenseService {
         child.plannedAmount = template.plannedAmount
         child.actualAmount = template.actualAmount
         // Use the template's transactionDate as a default due date if present; otherwise, align to budget start.
-        child.transactionDate = template.transactionDate ?? budget.startDate ?? Date()
+        child.transactionDate = alignedTransactionDate(for: template, budget: budget)
+            ?? template.transactionDate
+            ?? budget.startDate
+            ?? Date()
         child.isGlobal = false
         child.globalTemplateID = template.id
         child.budget = budget

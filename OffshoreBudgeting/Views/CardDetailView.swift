@@ -273,7 +273,7 @@ struct CardDetailView: View {
         bottomInset: CGFloat,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        content()
+        let row = content()
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, DesignSystem.Spacing.l)
             .background(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
@@ -282,6 +282,14 @@ struct CardDetailView: View {
             .listRowInsets(.init(top: topInset, leading: 0, bottom: bottomInset, trailing: 0))
             .listRowBackground(Color.clear)
             .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
+
+        if #available(iOS 16.0, macCatalyst 16.0, macOS 13.0, *) {
+            row.listRowSeparator(.hidden, edges: .all)
+        } else if #available(iOS 15.0, macCatalyst 15.0, macOS 12.0, *) {
+            row.listRowSeparator(.hidden)
+        } else {
+            row
+        }
     }
 
     private func requestDelete(_ expense: CardExpense) {

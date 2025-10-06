@@ -184,18 +184,17 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
                         .frame(maxWidth: .infinity, alignment: stackAlignment)
                     }
                     .ub_hideScrollIndicators()
-                    // Respect the bottom safe area so the scroll tail remains
-                    // reachable. Legacy platforms continue to rely on
-                    // `rootTabContentPadding` for any additional spacing above
-                    // the tab bar, while OS 26 preserves the existing Liquid
-                    // Glass treatment.
+                    // On classic OS, allow content under the tab bar and control
+                    // spacing via `rootTabContentPadding`. On OS 26, respect the
+                    // safe area to avoid intercepting tab bar gestures.
                     .modifier(IgnoreBottomSafeAreaIfClassic(capabilities: platformCapabilities))
                 }
                 .frame(maxWidth: .infinity, alignment: stackAlignment)
             } else {
                 stackContent(using: proxy)
-                    // Respect the bottom safe area in non-scrolling layouts as
-                    // well so controls remain accessible above the tab bar.
+                    // Allow content to extend under the tab bar in non-scrolling
+                    // layouts as well. Individual screens add any desired
+                    // bottom spacing via `rootTabContentPadding`.
                     .modifier(IgnoreBottomSafeAreaIfClassic(capabilities: platformCapabilities))
             }
         }
@@ -451,18 +450,10 @@ private struct IgnoreBottomSafeAreaIfClassic: ViewModifier {
 
     func body(content: Content) -> some View {
         if capabilities.supportsOS26Translucency {
-            return content // OS 26 already applies the Liquid Glass safe-area rules.
+            content // respect safe area on OS 26
+        } else {
+            content.ub_ignoreSafeArea(edges: .bottom)
         }
-
-        #if os(iOS)
-        #if targetEnvironment(macCatalyst)
-        return content.ub_ignoreSafeArea(edges: .bottom)
-        #else
-        return content // Legacy iOS should keep the safe-area inset intact.
-        #endif
-        #else
-        return content.ub_ignoreSafeArea(edges: .bottom)
-        #endif
     }
 }
 

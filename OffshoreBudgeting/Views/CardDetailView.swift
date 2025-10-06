@@ -38,6 +38,7 @@ struct CardDetailView: View {
     // @State private var headerOffset: CGFloat = 0
 
     private let initialHeaderTopPadding: CGFloat = 16
+    private let listRowHorizontalPadding: CGFloat = DesignSystem.Spacing.l
     
     // MARK: Init
     init(card: CardItem,
@@ -204,7 +205,7 @@ struct CardDetailView: View {
         CardTileView(card: card, enableMotionShine: true)
             .frame(maxWidth: maxWidth)
             .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, listRowHorizontalPadding)
             .padding(.top, initialHeaderTopPadding)
             .padding(.bottom, 12)
             .listRowInsets(.init())
@@ -214,7 +215,7 @@ struct CardDetailView: View {
     @ViewBuilder
     private func totalsListRow(total: Double) -> some View {
         totalsSection(total: total)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, listRowHorizontalPadding)
             .listRowInsets(.init(top: 0, leading: 0, bottom: 12, trailing: 0))
             .listRowBackground(Color.clear)
     }
@@ -222,7 +223,7 @@ struct CardDetailView: View {
     @ViewBuilder
     private func categoryListRow(categories: [CardCategoryTotal]) -> some View {
         categoryBreakdown(categories: categories)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, listRowHorizontalPadding)
             .listRowInsets(.init(top: 0, leading: 0, bottom: 12, trailing: 0))
             .listRowBackground(Color.clear)
     }
@@ -235,10 +236,13 @@ struct CardDetailView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .padding(.horizontal, 16)
+                    .padding(.vertical, DesignSystem.Spacing.l)
+                    .padding(.horizontal, listRowHorizontalPadding)
                     .contentShape(Rectangle())
-                    .listRowInsets(.init(top: 0, leading: 0, bottom: 24, trailing: 0))
+                    .listRowInsets(.init(top: 0,
+                                         leading: listRowHorizontalPadding,
+                                         bottom: 24,
+                                         trailing: listRowHorizontalPadding))
                     .listRowBackground(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
                     .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
             } else {
@@ -246,10 +250,13 @@ struct CardDetailView: View {
                     let isFirst = pair.offset == 0
                     let isLast = pair.offset == expenses.count - 1
                     ExpenseRow(expense: pair.element, currencyCode: currencyCode)
-                        .padding()
-                        .padding(.horizontal, 16)
+                        .padding(.vertical, DesignSystem.Spacing.l)
+                        .padding(.horizontal, listRowHorizontalPadding)
                         .contentShape(Rectangle())
-                        .listRowInsets(.init(top: isFirst ? 0 : 4, leading: 0, bottom: isLast ? 24 : 12, trailing: 0))
+                        .listRowInsets(.init(top: isFirst ? 0 : 4,
+                                             leading: listRowHorizontalPadding,
+                                             bottom: isLast ? 24 : 12,
+                                             trailing: listRowHorizontalPadding))
                         .listRowBackground(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
                         .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
                         .unifiedSwipeActions(

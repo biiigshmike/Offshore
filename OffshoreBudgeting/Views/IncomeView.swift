@@ -160,7 +160,24 @@ struct IncomeView: View {
     }
 
     private func contentBottomInset(using proxy: RootTabPageProxy) -> CGFloat {
-        proxy.safeAreaBottomInset + DS.Spacing.s
+        let tailSpacing = DS.Spacing.s
+
+        if capabilities.supportsOS26Translucency {
+            return tailSpacing
+        }
+
+        #if os(iOS)
+        #if targetEnvironment(macCatalyst)
+        return tailSpacing
+        #else
+        let horizontalSizeClass = proxy.layoutContext.horizontalSizeClass ?? .compact
+        let tabChromeHeight: CGFloat = horizontalSizeClass == .regular ? 50 : 49
+        let chromeAllowance = max(tabChromeHeight - proxy.safeAreaBottomInset, 0)
+        return tailSpacing + chromeAllowance
+        #endif
+        #else
+        return tailSpacing
+        #endif
     }
 
     private let landscapeLayoutMinimumWidth: CGFloat = 780
@@ -328,7 +345,6 @@ struct IncomeView: View {
             horizontal: horizontalInset,
             extraTop: DS.Spacing.s,
             extraBottom: contentBottomInset(using: proxy),
-            includeSafeArea: false,
             tabBarGutter: gutter
         )
         .frame(
@@ -364,7 +380,6 @@ struct IncomeView: View {
             horizontal: horizontalInset,
             extraTop: DS.Spacing.s,
             extraBottom: contentBottomInset(using: proxy),
-            includeSafeArea: false,
             tabBarGutter: gutter
         )
         .frame(
@@ -392,7 +407,6 @@ struct IncomeView: View {
                 horizontal: horizontalInset,
                 extraTop: DS.Spacing.s,
                 extraBottom: contentBottomInset(using: proxy),
-                includeSafeArea: false,
                 tabBarGutter: gutter
             )
         }

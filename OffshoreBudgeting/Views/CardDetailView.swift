@@ -31,6 +31,7 @@ struct CardDetailView: View {
     @State private var expensePendingDeletion: CardExpense?
     @State private var isConfirmingDelete: Bool = false
     @State private var deletionError: DeletionError?
+    @State private var editingExpense: CardExpense?
 
     // No longer tracking header offset via state; the header is rendered
     // outside of the scroll view and does not need to drive layout of the
@@ -69,7 +70,7 @@ struct CardDetailView: View {
                 initialDate: Date(),
                 onSaved: {
                     isPresentingAddExpense = false
-                    Task { await viewModel.load() }
+                    refreshCardDetails()
                 }
             )
         }
@@ -81,11 +82,36 @@ struct CardDetailView: View {
                 showAssignBudgetToggle: true,
                 onSaved: {
                     isPresentingAddPlanned = false
-                    Task { await viewModel.load() }
+                    refreshCardDetails()
                 },
                 initialCardID: card.objectID
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+        }
+        .sheet(item: $editingExpense) { expense in
+            if expense.isPlanned {
+                AddPlannedExpenseView(
+                    plannedExpenseID: expense.objectID,
+                    preselectedBudgetID: nil,
+                    defaultSaveAsGlobalPreset: false,
+                    showAssignBudgetToggle: true,
+                    onSaved: {
+                        refreshCardDetails()
+                    },
+                    initialCardID: card.objectID
+                )
+                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            } else {
+                AddUnplannedExpenseView(
+                    unplannedExpenseID: expense.objectID,
+                    initialCardID: card.objectID,
+                    initialDate: expense.date,
+                    onSaved: {
+                        refreshCardDetails()
+                    }
+                )
+                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            }
         }
         .alert("Delete Expense?", isPresented: $isConfirmingDelete) {
             Button("Delete", role: .destructive) {
@@ -262,7 +288,7 @@ struct CardDetailView: View {
                     }
                         .unifiedSwipeActions(
                             UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
-                            onEdit: nil,
+                            onEdit: { editingExpense = pair.element },
                             onDelete: { requestDelete(pair.element) }
                         )
                 }
@@ -303,6 +329,10 @@ struct CardDetailView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
+    }
+
+    private func refreshCardDetails() {
+        Task { await viewModel.load() }
     }
 
     private func requestDelete(_ expense: CardExpense) {

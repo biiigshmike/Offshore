@@ -280,7 +280,7 @@ struct CardsView: View {
                 onEdit: { editingCard = selected }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: [.horizontal, .bottom])
             .transition(
                 .asymmetric(
                     insertion: .move(edge: .bottom).combined(with: .opacity),

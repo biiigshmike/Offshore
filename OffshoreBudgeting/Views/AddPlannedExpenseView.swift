@@ -39,6 +39,7 @@ struct AddPlannedExpenseView: View {
     @State private var didApplyInitialCardSelection = false
 
     @State private var budgetSearchText = ""
+    @State private var isShowingScopeDialog = false
 
     private var filteredBudgets: [Budget] {
         vm.allBudgets.filter { budgetSearchText.isEmpty || ($0.name ?? "").localizedCaseInsensitiveContains(budgetSearchText) }
@@ -265,6 +266,24 @@ struct AddPlannedExpenseView: View {
                 }
             }
         }
+        .confirmationDialog(
+            "Apply changes to related expenses?",
+            isPresented: $isShowingScopeDialog
+        ) {
+            Button("Only this expense") {
+                _ = performSave(scope: .onlyThis)
+            }
+            Button("Past instances") {
+                _ = performSave(scope: .past(referenceDate: vm.transactionDate))
+            }
+            Button("Future instances") {
+                _ = performSave(scope: .future(referenceDate: vm.transactionDate))
+            }
+            Button("All instances") {
+                _ = performSave(scope: .all(referenceDate: vm.transactionDate))
+            }
+            Button("Cancel", role: .cancel) { }
+        }
     }
 
     // MARK: Actions
@@ -272,27 +291,38 @@ struct AddPlannedExpenseView: View {
     /// - Returns: `true` if the sheet should dismiss, `false` to stay open.
     private func trySave() -> Bool {
         guard vm.canSave else { return false }
+        if vm.shouldPromptForScopeSelection {
+            isShowingScopeDialog = true
+            return false
+        }
+        return performSave(scope: .onlyThis)
+    }
+
+    @discardableResult
+    private func performSave(scope: PlannedExpenseUpdateScope) -> Bool {
         do {
-            try vm.save()
+            try vm.save(scope: scope)
             onSaved()
-            // Resign keyboard on iOS for a neat dismissal.
             ub_dismissKeyboard()
             return true
         } catch {
-            // Present error via UIKit alert on iOS; macOS simply returns false.
-            let alert = UIAlertController(
-                title: "Couldn’t Save",
-                message: error.localizedDescription,
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-            UIApplication.shared.connectedScenes
-                .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-                .first?
-                .rootViewController?
-                .present(alert, animated: true)
+            presentSaveError(error)
             return false
         }
+    }
+
+    private func presentSaveError(_ error: Error) {
+        let alert = UIAlertController(
+            title: "Couldn’t Save",
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first?
+            .rootViewController?
+            .present(alert, animated: true)
     }
 
     @ViewBuilder

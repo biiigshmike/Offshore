@@ -181,6 +181,7 @@ struct CardDetailView: View {
         }
         .ub_listStyleLiquidAware()
         .ub_hideScrollIndicators()
+        .cardDetailHideTopListSeparatorIfAvailable()
 #if os(iOS)
         // Neutralize UIKit's automatic bottom padding and provide our own
         // spacer so the list always scrolls and doesn't get constrained by
@@ -396,7 +397,6 @@ struct CardDetailView: View {
             }
     }
 
-    
     // MARK: totalsSection
     private func totalsSection(total: Double) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -543,6 +543,15 @@ private extension View {
         #else
         self
         #endif
+    }
+
+    @ViewBuilder
+    func cardDetailHideTopListSeparatorIfAvailable() -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, macOS 13.0, *) {
+            self.listSectionSeparator(.hidden, edges: .top)
+        } else {
+            self
+        }
     }
 }
 

@@ -194,6 +194,9 @@ final class CardDetailViewModel: ObservableObject {
 
         do {
             let managedObject: NSManagedObject
+            do {
+                managedObject = try viewContext.existingObject(with: objectID)
+            } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == CocoaError.Code.managedObjectNotFound.rawValue {
             if let obj = try? viewContext.existingObject(with: objectID) {
                 managedObject = obj
             } else {

@@ -65,6 +65,7 @@ struct HomeView: View {
                 .rootTabContentPadding(
                     proxy,
                     horizontal: 0,
+                    includeSafeArea: false,
                     tabBarGutter: proxy.compactAwareTabBarGutter
                 )
         }

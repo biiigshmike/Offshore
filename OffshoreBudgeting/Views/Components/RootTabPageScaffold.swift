@@ -147,8 +147,7 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
             spacing: spacing,
             combinedHeight: combinedHeight,
             availableHeight: availableHeight,
-            isScrollEnabled: isScrollEnabled,
-            capabilities: platformCapabilities
+            isScrollEnabled: isScrollEnabled
         )
 
         Group {
@@ -311,7 +310,6 @@ struct RootTabPageProxy {
     let combinedHeight: CGFloat
     let availableHeight: CGFloat
     let isScrollEnabled: Bool
-    let capabilities: PlatformCapabilities
 
     /// Controls the amount of vertical spacing inserted between tab content and the tab bar.
     enum TabBarGutter {
@@ -363,21 +361,6 @@ struct RootTabPageProxy {
         effectiveSafeAreaInsets.bottom
     }
 
-    /// Height of the legacy (pre-OS 26) opaque tab bar chrome including any safe-area inset.
-    /// Returns zero when the modern translucent treatment is available.
-    var legacyTabChromeHeight: CGFloat {
-        guard !capabilities.supportsOS26Translucency else { return 0 }
-
-        let baseHeight: CGFloat
-        if layoutContext.horizontalSizeClass == .regular {
-            baseHeight = 50
-        } else {
-            baseHeight = 49
-        }
-
-        return baseHeight + safeAreaBottomInset
-    }
-
     var tabBarGutterSpacing: CGFloat {
         #if os(iOS)
         // Global request: remove additional gutter above the tab bar so content
@@ -394,7 +377,7 @@ struct RootTabPageProxy {
     }
 
     var standardTabContentBottomPadding: CGFloat {
-        tabContentBottomPadding()
+        safeAreaBottomInset + tabBarGutterSpacing
     }
 
     func tabContentBottomPadding(
@@ -402,12 +385,7 @@ struct RootTabPageProxy {
         extraBottom: CGFloat = 0,
         tabBarGutter: TabBarGutter = .standard
     ) -> CGFloat {
-        let safeAreaContribution: CGFloat
-        if capabilities.supportsOS26Translucency {
-            safeAreaContribution = includeSafeArea ? safeAreaBottomInset : 0
-        } else {
-            safeAreaContribution = legacyTabChromeHeight
-        }
+        let safeAreaContribution = includeSafeArea ? safeAreaBottomInset : 0
         let gutterSpacing = tabBarGutterSpacing(tabBarGutter)
         return gutterSpacing + safeAreaContribution + extraBottom
     }
@@ -446,11 +424,6 @@ extension RootTabPageProxy {
         if layoutContext.containerSize.width >= 600 { return RootTabHeaderLayout.defaultHorizontalPadding }
 
         return max(effectiveSafeAreaInsets.leading, DS.Spacing.s)
-    }
-
-    /// Convenience overload that uses the proxy's captured platform capabilities.
-    func resolvedSymmetricHorizontalInset() -> CGFloat {
-        resolvedSymmetricHorizontalInset(capabilities: capabilities)
     }
 }
 

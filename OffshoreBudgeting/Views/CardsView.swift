@@ -28,7 +28,6 @@ struct CardsView: View {
     @StateObject private var viewModel = CardsViewModel()
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.platformCapabilities) private var capabilities
-    @Environment(\.rootTabLegacyChromeInset) private var rootTabLegacyChromeInset
     @State private var isPresentingAddCard = false
     @State private var editingCard: CardItem? = nil // NEW: for edit sheet
     @State private var isPresentingAddExpense = false
@@ -281,7 +280,6 @@ struct CardsView: View {
                 onEdit: { editingCard = selected }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, rootTabLegacyChromeInset)
             .ignoresSafeArea(edges: [.horizontal, .bottom])
             .transition(
                 .asymmetric(

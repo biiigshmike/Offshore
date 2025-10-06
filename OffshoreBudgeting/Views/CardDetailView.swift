@@ -180,7 +180,6 @@ struct CardDetailView: View {
             expensesSection
         }
         .ub_listStyleLiquidAware()
-        .ub_hideListSeparators()
         .ub_hideScrollIndicators()
 #if os(iOS)
         // Neutralize UIKit's automatic bottom padding and provide our own

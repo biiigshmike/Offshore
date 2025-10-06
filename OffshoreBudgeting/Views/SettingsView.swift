@@ -376,8 +376,7 @@ struct SettingsView: View {
         tabBarGutter: RootTabPageProxy.TabBarGutter
     ) -> CGFloat {
         let base = horizontalSizeClass == .compact ? 0 : DS.Spacing.l
-        let scrollTailAllowance = DS.Spacing.l 
-        let tabChromeHeight: CGFloat = horizontalSizeClass == .compact ? 49 : 50
+        let scrollTailAllowance = DS.Spacing.l
         let gutter = proxy.tabBarGutterSpacing(tabBarGutter)
 
         if capabilities.supportsOS26Translucency {
@@ -387,7 +386,7 @@ struct SettingsView: View {
             // Legacy path: scaffold ignores the bottom safe area. Pad content by the
             // visible chrome (tab bar height) plus safe-area inset so the last card
             // remains fully visible above the opaque tab bar.
-            let required = tabChromeHeight + proxy.safeAreaBottomInset
+            let required = proxy.legacyTabBarChromeBottomInset
             return max(required + base - gutter, 0) + scrollTailAllowance
         }
     }

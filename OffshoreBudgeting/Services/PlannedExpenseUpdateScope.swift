@@ -47,20 +47,18 @@ enum PlannedExpenseUpdateScope {
     ///   - date: The child's transaction date.
     ///   - fallbackReferenceDate: A fallback reference date to use when the scope lacks one.
     /// - Returns: `true` if the child should be updated under this scope.
-    func shouldIncludeChild(with date: Date?, fallbackReferenceDate: Date?) -> Bool {
+    func shouldIncludeChild(with date: Date?, fallbackReferenceDate _: Date?) -> Bool {
         switch self {
         case .onlyThis:
             return false
         case .all:
             return true
         case let .future(referenceDate):
-            let pivot = referenceDate ?? fallbackReferenceDate
-            guard let pivot else { return true }
+            let pivot = referenceDate
             guard let date else { return true }
             return date >= pivot
         case let .past(referenceDate):
-            let pivot = referenceDate ?? fallbackReferenceDate
-            guard let pivot else { return true }
+            let pivot = referenceDate
             guard let date else { return true }
             return date <= pivot
         }

@@ -161,8 +161,9 @@ struct CardDetailView: View {
         }
     }
 
+    @ViewBuilder
     private func baseList(cardMaxWidth: CGFloat?, total: Double) -> some View {
-        List {
+        let list = List {
             // Card header as its own section to ensure consistent rendering
             // with modern List defaults across iOS 16/17.
             Section {
@@ -179,15 +180,23 @@ struct CardDetailView: View {
             // Expenses list (already returns a Section)
             expensesSection
         }
-        .ub_listStyleLiquidAware()
-        .ub_hideScrollIndicators()
+            .ub_listStyleLiquidAware()
+            .listRowSeparator(.hidden)
+            .ub_hideScrollIndicators()
 #if os(iOS)
         // Neutralize UIKit's automatic bottom padding and provide our own
         // spacer so the list always scrolls and doesn't get constrained by
         // the tab bar.
-        .background(UBScrollViewInsetAdjustmentDisabler())
+            .background(UBScrollViewInsetAdjustmentDisabler())
 #endif
-        .cardDetailListBottomInset(layoutContext: layoutContext)
+            .cardDetailListBottomInset(layoutContext: layoutContext)
+
+        if #available(iOS 15.0, macCatalyst 15.0, *) {
+            list
+                .listSectionSeparator(.hidden, edges: .all)
+        } else {
+            list
+        }
     }
 
     // MARK: Bottom inset for comfortable/infinite scrolling

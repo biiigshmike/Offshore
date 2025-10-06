@@ -52,6 +52,8 @@ final class AddPlannedExpenseViewModel: ObservableObject {
 
     /// Tracks whether the item being edited was originally a global template.
     private var editingOriginalIsGlobal: Bool = false
+    /// Tracks whether the item being edited was linked to a global template when loaded.
+    private var editingOriginalTemplateLinkID: UUID?
 
     // MARK: Init
     init(plannedExpenseID: NSManagedObjectID? = nil,
@@ -98,6 +100,9 @@ final class AddPlannedExpenseViewModel: ObservableObject {
             allCards = fetchCards()
         }
 
+        editingOriginalIsGlobal = false
+        editingOriginalTemplateLinkID = nil
+
         if isEditing, let id = plannedExpenseID,
            let existing = try? context.existingObject(with: id) as? PlannedExpense {
             selectedBudgetID = existing.budget?.objectID
@@ -109,6 +114,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
             transactionDate = existing.transactionDate ?? Date()
             saveAsGlobalPreset = existing.isGlobal
             editingOriginalIsGlobal = existing.isGlobal
+            editingOriginalTemplateLinkID = existing.globalTemplateID
         } else {
             // If preselected not provided, default to most-recent budget by start date.
             // For preset creation where a budget is optional, we intentionally
@@ -168,8 +174,12 @@ final class AddPlannedExpenseViewModel: ObservableObject {
         return (selectedBudgetID != nil) && textValid && amountValid && cardValid && categoryValid
     }
 
+    var isEditingGlobalTemplate: Bool { editingOriginalIsGlobal }
+    var isEditingLinkedToTemplate: Bool { editingOriginalTemplateLinkID != nil }
+    var shouldPromptForScopeSelection: Bool { isEditing && (isEditingGlobalTemplate || isEditingLinkedToTemplate) }
+
     // MARK: save()
-    func save() throws {
+    func save(scope: PlannedExpenseUpdateScope = .onlyThis) throws {
         let plannedAmt = Double(plannedAmountString.replacingOccurrences(of: ",", with: "")) ?? 0
         let actualAmt  = Double(actualAmountString.replacingOccurrences(of: ",", with: "")) ?? 0
 
@@ -182,7 +192,9 @@ final class AddPlannedExpenseViewModel: ObservableObject {
         if isEditing,
            let id = plannedExpenseID,
            let existing = try? context.existingObject(with: id) as? PlannedExpense {
-            existing.descriptionText = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let templateService = PlannedExpenseService()
+            let trimmed = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+            existing.descriptionText = trimmed
             existing.plannedAmount = plannedAmt
             existing.actualAmount = actualAmt
             existing.transactionDate = transactionDate
@@ -197,6 +209,15 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                 // Editing a parent template; keep it global and unattached.
                 existing.isGlobal = true
                 existing.budget = nil
+                templateService.updateTemplateHierarchy(
+                    for: existing,
+                    scope: scope,
+                    title: trimmed,
+                    plannedAmount: plannedAmt,
+                    actualAmount: actualAmt,
+                    transactionDate: transactionDate,
+                    in: context
+                )
             } else {
                 guard let budgetID = selectedBudgetID,
                       let targetBudget = context.object(with: budgetID) as? Budget else {
@@ -204,6 +225,17 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                 }
                 existing.isGlobal = false
                 existing.budget = targetBudget
+                if existing.globalTemplateID != nil {
+                    templateService.updateTemplateHierarchy(
+                        for: existing,
+                        scope: scope,
+                        title: trimmed,
+                        plannedAmount: plannedAmt,
+                        actualAmount: actualAmt,
+                        transactionDate: transactionDate,
+                        in: context
+                    )
+                }
             }
         } else {
             let trimmed = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)

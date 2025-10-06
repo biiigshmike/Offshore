@@ -106,13 +106,25 @@ struct BudgetDetailsView: View {
     }
 
     private var isBudgetActiveForDisplayedPeriod: Bool {
-        let range = normalizedDisplayedPeriodRange()
-        return range.contains(Date())
+        guard
+            let startDate = vm.budget?.startDate,
+            let endDate = vm.budget?.endDate
+        else {
+            return false
+        }
+
+        let budgetRange = normalizedRange(from: startDate, to: endDate)
+        let displayedRange = normalizedDisplayedPeriodRange()
+        return displayedRange.overlaps(budgetRange)
     }
 
     private func normalizedDisplayedPeriodRange() -> ClosedRange<Date> {
-        let lower = min(vm.startDate, vm.endDate)
-        let upper = max(vm.startDate, vm.endDate)
+        return normalizedRange(from: vm.startDate, to: vm.endDate)
+    }
+
+    private func normalizedRange(from startDate: Date, to endDate: Date) -> ClosedRange<Date> {
+        let lower = min(startDate, endDate)
+        let upper = max(startDate, endDate)
         let calendar = Calendar.current
         let startOfLower = calendar.startOfDay(for: lower)
         let endOfUpper = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: calendar.startOfDay(for: upper)) ?? upper

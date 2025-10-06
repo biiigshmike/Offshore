@@ -111,7 +111,7 @@ final class PlannedExpenseService {
     /// - Returns: Array of PlannedExpense linked to that card.
     func fetchForCard(_ cardID: UUID,
                       sortedByDateAscending: Bool = true) throws -> [PlannedExpense] {
-        let predicate = NSPredicate(format: "card.id == %@", cardID as CVarArg)
+        let predicate = NSPredicate(format: "card.id == %@ AND isGlobal == NO", cardID as CVarArg)
         let sort = NSSortDescriptor(key: "transactionDate", ascending: sortedByDateAscending)
         return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
     }
@@ -125,7 +125,7 @@ final class PlannedExpenseService {
     func fetchForCard(_ cardID: UUID,
                       in interval: DateInterval,
                       sortedByDateAscending: Bool = true) throws -> [PlannedExpense] {
-        let predicate = NSPredicate(format: "card.id == %@ AND transactionDate >= %@ AND transactionDate <= %@",
+        let predicate = NSPredicate(format: "card.id == %@ AND isGlobal == NO AND transactionDate >= %@ AND transactionDate <= %@",
                                     cardID as CVarArg, interval.start as CVarArg, interval.end as CVarArg)
         let sort = NSSortDescriptor(key: "transactionDate", ascending: sortedByDateAscending)
         return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])

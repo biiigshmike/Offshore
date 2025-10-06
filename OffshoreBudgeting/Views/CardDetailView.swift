@@ -295,6 +295,7 @@ struct CardDetailView: View {
         content()
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, DesignSystem.Spacing.l)
+            .padding(.horizontal, DesignSystem.Spacing.l)
             .background(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
             .padding(.horizontal, listRowHorizontalPadding)
             .contentShape(Rectangle())

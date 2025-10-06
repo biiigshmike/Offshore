@@ -156,17 +156,7 @@ final class AddBudgetViewModel: ObservableObject {
         // Clone selected PlannedExpense templates (global)
         let templates = globalPlannedExpenseTemplates.filter { selectedTemplateObjectIDs.contains($0.objectID) }
         for template in templates {
-            let cloned = PlannedExpense(context: context)
-            cloned.id = cloned.id ?? UUID()
-            cloned.descriptionText = template.descriptionText
-            cloned.plannedAmount = template.plannedAmount
-            cloned.actualAmount = template.actualAmount
-            cloned.transactionDate = startDate
-            cloned.isGlobal = false
-            cloned.globalTemplateID = template.id
-            cloned.budget = newBudget
-            cloned.card = template.card
-            cloned.expenseCategory = template.expenseCategory
+            PlannedExpenseService.shared.ensureChild(from: template, attachedTo: newBudget, in: context)
         }
 
         try context.save()
@@ -199,17 +189,7 @@ final class AddBudgetViewModel: ObservableObject {
             let tid = template.id
             let already = existingInstances.contains { $0.globalTemplateID == tid }
             if !already {
-                let cloned = PlannedExpense(context: context)
-                cloned.id = cloned.id ?? UUID()
-                cloned.descriptionText = template.descriptionText
-                cloned.plannedAmount = template.plannedAmount
-                cloned.actualAmount = template.actualAmount
-                cloned.transactionDate = startDate
-                cloned.isGlobal = false
-                cloned.globalTemplateID = tid
-                cloned.budget = budget
-                cloned.card = template.card
-                cloned.expenseCategory = template.expenseCategory
+                PlannedExpenseService.shared.ensureChild(from: template, attachedTo: budget, in: context)
             }
         }
 

@@ -177,15 +177,6 @@ struct CardDetailView: View {
 
             // Expenses list (already returns a Section)
             expensesSection
-
-            Section {
-                cardDetailBottomSpacer()
-            }
-            .listRowInsets(.init())
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-            .accessibilityHidden(true)
-            .allowsHitTesting(false)
         }
         .ub_listStyleLiquidAware()
         .ub_hideScrollIndicators()
@@ -203,9 +194,7 @@ struct CardDetailView: View {
     // even when content is short, and to keep spacing consistent above the tab bar.
     @ViewBuilder
     private func cardDetailBottomSpacer() -> some View {
-        Color.clear
-            .frame(height: CardDetailListBottomInsetMetrics.bottomInset(for: layoutContext))
-            .listRowBackground(Color.clear)
+        Color.clear.frame(height: CardDetailListBottomInsetMetrics.bottomInset(for: layoutContext))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
@@ -547,18 +536,16 @@ private extension View {
 }
 
 private enum CardDetailListBottomInsetMetrics {
-    #if os(iOS) && !targetEnvironment(macCatalyst)
+    #if os(iOS)
+    #if targetEnvironment(macCatalyst)
+    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat { 0 }
+    #else
     // Match BudgetDetailsView behavior: ensure at least the tab bar height is
     // represented so the list always scrolls comfortably.
     private static let compactTabBarHeight: CGFloat = 49
     private static let regularTabBarHeight: CGFloat = 49
-    #endif
 
     static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat {
-        #if os(iOS)
-        #if targetEnvironment(macCatalyst)
-        return max(layoutContext.safeArea.bottom, DS.Spacing.xxl)
-        #else
         let safeAreaBottom = layoutContext.safeArea.bottom
         let sizeClass = layoutContext.horizontalSizeClass ?? .compact
         let tabBarHeight = sizeClass == .regular ? regularTabBarHeight : compactTabBarHeight
@@ -567,9 +554,9 @@ private enum CardDetailListBottomInsetMetrics {
         } else {
             return safeAreaBottom + tabBarHeight
         }
-        #endif
-        #else
-        return max(layoutContext.safeArea.bottom, DS.Spacing.xxl)
-        #endif
     }
+    #endif
+    #else
+    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat { 0 }
+    #endif
 }

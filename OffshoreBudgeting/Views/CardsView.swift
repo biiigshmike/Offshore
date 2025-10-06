@@ -36,6 +36,15 @@ struct CardsView: View {
     /// Stable selection keyed to CardItem.id (works for objectID-backed and preview items).
     @State private var selectedCardStableID: String? = nil
 
+    private var selectedCard: CardItem? {
+        guard case .loaded(let cards) = viewModel.state,
+              let selectedID = selectedCardStableID else {
+            return nil
+        }
+
+        return cards.first(where: { $0.id == selectedID })
+    }
+
     // MARK: Grid Layout
     private let gridColumns: [GridItem] = [
         GridItem(.adaptive(minimum: 260, maximum: 260), spacing: DS.Spacing.l)
@@ -50,6 +59,9 @@ struct CardsView: View {
             EmptyView()
         } content: { proxy in
             contentView(using: proxy)
+        }
+        .overlay(alignment: .top) {
+            detailOverlay
         }
         // MARK: Start observing when view appears
         .onAppear { viewModel.startIfNeeded() }
@@ -193,7 +205,6 @@ struct CardsView: View {
     // MARK: Grid View
     /// - Parameter cards: Data snapshot to render.
     private func gridView(cards: [CardItem], using proxy: RootTabPageProxy) -> some View {
-        ZStack {
         ScrollView {
             LazyVGrid(columns: gridColumns, spacing: DS.Spacing.l) {
                 ForEach(cards) { card in
@@ -233,25 +244,6 @@ struct CardsView: View {
         }
         // Removed extra bottom inset; RootTabPageScaffold + rootTabContentPadding
         // control any desired gutter above the tab bar.
-            // Detail overlay
-            if let selID = selectedCardStableID,
-               let selected = cards.first(where: { $0.id == selID }) {
-                CardDetailView(
-                    card: selected,
-                    isPresentingAddExpense: $isPresentingAddExpense,
-                    onDone: {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
-                            selectedCardStableID = nil
-                            isPresentingAddExpense = false
-                        }
-                    },
-                    onEdit: { editingCard = selected }
-                )
-                .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity),
-                                         removal: .opacity))
-                .zIndex(10)
-            }
-        } // ZStack
         // MARK: Keep selection valid when dataset changes (delete/rename)
         .ub_onChange(of: cards.map(\.id)) { newIDs in
             guard let sel = selectedCardStableID, !newIDs.contains(sel) else { return }
@@ -270,6 +262,32 @@ struct CardsView: View {
             }
 
             selectedCardStableID = nil
+        }
+    }
+
+    @ViewBuilder
+    private var detailOverlay: some View {
+        if let selected = selectedCard {
+            CardDetailView(
+                card: selected,
+                isPresentingAddExpense: $isPresentingAddExpense,
+                onDone: {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
+                        selectedCardStableID = nil
+                        isPresentingAddExpense = false
+                    }
+                },
+                onEdit: { editingCard = selected }
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
+            .transition(
+                .asymmetric(
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .opacity
+                )
+            )
+            .zIndex(10)
         }
     }
 

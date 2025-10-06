@@ -138,6 +138,7 @@ struct ExpenseCategoryManagerView: View {
     private func categoryRow(for category: ExpenseCategory) -> some View {
         CategoryRowView(
             config: UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
+            label: { rowLabel(for: category) },
             onTap: { categoryToEdit = category },
             onEdit: { categoryToEdit = category },
             onDelete: {
@@ -150,9 +151,7 @@ struct ExpenseCategoryManagerView: View {
                     deleteCategory(category)
                 }
             }
-        ) {
-            rowLabel(for: category)
-        }
+        )
     }
 
     @ViewBuilder

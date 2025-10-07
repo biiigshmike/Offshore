@@ -99,7 +99,7 @@ struct HomeView: View {
 
                     calendarToolbarMenu()
 
-                    if hasActiveBudget, let active = actionableSummaryForSelectedPeriod {
+                    if let active = actionableSummaryForSelectedPeriod {
                         addExpenseToolbarMenu(for: active.id)
                     }
                 }
@@ -214,19 +214,6 @@ struct HomeView: View {
         }
     }
 
-    private var addExpenseGlassTransition: Any? {
-        guard capabilities.supportsOS26Translucency else {
-            return nil
-        }
-
-        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            let t: GlassEffectTransition = reduceMotion ? .identity : .materialize
-            return t
-        } else {
-            return nil
-        }
-    }
-
     private var periodAdjustmentAnimation: Animation {
         .spring(response: 0.34, dampingFraction: 0.78, blendDuration: 0.1)
     }
@@ -296,7 +283,7 @@ struct HomeView: View {
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
                 glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
-                transition: addExpenseGlassTransition
+                transition: toolbarGlassTransition
             )
         }
         .modifier(HideMenuIndicatorIfPossible())
@@ -317,7 +304,7 @@ struct HomeView: View {
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
                 glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
-                transition: addExpenseGlassTransition
+                transition: toolbarGlassTransition
             )
         }
         .modifier(HideMenuIndicatorIfPossible())

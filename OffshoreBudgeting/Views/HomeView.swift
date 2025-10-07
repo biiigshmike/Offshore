@@ -115,8 +115,10 @@ struct HomeView: View {
             switch newState {
             case .empty:
                 lastLoadedSelection = vm.selectedDate
+                updateHasActiveBudget(animate: false)
             case .loaded(_):
                 lastLoadedSelection = vm.selectedDate
+                updateHasActiveBudget(animate: false)
             case .initial, .loading:
                 lastLoadedSelection = nil
             }
@@ -127,14 +129,7 @@ struct HomeView: View {
                 return
             }
 
-            let newHasActiveBudget = actionableSummaryForSelectedPeriod != nil
-            guard newHasActiveBudget != hasActiveBudget else { return }
-
-            if capabilities.supportsOS26Translucency && !reduceMotion {
-                withAnimation(periodAdjustmentAnimation) { hasActiveBudget = newHasActiveBudget }
-            } else {
-                hasActiveBudget = newHasActiveBudget
-            }
+            updateHasActiveBudget()
         }
         // Temporarily disable automatic refresh on every Core Data save to
         // prevent re-entrant view reconstruction and load() loops. Explicit
@@ -232,6 +227,23 @@ struct HomeView: View {
 
     private var periodAdjustmentAnimation: Animation {
         .spring(response: 0.34, dampingFraction: 0.78, blendDuration: 0.1)
+    }
+
+    private func updateHasActiveBudget(animate: Bool = true) {
+        let newHasActiveBudget = actionableSummaryForSelectedPeriod != nil
+        guard newHasActiveBudget != hasActiveBudget else { return }
+
+        let updateValue = { hasActiveBudget = newHasActiveBudget }
+
+        if animate,
+           capabilities.supportsOS26Translucency,
+           !reduceMotion {
+            withAnimation(periodAdjustmentAnimation) {
+                updateValue()
+            }
+        } else {
+            updateValue()
+        }
     }
 
     @ViewBuilder

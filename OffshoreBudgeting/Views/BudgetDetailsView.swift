@@ -984,9 +984,22 @@ private struct PlannedListFR: View {
     // MARK: Local: Add action button with OS-aware styling
     @ViewBuilder
     private func addActionButton(title: String, action: @escaping () -> Void) -> some View {
-        GlassCTAButton(fillHorizontally: true, action: action) {
-            budgetDetailsCTAButtonLabel(title)
+        Group {
+            if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                Button(action: action) {
+                    budgetDetailsCTAButtonLabel(title)
+                        .foregroundStyle(.primary)
+                }
+                .buttonStyle(.glass)
+                .tint(themeManager.selectedTheme.resolvedTint)
+            } else {
+                Button(action: action) {
+                    budgetDetailsCTAButtonLabel(title)
+                }
+                .buttonStyle(.plain)
+            }
         }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder

@@ -487,16 +487,14 @@ private struct OnboardingPrimaryButton: View {
     let action: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.platformCapabilities) private var capabilities
 
     var body: some View {
-        GlassCTAButton(
-            fillHorizontally: true,
-            tint: themeManager.selectedTheme.resolvedTint,
-            action: action
-        ) {
+        Button(action: action) {
             Text(title)
+                .frame(maxWidth: .infinity)
         }
-        .frame(minHeight: 44)
+        .modifier(PrimaryButtonStyleAdapter(tint: themeManager.selectedTheme.resolvedTint, capabilities: capabilities))
     }
 }
 
@@ -505,17 +503,57 @@ private struct OnboardingSecondaryButton: View {
     let action: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.platformCapabilities) private var capabilities
 
     var body: some View {
-        GlassCTAButton(
-            fillHorizontally: true,
-            fallbackAppearance: .neutral,
-            tint: themeManager.selectedTheme.resolvedTint,
-            action: action
-        ) {
+        Button(action: action) {
             Text(title)
+                .frame(maxWidth: .infinity)
         }
-        .frame(minHeight: 44)
+        .modifier(SecondaryButtonStyleAdapter(tint: themeManager.selectedTheme.resolvedTint, capabilities: capabilities))
+    }
+}
+
+// MARK: - Button Style Adapters (OS26 Glass vs Legacy)
+private struct PrimaryButtonStyleAdapter: ViewModifier {
+    let tint: Color
+    let capabilities: PlatformCapabilities
+
+    func body(content: Content) -> some View {
+        Group {
+            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                content
+                    .frame(minHeight: 44)
+                    .buttonStyle(.glass)
+                    .tint(tint)
+                    .controlSize(.large)
+            } else {
+                content
+                    .frame(minHeight: 44)
+                    .buttonStyle(TranslucentButtonStyle(tint: tint))
+            }
+        }
+    }
+}
+
+private struct SecondaryButtonStyleAdapter: ViewModifier {
+    let tint: Color
+    let capabilities: PlatformCapabilities
+
+    func body(content: Content) -> some View {
+        Group {
+            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                content
+                    .frame(minHeight: 44)
+                    .buttonStyle(.glass)
+                    .tint(tint)
+                    .controlSize(.large)
+            } else {
+                content
+                    .frame(minHeight: 44)
+                    .buttonStyle(OnboardingSecondaryButtonStyle(tint: tint))
+            }
+        }
     }
 }
 
@@ -562,6 +600,61 @@ private struct OnboardingButtonRow: View {
             OnboardingPrimaryButton(title: configuration.title, action: configuration.action)
         case .secondary:
             OnboardingSecondaryButton(title: configuration.title, action: configuration.action)
+        }
+    }
+}
+
+private struct OnboardingSecondaryButtonStyle: ButtonStyle {
+    @Environment(\.platformCapabilities) private var capabilities
+
+    var tint: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        let radius: CGFloat = 26
+
+        return configuration.label
+            .font(.headline)
+            .foregroundStyle(tint)
+            .padding(.vertical, DS.Spacing.m)
+            .padding(.horizontal, DS.Spacing.l)
+            .frame(maxWidth: .infinity)
+            .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background(background(isPressed: configuration.isPressed, radius: radius))
+            .overlay(border(radius: radius, isPressed: configuration.isPressed))
+            .overlay(highlight(radius: radius))
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.32, dampingFraction: 0.72), value: configuration.isPressed)
+    }
+
+    @ViewBuilder
+    private func background(isPressed: Bool, radius: CGFloat) -> some View {
+        if capabilities.supportsOS26Translucency, #available(iOS 15.0, macCatalyst 16.0, *) {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .fill(tint.opacity(isPressed ? 0.2 : 0.14))
+                .background(
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+                .compositingGroup()
+        } else {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .fill(tint.opacity(isPressed ? 0.18 : 0.12))
+        }
+    }
+
+    private func border(radius: CGFloat, isPressed: Bool) -> some View {
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+            .stroke(tint.opacity(isPressed ? 0.6 : 0.45), lineWidth: 1.5)
+    }
+
+    @ViewBuilder
+    private func highlight(radius: CGFloat) -> some View {
+        if capabilities.supportsOS26Translucency {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                .blendMode(.screen)
+        } else {
+            EmptyView()
         }
     }
 }

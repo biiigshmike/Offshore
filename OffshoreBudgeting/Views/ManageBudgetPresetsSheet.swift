@@ -45,9 +45,7 @@ struct ManageBudgetPresetsSheet: View {
             .navigationTitle("Budget Presets")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    GlassTextButton("Done") {
-                        dismissAndComplete()
-                    }
+                    Button("Done", action: dismissAndComplete)
                 }
             }
             .onAppear(perform: loadAssignments)

@@ -178,12 +178,11 @@ struct IncomeView: View {
     }
 
     private var addIncomeButton: some View {
-        RootHeaderIconActionButton(
-            systemImage: "plus",
-            accessibilityLabel: "Add Income",
-            accessibilityIdentifier: "add_income_button",
-            action: { beginAddingIncome() }
-        )
+        Button(action: { beginAddingIncome() }) {
+            Image(systemName: "plus")
+        }
+        .accessibilityLabel("Add Income")
+        .accessibilityIdentifier("add_income_button")
     }
 
     // MARK: Calendar

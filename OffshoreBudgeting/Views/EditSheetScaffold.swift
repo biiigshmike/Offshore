@@ -88,16 +88,18 @@ struct EditSheetScaffold<SheetContent: View>: View {
                     .toolbar {
                         // Cancel
                         ToolbarItem(placement: .cancellationAction) {
-                            GlassTextButton(cancelButtonTitle, role: .cancel) {
+                            Button(cancelButtonTitle) {
                                 onCancel?()
                                 dismiss()
                             }
+                            .tint(themeManager.selectedTheme.resolvedTint)
                         }
                         // Save
                         ToolbarItem(placement: .confirmationAction) {
-                            GlassTextButton(saveButtonTitle) {
+                            Button(saveButtonTitle) {
                                 if onSave() { dismiss() }
                             }
+                            .tint(themeManager.selectedTheme.resolvedTint)
                             .disabled(!isSaveEnabled)
                         }
                     }

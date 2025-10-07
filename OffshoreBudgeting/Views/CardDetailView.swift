@@ -409,7 +409,7 @@ struct CardDetailView: View {
         #endif
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    GlassTextButton("Done") { onDone() }
+                    Button("Done") { onDone() }
                         .keyboardShortcut(.escape, modifiers: [])
                 }
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -418,7 +418,7 @@ struct CardDetailView: View {
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 200)
                             .focused($isSearchFieldFocused)
-                        GlassTextButton("Cancel", role: .cancel) {
+                        Button("Cancel") {
                             withAnimation {
                                 isSearchActive = false
                                 viewModel.searchText = ""
@@ -426,19 +426,13 @@ struct CardDetailView: View {
                             }
                         }
                     } else {
-                        RootHeaderIconActionButton(
-                            systemImage: "magnifyingglass",
-                            accessibilityLabel: "Search",
-                            action: {
-                                withAnimation { isSearchActive = true }
-                                isSearchFieldFocused = true
-                            }
-                        )
-                        RootHeaderIconActionButton(
-                            systemImage: "pencil",
-                            accessibilityLabel: "Edit",
-                            action: { onEdit() }
-                        )
+                        IconOnlyButton(systemName: "magnifyingglass") {
+                            withAnimation { isSearchActive = true }
+                            isSearchFieldFocused = true
+                        }
+                        IconOnlyButton(systemName: "pencil") {
+                            onEdit()
+                        }
                         // Add Expense menu (Planned or Variable) — keep as the rightmost control
                         Menu {
                             Button("Add Planned Expense") { isPresentingAddPlanned = true }
@@ -547,6 +541,33 @@ private struct ExpenseRow: View {
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Shared Toolbar Icon
+private struct IconOnlyButton: View {
+    let systemName: String
+    var action: () -> Void
+    @EnvironmentObject private var themeManager: ThemeManager
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 18, weight: .semibold))
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(themeManager.selectedTheme.accent)
+                .imageScale(.medium)
+                .padding(.horizontal, 2)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(label))
+    }
+    private var label: String {
+        switch systemName {
+        case "magnifyingglass": return "Search"
+        case "pencil": return "Edit"
+        default: return "Action"
+        }
     }
 }
 

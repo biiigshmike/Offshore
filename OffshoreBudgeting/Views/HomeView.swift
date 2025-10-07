@@ -83,7 +83,10 @@ struct HomeView: View {
 
                         calendarToolbarMenu()
 
-                        addExpenseToolbarGlassControl(for: actionableSummaryForSelectedPeriod)
+                        if hasActiveBudget, let active = actionableSummaryForSelectedPeriod {
+                            addExpenseToolbarMenu(for: active.id)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                        }
                     }
                     .animation(nil, value: actionableSummaryForSelectedPeriod?.id)
                 } else {
@@ -204,7 +207,7 @@ struct HomeView: View {
         }
 
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            let t: GlassEffectTransition = .identity
+            let t: GlassEffectTransition = reduceMotion ? .identity : .matchedGeometry
             return t
         } else {
             return nil
@@ -268,35 +271,6 @@ struct HomeView: View {
         } else {
             menu
         }
-    }
-
-    private func addExpenseToolbarGlassControl(for summary: BudgetSummary?) -> some View {
-        let activeBudgetID = summary?.id
-        let isEnabled = hasActiveBudget && activeBudgetID != nil
-
-        return Menu {
-            if let budgetID = activeBudgetID {
-                Button("Add Planned Expense") {
-                    triggerAddExpense(.budgetDetailsRequestAddPlannedExpense, budgetID: budgetID)
-                }
-                Button("Add Variable Expense") {
-                    triggerAddExpense(.budgetDetailsRequestAddVariableExpense, budgetID: budgetID)
-                }
-            }
-        } label: {
-            HeaderMenuGlassLabel(
-                systemImage: "plus",
-                glassNamespace: toolbarGlassNamespace,
-                glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
-                transition: toolbarGlassTransition
-            )
-        }
-        .modifier(HideMenuIndicatorIfPossible())
-        .accessibilityLabel("Add Expense")
-        .opacity(isEnabled ? 1 : 0)
-        .allowsHitTesting(isEnabled)
-        .accessibilityHidden(!isEnabled)
     }
 
     private func addExpenseToolbarMenu() -> some View {

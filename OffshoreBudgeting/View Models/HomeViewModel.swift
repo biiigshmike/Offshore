@@ -90,6 +90,12 @@ struct BudgetSummary: Identifiable, Equatable, Sendable {
         f.dateFormat = "MMM d, yyyy"
         return "\(f.string(from: periodStart)) through \(f.string(from: periodEnd))"
     }
+
+    // MARK: Flags
+    /// Indicates that the summary represents a persisted budget.
+    /// Used by newer UI surfaces that need to distinguish between
+    /// actionable budgets and placeholder states.
+    var hasAtLeastOneBudget: Bool { true }
 }
 
 // MARK: - Month (Helper)

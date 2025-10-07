@@ -43,7 +43,6 @@ struct HomeView: View {
     @State private var isPresentingManageCategories: Bool = false
     @Namespace private var toolbarGlassNamespace
     @State private var hasActiveBudget: Bool = false
-    @State private var toolbarActiveSummary: BudgetSummary?
 
     // MARK: Body
     @EnvironmentObject private var themeManager: ThemeManager
@@ -84,7 +83,9 @@ struct HomeView: View {
 
                         calendarToolbarMenu()
 
-                        toolbarAddExpenseMenu(cachedSummaryID: toolbarActiveSummary?.id)
+                        if hasActiveBudget, let active = actionableSummaryForSelectedPeriod {
+                            addExpenseToolbarMenu(for: active.id)
+                        }
                     }
                 } else {
                     // Legacy / older OS
@@ -96,7 +97,9 @@ struct HomeView: View {
 
                     calendarToolbarMenu()
 
-                    toolbarAddExpenseMenu(cachedSummaryID: toolbarActiveSummary?.id)
+                    if let active = actionableSummaryForSelectedPeriod {
+                        addExpenseToolbarMenu(for: active.id)
+                    }
                 }
             }
         }
@@ -104,33 +107,13 @@ struct HomeView: View {
             CoreDataService.shared.ensureLoaded()
             vm.startIfNeeded()
         }
-        .onAppear {
-            hasActiveBudget = actionableSummaryForSelectedPeriod != nil
-            if let summary = actionableSummaryForSelectedPeriod {
-                toolbarActiveSummary = summary
-            }
-        }
+        .onAppear { hasActiveBudget = actionableSummaryForSelectedPeriod != nil }
         .ub_onChange(of: actionableSummaryForSelectedPeriod?.id) { _ in
-            if let summary = actionableSummaryForSelectedPeriod {
-                toolbarActiveSummary = summary
-            }
             let newValue = actionableSummaryForSelectedPeriod != nil
             if capabilities.supportsOS26Translucency && !reduceMotion {
                 withAnimation(periodAdjustmentAnimation) { hasActiveBudget = newValue }
             } else {
                 hasActiveBudget = newValue
-            }
-        }
-        .ub_onChange(of: vm.state) { state in
-            switch state {
-            case .loaded:
-                if let summary = actionableSummaryForSelectedPeriod {
-                    toolbarActiveSummary = summary
-                }
-            case .empty:
-                toolbarActiveSummary = nil
-            default:
-                break
             }
         }
         // Temporarily disable automatic refresh on every Core Data save to
@@ -336,20 +319,6 @@ struct HomeView: View {
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Add Expense")
-    }
-
-    private func toolbarAddExpenseMenu(cachedSummaryID: NSManagedObjectID?) -> some View {
-        let menu: AnyView
-        if let cachedSummaryID {
-            menu = AnyView(addExpenseToolbarMenu(for: cachedSummaryID))
-        } else {
-            menu = AnyView(addExpenseToolbarMenu())
-        }
-
-        return menu
-            .opacity(hasActiveBudget ? 1 : 0)
-            .allowsHitTesting(hasActiveBudget)
-            .accessibilityHidden(!hasActiveBudget)
     }
 
     private func optionsToolbarMenu() -> some View {

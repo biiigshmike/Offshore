@@ -158,6 +158,7 @@ final class BudgetDetailsViewModel: ObservableObject {
             variableExpensesTotal: variableTotal,
             plannedExpensesPlannedTotal: plannedPlanned,
             plannedExpensesActualTotal: plannedActual,
+            hasAtLeastOneBudget: true,
             potentialIncomeTotal: incomeTotals.planned,
             actualIncomeTotal: incomeTotals.actual
         )

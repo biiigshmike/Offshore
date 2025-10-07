@@ -87,7 +87,6 @@ struct HomeView: View {
                             addExpenseToolbarMenu(for: active.id)
                         }
                     }
-                    .animation(nil, value: actionableSummaryForSelectedPeriod?.id)
                 } else {
                     // Legacy / older OS
                     if let periodSummary = actionableSummaryForSelectedPeriod {
@@ -241,7 +240,6 @@ struct HomeView: View {
                     systemImage: "calendar",
                     glassNamespace: toolbarGlassNamespace,
                     glassID: HomeToolbarGlassIdentifiers.calendar,
-                    glassUnionID: HomeGlassUnionID.main.rawValue,
                     glassTransition: toolbarGlassTransition,
                     background: .clear
                 )
@@ -251,7 +249,6 @@ struct HomeView: View {
                     systemImage: "calendar",
                     glassNamespace: toolbarGlassNamespace,
                     glassID: HomeToolbarGlassIdentifiers.calendar,
-                    glassUnionID: HomeGlassUnionID.main.rawValue,
                     transition: toolbarGlassTransition
                 )
                 .accessibilityLabel(budgetPeriod.displayName)
@@ -279,7 +276,6 @@ struct HomeView: View {
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: HomeGlassUnionID.main.rawValue,
                 transition: toolbarGlassTransition
             )
         }
@@ -300,7 +296,6 @@ struct HomeView: View {
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: HomeGlassUnionID.main.rawValue,
                 transition: toolbarGlassTransition
             )
         }
@@ -320,7 +315,6 @@ struct HomeView: View {
                 systemImage: "ellipsis",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.options,
-                glassUnionID: HomeGlassUnionID.main.rawValue,
                 transition: toolbarGlassTransition
             )
         }
@@ -348,7 +342,6 @@ struct HomeView: View {
                 symbolVariants: SymbolVariants.none,
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.options,
-                glassUnionID: HomeGlassUnionID.main.rawValue,
                 transition: toolbarGlassTransition
             )
         }
@@ -1041,11 +1034,7 @@ private enum HomeToolbarGlassIdentifiers {
     static let options = "home-toolbar.options"
     static let calendar = "home-toolbar.calendar"
     static let addExpense = "home-toolbar.add-expense"
-}
-
-private enum HomeGlassUnionID: String {
-    case main = "home-toolbar.union.main"
-    case extras = "home-toolbar.union.extras"
+    static let union = "home-toolbar.union"
 }
 
 private enum HomeHeaderOverviewMetrics {

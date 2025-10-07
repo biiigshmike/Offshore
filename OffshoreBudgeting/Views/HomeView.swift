@@ -210,20 +210,6 @@ struct HomeView: View {
         }
     }
 
-    private var addMenuGlassTransition: Any? {
-        guard capabilities.supportsOS26Translucency else {
-            return toolbarGlassTransition
-        }
-
-        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            guard !reduceMotion else { return toolbarGlassTransition }
-            let t: GlassEffectTransition = .materialize
-            return t
-        } else {
-            return toolbarGlassTransition
-        }
-    }
-
     private var periodAdjustmentAnimation: Animation {
         .spring(response: 0.34, dampingFraction: 0.78, blendDuration: 0.1)
     }
@@ -254,7 +240,6 @@ struct HomeView: View {
                     systemImage: "calendar",
                     glassNamespace: toolbarGlassNamespace,
                     glassID: HomeToolbarGlassIdentifiers.calendar,
-                    glassUnionID: HomeToolbarGlassIdentifiers.union,
                     glassTransition: toolbarGlassTransition,
                     background: .clear
                 )
@@ -264,7 +249,6 @@ struct HomeView: View {
                     systemImage: "calendar",
                     glassNamespace: toolbarGlassNamespace,
                     glassID: HomeToolbarGlassIdentifiers.calendar,
-                    glassUnionID: HomeToolbarGlassIdentifiers.union,
                     transition: toolbarGlassTransition
                 )
                 .accessibilityLabel(budgetPeriod.displayName)
@@ -292,8 +276,7 @@ struct HomeView: View {
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: HomeToolbarGlassIdentifiers.union,
-                transition: addMenuGlassTransition
+                transition: toolbarGlassTransition
             )
         }
         .modifier(HideMenuIndicatorIfPossible())
@@ -313,8 +296,7 @@ struct HomeView: View {
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: HomeToolbarGlassIdentifiers.union,
-                transition: addMenuGlassTransition
+                transition: toolbarGlassTransition
             )
         }
         .modifier(HideMenuIndicatorIfPossible())
@@ -333,7 +315,6 @@ struct HomeView: View {
                 systemImage: "ellipsis",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.options,
-                glassUnionID: HomeToolbarGlassIdentifiers.union,
                 transition: toolbarGlassTransition
             )
         }
@@ -361,7 +342,6 @@ struct HomeView: View {
                 symbolVariants: SymbolVariants.none,
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.options,
-                glassUnionID: HomeToolbarGlassIdentifiers.union,
                 transition: toolbarGlassTransition
             )
         }

@@ -161,8 +161,10 @@ private struct RootHeaderGlassCapsuleContainer<Content: View>: View {
 
     var body: some View {
         let base = AnyView(
-            content
-                .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+            GlassEffectContainer(spacing: 0) {
+                content
+            }
+            .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
         )
 
         let withID: AnyView = {

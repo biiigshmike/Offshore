@@ -87,6 +87,7 @@ struct HomeView: View {
                             addExpenseToolbarMenu(for: active.id)
                         }
                     }
+                    .animation(nil, value: actionableSummaryForSelectedPeriod?.id)
                 } else {
                     // Legacy / older OS
                     if let periodSummary = actionableSummaryForSelectedPeriod {

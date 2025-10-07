@@ -112,10 +112,7 @@ struct HomeView: View {
         .onAppear { hasActiveBudget = actionableSummaryForSelectedPeriod != nil }
         .ub_onChange(of: actionableSummaryForSelectedPeriod?.id) { _ in
             let newHasActiveBudget = actionableSummaryForSelectedPeriod != nil
-            guard newHasActiveBudget != hasActiveBudget else {
-                hasActiveBudget = newHasActiveBudget
-                return
-            }
+            guard newHasActiveBudget != hasActiveBudget else { return }
 
             if capabilities.supportsOS26Translucency && !reduceMotion {
                 withAnimation(periodAdjustmentAnimation) { hasActiveBudget = newHasActiveBudget }

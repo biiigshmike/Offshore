@@ -244,6 +244,7 @@ struct HomeView: View {
                     systemImage: "calendar",
                     glassNamespace: toolbarGlassNamespace,
                     glassID: HomeToolbarGlassIdentifiers.calendar,
+                    glassUnionID: HomeGlassUnionID.main.rawValue,
                     glassTransition: toolbarGlassTransition,
                     background: .clear
                 )
@@ -253,6 +254,7 @@ struct HomeView: View {
                     systemImage: "calendar",
                     glassNamespace: toolbarGlassNamespace,
                     glassID: HomeToolbarGlassIdentifiers.calendar,
+                    glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
                     transition: toolbarGlassTransition
                 )
                 .accessibilityLabel(budgetPeriod.displayName)
@@ -280,6 +282,7 @@ struct HomeView: View {
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.extras.rawValue : nil,
                 transition: toolbarGlassTransition
             )
         }
@@ -300,6 +303,7 @@ struct HomeView: View {
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.extras.rawValue : nil,
                 transition: toolbarGlassTransition
             )
         }
@@ -319,6 +323,7 @@ struct HomeView: View {
                 systemImage: "ellipsis",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.options,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
                 transition: toolbarGlassTransition
             )
         }
@@ -346,6 +351,7 @@ struct HomeView: View {
                 symbolVariants: SymbolVariants.none,
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.options,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
                 transition: toolbarGlassTransition
             )
         }
@@ -1039,6 +1045,11 @@ private enum HomeToolbarGlassIdentifiers {
     static let calendar = "home-toolbar.calendar"
     static let addExpense = "home-toolbar.add-expense"
     static let union = "home-toolbar.union"
+}
+
+private enum HomeGlassUnionID: String {
+    case main = "home-toolbar.union.main"
+    case extras = "home-toolbar.union.extras"
 }
 
 private enum HomeHeaderOverviewMetrics {

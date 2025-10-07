@@ -169,10 +169,11 @@ struct PresetsView: View {
     }
 
     private var addPresetToolbarButton: some View {
-        Button(action: { isPresentingAddSheet = true }) {
-            Image(systemName: "plus")
-        }
-        .accessibilityLabel("Add Preset Planned Expense")
+        RootHeaderIconActionButton(
+            systemImage: "plus",
+            accessibilityLabel: "Add Preset Planned Expense",
+            action: { isPresentingAddSheet = true }
+        )
     }
 
     // MARK: - Actions

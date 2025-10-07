@@ -129,17 +129,17 @@ struct CardsView: View {
     }
 
     private var addActionToolbarButton: some View {
-        Button {
-            if selectedCardStableID == nil {
-                isPresentingAddCard = true
-            } else {
-                isPresentingAddExpense = true
+        RootHeaderIconActionButton(
+            systemImage: "plus",
+            accessibilityLabel: selectedCardStableID == nil ? "Add Card" : "Add Expense",
+            action: {
+                if selectedCardStableID == nil {
+                    isPresentingAddCard = true
+                } else {
+                    isPresentingAddExpense = true
+                }
             }
-        } label: {
-            Image(systemName: "plus")
-                //.imageScale(.medium)
-        }
-        .accessibilityLabel(selectedCardStableID == nil ? "Add Card" : "Add Expense")
+        )
     }
 
     // MARK: - Content View (Type-Safe)

@@ -15,6 +15,7 @@ struct GlassTextButton<Label: View>: View {
     private let maxWidth: CGFloat?
     private let alignment: Alignment
     private let contentStyle: LabelContentStyle
+    private let role: ButtonRole?
     private let action: () -> Void
     private let labelBuilder: () -> Label
 
@@ -23,6 +24,7 @@ struct GlassTextButton<Label: View>: View {
         maxWidth: CGFloat? = nil,
         alignment: Alignment = .center,
         contentStyle: LabelContentStyle = .text,
+        role: ButtonRole? = nil,
         action: @escaping () -> Void,
         @ViewBuilder label: @escaping () -> Label
     ) {
@@ -30,6 +32,7 @@ struct GlassTextButton<Label: View>: View {
         self.maxWidth = maxWidth
         self.alignment = alignment
         self.contentStyle = contentStyle
+        self.role = role
         self.action = action
         self.labelBuilder = label
     }
@@ -37,7 +40,7 @@ struct GlassTextButton<Label: View>: View {
     var body: some View {
         Group {
             if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                Button(action: action) {
+                button(role: role) {
                     buttonLabel()
                 }
                 .buttonStyle(.glass)
@@ -47,7 +50,7 @@ struct GlassTextButton<Label: View>: View {
                     capabilities.qaLogLiquidGlassDecision(component: "GlassTextButton", path: "glass")
                 }
             } else {
-                Button(action: action) {
+                button(role: role) {
                     buttonLabel()
                 }
                 .buttonStyle(.plain)
@@ -59,6 +62,19 @@ struct GlassTextButton<Label: View>: View {
         }
         .frame(maxWidth: maxWidth, alignment: alignment)
         .frame(width: width, alignment: alignment)
+    }
+
+    @ViewBuilder
+    private func button<Content: View>(role: ButtonRole?, @ViewBuilder content: () -> Content) -> some View {
+        if let role {
+            Button(role: role, action: action) {
+                content()
+            }
+        } else {
+            Button(action: action) {
+                content()
+            }
+        }
     }
 
     // MARK: - Label Styling
@@ -122,6 +138,7 @@ extension GlassTextButton where Label == Text {
         maxWidth: CGFloat? = nil,
         alignment: Alignment = .center,
         contentStyle: LabelContentStyle = .text,
+        role: ButtonRole? = nil,
         action: @escaping () -> Void
     ) {
         self.init(
@@ -129,6 +146,7 @@ extension GlassTextButton where Label == Text {
             maxWidth: maxWidth,
             alignment: alignment,
             contentStyle: contentStyle,
+            role: role,
             action: action
         ) {
             Text(titleKey)
@@ -141,6 +159,7 @@ extension GlassTextButton where Label == Text {
         maxWidth: CGFloat? = nil,
         alignment: Alignment = .center,
         contentStyle: LabelContentStyle = .text,
+        role: ButtonRole? = nil,
         action: @escaping () -> Void
     ) {
         self.init(
@@ -148,6 +167,7 @@ extension GlassTextButton where Label == Text {
             maxWidth: maxWidth,
             alignment: alignment,
             contentStyle: contentStyle,
+            role: role,
             action: action
         ) {
             Text(title)

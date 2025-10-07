@@ -58,28 +58,30 @@ struct PresetBudgetAssignmentSheet: View {
                 // Cross-platform placements:
                 #if os(iOS)
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    GlassTextButton("Cancel", role: .cancel) {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    GlassTextButton("Done") {
                         saveContext()
                         onChangesCommitted?()
                         dismiss()
                     }
-                    .font(.headline)
                 }
                 #else
                 // macOS fallback
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    GlassTextButton("Cancel", role: .cancel) {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    GlassTextButton("Done") {
                         saveContext()
                         onChangesCommitted?()
                         dismiss()
                     }
-                    .font(.headline)
                 }
                 #endif
             }

@@ -85,7 +85,6 @@ struct BudgetSummary: Identifiable, Equatable, Sendable {
     }
 
     // MARK: Convenience
-    let hasAtLeastOneBudget: Bool
     var periodString: String {
         let f = DateFormatter()
         f.dateFormat = "MMM d, yyyy"
@@ -467,7 +466,6 @@ final class HomeViewModel: ObservableObject {
             variableExpensesTotal: variableTotal,
             plannedExpensesPlannedTotal: plannedExpensesPlannedTotal,
             plannedExpensesActualTotal: plannedExpensesActualTotal,
-            hasAtLeastOneBudget: true,
             potentialIncomeTotal: potentialIncomeTotal,
             actualIncomeTotal: actualIncomeTotal
         )

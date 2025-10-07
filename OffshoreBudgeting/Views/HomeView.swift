@@ -240,6 +240,7 @@ struct HomeView: View {
                     systemImage: "calendar",
                     glassNamespace: toolbarGlassNamespace,
                     glassID: HomeToolbarGlassIdentifiers.calendar,
+                    glassUnionID: HomeToolbarGlassIdentifiers.union,
                     glassTransition: toolbarGlassTransition,
                     background: .clear
                 )
@@ -272,12 +273,22 @@ struct HomeView: View {
             Button("Add Planned Expense") { isPresentingAddPlannedFromHome = true }
             Button("Add Variable Expense") { isPresentingAddVariableFromHome = true }
         } label: {
-            HeaderMenuGlassLabel(
-                systemImage: "plus",
-                glassNamespace: toolbarGlassNamespace,
-                glassID: HomeToolbarGlassIdentifiers.addExpense,
-                transition: toolbarGlassTransition
-            )
+            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                RootHeaderMenuButtonLabel(
+                    systemImage: "plus",
+                    glassNamespace: toolbarGlassNamespace,
+                    glassID: HomeToolbarGlassIdentifiers.addExpense,
+                    glassUnionID: HomeToolbarGlassIdentifiers.union,
+                    glassTransition: toolbarGlassTransition
+                )
+            } else {
+                HeaderMenuGlassLabel(
+                    systemImage: "plus",
+                    glassNamespace: toolbarGlassNamespace,
+                    glassID: HomeToolbarGlassIdentifiers.addExpense,
+                    transition: toolbarGlassTransition
+                )
+            }
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Add Expense")
@@ -292,12 +303,22 @@ struct HomeView: View {
                 triggerAddExpense(.budgetDetailsRequestAddVariableExpense, budgetID: budgetID)
             }
         } label: {
-            HeaderMenuGlassLabel(
-                systemImage: "plus",
-                glassNamespace: toolbarGlassNamespace,
-                glassID: HomeToolbarGlassIdentifiers.addExpense,
-                transition: toolbarGlassTransition
-            )
+            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                RootHeaderMenuButtonLabel(
+                    systemImage: "plus",
+                    glassNamespace: toolbarGlassNamespace,
+                    glassID: HomeToolbarGlassIdentifiers.addExpense,
+                    glassUnionID: HomeToolbarGlassIdentifiers.union,
+                    glassTransition: toolbarGlassTransition
+                )
+            } else {
+                HeaderMenuGlassLabel(
+                    systemImage: "plus",
+                    glassNamespace: toolbarGlassNamespace,
+                    glassID: HomeToolbarGlassIdentifiers.addExpense,
+                    transition: toolbarGlassTransition
+                )
+            }
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Add Expense")
@@ -311,12 +332,22 @@ struct HomeView: View {
                 Label("Create Budget", systemImage: "plus")
             }
         } label: {
-            HeaderMenuGlassLabel(
-                systemImage: "ellipsis",
-                glassNamespace: toolbarGlassNamespace,
-                glassID: HomeToolbarGlassIdentifiers.options,
-                transition: toolbarGlassTransition
-            )
+            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                RootHeaderMenuButtonLabel(
+                    systemImage: "ellipsis",
+                    glassNamespace: toolbarGlassNamespace,
+                    glassID: HomeToolbarGlassIdentifiers.options,
+                    glassUnionID: HomeToolbarGlassIdentifiers.union,
+                    glassTransition: toolbarGlassTransition
+                )
+            } else {
+                HeaderMenuGlassLabel(
+                    systemImage: "ellipsis",
+                    glassNamespace: toolbarGlassNamespace,
+                    glassID: HomeToolbarGlassIdentifiers.options,
+                    transition: toolbarGlassTransition
+                )
+            }
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Budget Options")
@@ -337,13 +368,24 @@ struct HomeView: View {
                 Label("Delete Budget", systemImage: "trash")
             }
         } label: {
-            HeaderMenuGlassLabel(
-                systemImage: "ellipsis",
-                symbolVariants: SymbolVariants.none,
-                glassNamespace: toolbarGlassNamespace,
-                glassID: HomeToolbarGlassIdentifiers.options,
-                transition: toolbarGlassTransition
-            )
+            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                RootHeaderMenuButtonLabel(
+                    systemImage: "ellipsis",
+                    symbolVariants: SymbolVariants.none,
+                    glassNamespace: toolbarGlassNamespace,
+                    glassID: HomeToolbarGlassIdentifiers.options,
+                    glassUnionID: HomeToolbarGlassIdentifiers.union,
+                    glassTransition: toolbarGlassTransition
+                )
+            } else {
+                HeaderMenuGlassLabel(
+                    systemImage: "ellipsis",
+                    symbolVariants: SymbolVariants.none,
+                    glassNamespace: toolbarGlassNamespace,
+                    glassID: HomeToolbarGlassIdentifiers.options,
+                    transition: toolbarGlassTransition
+                )
+            }
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Budget Actions")

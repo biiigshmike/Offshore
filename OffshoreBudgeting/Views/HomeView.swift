@@ -249,7 +249,6 @@ struct HomeView: View {
                     systemImage: "calendar",
                     glassNamespace: toolbarGlassNamespace,
                     glassID: HomeToolbarGlassIdentifiers.calendar,
-                    glassUnionID: HomeToolbarGlassIdentifiers.union,
                     transition: toolbarGlassTransition
                 )
                 .accessibilityLabel(budgetPeriod.displayName)
@@ -277,7 +276,6 @@ struct HomeView: View {
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: HomeToolbarGlassIdentifiers.union,
                 transition: toolbarGlassTransition
             )
         }
@@ -298,7 +296,6 @@ struct HomeView: View {
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: HomeToolbarGlassIdentifiers.union,
                 transition: toolbarGlassTransition
             )
         }
@@ -318,7 +315,6 @@ struct HomeView: View {
                 systemImage: "ellipsis",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.options,
-                glassUnionID: HomeToolbarGlassIdentifiers.union,
                 transition: toolbarGlassTransition
             )
         }
@@ -346,7 +342,6 @@ struct HomeView: View {
                 symbolVariants: SymbolVariants.none,
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.options,
-                glassUnionID: HomeToolbarGlassIdentifiers.union,
                 transition: toolbarGlassTransition
             )
         }

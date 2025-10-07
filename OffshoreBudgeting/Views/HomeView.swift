@@ -282,7 +282,7 @@ struct HomeView: View {
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.extras.rawValue : nil,
                 transition: toolbarGlassTransition
             )
         }
@@ -303,7 +303,7 @@ struct HomeView: View {
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
                 glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.extras.rawValue : nil,
                 transition: toolbarGlassTransition
             )
         }

@@ -43,7 +43,6 @@ struct HomeView: View {
     @State private var isPresentingManageCategories: Bool = false
     @Namespace private var toolbarGlassNamespace
     @State private var hasActiveBudget: Bool = false
-    @State private var lastLoadedSelection: Date?
 
     // MARK: Body
     @EnvironmentObject private var themeManager: ThemeManager
@@ -111,22 +110,7 @@ struct HomeView: View {
             vm.startIfNeeded()
         }
         .onAppear { hasActiveBudget = actionableSummaryForSelectedPeriod != nil }
-        .ub_onChange(of: vm.state) { newState in
-            switch newState {
-            case .empty:
-                lastLoadedSelection = vm.selectedDate
-            case .loaded(_):
-                lastLoadedSelection = vm.selectedDate
-            case .initial, .loading:
-                lastLoadedSelection = nil
-            }
-        }
         .ub_onChange(of: actionableSummaryForSelectedPeriod?.id) { _ in
-            guard let lastLoadedSelection,
-                  Calendar.current.isDate(lastLoadedSelection, inSameDayAs: vm.selectedDate) else {
-                return
-            }
-
             let newHasActiveBudget = actionableSummaryForSelectedPeriod != nil
             guard newHasActiveBudget != hasActiveBudget else { return }
 

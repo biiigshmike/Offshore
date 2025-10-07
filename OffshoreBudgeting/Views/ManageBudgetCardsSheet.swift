@@ -35,7 +35,12 @@ struct ManageBudgetCardsSheet: View {
             }
             .navigationTitle("Manage Cards")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss(); onDone() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    GlassTextButton("Done") {
+                        dismiss()
+                        onDone()
+                    }
+                }
             }
         }
     }

@@ -24,7 +24,6 @@ import UIKit
 struct UBEmptyState: View {
 
     @Environment(\.isOnboardingPresentation) private var isOnboardingPresentation
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.platformCapabilities) private var capabilities
     @EnvironmentObject private var themeManager: ThemeManager
 
@@ -118,82 +117,18 @@ struct UBEmptyState: View {
     // MARK: Primary Button Helpers
     @ViewBuilder
     private func primaryButton(title: String, action: @escaping () -> Void) -> some View {
-        let fallbackTint = isOnboardingPresentation ? onboardingTint : primaryButtonTint
-        let glassTint = isOnboardingPresentation ? onboardingTint : primaryButtonGlassTint
-
-        glassPrimaryButton(
-            title: title,
-            fallbackTint: fallbackTint,
-            glassTint: glassTint,
+        GlassCTAButton(
+            maxWidth: 320,
+            tint: primaryButtonTintOverride,
             action: action
-        )
-    }
-
-    @ViewBuilder
-    private func legacyPrimaryButton(title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            primaryButtonLabel(title: title)
-        }
-        .buttonStyle(.plain) // flat/plain (no rounded background on legacy)
-        .tint(primaryButtonTint)
-    }
-
-    @ViewBuilder
-    private func primaryButtonLabel(title: String) -> some View {
-        Label(title, systemImage: "plus")
-            .labelStyle(.titleAndIcon)
-            .foregroundStyle(primaryButtonForegroundColor())
-    }
-
-    @ViewBuilder
-    private func glassPrimaryButton(
-        title: String,
-        fallbackTint: Color,
-        glassTint: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            glassStyledPrimaryButton(title: title, glassTint: glassTint, action: action)
-        } else {
-            legacyPrimaryButton(title: title, action: action)
-        }
-    }
-
-    @available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *)
-    @ViewBuilder
-    private func glassStyledPrimaryButton(
-        title: String,
-        glassTint: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
+        ) {
             Label(title, systemImage: "plus")
                 .labelStyle(.titleAndIcon)
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                .foregroundStyle(primaryButtonForegroundColor())
-                .padding(.horizontal, DS.Spacing.xl)
-                .padding(.vertical, DS.Spacing.m)
         }
-        .tint(glassTint)
-        .buttonStyle(.glass)
-        .frame(maxWidth: 320)
     }
 
     @Environment(\.verticalSizeClass) private var verticalSizeClass
-    private func primaryButtonForegroundColor(isTintedBackground: Bool = false) -> Color {
-        switch colorScheme {
-        case .light:
-            return .black
-        default:
-            return isTintedBackground ? .white : .primary
-        }
-    }
-
-    private var primaryButtonTint: Color {
-        themeManager.selectedTheme.resolvedTint
-    }
-
-    private var primaryButtonGlassTint: Color {
-        themeManager.selectedTheme.glassPalette.accent
+    private var primaryButtonTintOverride: Color? {
+        isOnboardingPresentation ? onboardingTint : nil
     }
 }

@@ -11,6 +11,7 @@ struct GlassCTAButton<Label: View>: View {
 
     private let maxWidth: CGFloat?
     private let fillHorizontally: Bool
+    private let tintOverride: Color?
     private let action: () -> Void
     private let labelBuilder: () -> Label
     private let fallbackAppearance: TranslucentButtonStyle.Appearance
@@ -21,11 +22,13 @@ struct GlassCTAButton<Label: View>: View {
         fillHorizontally: Bool = false,
         fallbackAppearance: TranslucentButtonStyle.Appearance = .tinted,
         fallbackMetrics: TranslucentButtonStyle.Metrics = .standard,
+        tint: Color? = nil,
         action: @escaping () -> Void,
         @ViewBuilder label: @escaping () -> Label
     ) {
         self.maxWidth = maxWidth
         self.fillHorizontally = fillHorizontally
+        self.tintOverride = tint
         self.action = action
         self.labelBuilder = label
         self.fallbackAppearance = fallbackAppearance
@@ -47,7 +50,7 @@ struct GlassCTAButton<Label: View>: View {
         }
         .buttonStyle(
             TranslucentButtonStyle(
-                tint: fallbackTint,
+                tint: resolvedFallbackTint,
                 metrics: resolvedFallbackMetrics,
                 appearance: fallbackAppearance
             )
@@ -61,7 +64,7 @@ struct GlassCTAButton<Label: View>: View {
                 buttonLabel()
             }
             .buttonStyle(.glass)
-            .tint(glassTint)
+            .tint(resolvedGlassTint)
             .onAppear {
                 capabilities.qaLogLiquidGlassDecision(component: "GlassCTAButton", path: "glass")
             }
@@ -83,12 +86,12 @@ struct GlassCTAButton<Label: View>: View {
             .frame(maxWidth: fillHorizontally ? .infinity : nil, alignment: .center)
     }
 
-    private var fallbackTint: Color {
-        themeManager.selectedTheme.resolvedTint
+    private var resolvedFallbackTint: Color {
+        tintOverride ?? themeManager.selectedTheme.resolvedTint
     }
 
-    private var glassTint: Color {
-        themeManager.selectedTheme.glassPalette.accent
+    private var resolvedGlassTint: Color {
+        tintOverride ?? themeManager.selectedTheme.glassPalette.accent
     }
 
     private var glassLabelForeground: Color {

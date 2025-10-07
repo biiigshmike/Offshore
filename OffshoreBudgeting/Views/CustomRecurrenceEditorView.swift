@@ -102,17 +102,16 @@ struct CustomRecurrenceEditorView: View {
                         .navigationTitle("Custom Recurrence")
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("Cancel") {
+                                GlassTextButton("Cancel", role: .cancel) {
                                     onCancel()
                                     dismiss()
                                 }
                             }
                             ToolbarItem(placement: .confirmationAction) {
-                                Button("Save") {
+                                GlassTextButton("Save") {
                                     onSave(draft)
                                     dismiss()
                                 }
-                                .font(.headline)
                             }
                         }
                 }
@@ -122,17 +121,16 @@ struct CustomRecurrenceEditorView: View {
                         .navigationTitle("Custom Recurrence")
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("Cancel") {
+                                GlassTextButton("Cancel", role: .cancel) {
                                     onCancel()
                                     dismiss()
                                 }
                             }
                             ToolbarItem(placement: .confirmationAction) {
-                                Button("Save") {
+                                GlassTextButton("Save") {
                                     onSave(draft)
                                     dismiss()
                                 }
-                                .font(.headline)
                             }
                         }
                 }

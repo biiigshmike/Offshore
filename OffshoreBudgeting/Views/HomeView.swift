@@ -463,28 +463,10 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: DS.Spacing.m) {
                     // Always-offer primary CTA when no budget exists so users can
                     // quickly create a budget or add expenses for this period.
-                    Group {
-                        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                            Button(action: addExpenseCTAAction) {
-                                Label(addExpenseCTATitle, systemImage: "plus")
-                                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                    .frame(
-                                maxWidth: .infinity,
-                                minHeight: HomeHeaderOverviewMetrics.categoryControlHeight
-                            )
-                                    .frame(minHeight: 44)
-                            }
-                            .buttonStyle(.glass)
-                            .tint(themeManager.selectedTheme.resolvedTint)
-                        } else {
-                            Button(action: addExpenseCTAAction) {
-                                Label(addExpenseCTATitle, systemImage: "plus")
-                                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(minHeight: 44)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                    GlassCTAButton(fillHorizontally: true, action: addExpenseCTAAction) {
+                        Label(addExpenseCTATitle, systemImage: "plus")
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: max(44, HomeHeaderOverviewMetrics.categoryControlHeight))
                     }
                     .accessibilityIdentifier("emptyPeriodAddExpenseCTA")
                     .frame(maxWidth: .infinity)

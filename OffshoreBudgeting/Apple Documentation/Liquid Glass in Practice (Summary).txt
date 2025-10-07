@@ -1,0 +1,73 @@
+Liquid Glass, in practice
+Apple’s new cross-platform material, used for controls, chrome, and icons. It refracts/reflects surroundings and dynamically shifts to focus content. Think “system chrome gets glossy and context-aware,” while content stays readable. Apple+1
+The HIG calls out using materials to differentiate controls from content and keep hierarchy clear. Liquid Glass is the default direction across platforms. Apple Developer
+Where to adopt first (high impact, low risk)
+Top bars and toolbars Adopt glassy chrome where users expect it: navigation bars, tab bars, toolbars. Keep text/icons legible by letting the system pick contrast automatically and avoiding custom tints unless needed. Apple Developer+1
+Primary controls Buttons, segmented controls, pickers, chips. Use system styles that already “glassify,” rather than bespoke fills. Only override when branding demands it, and prefer modifiers that preserve dynamic contrast. Apple Developer
+App Icon Move to layered, Liquid Glass icons using Icon Composer. Keep a flattened export for marketing. Provide legacy fallbacks for pre-26.
+Code patterns (SwiftUI)
+1) Chrome that adapts automatically
+struct ChromeScaffold<Content: View>: View {
+  @ViewBuilder var content: Content
+
+  var body: some View {
+    NavigationStack {
+      content
+        .toolbarTitleDisplayMode(.inline)           // lets system manage size/blur transitions
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(.automatic, for: .navigationBar) // glass on OS26, sensible pre-26
+        .toolbarColorScheme(.automatic, for: .navigationBar)
+    }
+  }
+}
+
+Why: you let the system choose the appropriate glass and contrast; you avoid hard-coded fills that fight Liquid Glass. Apple’s materials guidance favors system-driven contrast for controls.
+
+2) Buttons that “just work” on glass  struct GlassPrimaryButtonStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .font(.headline)
+      .padding(.horizontal, 16).padding(.vertical, 10)
+      .background(.regularMaterial, in: Capsule()) // reads/refracts content underneath
+      .overlay( Capsule().stroke(.thinMaterial) )
+      .contentShape(Capsule())
+      .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+  }
+}
+
+Tip: use system Material (e.g., .regularMaterial) to stay consistent. HIG materials page encourages materials for control differentiation.  3) Lists and backgrounds  struct GlassList: View {
+  var body: some View {
+    List {
+      Section("Recent") { /* rows */ }
+    }
+    .scrollContentBackground(.hidden)  // let container background show through
+    .background(.ultraThinMaterial)    // tastefully glossy container
+  }
+}
+
+Keep content readable; don’t stack multiple materials that reduce contrast. HIG stresses clarity and hierarchy when using materials.
+
+4) Navigation/transitions
+Let the system animate chrome and edge treatments. Avoid manual opacity hacks on bars that break when scrolling. HIG layout guidance favors using materials to distinguish chrome vs content, not manual color overlays.
+Availability, fallbacks, and theming
+Version gating (Swift / SwiftUI)
+if #available(iOS 26, macOS 26, macCatalyst 26, *) {
+  // OS26+ glass-first tweaks if you truly need them
+} else {
+  // Legacy styling: solid backgrounds, higher contrast tints
+}
+Rule of thumb: aim for one codepath that uses system styles. Only branch if a requirement looks wrong on older OSes. Apple’s guidance: prefer system materials and defaults that scale across releases.
+
+Do not hard-tint toolbar icons against shifting glass. Let .toolbarColorScheme(.automatic, for: .navigationBar) and default symbol rendering adapt as background changes. If you must override, scope it narrowly to that toolbar. Community discussions highlight pitfalls when hard-tinting on OS26.
+
+Design heuristics
+Use materials for chrome, not content surfaces. Content areas, especially text areas, should remain high-contrast and minimally glossy. 
+System defaults first. Start with .automatic toolbars and standard controls. Override only when brand or readability truly needs it. 
+Keep hierarchy obvious. Controls look like glass, content looks like content. Avoid double-glass stacks behind text. 
+Prefer layered icons. Use Icon Composer, keep legacy exports only for marketing or truly old OSes.
+Migration playbook for an existing app
+Audit chrome: Replace any fixed .background(Color…) on nav/tab bars with .toolbarBackground(.automatic) and remove custom translucency hacks. Test scroll behavior. 
+Normalize buttons: Swap bespoke fills for Material capsules or use the default ButtonStyle. Check contrast in light/dark. 
+List containers: Hide list’s content background and give the container a single material. Avoid stacking materials. 
+Icon: Move to Icon Composer layered icon. Keep a flattened export only for store/marketing. 
+Back-compat: Leave one shared codepath. Only add @available branches where the system default doesn’t degrade gracefully. 

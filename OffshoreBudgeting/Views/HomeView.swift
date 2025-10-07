@@ -110,20 +110,11 @@ struct HomeView: View {
         }
         .onAppear { hasActiveBudget = actionableSummaryForSelectedPeriod != nil }
         .ub_onChange(of: actionableSummaryForSelectedPeriod?.id) { _ in
-            let newHasActive: Bool
-            if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *),
-               let hasAtLeastOneBudget = actionableSummaryForSelectedPeriod?.hasAtLeastOneBudget {
-                newHasActive = hasAtLeastOneBudget == true
-            } else {
-                newHasActive = actionableSummaryForSelectedPeriod != nil
-            }
-
-            guard newHasActive != hasActiveBudget else { return }
-
+            let newValue = actionableSummaryForSelectedPeriod != nil
             if capabilities.supportsOS26Translucency && !reduceMotion {
-                withAnimation(periodAdjustmentAnimation) { hasActiveBudget = newHasActive }
+                withAnimation(periodAdjustmentAnimation) { hasActiveBudget = newValue }
             } else {
-                hasActiveBudget = newHasActive
+                hasActiveBudget = newValue
             }
         }
         // Temporarily disable automatic refresh on every Core Data save to

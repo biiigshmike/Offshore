@@ -85,6 +85,7 @@ struct HomeView: View {
 
                         if hasActiveBudget, let active = actionableSummaryForSelectedPeriod {
                             addExpenseToolbarMenu(for: active.id)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
                         }
                     }
                     .animation(nil, value: actionableSummaryForSelectedPeriod?.id)

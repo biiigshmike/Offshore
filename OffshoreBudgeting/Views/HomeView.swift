@@ -95,20 +95,7 @@ struct HomeView: View {
                         }
                         .animation(nil, value: actionableSummaryForSelectedPeriod?.id)
                     } else {
-                        // Legacy / older OS
-                        if let periodSummary = actionableSummaryForSelectedPeriod {
-                            optionsToolbarMenu(summary: periodSummary)
-                        } else {
-                            optionsToolbarMenu()
-                        }
-
-                        calendarToolbarMenu()
-
-                        if shouldShowPlus {
-                            addExpenseToolbarMenu()
-                        } else if let active = actionableSummaryForSelectedPeriod {
-                            addExpenseToolbarMenu(for: active.id)
-                        }
+                        legacyToolbarFallback()
                     }
                 }
                 .transaction { transaction in
@@ -329,6 +316,32 @@ struct HomeView: View {
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Add Expense")
+    }
+
+    @ViewBuilder
+    private func legacyToolbarFallback() -> some View {
+        let timing: Animation = .easeInOut(duration: 0.22)
+
+        HStack(spacing: DS.Spacing.s) {
+            if let periodSummary = actionableSummaryForSelectedPeriod {
+                optionsToolbarMenu(summary: periodSummary)
+            } else {
+                optionsToolbarMenu()
+            }
+
+            calendarToolbarMenu()
+
+            if shouldShowPlus {
+                addExpenseToolbarMenu()
+                    .id(HomeToolbarGlassIdentifiers.addExpense)
+                    .transition(.opacity.combined(with: .scale))
+            } else if let active = actionableSummaryForSelectedPeriod {
+                addExpenseToolbarMenu(for: active.id)
+                    .id(HomeToolbarGlassIdentifiers.addExpense)
+                    .transition(.opacity.combined(with: .scale))
+            }
+        }
+        .animation(hasActiveBudget ? nil : timing, value: shouldShowPlus)
     }
 
     private func optionsToolbarMenu() -> some View {

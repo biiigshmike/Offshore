@@ -43,7 +43,6 @@ struct HomeView: View {
     @State private var isPresentingManageCategories: Bool = false
     @Namespace private var toolbarGlassNamespace
     @State private var hasActiveBudget: Bool = false
-    private var shouldShowPlus: Bool { !hasActiveBudget }
 
     // MARK: Body
     @EnvironmentObject private var themeManager: ThemeManager
@@ -84,10 +83,7 @@ struct HomeView: View {
 
                         calendarToolbarMenu()
 
-                        if shouldShowPlus {
-                            addExpenseToolbarMenu()
-                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                        } else if let active = actionableSummaryForSelectedPeriod {
+                        if hasActiveBudget, let active = actionableSummaryForSelectedPeriod {
                             addExpenseToolbarMenu(for: active.id)
                                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                         }
@@ -103,9 +99,7 @@ struct HomeView: View {
 
                     calendarToolbarMenu()
 
-                    if shouldShowPlus {
-                        addExpenseToolbarMenu()
-                    } else if let active = actionableSummaryForSelectedPeriod {
+                    if let active = actionableSummaryForSelectedPeriod {
                         addExpenseToolbarMenu(for: active.id)
                     }
                 }

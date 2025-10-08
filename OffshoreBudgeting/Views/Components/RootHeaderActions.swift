@@ -607,12 +607,34 @@ struct RootHeaderGlassControl<Content: View>: View {
             let fallbackSide = RootHeaderActionMetrics.minimumIconDimension
 
             if background == .clear {
-                let side = capabilities.supportsOS26Translucency ? max(iconSide, d) : fallbackSide
-
+#if os(iOS) || targetEnvironment(macCatalyst)
+                if capabilities.supportsOS26Translucency {
+                    if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                        RootHeaderGlassCapsuleContainer(
+                            namespace: glassNamespace,
+                            glassID: glassID,
+                            glassUnionID: glassUnionID,
+                            transition: glassTransition as? GlassEffectTransition
+                        ) {
+                            content
+                                .frame(width: max(iconSide, d), height: max(iconSide, d))
+                        }
+                        .contentShape(Circle())
+                    } else {
+                        content
+                            .frame(width: fallbackSide, height: fallbackSide)
+                            .contentShape(Circle())
+                    }
+                } else {
+                    content
+                        .frame(width: fallbackSide, height: fallbackSide)
+                        .contentShape(Circle())
+                }
+#else
                 content
-                    .frame(width: side, height: side)
-                    .background(Color.clear)
+                    .frame(width: fallbackSide, height: fallbackSide)
                     .contentShape(Circle())
+#endif
             } else {
 
 #if os(iOS) || targetEnvironment(macCatalyst)

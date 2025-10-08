@@ -73,9 +73,29 @@ struct HomeView: View {
         .navigationTitle("Home")
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
-                if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                    GlassEffectContainer(spacing: DS.Spacing.s) {
-                        // Order: ellipsis, calendar, plus
+                Group {
+                    if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                        GlassEffectContainer(spacing: DS.Spacing.s) {
+                            // Order: ellipsis, calendar, plus
+                            if let periodSummary = actionableSummaryForSelectedPeriod {
+                                optionsToolbarMenu(summary: periodSummary)
+                            } else {
+                                optionsToolbarMenu()
+                            }
+
+                            calendarToolbarMenu()
+
+                            if shouldShowPlus {
+                                addExpenseToolbarMenu()
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            } else if let active = actionableSummaryForSelectedPeriod {
+                                addExpenseToolbarMenu(for: active.id)
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            }
+                        }
+                        .animation(nil, value: actionableSummaryForSelectedPeriod?.id)
+                    } else {
+                        // Legacy / older OS
                         if let periodSummary = actionableSummaryForSelectedPeriod {
                             optionsToolbarMenu(summary: periodSummary)
                         } else {
@@ -86,27 +106,14 @@ struct HomeView: View {
 
                         if shouldShowPlus {
                             addExpenseToolbarMenu()
-                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
                         } else if let active = actionableSummaryForSelectedPeriod {
                             addExpenseToolbarMenu(for: active.id)
-                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
                         }
                     }
-                    .animation(nil, value: actionableSummaryForSelectedPeriod?.id)
-                } else {
-                    // Legacy / older OS
-                    if let periodSummary = actionableSummaryForSelectedPeriod {
-                        optionsToolbarMenu(summary: periodSummary)
-                    } else {
-                        optionsToolbarMenu()
-                    }
-
-                    calendarToolbarMenu()
-
-                    if shouldShowPlus {
-                        addExpenseToolbarMenu()
-                    } else if let active = actionableSummaryForSelectedPeriod {
-                        addExpenseToolbarMenu(for: active.id)
+                }
+                .transaction { transaction in
+                    if hasActiveBudget {
+                        transaction.animation = nil
                     }
                 }
             }
@@ -120,8 +127,15 @@ struct HomeView: View {
             let newHasActiveBudget = actionableSummaryForSelectedPeriod != nil
             guard newHasActiveBudget != hasActiveBudget else { return }
 
-            if capabilities.supportsOS26Translucency && !reduceMotion {
-                withAnimation(periodAdjustmentAnimation) { hasActiveBudget = newHasActiveBudget }
+            let wasShowingPlus = shouldShowPlus
+            let willShowPlus = !newHasActiveBudget
+            let isTransitioningInactiveState = wasShowingPlus || willShowPlus
+            let shouldAnimate = capabilities.supportsOS26Translucency && !reduceMotion && isTransitioningInactiveState
+
+            if shouldAnimate {
+                withAnimation(.easeInOut) {
+                    hasActiveBudget = newHasActiveBudget
+                }
             } else {
                 hasActiveBudget = newHasActiveBudget
             }

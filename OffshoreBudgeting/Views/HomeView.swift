@@ -260,8 +260,8 @@ struct HomeView: View {
                 HeaderMenuGlassLabel(
                     systemImage: "calendar",
                     glassNamespace: toolbarGlassNamespace,
-                    glassID: nil,
-                    glassUnionID: nil,
+                    glassID: HomeToolbarGlassIdentifiers.calendar,
+                    glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
                     transition: toolbarGlassTransition
                 )
                 .accessibilityLabel(budgetPeriod.displayName)
@@ -288,7 +288,7 @@ struct HomeView: View {
             HeaderMenuGlassLabel(
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
-                glassID: capabilities.supportsOS26Translucency ? HomeToolbarGlassIdentifiers.addExpense : nil,
+                glassID: HomeToolbarGlassIdentifiers.addExpense,
                 glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
                 transition: toolbarGlassTransition
             )
@@ -309,7 +309,7 @@ struct HomeView: View {
             HeaderMenuGlassLabel(
                 systemImage: "plus",
                 glassNamespace: toolbarGlassNamespace,
-                glassID: capabilities.supportsOS26Translucency ? HomeToolbarGlassIdentifiers.addExpense : nil,
+                glassID: HomeToolbarGlassIdentifiers.addExpense,
                 glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
                 transition: toolbarGlassTransition
             )
@@ -355,8 +355,8 @@ struct HomeView: View {
             HeaderMenuGlassLabel(
                 systemImage: "ellipsis",
                 glassNamespace: toolbarGlassNamespace,
-                glassID: nil,
-                glassUnionID: nil,
+                glassID: HomeToolbarGlassIdentifiers.options,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
                 transition: toolbarGlassTransition
             )
         }
@@ -383,8 +383,8 @@ struct HomeView: View {
                 systemImage: "ellipsis",
                 symbolVariants: SymbolVariants.none,
                 glassNamespace: toolbarGlassNamespace,
-                glassID: nil,
-                glassUnionID: nil,
+                glassID: HomeToolbarGlassIdentifiers.options,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
                 transition: toolbarGlassTransition
             )
         }
@@ -1056,7 +1056,7 @@ private struct HeaderMenuGlassLabel: View {
     var transition: Any? = nil
 
     var body: some View {
-        let control = RootHeaderGlassControl(
+        RootHeaderGlassControl(
             sizing: .icon,
             background: .clear,
             glassNamespace: glassNamespace,
@@ -1069,44 +1069,6 @@ private struct HeaderMenuGlassLabel: View {
                     width: RootHeaderActionMetrics.minimumIconDimension,
                     height: RootHeaderActionMetrics.minimumIconDimension
                 )
-        }
-
-        if capabilities.supportsOS26Translucency {
-            if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                let base = AnyView(
-                    control.glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
-                )
-
-                let withID: AnyView = {
-                    if let namespace = glassNamespace, let glassID {
-                        return AnyView(base.glassEffectID(glassID, in: namespace))
-                    } else {
-                        return base
-                    }
-                }()
-
-                let withUnion: AnyView = {
-                    if let namespace = glassNamespace, let glassUnionID {
-                        return AnyView(withID.glassEffectUnion(id: glassUnionID, namespace: namespace))
-                    } else {
-                        return withID
-                    }
-                }()
-
-                let withTransition: AnyView = {
-                    if let transition = transition as? GlassEffectTransition {
-                        return AnyView(withUnion.glassEffectTransition(transition))
-                    } else {
-                        return withUnion
-                    }
-                }()
-
-                withTransition
-            } else {
-                control
-            }
-        } else {
-            control
         }
     }
 }

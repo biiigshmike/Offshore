@@ -43,9 +43,6 @@ struct HomeView: View {
     @State private var isPresentingManageCategories: Bool = false
     @Namespace private var toolbarGlassNamespace
     @State private var hasActiveBudget: Bool = false
-    @State private var lastShouldShowPlusUpdate: Date?
-
-    private var shouldShowPlus: Bool { !hasActiveBudget }
 
     // MARK: Body
     @EnvironmentObject private var themeManager: ThemeManager
@@ -80,37 +77,30 @@ struct HomeView: View {
                         // Order: ellipsis, calendar, plus
                         if let periodSummary = actionableSummaryForSelectedPeriod {
                             optionsToolbarMenu(summary: periodSummary)
-                                .glassEffect()
                         } else {
                             optionsToolbarMenu()
-                                .glassEffect()
                         }
 
                         calendarToolbarMenu()
-                            .glassEffect()
 
-                        toolbarPlusView(for: actionableSummaryForSelectedPeriod)
-                            .glassEffect()
-                            .glassEffectID(HomeToolbarGlassIdentifiers.addExpense, in: toolbarGlassNamespace)
-                    }
-                    .background {
-                        RoundedRectangle(cornerRadius: RootHeaderActionMetrics.minimumIconDimension / 2, style: .continuous)
-                            .fill(Color.clear)
-                            .matchedGeometryEffect(id: HomeToolbarGlassIdentifiers.union, in: toolbarGlassNamespace)
+                        if hasActiveBudget, let active = actionableSummaryForSelectedPeriod {
+                            addExpenseToolbarMenu(for: active.id)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                        }
                     }
                     .animation(nil, value: actionableSummaryForSelectedPeriod?.id)
                 } else {
                     // Legacy / older OS
-                    HStack(spacing: DS.Spacing.s) {
-                        if let periodSummary = actionableSummaryForSelectedPeriod {
-                            optionsToolbarMenu(summary: periodSummary)
-                        } else {
-                            optionsToolbarMenu()
-                        }
+                    if let periodSummary = actionableSummaryForSelectedPeriod {
+                        optionsToolbarMenu(summary: periodSummary)
+                    } else {
+                        optionsToolbarMenu()
+                    }
 
-                        calendarToolbarMenu()
+                    calendarToolbarMenu()
 
-                        toolbarPlusView(for: actionableSummaryForSelectedPeriod)
+                    if let active = actionableSummaryForSelectedPeriod {
+                        addExpenseToolbarMenu(for: active.id)
                     }
                 }
             }
@@ -119,9 +109,16 @@ struct HomeView: View {
             CoreDataService.shared.ensureLoaded()
             vm.startIfNeeded()
         }
-        .onAppear { updateHasActiveBudget(animated: false) }
+        .onAppear { hasActiveBudget = actionableSummaryForSelectedPeriod != nil }
         .ub_onChange(of: actionableSummaryForSelectedPeriod?.id) { _ in
-            updateHasActiveBudget(animated: capabilities.supportsOS26Translucency && !reduceMotion)
+            let newHasActiveBudget = actionableSummaryForSelectedPeriod != nil
+            guard newHasActiveBudget != hasActiveBudget else { return }
+
+            if capabilities.supportsOS26Translucency && !reduceMotion {
+                withAnimation(periodAdjustmentAnimation) { hasActiveBudget = newHasActiveBudget }
+            } else {
+                hasActiveBudget = newHasActiveBudget
+            }
         }
         // Temporarily disable automatic refresh on every Core Data save to
         // prevent re-entrant view reconstruction and load() loops. Explicit
@@ -217,35 +214,8 @@ struct HomeView: View {
         }
     }
 
-    private func updateHasActiveBudget(animated: Bool) {
-        let newHasActiveBudget = actionableSummaryForSelectedPeriod != nil
-        guard newHasActiveBudget != hasActiveBudget else { return }
-
-        var allowAnimation = animated
-        if allowAnimation {
-            let now = Date()
-            if let lastUpdate = lastShouldShowPlusUpdate, now.timeIntervalSince(lastUpdate) < 0.12 {
-                allowAnimation = false
-            } else {
-                lastShouldShowPlusUpdate = now
-            }
-        }
-
-        applyHasActiveBudgetUpdate(newHasActiveBudget, animated: allowAnimation)
-    }
-
-    private func applyHasActiveBudgetUpdate(_ newValue: Bool, animated: Bool) {
-        if animated {
-            var transaction = Transaction(animation: newValue ? nil : .easeInOut)
-            if newValue {
-                transaction.disablesAnimations = true
-            }
-            withTransaction(transaction) {
-                hasActiveBudget = newValue
-            }
-        } else {
-            hasActiveBudget = newValue
-        }
+    private var periodAdjustmentAnimation: Animation {
+        .spring(response: 0.34, dampingFraction: 0.78, blendDuration: 0.1)
     }
 
     @ViewBuilder
@@ -303,54 +273,24 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder
-    private func toolbarPlusView(for summary: BudgetSummary?) -> some View {
-        let includeGlassIdentifiers: Bool = {
-            if capabilities.supportsOS26Translucency {
-                if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                    return false
-                }
-            }
-            return true
-        }()
-
-        Group {
-            if shouldShowPlus {
-                addExpenseToolbarMenu(includeGlassIdentifiers: includeGlassIdentifiers)
-            } else if let summary {
-                addExpenseToolbarMenu(for: summary.id, includeGlassIdentifiers: includeGlassIdentifiers)
-            } else {
-                addExpenseToolbarMenu(includeGlassIdentifiers: includeGlassIdentifiers)
-            }
-        }
-        .id(shouldShowPlus ? "home.toolbar.plus.inactive" : "home.toolbar.plus.active")
-        .transition(.opacity.combined(with: .scale))
-        .transaction { transaction in
-            if hasActiveBudget {
-                transaction.disablesAnimations = true
-            }
-        }
-        .animation(hasActiveBudget ? nil : .easeInOut(duration: 0.24), value: shouldShowPlus)
-    }
-
-    private func addExpenseToolbarMenu(includeGlassIdentifiers: Bool = true) -> some View {
+    private func addExpenseToolbarMenu() -> some View {
         Menu {
             Button("Add Planned Expense") { isPresentingAddPlannedFromHome = true }
             Button("Add Variable Expense") { isPresentingAddVariableFromHome = true }
         } label: {
             HeaderMenuGlassLabel(
                 systemImage: "plus",
-                glassNamespace: includeGlassIdentifiers ? toolbarGlassNamespace : nil,
-                glassID: includeGlassIdentifiers ? HomeToolbarGlassIdentifiers.addExpense : nil,
-                glassUnionID: includeGlassIdentifiers && capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
-                transition: includeGlassIdentifiers ? toolbarGlassTransition : nil
+                glassNamespace: toolbarGlassNamespace,
+                glassID: HomeToolbarGlassIdentifiers.addExpense,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
+                transition: toolbarGlassTransition
             )
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Add Expense")
     }
 
-    private func addExpenseToolbarMenu(for budgetID: NSManagedObjectID, includeGlassIdentifiers: Bool = true) -> some View {
+    private func addExpenseToolbarMenu(for budgetID: NSManagedObjectID) -> some View {
         Menu {
             Button("Add Planned Expense") {
                 triggerAddExpense(.budgetDetailsRequestAddPlannedExpense, budgetID: budgetID)
@@ -361,10 +301,10 @@ struct HomeView: View {
         } label: {
             HeaderMenuGlassLabel(
                 systemImage: "plus",
-                glassNamespace: includeGlassIdentifiers ? toolbarGlassNamespace : nil,
-                glassID: includeGlassIdentifiers ? HomeToolbarGlassIdentifiers.addExpense : nil,
-                glassUnionID: includeGlassIdentifiers && capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
-                transition: includeGlassIdentifiers ? toolbarGlassTransition : nil
+                glassNamespace: toolbarGlassNamespace,
+                glassID: HomeToolbarGlassIdentifiers.addExpense,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
+                transition: toolbarGlassTransition
             )
         }
         .modifier(HideMenuIndicatorIfPossible())

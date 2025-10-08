@@ -609,17 +609,28 @@ struct RootHeaderGlassControl<Content: View>: View {
             if background == .clear {
                 let side = capabilities.supportsOS26Translucency ? max(iconSide, d) : fallbackSide
 
-                if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                    content
-                        .frame(width: side, height: side)
-                        .glassEffect(.regular.interactive(), in: Circle())
-                        .contentShape(Circle())
+                let icon = content
+                    .frame(width: side, height: side)
+                    .contentShape(Circle())
+
+#if os(iOS) || targetEnvironment(macCatalyst)
+                if capabilities.supportsOS26Translucency {
+                    if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                        icon
+                            .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                            .contentShape(Circle())
+                    } else {
+                        icon
+                            .background(Color.clear)
+                    }
                 } else {
-                    content
-                        .frame(width: side, height: side)
+                    icon
                         .background(Color.clear)
-                        .contentShape(Circle())
                 }
+#else
+                icon
+                    .background(Color.clear)
+#endif
             } else {
 
 #if os(iOS) || targetEnvironment(macCatalyst)

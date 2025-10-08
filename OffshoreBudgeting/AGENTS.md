@@ -42,6 +42,13 @@ Output Format:
 ### Optimized Code
 [Generated code]
 
+## Codex should default to PLAN mode unless the user explicitly writes “Code” or “Execute.”
+- PLAN mode builds 1–4 structured versions with task-stubs, summary, and reasoning.
+- Each version must contain actionable steps with Start Task buttons when applicable.
+- Never output plain text when Plan mode is intended.
+- Only skip planning when the user specifies Code mode or Execute mode.
+
+
 ### Implementation Summary
 • Key improvements or design decisions
 • Notable assumptions

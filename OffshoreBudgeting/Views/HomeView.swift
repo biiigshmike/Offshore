@@ -84,7 +84,8 @@ struct HomeView: View {
 
                         calendarToolbarMenu()
 
-                        if hasActiveBudget, let budgetID = actionableSummaryForSelectedPeriod?.id ?? lastKnownActionableBudgetID {
+                        if hasActiveBudget, let cachedID = lastKnownActionableBudgetID {
+                            let budgetID = actionableSummaryForSelectedPeriod?.id ?? cachedID
                             addExpenseToolbarMenu(for: budgetID)
                                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                         }
@@ -100,7 +101,8 @@ struct HomeView: View {
 
                     calendarToolbarMenu()
 
-                    if let budgetID = actionableSummaryForSelectedPeriod?.id ?? lastKnownActionableBudgetID {
+                    if hasActiveBudget, let cachedID = lastKnownActionableBudgetID {
+                        let budgetID = actionableSummaryForSelectedPeriod?.id ?? cachedID
                         addExpenseToolbarMenu(for: budgetID)
                     }
                 }
@@ -334,10 +336,18 @@ struct HomeView: View {
     private func addExpenseToolbarMenu(for budgetID: NSManagedObjectID) -> some View {
         Menu {
             Button("Add Planned Expense") {
-                triggerAddExpense(.budgetDetailsRequestAddPlannedExpense, budgetID: budgetID)
+                triggerAddExpense(
+                    .budgetDetailsRequestAddPlannedExpense,
+                    budgetID: budgetID,
+                    fallback: { isPresentingAddPlannedFromHome = true }
+                )
             }
             Button("Add Variable Expense") {
-                triggerAddExpense(.budgetDetailsRequestAddVariableExpense, budgetID: budgetID)
+                triggerAddExpense(
+                    .budgetDetailsRequestAddVariableExpense,
+                    budgetID: budgetID,
+                    fallback: { isPresentingAddVariableFromHome = true }
+                )
             }
         } label: {
             HeaderMenuGlassLabel(
@@ -726,9 +736,23 @@ struct HomeView: View {
         }
     }
 
-private func triggerAddExpense(_ notificationName: Notification.Name, budgetID: NSManagedObjectID) {
-    NotificationCenter.default.post(name: notificationName, object: budgetID)
-}
+    private func triggerAddExpense(
+        _ notificationName: Notification.Name,
+        budgetID _: NSManagedObjectID,
+        fallback: () -> Void
+    ) {
+        guard hasActiveBudget else {
+            fallback()
+            return
+        }
+
+        guard let resolvedBudgetID = actionableSummaryForSelectedPeriod?.id ?? lastKnownActionableBudgetID else {
+            fallback()
+            return
+        }
+
+        NotificationCenter.default.post(name: notificationName, object: resolvedBudgetID)
+    }
 }
 
 // MARK: - Home Header Table Page

@@ -160,7 +160,8 @@ struct IncomeView: View {
     }
 
     private func contentBottomInset(using proxy: RootTabPageProxy) -> CGFloat {
-        proxy.safeAreaBottomInset + DS.Spacing.s
+        // Respect safe area insets via container; only add a small tail space.
+        DS.Spacing.s
     }
 
     private let landscapeLayoutMinimumWidth: CGFloat = 780

@@ -163,6 +163,7 @@ struct CardsView: View {
         .rootTabContentPadding(
             proxy,
             horizontal: 0,
+            includeSafeArea: false,
             tabBarGutter: tabBarGutter
         )
     }

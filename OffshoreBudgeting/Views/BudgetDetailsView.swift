@@ -945,7 +945,7 @@ private struct PlannedListFR: View {
                 .refreshable { onTotalsChanged() }
                 .styledList()
                 .applyListHorizontalPadding(capabilities, layoutContext: layoutContext)
-                .budgetListBottomInset(layoutContext: layoutContext)
+                .budgetListBottomInset(capabilities: capabilities, layoutContext: layoutContext)
             } else {
                 // MARK: Real List for native swipe
                 List {
@@ -957,7 +957,7 @@ private struct PlannedListFR: View {
                 .refreshable { onTotalsChanged() }
                 .styledList()
                 .applyListHorizontalPadding(capabilities, layoutContext: layoutContext)
-                .budgetListBottomInset(layoutContext: layoutContext)
+                .budgetListBottomInset(capabilities: capabilities, layoutContext: layoutContext)
             }
         }
         .sheet(item: $editingItem) { expense in
@@ -1308,7 +1308,7 @@ private struct VariableListFR: View {
                 .refreshable { onTotalsChanged() }
                 .styledList()
                 .applyListHorizontalPadding(capabilities, layoutContext: layoutContext)
-                .budgetListBottomInset(layoutContext: layoutContext)
+                .budgetListBottomInset(capabilities: capabilities, layoutContext: layoutContext)
             } else {
                 // MARK: Real List for native swipe
                 List {
@@ -1320,7 +1320,7 @@ private struct VariableListFR: View {
                 .refreshable { onTotalsChanged() }
                 .styledList()
                 .applyListHorizontalPadding(capabilities, layoutContext: layoutContext)
-                .budgetListBottomInset(layoutContext: layoutContext)
+                .budgetListBottomInset(capabilities: capabilities, layoutContext: layoutContext)
             }
         }
         .sheet(item: $editingItem) { expense in
@@ -1540,7 +1540,6 @@ private extension View {
                 .ub_listStyleLiquidAware()
 #if os(iOS)
                 .scrollIndicators(.hidden)
-                .background(UBScrollViewInsetAdjustmentDisabler())
 #endif
         } else {
             self.ub_listStyleLiquidAware()
@@ -1567,18 +1566,24 @@ private extension View {
     }
 
     @ViewBuilder
-    func budgetListBottomInset(layoutContext: ResponsiveLayoutContext) -> some View {
+    func budgetListBottomInset(capabilities: PlatformCapabilities, layoutContext: ResponsiveLayoutContext) -> some View {
         #if os(iOS)
         #if targetEnvironment(macCatalyst)
         self
         #else
-        let inset = BudgetListBottomInsetMetrics.bottomInset(for: layoutContext)
-        if inset > 0 {
-            self.safeAreaInset(edge: .bottom) {
-                Color.clear
-                    .frame(height: inset)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+        // On OS 26, use a safe-area inset container; on classic OS, rely on
+        // UIKit's automatic content inset adjustments for Lists.
+        if capabilities.supportsOS26Translucency {
+            let inset = BudgetListBottomInsetMetrics.bottomInset(for: layoutContext)
+            if inset > 0 {
+                self.safeAreaInset(edge: .bottom) {
+                    Color.clear
+                        .frame(height: inset)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            } else {
+                self
             }
         } else {
             self

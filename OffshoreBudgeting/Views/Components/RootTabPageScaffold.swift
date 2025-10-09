@@ -162,17 +162,6 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
                         VStack(alignment: alignment, spacing: spacing) {
                             contentBuilder(proxy)
                                 .background(sectionHeightReader(for: .content))
-                                #if os(iOS)
-                                .background(
-                                    Group {
-                                        if !platformCapabilities.supportsOS26Translucency {
-                                            UBScrollViewInsetAdjustmentDisabler()
-                                        } else {
-                                            Color.clear
-                                        }
-                                    }
-                                )
-                                #endif
                         }
                         .frame(maxWidth: .infinity, alignment: stackAlignment)
                         .frame(
@@ -184,18 +173,10 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
                         .frame(maxWidth: .infinity, alignment: stackAlignment)
                     }
                     .ub_hideScrollIndicators()
-                    // On classic OS, allow content under the tab bar and control
-                    // spacing via `rootTabContentPadding`. On OS 26, respect the
-                    // safe area to avoid intercepting tab bar gestures.
-                    .modifier(IgnoreBottomSafeAreaIfClassic(capabilities: platformCapabilities))
                 }
                 .frame(maxWidth: .infinity, alignment: stackAlignment)
             } else {
                 stackContent(using: proxy)
-                    // Allow content to extend under the tab bar in non-scrolling
-                    // layouts as well. Individual screens add any desired
-                    // bottom spacing via `rootTabContentPadding`.
-                    .modifier(IgnoreBottomSafeAreaIfClassic(capabilities: platformCapabilities))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: stackAlignment)
@@ -206,6 +187,7 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
             configuration: themeManager.glassConfiguration,
             ignoringSafeArea: .all
         )
+        .ub_legacyUnderbarScroll()
     }
 
     // MARK: Stack Content
@@ -263,14 +245,9 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
         safeArea: EdgeInsets
     ) -> CGFloat {
         guard context.containerSize.height > 0 else { return 0 }
-        #if os(iOS) 
-        // Allow content to extend into the bottom safe area so controls with
-        // shadows (e.g., primary CTA) aren’t visually clipped. Individual
-        // screens can still add bottom padding via `rootTabContentPadding`.
-        let verticalInsets = safeArea.top
-        #else
+        // Respect both top and bottom safe areas on all platforms so the
+        // scroll decision matches the visible content region.
         let verticalInsets = safeArea.top + safeArea.bottom
-        #endif
         return max(context.containerSize.height - verticalInsets, 0)
     }
 

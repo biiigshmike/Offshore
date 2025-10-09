@@ -21,6 +21,7 @@ struct CardDetailView: View {
     // MARK: State
     @StateObject private var viewModel: CardDetailViewModel
     @Environment(\.responsiveLayoutContext) private var layoutContext
+    @Environment(\.platformCapabilities) private var capabilities
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.managedObjectContext) private var viewContext
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
@@ -209,13 +210,7 @@ struct CardDetailView: View {
             .ub_listStyleLiquidAware()
             .listRowSeparator(.hidden)
             .ub_hideScrollIndicators()
-#if os(iOS)
-        // Neutralize UIKit's automatic bottom padding and provide our own
-        // spacer so the list always scrolls and doesn't get constrained by
-        // the tab bar.
-            .background(UBScrollViewInsetAdjustmentDisabler())
-#endif
-            .cardDetailListBottomInset(layoutContext: layoutContext)
+            .cardDetailListBottomInset(capabilities: capabilities, layoutContext: layoutContext)
 
         if #available(iOS 15.0, macCatalyst 15.0, *) {
             list
@@ -579,16 +574,20 @@ private struct DeletionError: Identifiable {
 // MARK: - List Bottom Inset Helpers
 private extension View {
     @ViewBuilder
-    func cardDetailListBottomInset(layoutContext: ResponsiveLayoutContext) -> some View {
+    func cardDetailListBottomInset(capabilities: PlatformCapabilities, layoutContext: ResponsiveLayoutContext) -> some View {
         #if os(iOS)
         #if targetEnvironment(macCatalyst)
         self
         #else
-        self.safeAreaInset(edge: .bottom) {
-            Color.clear
-                .frame(height: CardDetailListBottomInsetMetrics.bottomInset(for: layoutContext))
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+        if capabilities.supportsOS26Translucency {
+            self.safeAreaInset(edge: .bottom) {
+                Color.clear
+                    .frame(height: CardDetailListBottomInsetMetrics.bottomInset(for: layoutContext))
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        } else {
+            self
         }
         #endif
         #else

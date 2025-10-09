@@ -41,10 +41,13 @@ struct HomeView: View {
     @State private var isPresentingManageCards: Bool = false
     @State private var isPresentingManagePresets: Bool = false
     @State private var isPresentingManageCategories: Bool = false
+    @Namespace private var toolbarGlassNamespace
+    @State private var hasActiveBudget: Bool = false
 
     // MARK: Body
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.platformCapabilities) private var capabilities
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         // Sticky header is managed by RootTabPageScaffold.
         // - Empty states leverage the scaffold's scroll view for reachability.
@@ -69,7 +72,25 @@ struct HomeView: View {
         .navigationTitle("Home")
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
-                HStack(spacing: DS.Spacing.s) {
+                if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                    GlassEffectContainer(spacing: DS.Spacing.s) {
+                        // Order: ellipsis, calendar, plus
+                        if let periodSummary = actionableSummaryForSelectedPeriod {
+                            optionsToolbarMenu(summary: periodSummary)
+                        } else {
+                            optionsToolbarMenu()
+                        }
+
+                        calendarToolbarMenu()
+
+                        if hasActiveBudget, let active = actionableSummaryForSelectedPeriod {
+                            addExpenseToolbarMenu(for: active.id)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                        }
+                    }
+                    .animation(nil, value: actionableSummaryForSelectedPeriod?.id)
+                } else {
+                    // Legacy / older OS
                     if let periodSummary = actionableSummaryForSelectedPeriod {
                         optionsToolbarMenu(summary: periodSummary)
                     } else {
@@ -87,6 +108,17 @@ struct HomeView: View {
         .task {
             CoreDataService.shared.ensureLoaded()
             vm.startIfNeeded()
+        }
+        .onAppear { hasActiveBudget = actionableSummaryForSelectedPeriod != nil }
+        .ub_onChange(of: actionableSummaryForSelectedPeriod?.id) { _ in
+            let newHasActiveBudget = actionableSummaryForSelectedPeriod != nil
+            guard newHasActiveBudget != hasActiveBudget else { return }
+
+            if capabilities.supportsOS26Translucency && !reduceMotion {
+                withAnimation(periodAdjustmentAnimation) { hasActiveBudget = newHasActiveBudget }
+            } else {
+                hasActiveBudget = newHasActiveBudget
+            }
         }
         // Temporarily disable automatic refresh on every Core Data save to
         // prevent re-entrant view reconstruction and load() loops. Explicit
@@ -169,6 +201,23 @@ struct HomeView: View {
     }
 
     // MARK: Toolbar Actions
+    private var toolbarGlassTransition: Any? {
+        guard capabilities.supportsOS26Translucency else {
+            return nil
+        }
+
+        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            let t: GlassEffectTransition = reduceMotion ? .identity : .matchedGeometry
+            return t
+        } else {
+            return nil
+        }
+    }
+
+    private var periodAdjustmentAnimation: Animation {
+        .spring(response: 0.34, dampingFraction: 0.78, blendDuration: 0.1)
+    }
+
     @ViewBuilder
     private func calendarToolbarMenu() -> some View {
         let menu = Menu {
@@ -190,8 +239,26 @@ struct HomeView: View {
                 }
             }
         } label: {
-            HomeToolbarMenuLabel(systemImage: "calendar")
+            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                RootHeaderMenuButtonLabel(
+                    systemImage: "calendar",
+                    glassNamespace: toolbarGlassNamespace,
+                    glassID: HomeToolbarGlassIdentifiers.calendar,
+                    glassUnionID: HomeGlassUnionID.main.rawValue,
+                    glassTransition: toolbarGlassTransition,
+                    background: .clear
+                )
                 .accessibilityLabel(budgetPeriod.displayName)
+            } else {
+                HeaderMenuGlassLabel(
+                    systemImage: "calendar",
+                    glassNamespace: toolbarGlassNamespace,
+                    glassID: HomeToolbarGlassIdentifiers.calendar,
+                    glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
+                    transition: toolbarGlassTransition
+                )
+                .accessibilityLabel(budgetPeriod.displayName)
+            }
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel(budgetPeriod.displayName)
@@ -211,7 +278,13 @@ struct HomeView: View {
             Button("Add Planned Expense") { isPresentingAddPlannedFromHome = true }
             Button("Add Variable Expense") { isPresentingAddVariableFromHome = true }
         } label: {
-            HomeToolbarMenuLabel(systemImage: "plus")
+            HeaderMenuGlassLabel(
+                systemImage: "plus",
+                glassNamespace: toolbarGlassNamespace,
+                glassID: HomeToolbarGlassIdentifiers.addExpense,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
+                transition: toolbarGlassTransition
+            )
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Add Expense")
@@ -226,7 +299,13 @@ struct HomeView: View {
                 triggerAddExpense(.budgetDetailsRequestAddVariableExpense, budgetID: budgetID)
             }
         } label: {
-            HomeToolbarMenuLabel(systemImage: "plus")
+            HeaderMenuGlassLabel(
+                systemImage: "plus",
+                glassNamespace: toolbarGlassNamespace,
+                glassID: HomeToolbarGlassIdentifiers.addExpense,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
+                transition: toolbarGlassTransition
+            )
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Add Expense")
@@ -240,7 +319,13 @@ struct HomeView: View {
                 Label("Create Budget", systemImage: "plus")
             }
         } label: {
-            HomeToolbarMenuLabel(systemImage: "ellipsis")
+            HeaderMenuGlassLabel(
+                systemImage: "ellipsis",
+                glassNamespace: toolbarGlassNamespace,
+                glassID: HomeToolbarGlassIdentifiers.options,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
+                transition: toolbarGlassTransition
+            )
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Budget Options")
@@ -261,7 +346,14 @@ struct HomeView: View {
                 Label("Delete Budget", systemImage: "trash")
             }
         } label: {
-            HomeToolbarMenuLabel(systemImage: "ellipsis", symbolVariants: .none)
+            HeaderMenuGlassLabel(
+                systemImage: "ellipsis",
+                symbolVariants: SymbolVariants.none,
+                glassNamespace: toolbarGlassNamespace,
+                glassID: HomeToolbarGlassIdentifiers.options,
+                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
+                transition: toolbarGlassTransition
+            )
         }
         .modifier(HideMenuIndicatorIfPossible())
         .accessibilityLabel("Budget Actions")
@@ -919,29 +1011,45 @@ private struct HomeHeaderTableTwoColumnRow<Leading: View, Trailing: View>: View 
     }
 }
 
-// MARK: - Toolbar Menu Label
-private struct HomeToolbarMenuLabel: View {
+// MARK: - Header Menu Glass Label (OS26)
+private struct HeaderMenuGlassLabel: View {
     @Environment(\.platformCapabilities) private var capabilities
+    @EnvironmentObject private var themeManager: ThemeManager
     var systemImage: String
     var symbolVariants: SymbolVariants? = nil
-
-    private var iconDimension: CGFloat { RootHeaderActionMetrics.minimumIconDimension }
+    var glassNamespace: Namespace.ID? = nil
+    var glassID: String? = nil
+    var glassUnionID: String? = nil
+    var transition: Any? = nil
 
     var body: some View {
-        Group {
-            if capabilities.supportsOS26Translucency,
-               #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                RootHeaderGlassControl(sizing: .icon) {
-                    RootHeaderControlIcon(systemImage: systemImage, symbolVariants: symbolVariants)
-                        .frame(width: iconDimension, height: iconDimension)
-                }
-            } else {
-                RootHeaderControlIcon(systemImage: systemImage, symbolVariants: symbolVariants)
-                    .frame(width: iconDimension, height: iconDimension)
-                    .contentShape(Circle())
-            }
+        RootHeaderGlassControl(
+            sizing: .icon,
+            background: .clear,
+            glassNamespace: glassNamespace,
+            glassID: glassID,
+            glassUnionID: glassUnionID,
+            glassTransition: transition
+        ) {
+            RootHeaderControlIcon(systemImage: systemImage, symbolVariants: symbolVariants)
+                .frame(
+                    width: RootHeaderActionMetrics.minimumIconDimension,
+                    height: RootHeaderActionMetrics.minimumIconDimension
+                )
         }
     }
+}
+
+private enum HomeToolbarGlassIdentifiers {
+    static let options = "home-toolbar.options"
+    static let calendar = "home-toolbar.calendar"
+    static let addExpense = "home-toolbar.add-expense"
+    static let union = "home-toolbar.union"
+}
+
+private enum HomeGlassUnionID: String {
+    case main = "home-toolbar.union.main"
+    case extras = "home-toolbar.union.extras"
 }
 
 private enum HomeHeaderOverviewMetrics {

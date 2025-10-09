@@ -43,6 +43,7 @@ struct HomeView: View {
     @State private var isPresentingManageCategories: Bool = false
     @Namespace private var toolbarGlassNamespace
     @State private var hasActiveBudget: Bool = false
+    @State private var lastKnownActionableBudgetID: NSManagedObjectID?
 
     // MARK: Body
     @EnvironmentObject private var themeManager: ThemeManager
@@ -83,8 +84,8 @@ struct HomeView: View {
 
                         calendarToolbarMenu()
 
-                        if hasActiveBudget, let active = actionableSummaryForSelectedPeriod {
-                            addExpenseToolbarMenu(for: active.id)
+                        if hasActiveBudget, let budgetID = actionableSummaryForSelectedPeriod?.id ?? lastKnownActionableBudgetID {
+                            addExpenseToolbarMenu(for: budgetID)
                                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                         }
                     }
@@ -99,8 +100,8 @@ struct HomeView: View {
 
                     calendarToolbarMenu()
 
-                    if let active = actionableSummaryForSelectedPeriod {
-                        addExpenseToolbarMenu(for: active.id)
+                    if let budgetID = actionableSummaryForSelectedPeriod?.id ?? lastKnownActionableBudgetID {
+                        addExpenseToolbarMenu(for: budgetID)
                     }
                 }
             }
@@ -109,16 +110,23 @@ struct HomeView: View {
             CoreDataService.shared.ensureLoaded()
             vm.startIfNeeded()
         }
-        .onAppear { hasActiveBudget = actionableSummaryForSelectedPeriod != nil }
+        .onAppear {
+            applyActionableSummaryChange(
+                actionableSummaryForSelectedPeriod,
+                allowClearing: isTerminalBudgetState(for: vm.state)
+            )
+        }
         .ub_onChange(of: actionableSummaryForSelectedPeriod?.id) { _ in
-            let newHasActiveBudget = actionableSummaryForSelectedPeriod != nil
-            guard newHasActiveBudget != hasActiveBudget else { return }
-
-            if capabilities.supportsOS26Translucency && !reduceMotion {
-                withAnimation(periodAdjustmentAnimation) { hasActiveBudget = newHasActiveBudget }
-            } else {
-                hasActiveBudget = newHasActiveBudget
-            }
+            applyActionableSummaryChange(
+                actionableSummaryForSelectedPeriod,
+                allowClearing: isTerminalBudgetState(for: vm.state)
+            )
+        }
+        .ub_onChange(of: vm.state) { newState in
+            applyActionableSummaryChange(
+                actionableSummaryForSelectedPeriod,
+                allowClearing: isTerminalBudgetState(for: newState)
+            )
         }
         // Temporarily disable automatic refresh on every Core Data save to
         // prevent re-entrant view reconstruction and load() loops. Explicit
@@ -216,6 +224,39 @@ struct HomeView: View {
 
     private var periodAdjustmentAnimation: Animation {
         .spring(response: 0.34, dampingFraction: 0.78, blendDuration: 0.1)
+    }
+
+    private func applyActionableSummaryChange(_ summary: BudgetSummary?, allowClearing: Bool) {
+        if let summary {
+            lastKnownActionableBudgetID = summary.id
+            updateHasActiveBudget(true)
+        } else if allowClearing {
+            lastKnownActionableBudgetID = nil
+            updateHasActiveBudget(false)
+        }
+    }
+
+    private func updateHasActiveBudget(_ newValue: Bool) {
+        guard hasActiveBudget != newValue else { return }
+
+        if capabilities.supportsOS26Translucency && !reduceMotion {
+            withAnimation(periodAdjustmentAnimation) {
+                hasActiveBudget = newValue
+            }
+        } else {
+            hasActiveBudget = newValue
+        }
+    }
+
+    private func isTerminalBudgetState(for state: BudgetLoadState) -> Bool {
+        switch state {
+        case .initial, .loading:
+            return false
+        case .empty:
+            return true
+        case .loaded(_):
+            return true
+        }
     }
 
     @ViewBuilder

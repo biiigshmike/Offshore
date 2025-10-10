@@ -147,7 +147,8 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
             spacing: spacing,
             combinedHeight: combinedHeight,
             availableHeight: availableHeight,
-            isScrollEnabled: isScrollEnabled
+            isScrollEnabled: isScrollEnabled,
+            platformCapabilities: platformCapabilities
         )
 
         Group {
@@ -287,6 +288,9 @@ struct RootTabPageProxy {
     let combinedHeight: CGFloat
     let availableHeight: CGFloat
     let isScrollEnabled: Bool
+    let platformCapabilities: PlatformCapabilities
+
+    private static let legacyTabBarLift: CGFloat = 49
 
     /// Controls the amount of vertical spacing inserted between tab content and the tab bar.
     enum TabBarGutter {
@@ -318,7 +322,8 @@ struct RootTabPageProxy {
 
     /// Recommended gutter spacing that removes the tab-to-content gap on compact layouts.
     var compactAwareTabBarGutter: TabBarGutter {
-        isCompactWidth ? .none : .standard
+        guard platformCapabilities.supportsOS26Translucency else { return .standard }
+        return isCompactWidth ? .none : .standard
     }
 
     var contentExceedsAvailableHeight: Bool {
@@ -340,17 +345,25 @@ struct RootTabPageProxy {
 
     var tabBarGutterSpacing: CGFloat {
         #if os(iOS)
-        // Global request: remove additional gutter above the tab bar so content
-        // aligns tighter across all root tabs. Safe-area padding remains
-        // controlled separately via `includeSafeArea`.
-        return 0
+        if platformCapabilities.supportsOS26Translucency {
+            // Global request: remove additional gutter above the tab bar so content
+            // aligns tighter across all root tabs. Safe-area padding remains
+            // controlled separately via `includeSafeArea`.
+            return 0
+        } else {
+            return Self.legacyTabBarLift
+        }
         #else
         return 0
         #endif
     }
 
     func tabBarGutterSpacing(_ gutter: TabBarGutter) -> CGFloat {
-        gutter.resolvedSpacing(defaultSpacing: tabBarGutterSpacing)
+        if platformCapabilities.supportsOS26Translucency {
+            return gutter.resolvedSpacing(defaultSpacing: tabBarGutterSpacing)
+        } else {
+            return tabBarGutterSpacing
+        }
     }
 
     var standardTabContentBottomPadding: CGFloat {

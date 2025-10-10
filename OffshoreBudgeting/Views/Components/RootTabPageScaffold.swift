@@ -173,6 +173,7 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
                         .frame(maxWidth: .infinity, alignment: stackAlignment)
                     }
                     .ub_hideScrollIndicators()
+                    .ub_legacyUnderbarScroll()
                 }
                 .frame(maxWidth: .infinity, alignment: stackAlignment)
             } else {

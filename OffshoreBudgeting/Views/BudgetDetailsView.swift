@@ -1596,25 +1596,23 @@ private extension View {
                 self
             }
         } else {
-            // Classic iOS: disable UIKit's automatic bottom lift on the
-            // underlying UITableView, then add a fixed 16pt tail via a bottom
-            // inset so the last row remains close to the tab bar.
-            self
-                .overlay(alignment: .topLeading) { UBBudgetListInsetTuner().frame(width: 0, height: 0) }
-                .safeAreaInset(edge: .bottom) {
-                    ZStack(alignment: .topLeading) {
-                        Color.clear
-                            .frame(height: DS.Spacing.l)
-                        #if DEBUG
-                        // Place the debug anchor at the top of the 16pt tail outside the List
-                        Color.clear
-                            .frame(width: 2, height: 2)
-                            .accessibilityIdentifier("BottomTailAnchor")
-                        #endif
-                    }
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+            // Classic iOS: rely on the container's safe area to keep rows out of
+            // the tab bar and add a fixed 16pt tail so the final row has breathing
+            // room above the chrome.
+            self.safeAreaInset(edge: .bottom) {
+                ZStack(alignment: .topLeading) {
+                    Color.clear
+                        .frame(height: DS.Spacing.l)
+                    #if DEBUG
+                    // Place the debug anchor at the top of the 16pt tail outside the List
+                    Color.clear
+                        .frame(width: 2, height: 2)
+                        .accessibilityIdentifier("BottomTailAnchor")
+                    #endif
                 }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
         }
         #endif
         #else

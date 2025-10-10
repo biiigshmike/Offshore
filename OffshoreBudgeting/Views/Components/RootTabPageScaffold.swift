@@ -289,7 +289,7 @@ struct RootTabPageProxy {
     let isScrollEnabled: Bool
     let platformCapabilities: PlatformCapabilities
 
-    private static let legacyTabBarLift: CGFloat = 49
+    private static let legacyTabBarLift: CGFloat = 0
 
     /// Controls the amount of vertical spacing inserted between tab content and the tab bar.
     enum TabBarGutter {

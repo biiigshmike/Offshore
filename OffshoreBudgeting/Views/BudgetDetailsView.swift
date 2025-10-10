@@ -941,6 +941,11 @@ private struct PlannedListFR: View {
                         let action = isBudgetActive ? onAddTapped : onCreateBudgetTapped
                         addActionButton(title: title, action: action)
                     }
+                    #if DEBUG
+                    Color.clear
+                        .frame(height: 1)
+                        .accessibilityIdentifier("BottomTailAnchor_List")
+                    #endif
                 }
                 .refreshable { onTotalsChanged() }
                 .styledList()
@@ -953,6 +958,11 @@ private struct PlannedListFR: View {
                         headerListRow(header, applyDefaultInsets: !headerManagesPadding)
                     }
                     listRows(items: items)
+                    #if DEBUG
+                    Color.clear
+                        .frame(height: 1)
+                        .accessibilityIdentifier("BottomTailAnchor_List")
+                    #endif
                 }
                 .refreshable { onTotalsChanged() }
                 .styledList()
@@ -1586,7 +1596,25 @@ private extension View {
                 self
             }
         } else {
+            // Classic iOS: disable UIKit's automatic bottom lift on the
+            // underlying UITableView, then add a fixed 16pt tail via a bottom
+            // inset so the last row remains close to the tab bar.
             self
+                .overlay(alignment: .topLeading) { UBBudgetListInsetTuner().frame(width: 0, height: 0) }
+                .safeAreaInset(edge: .bottom) {
+                    ZStack(alignment: .topLeading) {
+                        Color.clear
+                            .frame(height: DS.Spacing.l)
+                        #if DEBUG
+                        // Place the debug anchor at the top of the 16pt tail outside the List
+                        Color.clear
+                            .frame(width: 2, height: 2)
+                            .accessibilityIdentifier("BottomTailAnchor")
+                        #endif
+                    }
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                }
         }
         #endif
         #else

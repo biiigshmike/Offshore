@@ -121,7 +121,8 @@ struct PresetsView: View {
             proxy,
             horizontal: 0,
             extraTop: DS.Spacing.s,
-            includeSafeArea: false,
+            extraBottom: 0,
+            includeSafeArea: true,
             tabBarGutter: proxy.compactAwareTabBarGutter
         )
         // MARK: Data lifecycle

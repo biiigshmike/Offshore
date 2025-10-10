@@ -328,8 +328,8 @@ struct IncomeView: View {
             proxy,
             horizontal: horizontalInset,
             extraTop: DS.Spacing.s,
-            extraBottom: contentBottomInset(using: proxy),
-            includeSafeArea: false,
+            extraBottom: 0,
+            includeSafeArea: true,
             tabBarGutter: gutter
         )
         .frame(
@@ -364,8 +364,8 @@ struct IncomeView: View {
             proxy,
             horizontal: horizontalInset,
             extraTop: DS.Spacing.s,
-            extraBottom: contentBottomInset(using: proxy),
-            includeSafeArea: false,
+            extraBottom: 0,
+            includeSafeArea: true,
             tabBarGutter: gutter
         )
         .frame(
@@ -392,8 +392,8 @@ struct IncomeView: View {
                 proxy,
                 horizontal: horizontalInset,
                 extraTop: DS.Spacing.s,
-                extraBottom: contentBottomInset(using: proxy),
-                includeSafeArea: false,
+                extraBottom: 0,
+                includeSafeArea: true,
                 tabBarGutter: gutter
             )
         }

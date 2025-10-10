@@ -8,12 +8,22 @@ import SwiftUI
 // MARK: Platform Color Imports
 import UIKit
 
+// MARK: - Overview
+/// Central, minimal design token collection for spacing, radius, and colors.
+///
+/// Intent:
+/// - Keep view code declarative by referencing tokens instead of hard values.
+/// - Provide dynamic, system-aware colors without leaking UIKit into views.
+/// - Maintain cross-platform friendliness (iOS, iPadOS, macCatalyst).
+
 // MARK: - DesignSystem (Tokens)
 /// Centralized design tokens and tiny helpers for spacing, radius, shadows, and colors.
 /// SwiftUI-only types for cross-platform friendliness (iOS, iPadOS, macOS).
 enum DesignSystem {
 
     // MARK: Spacing (pts)
+    /// Spacing scale used throughout the UI. Values are in points and chosen to
+    /// align with common iOS rhythm. Prefer these over magic numbers.
     enum Spacing {
         static let xs: CGFloat = 6
         static let s:  CGFloat = 8
@@ -24,23 +34,33 @@ enum DesignSystem {
     }
 
     // MARK: Corner Radii
+    /// Corner radius tokens for common components.
     enum Radius {
+        /// Rounded card/container corners.
         static let card: CGFloat = 16
     }
 
     // MARK: Colors
+    /// Color tokens including accents and neutrals. Prefer these over hardcoded
+    /// `Color` literals so global adjustments remain centralized.
     enum Colors {
         // Accent hues
+        /// Planned income series/accent.
         static let plannedIncome  = Color.orange
+        /// Actual income series/accent.
         static let actualIncome   = Color.blue
+        /// Positive savings/accent.
         static let savingsGood    = Color.green
+        /// Negative savings/accent.
         static let savingsBad     = Color.red
 
         // Neutrals
+        /// Subtle card/container fill over grouped/system backgrounds.
         static let cardFill       = Color.gray.opacity(0.08)
 
         // MARK: System‑Aware Container Background
         /// A dynamic background color that adapts to light/dark mode across UIKit platforms.
+        /// Use behind pickers, lists, or lightweight surfaces to ensure contrast with content.
         static var containerBackground: Color {
             if #available(iOS 13.0, macCatalyst 13.0, *) {
                 return Color(UIColor.secondarySystemBackground)
@@ -79,6 +99,9 @@ enum DesignSystem {
         /// while resolving to a richer, darker fill in dark mode. The `opacity`
         /// value mirrors the historical hierarchy so existing design intent is
         /// preserved.
+        /// Produces a chip neutral that tracks `UIColor.label` in light mode and blends
+        /// label into background in dark mode to avoid overly bright pills.
+        /// - Parameter opacity: Relative opacity used to mix label/background.
         private static func dynamicChipNeutral(opacity: CGFloat) -> Color {
             if #available(iOS 13.0, macCatalyst 13.0, *) {
                 let dynamicColor = UIColor { traitCollection in
@@ -103,6 +126,7 @@ enum DesignSystem {
 }
 
 // Maintain compatibility with existing views using `DS`
+/// Alias for `DesignSystem` to keep call sites terse and readable.
 typealias DS = DesignSystem
 
 // MARK: - Private Helpers

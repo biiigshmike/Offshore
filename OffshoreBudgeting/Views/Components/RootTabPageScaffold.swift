@@ -187,7 +187,7 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
             configuration: themeManager.glassConfiguration,
             ignoringSafeArea: .all
         )
-        .ub_legacyUnderbarScroll()
+        .modifier(IgnoreBottomSafeAreaIfClassic(capabilities: platformCapabilities))
     }
 
     // MARK: Stack Content

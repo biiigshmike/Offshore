@@ -16,6 +16,8 @@ struct ExpenseCategoryManagerView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.isOnboardingPresentation) private var isOnboardingPresentation
+    @Environment(\.platformCapabilities) private var capabilities
+    @Environment(\.ub_safeAreaInsets) private var legacySafeAreaInsets
 
     // MARK: Sorting
     private static let sortByName: [NSSortDescriptor] = [
@@ -47,6 +49,7 @@ struct ExpenseCategoryManagerView: View {
                         configuration: themeManager.glassConfiguration,
                         ignoringSafeArea: .all
                     )
+                    
             }
         }
         .accentColor(themeManager.selectedTheme.resolvedTint)

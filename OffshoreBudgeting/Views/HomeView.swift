@@ -66,6 +66,8 @@ struct HomeView: View {
                 .rootTabContentPadding(
                     proxy,
                     horizontal: 0,
+                    extraTop: 0,
+                    extraBottom: 0, // host owns bottom tail (List/ScrollView)
                     includeSafeArea: false,
                     tabBarGutter: proxy.compactAwareTabBarGutter
                 )

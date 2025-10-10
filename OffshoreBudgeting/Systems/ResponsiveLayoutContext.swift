@@ -1,10 +1,17 @@
 import SwiftUI
 import UIKit
 
+// MARK: - Overview
+/// Captures size classes, safe-area insets, container size, dynamic type size,
+/// device idiom, and orientation into a single value injected into the
+/// environment. Keeps adaptive layout logic centralized and testable.
+
 /// Aggregates the environmental data points that influence how a layout should
 /// respond to changing device characteristics. Inject a single instance high in
 /// the scene hierarchy so that descendants can inspect the same snapshot when
 /// making adaptive decisions.
+// MARK: - Model
+/// Snapshot of the layout-relevant traits for a given view subtree.
 struct ResponsiveLayoutContext: Equatable {
     /// Enum describing the relevant traits for the current platform. Using our
     /// own abstraction keeps the API consistent across UIKit- and AppKit-backed
@@ -17,6 +24,7 @@ struct ResponsiveLayoutContext: Equatable {
         case vision
         case unspecified
 
+        /// Best-effort idiom derived from compile-time target and runtime traits.
         static var current: Idiom {
             #if targetEnvironment(macCatalyst)
             return .mac
@@ -26,14 +34,22 @@ struct ResponsiveLayoutContext: Equatable {
         }
     }
 
+    /// The size of the immediate layout container (from `GeometryReader`).
     var containerSize: CGSize
+    /// Safe area insets for the view subtree (back-deployed when necessary).
     var safeArea: EdgeInsets
+    /// Horizontal size class from the environment, if available.
     var horizontalSizeClass: UserInterfaceSizeClass?
+    /// Vertical size class from the environment, if available.
     var verticalSizeClass: UserInterfaceSizeClass?
+    /// Resolved dynamic type size for text/content scaling.
     var dynamicTypeSize: DynamicTypeSize
+    /// Coarse device idiom abstraction.
     var idiom: Idiom
+    /// Orientation hint based on container aspect ratio.
     var isLandscape: Bool
 
+    /// Creates a context with the provided traits.
     init(
         containerSize: CGSize = .zero,
         safeArea: EdgeInsets = EdgeInsets(),
@@ -53,11 +69,13 @@ struct ResponsiveLayoutContext: Equatable {
     }
 }
 
+// MARK: - Environment Key
 private struct ResponsiveLayoutContextKey: EnvironmentKey {
     static let defaultValue = ResponsiveLayoutContext()
 }
 
 extension EnvironmentValues {
+    /// Active responsive layout context for this view subtree.
     var responsiveLayoutContext: ResponsiveLayoutContext {
         get { self[ResponsiveLayoutContextKey.self] }
         set { self[ResponsiveLayoutContextKey.self] = newValue }
@@ -72,13 +90,16 @@ extension View {
     }
 }
 
+// MARK: - Helpers
 /// Convenience edge inset helpers shared by multiple layout consumers.
 extension EdgeInsets {
+    /// Returns `true` if any edge has a non‑zero inset.
     var hasNonZeroInsets: Bool {
         top != 0 || leading != 0 || bottom != 0 || trailing != 0
     }
 }
 
+// MARK: - Reader
 /// Captures geometry information and injects a ``ResponsiveLayoutContext`` into
 /// the view hierarchy. The reader always vends a context through the
 /// environment, but the supplied closure also receives the context directly so
@@ -91,6 +112,7 @@ struct ResponsiveLayoutReader<Content: View>: View {
 
     private let content: (ResponsiveLayoutContext) -> Content
 
+    /// Initializes the reader and exposes the resolved context to `content`.
     init(@ViewBuilder content: @escaping (ResponsiveLayoutContext) -> Content) {
         self.content = content
     }
@@ -106,6 +128,7 @@ struct ResponsiveLayoutReader<Content: View>: View {
         .modifier(LegacySafeAreaCapture())
     }
 
+    /// Builds a context from the current geometry and environment values.
     private func makeContext(using proxy: GeometryProxy) -> ResponsiveLayoutContext {
         ResponsiveLayoutContext(
             containerSize: proxy.size,
@@ -118,6 +141,8 @@ struct ResponsiveLayoutReader<Content: View>: View {
         )
     }
 
+    /// Uses `GeometryProxy.safeAreaInsets` on modern SDKs; otherwise falls back
+    /// to the back-deployed environment value captured earlier.
     private func resolvedSafeAreaInsets(from proxy: GeometryProxy) -> EdgeInsets {
         if #available(iOS 15.0, macCatalyst 15.0, *) {
             return proxy.safeAreaInsets
@@ -127,7 +152,10 @@ struct ResponsiveLayoutReader<Content: View>: View {
     }
 }
 
+// MARK: - Legacy Safe Area Capture
 private struct LegacySafeAreaCapture: ViewModifier {
+    /// Adds a back-deployed safe area capture for toolchains that lack
+    /// `GeometryProxy.safeAreaInsets`.
     func body(content: Content) -> some View {
         if #available(iOS 15.0, macCatalyst 15.0, *) {
             content

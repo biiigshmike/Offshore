@@ -7,9 +7,24 @@
 
 import SwiftUI
 
+// MARK: - Overview
+/// Root tab container for the application. Hosts all primary sections and
+/// applies theme-aware navigation chrome using compatibility helpers.
+///
+/// Behavior notes:
+/// - Preserves existing view hierarchy and default selected tab.
+/// - Navigation container adapts between `NavigationStack` (iOS/Catalyst 16+)
+///   and `NavigationView` for earlier targets without changing routes.
+/// - Background/chrome appearance is delegated to `ub_navigationBackground`
+///   and `ub_rootNavigationChrome()` to centralize OS 26 vs. classic styling.
 struct RootTabView: View {
+    // Active theme and glass configuration provided by the app. This controls
+    // background/chrome appearance via compatibility modifiers.
     @EnvironmentObject private var themeManager: ThemeManager
 
+    // MARK: Tabs
+    /// Logical destinations in the root tab bar. The order here matches the
+    /// presentation order in the `TabView`.
     enum Tab: Hashable, CaseIterable {
         case home
         case income
@@ -18,12 +33,16 @@ struct RootTabView: View {
         case settings
     }
 
+    // MARK: State
+    /// Currently selected tab. Defaults to `.home` to match existing behavior.
     @State private var selectedTab: Tab = .home
 
     var body: some View {
         tabViewBody
     }
 
+    // MARK: Body builders
+    /// The underlying `TabView` that binds to `selectedTab` and hosts each tab.
     private var tabViewBody: some View {
         TabView(selection: $selectedTab) {
             tabViewItem(for: .home)
@@ -35,6 +54,8 @@ struct RootTabView: View {
     }
 
     @ViewBuilder
+    /// Wraps a tab's content in a navigation container and assigns label/icon/tag.
+    /// - Parameter tab: Logical tab identifier.
     private func tabViewItem(for tab: Tab) -> some View {
         navigationContainer {
             decoratedTabContent(for: tab)
@@ -44,6 +65,8 @@ struct RootTabView: View {
     }
 
     @ViewBuilder
+    /// Applies theme-aware navigation background and chrome to the tab content.
+    /// - Parameter tab: Logical tab identifier.
     private func decoratedTabContent(for tab: Tab) -> some View {
         tabContent(for: tab)
             .ub_navigationBackground(
@@ -54,6 +77,8 @@ struct RootTabView: View {
     }
 
     @ViewBuilder
+    /// Returns the root view for the given tab without additional decoration.
+    /// - Parameter tab: Logical tab identifier.
     private func tabContent(for tab: Tab) -> some View {
         switch tab {
         case .home:
@@ -70,6 +95,9 @@ struct RootTabView: View {
     }
 
     @ViewBuilder
+    /// Host container that provides navigation for each tab, selecting
+    /// `NavigationStack` on iOS/Catalyst 16+ and falling back to
+    /// `NavigationView` elsewhere to preserve navigation behavior.
     private func navigationContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         if #available(iOS 16.0, macCatalyst 16.0, *) {
             NavigationStack { content() }
@@ -80,7 +108,9 @@ struct RootTabView: View {
     }
 }
 
+// MARK: - Tab Metadata
 private extension RootTabView.Tab {
+    /// Localized title used in the tab bar label for each case.
     var title: String {
         switch self {
         case .home:
@@ -96,6 +126,7 @@ private extension RootTabView.Tab {
         }
     }
 
+    /// SF Symbols name for the system image used in the tab bar.
     var systemImage: String {
         switch self {
         case .home:

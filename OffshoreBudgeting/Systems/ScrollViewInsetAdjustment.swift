@@ -3,6 +3,7 @@ import SwiftUI
 #if os(iOS)
 import UIKit
 
+// MARK: - Overview (iOS)
 /// Tames UIKit's automatic bottom inset adjustments for the nearest ancestor
 /// `UIScrollView` (the one backing a SwiftUI `ScrollView`). On legacy iOS
 /// versions, SwiftUI/UIScrollView will add extra bottom insets so content
@@ -18,12 +19,16 @@ import UIKit
 /// now leaves the adjustment behavior as-is and only zeroes the bottom
 /// content/indicator insets.
 struct UBScrollViewInsetAdjustmentDisabler: UIViewRepresentable {
+    /// Creates a transparent host view that we insert into the SwiftUI
+    /// hierarchy to gain access to the underlying `UIScrollView`.
     func makeUIView(context: Context) -> UIView {
         let view = UIView(frame: .zero)
         view.isUserInteractionEnabled = false
         return view
     }
 
+    /// Locates the enclosing `UIScrollView` and disables only the unwanted
+    /// bottom adjustments, leaving top inset behavior intact.
     func updateUIView(_ uiView: UIView, context: Context) {
         guard let scrollView = findEnclosingScrollView(from: uiView) else { return }
 
@@ -45,6 +50,7 @@ struct UBScrollViewInsetAdjustmentDisabler: UIViewRepresentable {
         }
     }
 
+    /// Walks up the superview chain to find the nearest `UIScrollView`.
     private func findEnclosingScrollView(from view: UIView) -> UIScrollView? {
         var current: UIView? = view
         // Walk up the view hierarchy to find the nearest UIScrollView.

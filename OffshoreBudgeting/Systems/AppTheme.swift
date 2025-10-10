@@ -68,6 +68,8 @@ enum CloudSyncPreferences {
         /* no-op */
     }
 
+    /// Disables syncing of CardTheme selection via iCloud KVS.
+    /// - Parameter defaults: Local `UserDefaults` used to persist the flag.
     static func disableCardThemeSync(in defaults: UserDefaults) {
         defaults.set(false, forKey: AppSettingsKeys.syncCardThemes.rawValue)
     }
@@ -77,6 +79,9 @@ enum CloudSyncPreferences {
 /// Centralized color palette for the application. Each case defines a
 /// complete set of color used across the UI so that switching themes is
 /// consistent everywhere.
+// MARK: - AppTheme (System‑only)
+/// System‑driven theme that adapts colors to light/dark appearance and provides
+/// a consistent palette for views, chrome, and OS 26 glass.
 enum AppTheme: String, CaseIterable, Identifiable, Codable {
     struct TabBarPalette {
         let active: Color
@@ -88,16 +93,6 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
 
     /// Follows the system appearance and accent colors.
     case system
-    case classic
-    case midnight
-    case forest
-    case sunset
-    case nebula
-    case ocean
-    case sunrise
-    case blossom
-    case lavender
-    case mint
 
     var id: String { rawValue }
 
@@ -114,41 +109,13 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
         })
     }
 
-    /// Human readable name shown in pickers.
-    var displayName: String {
-        switch self {
-        case .system: return "System"
-        case .classic: return "Classic"
-        case .midnight: return "Midnight"
-        case .forest: return "Forest"
-        case .sunset: return "Sunset"
-        case .nebula: return "Nebula"
-        case .ocean: return "Ocean"
-        case .sunrise: return "Sunrise"
-        case .blossom: return "Blossom"
-        case .lavender: return "Lavender"
-        case .mint: return "Mint"
-        }
-    }
+    /// Human‑readable name for UI pickers and settings lists.
+    var displayName: String { "System" }
 
     /// Accent color applied to interactive elements.
-    var accent: Color {
-        switch self {
-        case .system:
-            return AppTheme.systemNeutralAccent
-        case .classic: return .blue
-        case .midnight: return .purple
-        case .forest: return .green
-        case .sunset: return .orange
-        case .nebula: return .pink
-        case .ocean: return Color(red: 0.0, green: 0.6, blue: 0.7)
-        case .sunrise: return .yellow
-        case .blossom: return Color(red: 1.0, green: 0.4, blue: 0.7)
-        case .lavender: return .purple
-        case .mint: return Color(red: 0.0, green: 0.7, blue: 0.5)
-        }
-    }
+    var accent: Color { AppTheme.systemNeutralAccent }
 
+    // MARK: Colors & Tints
     /// Optional tint color used for SwiftUI's `.tint` and `.accentColor` modifiers.
     ///
     /// All custom themes specify a tint color. The System theme intentionally
@@ -156,14 +123,7 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
     /// On iOS and related platforms we rely on a dynamic neutral accent so the
     /// theme respects the project's light (black) and dark (white) accents
     /// instead of defaulting to the system blue.
-    var tint: Color? {
-        switch self {
-        case .system:
-            return AppTheme.systemNeutralAccent
-        default:
-            return accent
-        }
-    }
+    var tint: Color? { AppTheme.systemNeutralAccent }
 
     /// Guaranteed accent value for glass effects. Falls back to `accent`
     /// when the theme opts into the system tint on iOS.
@@ -172,14 +132,7 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
     /// Preferred tint for toggle controls. Matches Apple's default green
     /// when following the system appearance so switches remain legible in
     /// both light and dark modes on newer OS releases.
-    var toggleTint: Color {
-        switch self {
-        case .system:
-            return Color(UIColor.systemGreen)
-        default:
-            return resolvedTint
-        }
-    }
+    var toggleTint: Color { Color(UIColor.systemGreen) }
 
     /// Secondary accent color derived from the primary accent.
     var secondaryAccent: Color {
@@ -189,119 +142,26 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
         return Color(hue: Double(h), saturation: Double(s * 0.5), brightness: Double(min(b * 1.2, 1.0)))
     }
 
+    // MARK: Background Colors
     /// Primary background color for views.
-    var background: Color {
-        switch self {
-        case .system:
-            return Color(UIColor.systemBackground)
-        case .classic:
-            return Color(UIColor.systemGroupedBackground)
-        case .midnight:
-            return Color.black
-        case .forest:
-            return Color(red: 0.05, green: 0.14, blue: 0.10)
-        case .sunset:
-            return Color(red: 0.12, green: 0.05, blue: 0.02)
-        case .nebula:
-            return Color(red: 0.05, green: 0.02, blue: 0.10)
-        case .ocean:
-            return Color(red: 0.90, green: 0.95, blue: 1.0)
-        case .sunrise:
-            return Color(red: 1.0, green: 0.95, blue: 0.90)
-        case .blossom:
-            return Color(red: 1.0, green: 0.95, blue: 0.98)
-        case .lavender:
-            return Color(red: 0.95, green: 0.94, blue: 1.0)
-        case .mint:
-            return Color(red: 0.93, green: 1.0, blue: 0.94)
-        }
-    }
+    var background: Color { Color(UIColor.systemBackground) }
 
     /// Secondary background used for card interiors and icons.
-    var secondaryBackground: Color {
-        switch self {
-        case .system:
-            return Color(UIColor.secondarySystemBackground)
-        case .classic:
-            return Color(UIColor.secondarySystemGroupedBackground)
-        case .midnight:
-            return Color(red: 0.15, green: 0.15, blue: 0.18)
-        case .forest:
-            return Color(red: 0.09, green: 0.20, blue: 0.15)
-        case .sunset:
-            return Color(red: 0.18, green: 0.09, blue: 0.04)
-        case .nebula:
-            return Color(red: 0.10, green: 0.04, blue: 0.18)
-        case .ocean:
-            return Color(red: 0.80, green: 0.90, blue: 0.95)
-        case .sunrise:
-            return Color(red: 1.0, green: 0.90, blue: 0.85)
-        case .blossom:
-            return Color(red: 1.0, green: 0.90, blue: 0.95)
-        case .lavender:
-            return Color(red: 0.90, green: 0.88, blue: 0.98)
-        case .mint:
-            return Color(red: 0.88, green: 0.98, blue: 0.90)
-        }
-    }
+    var secondaryBackground: Color { Color(UIColor.secondarySystemBackground) }
 
     /// Tertiary background for card shells.
-    var tertiaryBackground: Color {
-        switch self {
-        case .system:
-            return Color(UIColor.tertiarySystemBackground)
-        case .classic:
-            return Color(UIColor.tertiarySystemGroupedBackground)
-        case .midnight:
-            return Color(red: 0.12, green: 0.12, blue: 0.15)
-        case .forest:
-            return Color(red: 0.07, green: 0.16, blue: 0.12)
-        case .sunset:
-            return Color(red: 0.15, green: 0.08, blue: 0.03)
-        case .nebula:
-            return Color(red: 0.08, green: 0.03, blue: 0.15)
-        case .ocean:
-            return Color(red: 0.70, green: 0.85, blue: 0.95)
-        case .sunrise:
-            return Color(red: 0.98, green: 0.85, blue: 0.80)
-        case .blossom:
-            return Color(red: 0.98, green: 0.85, blue: 0.92)
-        case .lavender:
-            return Color(red: 0.85, green: 0.83, blue: 0.95)
-        case .mint:
-            return Color(red: 0.83, green: 0.95, blue: 0.86)
-        }
-    }
+    var tertiaryBackground: Color { Color(UIColor.tertiarySystemBackground) }
 
     /// Neutral grouped container background that mirrors the system's form canvas.
-    var sheetBackground: Color {
-        switch self {
-        case .system:
-            return Color(UIColor { trait in
-                if trait.userInterfaceStyle == .dark {
-                    return UIColor.systemGroupedBackground
-                } else {
-                    return UIColor.systemGroupedBackground
-                }
-            })
-        case .classic, .ocean, .sunrise, .blossom, .lavender, .mint:
-            return Color(UIColor.systemGroupedBackground)
-        case .midnight, .forest, .sunset, .nebula:
-            return background
-        }
-    }
+    var sheetBackground: Color { Color(UIColor.systemGroupedBackground) }
 
+    // MARK: Text & Forms
     /// Theme-aware background for grouped form rows to match system styling.
     /// - Parameter colorScheme: The resolved environment scheme for the view.
     func formRowBackground(for colorScheme: ColorScheme) -> Color {
-        switch self {
-        case .system:
-            return colorScheme == .dark
-                ? Color(UIColor.secondarySystemGroupedBackground)
-                : Color(UIColor.systemBackground)
-        default:
-            return background
-        }
+        return colorScheme == .dark
+            ? Color(UIColor.secondarySystemGroupedBackground)
+            : Color(UIColor.systemBackground)
     }
 
     /// Neutral foreground color suitable for primary labels within the theme.
@@ -309,153 +169,91 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
     ///   System theme can mirror the platform default of dark text in light mode and
     ///   light text in dark mode.
     func primaryTextColor(for colorScheme: ColorScheme) -> Color {
-        switch self {
-        case .system:
-            return colorScheme == .dark ? .white : .black
-        default:
-            return .primary
-        }
+        return colorScheme == .dark ? .white : .black
     }
 
     /// Preferred system color scheme for the theme. A value of `nil` means the
     /// theme should follow the system setting.
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system:
-            return nil
-        case .classic, .ocean, .sunrise, .blossom, .lavender, .mint:
-            return .light
-        case .midnight, .forest, .sunset, .nebula:
-            return .dark
-        }
-    }
+    var colorScheme: ColorScheme? { nil }
 
+    // MARK: Glass (OS 26)
     /// Tunable translucent controls that define how OS 26 surfaces are rendered
     /// for the theme.
     var baseGlassConfiguration: GlassConfiguration {
-        switch self {
-        case .system:
-            return AppTheme.systemGlassConfiguration(resolvedTint: resolvedTint)
-        default:
-            return .translucent(
-                liquidAmount: GlassConfiguration.TranslucentDefaults.liquidAmount,
-                glassAmount: GlassConfiguration.TranslucentDefaults.glassAmount,
-                palette: glassPalette
-            )
-        }
+        AppTheme.systemGlassConfiguration(resolvedTint: resolvedTint)
     }
 
     /// Theme-aware base color used when rendering OS 26 translucent surfaces.
-    var glassBaseColor: Color {
-        let accentWash = AppThemeColorUtilities.adjust(
-            resolvedTint,
-            saturationMultiplier: 0.45,
-            brightnessMultiplier: 1.12,
-            alpha: 1.0
-        )
-
-        let brightness = AppThemeColorUtilities.hsba(from: background)?.brightness ?? 0.65
-        var blendAmount: Double
-        switch brightness {
-        case ..<0.35:
-            blendAmount = 0.58
-        case ..<0.55:
-            blendAmount = 0.42
-        case ..<0.75:
-            blendAmount = 0.32
-        default:
-            blendAmount = 0.24
-        }
-
-        switch self {
-        case .system:
-            return AppTheme.systemGlassBaseColor(resolvedTint: resolvedTint)
-        default:
-            return AppThemeColorUtilities.mix(background, accentWash, amount: blendAmount)
-        }
-    }
+    var glassBaseColor: Color { AppTheme.systemGlassBaseColor(resolvedTint: resolvedTint) }
 
     /// Palette used when rendering OS 26 translucent surfaces.
     var glassPalette: GlassConfiguration.Palette {
-        let accent: Color
-        let shadow: Color
-        let specular: Color
-        let rim: Color
+        let tintSaturation = AppThemeColorUtilities
+            .hsba(from: resolvedTint)?.saturation ?? 0.0
+        let tintBlend = tintSaturation.clamped(to: 0...1)
 
-        switch self {
-        case .system:
-            let tintSaturation = AppThemeColorUtilities
-                .hsba(from: resolvedTint)?.saturation ?? 0.0
-            let tintBlend = tintSaturation.clamped(to: 0...1)
+        let neutralAccent = Color(UIColor { trait in
+            if trait.userInterfaceStyle == .dark {
+                return UIColor(red: 0.70, green: 0.74, blue: 0.84, alpha: 1.0)
+            } else {
+                return UIColor(red: 0.58, green: 0.62, blue: 0.72, alpha: 1.0)
+            }
+        })
+        let neutralShadow = Color(UIColor { trait in
+            if trait.userInterfaceStyle == .dark {
+                return UIColor(red: 0.05, green: 0.06, blue: 0.10, alpha: 1.0)
+            } else {
+                return UIColor(red: 0.68, green: 0.72, blue: 0.80, alpha: 1.0)
+            }
+        })
+        let neutralSpecular = Color(UIColor { trait in
+            if trait.userInterfaceStyle == .dark {
+                return UIColor(red: 0.96, green: 0.97, blue: 1.00, alpha: 1.0)
+            } else {
+                return UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 1.0)
+            }
+        })
+        let neutralRim = Color(UIColor { trait in
+            if trait.userInterfaceStyle == .dark {
+                return UIColor(red: 0.82, green: 0.86, blue: 0.94, alpha: 1.0)
+            } else {
+                return UIColor(red: 0.70, green: 0.74, blue: 0.84, alpha: 1.0)
+            }
+        })
 
-            let neutralAccent = Color(UIColor { trait in
-                if trait.userInterfaceStyle == .dark {
-                    return UIColor(red: 0.70, green: 0.74, blue: 0.84, alpha: 1.0)
-                } else {
-                    return UIColor(red: 0.58, green: 0.62, blue: 0.72, alpha: 1.0)
-                }
-            })
-            let neutralShadow = Color(UIColor { trait in
-                if trait.userInterfaceStyle == .dark {
-                    return UIColor(red: 0.05, green: 0.06, blue: 0.10, alpha: 1.0)
-                } else {
-                    return UIColor(red: 0.68, green: 0.72, blue: 0.80, alpha: 1.0)
-                }
-            })
-            let neutralSpecular = Color(UIColor { trait in
-                if trait.userInterfaceStyle == .dark {
-                    return UIColor(red: 0.96, green: 0.97, blue: 1.00, alpha: 1.0)
-                } else {
-                    return UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 1.0)
-                }
-            })
-            let neutralRim = Color(UIColor { trait in
-                if trait.userInterfaceStyle == .dark {
-                    return UIColor(red: 0.82, green: 0.86, blue: 0.94, alpha: 1.0)
-                } else {
-                    return UIColor(red: 0.70, green: 0.74, blue: 0.84, alpha: 1.0)
-                }
-            })
+        let accentTone = AppThemeColorUtilities.adjust(
+            resolvedTint,
+            saturationMultiplier: 0.10,
+            brightnessMultiplier: 1.08,
+            alpha: 1.0
+        )
+        let shadowTone = AppThemeColorUtilities.adjust(
+            resolvedTint,
+            saturationMultiplier: 0.10,
+            brightnessMultiplier: 0.70,
+            alpha: 1.0
+        )
+        let specularTone = AppThemeColorUtilities.adjust(
+            resolvedTint,
+            saturationMultiplier: 0.08,
+            brightnessMultiplier: 1.30,
+            alpha: 1.0
+        )
+        let rimTone = AppThemeColorUtilities.adjust(
+            resolvedTint,
+            saturationMultiplier: 0.08,
+            brightnessMultiplier: 1.18,
+            alpha: 1.0
+        )
 
-            let accentTone = AppThemeColorUtilities.adjust(
-                resolvedTint,
-                saturationMultiplier: 0.10,
-                brightnessMultiplier: 1.08,
-                alpha: 1.0
-            )
-            let shadowTone = AppThemeColorUtilities.adjust(
-                resolvedTint,
-                saturationMultiplier: 0.10,
-                brightnessMultiplier: 0.70,
-                alpha: 1.0
-            )
-            let specularTone = AppThemeColorUtilities.adjust(
-                resolvedTint,
-                saturationMultiplier: 0.08,
-                brightnessMultiplier: 1.30,
-                alpha: 1.0
-            )
-            let rimTone = AppThemeColorUtilities.adjust(
-                resolvedTint,
-                saturationMultiplier: 0.08,
-                brightnessMultiplier: 1.18,
-                alpha: 1.0
-            )
-
-            accent = AppThemeColorUtilities.mix(neutralAccent, accentTone, amount: tintBlend)
-            shadow = AppThemeColorUtilities.mix(neutralShadow, shadowTone, amount: tintBlend)
-            specular = AppThemeColorUtilities.mix(neutralSpecular, specularTone, amount: tintBlend)
-            rim = AppThemeColorUtilities.mix(neutralRim, rimTone, amount: tintBlend)
-        default:
-            accent = resolvedTint
-            shadow = AppThemeColorUtilities.adjust(resolvedTint, saturationMultiplier: 1.05, brightnessMultiplier: 0.48, alpha: 1.0)
-            specular = AppThemeColorUtilities.adjust(resolvedTint, saturationMultiplier: 0.62, brightnessMultiplier: 1.32, alpha: 1.0)
-            rim = AppThemeColorUtilities.adjust(resolvedTint, saturationMultiplier: 0.68, brightnessMultiplier: 1.18, alpha: 1.0)
-        }
-
+        let accent = AppThemeColorUtilities.mix(neutralAccent, accentTone, amount: tintBlend)
+        let shadow = AppThemeColorUtilities.mix(neutralShadow, shadowTone, amount: tintBlend)
+        let specular = AppThemeColorUtilities.mix(neutralSpecular, specularTone, amount: tintBlend)
+        let rim = AppThemeColorUtilities.mix(neutralRim, rimTone, amount: tintBlend)
         return GlassConfiguration.Palette(accent: accent, shadow: shadow, specular: specular, rim: rim)
     }
 
+    // MARK: Tab Bar Palette
     /// Color palette used to render tab bar content across platforms.
     var tabBarPalette: TabBarPalette {
         let brightness = AppThemeColorUtilities.hsba(from: glassBaseColor)?.brightness
@@ -498,19 +296,15 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
         )
     }
 
+    // MARK: Glass Usage Policy
     /// Indicates whether the theme opts into the custom glass materials used
     /// throughout the interface. The System theme intentionally relies on the
     /// platform default backgrounds to closely mirror Apple's native apps.
     var usesGlassMaterials: Bool {
-        switch self {
-        case .system:
-            if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                return true
-            } else {
-                return false
-            }
-        default:
+        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             return true
+        } else {
+            return false
         }
     }
 
@@ -523,32 +317,9 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
     /// - Custom themes: derive a muted wash from the theme's `resolvedTint` so
     ///   chrome feels on‑brand without harming contrast.
     var legacyChromeBackground: Color {
-        let hsba = AppThemeColorUtilities.hsba(from: resolvedTint)
-
         return Color(UIColor { trait in
             let isDark = trait.userInterfaceStyle == .dark
-
-            // System theme → neutral chrome
-            if self == .system {
-                return isDark ? UIColor.black : UIColor.systemGray6
-            }
-
-            // Custom themes → gently washed by tint
-            let hue = CGFloat(hsba?.hue ?? 0.0)
-            let sat = CGFloat(hsba?.saturation ?? 0.0)
-            let bri = CGFloat(hsba?.brightness ?? 0.7)
-
-            if isDark {
-                // Very dark, slightly tinted surface
-                let s = max(0.0, min(sat * 0.30, 0.35))
-                let b = max(0.08, min(0.16 + bri * 0.10, 0.22))
-                return UIColor(hue: hue, saturation: s, brightness: b, alpha: 1.0)
-            } else {
-                // Subtle light gray with a hint of the tint
-                let s = max(0.0, min(sat * 0.12, 0.18))
-                let b = CGFloat(0.96)
-                return UIColor(hue: hue, saturation: s, brightness: b, alpha: 1.0)
-            }
+            return isDark ? UIColor.black : UIColor.systemGray6
         })
     }
 
@@ -568,6 +339,7 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
 }
 
 extension AppTheme {
+    // MARK: - System Glass Helpers
     /// iOS/iPadOS System glass tuned brighter and more neutral.
     static func systemGlassConfiguration(resolvedTint: Color) -> GlassConfiguration {
         var configuration = AppTheme.GlassConfiguration.standard
@@ -767,6 +539,9 @@ extension AppTheme {
 }
 
 extension AppTheme.GlassConfiguration {
+    // MARK: - Translucent Defaults
+    /// Default settings used to derive a balanced translucent look when callers
+    /// provide only high‑level liquid/glass amounts.
     enum TranslucentDefaults {
         static let liquidAmount: Double = 0.7
         static let glassAmount: Double = 0.68
@@ -778,6 +553,8 @@ extension AppTheme.GlassConfiguration {
         )
     }
 
+    // MARK: - Factory Presets
+    /// Baseline glass configuration applied across the app.
     static let standard = AppTheme.GlassConfiguration(
         liquid: .init(
             tintOpacity: 0.14,
@@ -805,6 +582,12 @@ extension AppTheme.GlassConfiguration {
         )
     )
 
+    /// Builds a configuration from high‑level liquid/glass intensities.
+    /// - Parameters:
+    ///   - liquidAmount: 0–1 intensity controlling tint/saturation/contrast/bloom.
+    ///   - glassAmount: 0–1 intensity controlling highlight/specular/rim/material.
+    ///   - palette: Color palette for glass overlays.
+    /// - Returns: A derived `GlassConfiguration` suitable for OS 26 surfaces.
     static func translucent(
         liquidAmount: Double,
         glassAmount: Double,
@@ -870,6 +653,7 @@ extension AppTheme.GlassConfiguration {
 // MARK: - Color Utilities
 
 fileprivate enum AppThemeColorUtilities {
+    /// Red/Green/Blue/Alpha color components normalized to 0–1.
     struct RGBA {
         var red: Double
         var green: Double
@@ -877,6 +661,7 @@ fileprivate enum AppThemeColorUtilities {
         var alpha: Double
     }
 
+    /// Hue/Saturation/Brightness/Alpha components normalized to 0–1.
     struct HSBA {
         var hue: Double
         var saturation: Double
@@ -884,6 +669,9 @@ fileprivate enum AppThemeColorUtilities {
         var alpha: Double
     }
 
+    /// Extracts RGBA components from a SwiftUI `Color` if representable in sRGB.
+    /// - Parameter color: The input color.
+    /// - Returns: RGBA components or `nil` when conversion fails.
     static func rgba(from color: Color) -> RGBA? {
         let platformColor = UIColor(color)
         var red: CGFloat = 0
@@ -894,6 +682,9 @@ fileprivate enum AppThemeColorUtilities {
         return RGBA(red: Double(red), green: Double(green), blue: Double(blue), alpha: Double(alpha))
     }
 
+    /// Extracts HSBA components from a SwiftUI `Color` if representable.
+    /// - Parameter color: The input color.
+    /// - Returns: HSBA components or `nil` when conversion fails.
     static func hsba(from color: Color) -> HSBA? {
         let platformColor = UIColor(color)
         var hue: CGFloat = 0
@@ -904,6 +695,7 @@ fileprivate enum AppThemeColorUtilities {
         return HSBA(hue: Double(hue), saturation: Double(saturation), brightness: Double(brightness), alpha: Double(alpha))
     }
 
+    /// Creates a `Color` from normalized RGBA components.
     static func color(from rgba: RGBA) -> Color {
         Color(
             red: rgba.red.clamped(to: 0...1),
@@ -913,6 +705,7 @@ fileprivate enum AppThemeColorUtilities {
         )
     }
 
+    /// Creates a `Color` from normalized HSBA components, normalizing hue to [0,1).
     static func color(from hsba: HSBA) -> Color {
         let normalizedHue = ((hsba.hue.truncatingRemainder(dividingBy: 1.0)) + 1.0).truncatingRemainder(dividingBy: 1.0)
         return Color(
@@ -923,6 +716,12 @@ fileprivate enum AppThemeColorUtilities {
         )
     }
 
+    /// Linearly blends two colors in RGB space.
+    /// - Parameters:
+    ///   - lhs: First color.
+    ///   - rhs: Second color.
+    ///   - amount: 0 returns `lhs`; 1 returns `rhs`.
+    /// - Returns: The blended color.
     static func mix(_ lhs: Color, _ rhs: Color, amount: Double) -> Color {
         let t = amount.clamped(to: 0...1)
         guard
@@ -940,6 +739,13 @@ fileprivate enum AppThemeColorUtilities {
         return color(from: mixed)
     }
 
+    /// Adjusts saturation/brightness and optional alpha on a color.
+    /// - Parameters:
+    ///   - color: Base color.
+    ///   - saturationMultiplier: Multiplier applied to saturation (clamped 0–1).
+    ///   - brightnessMultiplier: Multiplier applied to brightness (clamped 0–1).
+    ///   - alpha: Optional replacement alpha.
+    /// - Returns: The adjusted color or the original color when component extraction fails.
     static func adjust(
         _ color: Color,
         saturationMultiplier: Double,
@@ -960,10 +766,12 @@ fileprivate enum AppThemeColorUtilities {
 }
 
 fileprivate extension Double {
+    /// Linear interpolation between `min` and `max` by `amount` in 0–1.
     static func lerp(_ min: Double, _ max: Double, _ amount: Double) -> Double {
         min + (max - min) * amount
     }
 
+    /// Returns this value constrained to the provided closed range.
     func clamped(to range: ClosedRange<Double>) -> Double {
         if self < range.lowerBound { return range.lowerBound }
         if self > range.upperBound { return range.upperBound }
@@ -972,9 +780,14 @@ fileprivate extension Double {
 }
 
 // MARK: - ThemeManager
+// MARK: - ThemeManager
+/// Central manager for the app's theme. With custom themes removed, it
+/// enforces `.system`, applies interface style, and (optionally) coordinates
+/// with iCloud KVS if re-enabled in the future.
 @MainActor
 final class ThemeManager: ObservableObject {
     // Custom themes disabled: always coerce to `.system`.
+    /// Current theme selection. Coerced to `.system` if mutated otherwise.
     @Published var selectedTheme: AppTheme = .system {
         didSet {
             if selectedTheme != .system {
@@ -1025,10 +838,13 @@ final class ThemeManager: ObservableObject {
         stopObservingUbiquitousStore()
     }
 
+    /// Convenience access to the active theme's glass configuration.
     var glassConfiguration: AppTheme.GlassConfiguration {
         return selectedTheme.baseGlassConfiguration
     }
 
+    /// Persists the current theme selection to `UserDefaults` and iCloud KVS
+    /// (if available and enabled), tolerating transient sync failures.
     private func save() {
         userDefaults.set(selectedTheme.rawValue, forKey: storageKey)
         guard let store = ubiquitousStoreIfAvailable() else { return }
@@ -1046,12 +862,14 @@ final class ThemeManager: ObservableObject {
         }
     }
 
+    /// Re-applies appearance when system light/dark changes while following system.
     func refreshSystemAppearance(_ colorScheme: ColorScheme) {
         guard selectedTheme.colorScheme == nil else { return }
         applyAppearance()
         objectWillChange.send()
     }
 
+    /// Pushes the theme's preferred color scheme to all windows.
     private func applyAppearance() {
         let style: UIUserInterfaceStyle
         if let scheme = selectedTheme.colorScheme {
@@ -1065,6 +883,7 @@ final class ThemeManager: ObservableObject {
             .forEach { $0.overrideUserInterfaceStyle = style }
     }
 
+    /// Maps a stored raw value (including legacy IDs) to a supported theme.
     private static func resolveTheme(from raw: String?) -> AppTheme {
         if let raw, raw == legacyLiquidGlassIdentifier {
             return .system
@@ -1072,16 +891,19 @@ final class ThemeManager: ObservableObject {
         return raw.flatMap { AppTheme(rawValue: $0) } ?? .system
     }
 
+    /// Returns `true` when theme sync is enabled in app settings.
     private static func isThemeSyncEnabled(in defaults: UserDefaults) -> Bool {
         // App theme sync removed – always false.
         return false
     }
 
+    /// Returns whether iCloud is signed in and available on the device.
     private static func isCloudAvailable(from provider: CloudAvailabilityProviding) -> Bool {
         guard let available = provider.isCloudAccountAvailable else { return false }
         return available
     }
 
+    /// Lazily resolves and subscribes to a cloud account status provider.
     private func resolveCloudStatusProvider() -> CloudAvailabilityProviding {
         if let provider = cloudStatusProvider {
             scheduleAvailabilityCheckIfNeeded(for: provider)
@@ -1102,6 +924,7 @@ final class ThemeManager: ObservableObject {
         return provider
     }
 
+    /// Kicks off an async availability check once per app run.
     private func scheduleAvailabilityCheckIfNeeded(for provider: CloudAvailabilityProviding) {
         guard !hasRequestedCloudAvailabilityCheck else { return }
         hasRequestedCloudAvailabilityCheck = true
@@ -1110,12 +933,14 @@ final class ThemeManager: ObservableObject {
         }
     }
 
+    /// Indicates whether iCloud should be consulted for theme changes.
     private var shouldUseICloud: Bool {
         guard Self.isThemeSyncEnabled(in: userDefaults) else { return false }
         let provider = resolveCloudStatusProvider()
         return Self.isCloudAvailable(from: provider)
     }
 
+    /// Responds to cloud account becoming available/unavailable.
     private func handleCloudAvailabilityChange(_ availability: CloudAccountStatusProvider.Availability) {
         switch availability {
         case .available:
@@ -1130,6 +955,7 @@ final class ThemeManager: ObservableObject {
         }
     }
 
+    /// Synchronizes with iCloud KVS and applies the stored theme if different.
     private func loadThemeFromCloud() {
         guard let store = ubiquitousStoreIfAvailable() else { return }
 
@@ -1143,11 +969,13 @@ final class ThemeManager: ObservableObject {
         applyThemeIfNeeded(from: raw)
     }
 
+    /// Reads any locally stored theme and applies it when different.
     private func applyThemeFromUserDefaultsIfNeeded() {
         let raw = userDefaults.string(forKey: storageKey)
         applyThemeIfNeeded(from: raw)
     }
 
+    /// Applies a theme decoded from the provided raw value if it differs.
     private func applyThemeIfNeeded(from raw: String?) {
         let newTheme = Self.resolveTheme(from: raw)
         guard newTheme != selectedTheme else { return }
@@ -1158,6 +986,7 @@ final class ThemeManager: ObservableObject {
         }
     }
 
+    /// Subscribes to KVS external change notifications once.
     private func startObservingUbiquitousStoreIfNeeded() {
         guard ubiquitousObserver == nil else { return }
         guard let store = ubiquitousStoreIfAvailable() else { return }
@@ -1172,6 +1001,7 @@ final class ThemeManager: ObservableObject {
         }
     }
 
+    /// Removes any existing KVS observer and clears state.
     private func stopObservingUbiquitousStore() {
         if let observer = ubiquitousObserver {
             notificationCenter.removeObserver(observer)
@@ -1179,11 +1009,13 @@ final class ThemeManager: ObservableObject {
         }
     }
 
+    /// Reacts to KVS external changes by refreshing the theme when allowed.
     private func handleUbiquitousStoreChange(_ note: Notification) {
         guard shouldUseICloud else { return }
         loadThemeFromCloud()
     }
 
+    /// Stops observing and requests a status refresh if KVS sync fails.
     private func handleICloudSynchronizationFailure() {
         stopObservingUbiquitousStore()
         CloudSyncPreferences.disableAppThemeSync(in: userDefaults)
@@ -1194,6 +1026,7 @@ final class ThemeManager: ObservableObject {
         }
 }
 
+    /// Lazily creates or returns the cached ubiquitous key‑value store adapter.
     private func instantiateUbiquitousStore() -> UbiquitousKeyValueStoring {
         if let store = cachedUbiquitousStore {
             return store
@@ -1203,6 +1036,7 @@ final class ThemeManager: ObservableObject {
         return store
     }
 
+    /// Returns the ubiquitous store when iCloud should be used; otherwise `nil`.
     private func ubiquitousStoreIfAvailable() -> UbiquitousKeyValueStoring? {
         guard shouldUseICloud else { return nil }
         return instantiateUbiquitousStore()

@@ -136,6 +136,7 @@ struct CardDetailView: View {
             configuration: themeManager.glassConfiguration,
             ignoringSafeArea: .all
         )
+        
     }
 
     // MARK: content
@@ -190,7 +191,7 @@ struct CardDetailView: View {
 
     @ViewBuilder
     private func baseList(cardMaxWidth: CGFloat?, total: Double) -> some View {
-        let list = List {
+        var list = List {
             // Card header as its own section to ensure consistent rendering
             // with modern List defaults across iOS 16/17.
             Section {
@@ -211,6 +212,7 @@ struct CardDetailView: View {
             .listRowSeparator(.hidden)
             .ub_hideScrollIndicators()
             .cardDetailListBottomInset(capabilities: capabilities, layoutContext: layoutContext)
+        
 
         if #available(iOS 15.0, macCatalyst 15.0, *) {
             list

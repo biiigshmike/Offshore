@@ -272,11 +272,8 @@ struct SettingsView: View {
             proxy,
             horizontal: horizontalInset,
             extraTop: DS.Spacing.s,
-            extraBottom: extraBottomPadding(
-                using: proxy,
-                tabBarGutter: tabBarGutter
-            ),
-            includeSafeArea: false,
+            extraBottom: 0,
+            includeSafeArea: true,
             tabBarGutter: tabBarGutter
         )
     }

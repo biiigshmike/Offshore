@@ -1,5 +1,6 @@
 import XCTest
 import CoreGraphics
+import Foundation
 
 /// Detects large, persistent gaps above the tab bar that indicate a bottom overlay/lift
 /// is obscuring content on legacy iOS. The test intentionally runs only on iOS
@@ -46,27 +47,122 @@ final class LegacyUnderbarGapUITests: XCTestCase {
         guard tabBar.waitForExistence(timeout: 2) else { return 0 }
         let tabTop = tabBar.frame.minY
 
-        // Prefer specific scroll hosts in priority order
-        let containers: [XCUIElement] = [
-            app.tables.firstMatch,
-            app.collectionViews.firstMatch,
-            app.scrollViews.firstMatch
-        ].filter { $0.exists }
-
-        let host = containers.first ?? app.windows.firstMatch
+        // Choose host in priority order
+        let table = app.tables.firstMatch
+        let collection = app.collectionViews.firstMatch
+        let scroll = app.scrollViews.firstMatch
+        let host: XCUIElement
+        if table.exists { host = table }
+        else if collection.exists { host = collection }
+        else if scroll.exists { host = scroll }
+        else { host = app.windows.firstMatch }
         guard host.exists else { return 0 }
 
-        // Give content a chance to settle and to reveal tail content
-        if host.exists {
-            for _ in 0..<3 { host.swipeUp() }
+        // Give content a chance to settle and reveal tail content
+        for _ in 0..<3 { host.swipeUp() }
+
+        // Prefer a DEBUG-only anchor if present (first inside host, then global)
+        let anchor = host.descendants(matching: .any).matching(NSPredicate(format: "identifier == %@", "BottomTailAnchor")).firstMatch
+        if anchor.exists && anchor.frame.maxY < tabTop {
+            return max(0, tabTop - anchor.frame.maxY)
+        }
+        let globalAnchor = app.descendants(matching: .any).matching(NSPredicate(format: "identifier == %@", "BottomTailAnchor")).firstMatch
+        if globalAnchor.exists && globalAnchor.frame.maxY < tabTop {
+            return max(0, tabTop - globalAnchor.frame.maxY)
         }
 
-        let candidates = host.descendants(matching: .any).allElementsBoundByIndex
-            .filter { $0.exists && $0.frame.height > 0 && $0.frame.maxY < tabTop }
-
+        // Otherwise restrict candidates to cells when possible to avoid picking
+        // background/placeholder views.
+        let candidates: [XCUIElement]
+        if table.exists {
+            candidates = table.cells.allElementsBoundByIndex.filter { $0.frame.maxY < tabTop }
+        } else if collection.exists {
+            candidates = collection.cells.allElementsBoundByIndex.filter { $0.frame.maxY < tabTop }
+        } else {
+            candidates = host.descendants(matching: .any).allElementsBoundByIndex
+                .filter { $0.exists && $0.frame.height > 0 && $0.frame.maxY < tabTop }
+        }
         guard let bottomMost = candidates.max(by: { $0.frame.maxY < $1.frame.maxY }) else { return 0 }
+        return max(0, tabTop - bottomMost.frame.maxY)
+    }
+
+    // MARK: - Diagnostic (no assertions)
+    /// Same as measureUnderbarGap, but also returns diagnostic info about which
+    /// element was used and from which host it was chosen. Helpful to ensure we
+    /// aren't accidentally measuring against a background/placeholder.
+    @MainActor
+    private func measureUnderbarGapWithInfo(in app: XCUIApplication) -> (gap: CGFloat, hostType: String, bottomDesc: String, bottomFrame: CGRect, candidatesCount: Int) {
+        let tabBar = app.tabBars.firstMatch
+        _ = tabBar.waitForExistence(timeout: 2)
+        let tabTop = tabBar.frame.minY
+
+        let tables = app.tables.firstMatch
+        let collections = app.collectionViews.firstMatch
+        let scrolls = app.scrollViews.firstMatch
+        let host: XCUIElement
+        let hostType: String
+        if tables.exists { host = tables; hostType = "UITableView (List)" }
+        else if collections.exists { host = collections; hostType = "UICollectionView" }
+        else if scrolls.exists { host = scrolls; hostType = "UIScrollView" }
+        else { host = app.windows.firstMatch; hostType = "Window" }
+
+        for _ in 0..<3 { host.swipeUp() }
+
+        // Prefer anchor when present (first inside host, then global)
+        let anchor = host.descendants(matching: .any).matching(NSPredicate(format: "identifier == %@", "BottomTailAnchor")).firstMatch
+        if anchor.exists && anchor.frame.maxY < tabTop {
+            let gap = max(0, tabTop - anchor.frame.maxY)
+            return (gap, hostType, anchor.debugDescription, anchor.frame, 1)
+        }
+        let globalAnchor = app.descendants(matching: .any).matching(NSPredicate(format: "identifier == %@", "BottomTailAnchor")).firstMatch
+        if globalAnchor.exists && globalAnchor.frame.maxY < tabTop {
+            let gap = max(0, tabTop - globalAnchor.frame.maxY)
+            return (gap, "Global", globalAnchor.debugDescription, globalAnchor.frame, 1)
+        }
+
+        let candidates: [XCUIElement]
+        if tables.exists {
+            candidates = tables.cells.allElementsBoundByIndex.filter { $0.frame.maxY < tabTop }
+        } else if collections.exists {
+            candidates = collections.cells.allElementsBoundByIndex.filter { $0.frame.maxY < tabTop }
+        } else {
+            let all = host.descendants(matching: .any).allElementsBoundByIndex
+            candidates = all.filter { $0.exists && $0.frame.height > 0 && $0.frame.maxY < tabTop }
+        }
+        guard let bottomMost = candidates.max(by: { $0.frame.maxY < $1.frame.maxY }) else {
+            return (0, hostType, "<no bottom candidate>", .zero, candidates.count)
+        }
+
         let gap = max(0, tabTop - bottomMost.frame.maxY)
-        return gap
+        return (gap, hostType, bottomMost.debugDescription, bottomMost.frame, candidates.count)
+    }
+
+    @MainActor
+    func testUnderbarGapDebug_HomeLegacy() throws {
+        #if os(iOS)
+        if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26 {
+            throw XCTSkip("Skipping: OS26+")
+        }
+        let app = launchSkippingOnboarding()
+        openTab(.home, in: app)
+        let info = measureUnderbarGapWithInfo(in: app)
+        XCTContext.runActivity(named: "Host=\(info.hostType) gap=\(info.gap) count=\(info.candidatesCount)") { _ in
+            let meta = "Host: \(info.hostType)\nGap: \(info.gap)\nCandidates: \(info.candidatesCount)\nBottom frame: \(info.bottomFrame)\nBottom debug: \n\(info.bottomDesc)\n"
+            print(meta)
+            NSLog("%@", meta)
+            let att = XCTAttachment(string: meta)
+            att.name = "UnderbarGap_Debug_Home"
+            att.lifetime = .keepAlways
+            add(att)
+        }
+        // Always attach a screenshot for context
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "UnderbarGap_Debug_Home_Screenshot"
+        shot.lifetime = .keepAlways
+        add(shot)
+        #else
+        throw XCTSkip("iOS-only UI test")
+        #endif
     }
 
     // MARK: - Launch

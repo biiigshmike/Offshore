@@ -1,14 +1,25 @@
 import SwiftUI
 import UIKit
 
+// MARK: - Overview
+/// Adapter that selects between Liquid Glass (OS 26 cycle) and Classic styling
+/// (earlier OS versions) and applies minimal, platform-appropriate global
+/// chrome for legacy systems. Keeps UI code paths simple and declarative.
+
 /// Central adapter that decides whether the system should use Liquid Glass (OS 26
 /// cycle) or Classic styling (earlier OS versions), and applies minimal global
 /// chrome where appropriate for legacy systems.
 enum SystemThemeAdapter {
+    // MARK: Flavor
+    /// High-level system look the app should adopt based on capabilities.
     enum Flavor { case liquid, classic }
 
+    /// Resolves the current flavor using `.current` platform capabilities.
     static var currentFlavor: Flavor { flavor() }
 
+    /// Computes the system flavor from a capability snapshot.
+    /// - Parameter capabilities: Platform flags for the running process.
+    /// - Returns: `.liquid` on OS 26 (translucency available), otherwise `.classic`.
     static func flavor(for capabilities: PlatformCapabilities = .current) -> Flavor {
         capabilities.supportsOS26Translucency ? .liquid : .classic
     }
@@ -18,6 +29,12 @@ enum SystemThemeAdapter {
     /// we set plain, opaque backgrounds to respect the classic, flat style.
     /// The supplied `platformCapabilities` snapshot ensures every scene makes
     /// the same chrome decision without re-evaluating availability checks.
+    /// Applies minimal, system-friendly global chrome only for classic systems.
+    /// On OS 26, defers to system defaults (no overrides).
+    /// - Parameters:
+    ///   - theme: Active app theme used to derive legacy chrome colors.
+    ///   - colorScheme: Resolved color scheme, if known, to pick readable text colors.
+    ///   - platformCapabilities: Platform feature snapshot to keep decisions consistent.
     static func applyGlobalChrome(
         theme: AppTheme,
         colorScheme: ColorScheme?,
@@ -58,6 +75,8 @@ enum SystemThemeAdapter {
         UITabBar.appearance().isTranslucent = false
     }
 
+    /// Picks a readable title/controls color for classic opaque chrome.
+    /// Prefers white in dark mode and black in light mode.
     private static func resolvedForegroundColor(
         for theme: AppTheme,
         colorScheme: ColorScheme?

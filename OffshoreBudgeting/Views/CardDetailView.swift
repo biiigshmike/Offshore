@@ -191,7 +191,7 @@ struct CardDetailView: View {
 
     @ViewBuilder
     private func baseList(cardMaxWidth: CGFloat?, total: Double) -> some View {
-        var list = List {
+        let list = List {
             // Card header as its own section to ensure consistent rendering
             // with modern List defaults across iOS 16/17.
             Section {

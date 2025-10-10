@@ -84,14 +84,9 @@ struct RootHeaderControlIcon: View {
     }
 
     private var iconForegroundStyle: AnyShapeStyle {
-        let theme = themeManager.selectedTheme
-
-        switch theme {
-        case .system:
-            return AnyShapeStyle(.primary)
-        default:
-            return AnyShapeStyle(theme.resolvedTint)
-        }
+        // AppTheme currently has only `.system`, so return primary directly.
+        // If additional themes are added later, this can be switched to a switch with @unknown default.
+        AnyShapeStyle(.primary)
     }
 
 }

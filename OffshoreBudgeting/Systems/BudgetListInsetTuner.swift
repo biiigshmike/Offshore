@@ -26,29 +26,28 @@ final class UBBudgetListInsetNeutralizerView: UIView {
 
     func applyIfNeeded() {
         guard let scroll = findEnclosingScrollView(startingFrom: self) else { return }
+
         // Classic only; defer to system behavior on OS26+
         if #available(iOS 26.0, *) {
             return
-        } else {
-            if #available(iOS 15.0, *) {
-                scroll.automaticallyAdjustsScrollIndicatorInsets = false
-            }
+        }
 
-            // Compute a bottom inset that lifts content fully above the opaque tab bar.
-            let windowSafeBottom = scroll.window?.safeAreaInsets.bottom ?? 0
-            let tabBarHeight: CGFloat = 49 // iPhone/iPad standard tab bar height in points
-            let desiredBottom = windowSafeBottom + tabBarHeight
+        if #available(iOS 15.0, *) {
+            scroll.automaticallyAdjustsScrollIndicatorInsets = false
+        }
 
-            if abs(scroll.contentInset.bottom - desiredBottom) > 0.5 {
-                var inset = scroll.contentInset
-                inset.bottom = desiredBottom
-                scroll.contentInset = inset
-            }
+        // Neutralize UIKit's automatic bottom lift rather than introducing our
+        // own padding. The surrounding SwiftUI view injects its desired tail
+        // spacing (16pt) so we only need to clear out additional insets here.
+        if scroll.contentInset.bottom != 0 {
+            var inset = scroll.contentInset
+            inset.bottom = 0
+            scroll.contentInset = inset
+        }
 
-            // Keep indicators flush; we don't need extra bottom room for them.
-            if scroll.verticalScrollIndicatorInsets.bottom != 0 {
-                scroll.verticalScrollIndicatorInsets.bottom = 0
-            }
+        // Keep indicators flush; we don't need extra bottom room for them.
+        if scroll.verticalScrollIndicatorInsets.bottom != 0 {
+            scroll.verticalScrollIndicatorInsets.bottom = 0
         }
     }
 

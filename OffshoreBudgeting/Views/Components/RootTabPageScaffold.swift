@@ -374,7 +374,8 @@ struct RootTabPageProxy {
         extraBottom: CGFloat = 0,
         tabBarGutter: TabBarGutter = .standard
     ) -> CGFloat {
-        let safeAreaContribution = includeSafeArea ? safeAreaBottomInset : 0
+        let shouldApplySafeArea = includeSafeArea && platformCapabilities.supportsOS26Translucency
+        let safeAreaContribution = shouldApplySafeArea ? safeAreaBottomInset : 0
         let gutterSpacing = tabBarGutterSpacing(tabBarGutter)
         return gutterSpacing + safeAreaContribution + extraBottom
     }

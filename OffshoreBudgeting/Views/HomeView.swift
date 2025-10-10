@@ -123,7 +123,7 @@ struct HomeView: View {
         .ub_onChange(of: actionableSummaryForSelectedPeriod?.id) { _ in
             applyActionableSummaryChange(
                 actionableSummaryForSelectedPeriod,
-                allowClearing: false
+                allowClearing: isTerminalBudgetState(for: vm.state)
             )
         }
         .ub_onChange(of: vm.state) { newState in

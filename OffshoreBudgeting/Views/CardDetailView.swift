@@ -212,7 +212,8 @@ struct CardDetailView: View {
             .listRowSeparator(.hidden)
             .ub_hideScrollIndicators()
             .cardDetailListBottomInset(capabilities: capabilities, layoutContext: layoutContext)
-        
+            .ub_rootTabLegacyListInsets(capabilities: capabilities)
+
 
         if #available(iOS 15.0, macCatalyst 15.0, *) {
             list

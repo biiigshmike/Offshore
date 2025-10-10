@@ -173,7 +173,6 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
                         .frame(maxWidth: .infinity, alignment: stackAlignment)
                     }
                     .ub_hideScrollIndicators()
-                    .modifier(LegacyRootScrollInsetNeutralizer(capabilities: platformCapabilities))
                 }
                 .frame(maxWidth: .infinity, alignment: stackAlignment)
             } else {
@@ -434,37 +433,6 @@ private struct IgnoreBottomSafeAreaIfClassic: ViewModifier {
         }
     }
 }
-
-#if os(iOS)
-// MARK: - Legacy Scroll Neutralizer
-/// Ensures the scaffold-managed ScrollView does not reintroduce UIKit's automatic
-/// bottom padding on legacy platforms. The surrounding SwiftUI tree controls the
-/// visible gutter explicitly, so we zero any automatic adjustments here.
-private struct LegacyRootScrollInsetNeutralizer: ViewModifier {
-    let capabilities: PlatformCapabilities
-
-    func body(content: Content) -> some View {
-        if capabilities.supportsOS26Translucency {
-            content
-        } else {
-            content.overlay(alignment: .topLeading) {
-                UBScrollViewInsetAdjustmentDisabler()
-                    .frame(width: 0, height: 0)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-            }
-        }
-    }
-}
-#else
-private struct LegacyRootScrollInsetNeutralizer: ViewModifier {
-    let capabilities: PlatformCapabilities
-
-    func body(content: Content) -> some View {
-        content
-    }
-}
-#endif
 
 extension View {
     /// Applies the shared horizontal and bottom padding recommended for content

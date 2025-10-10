@@ -7,6 +7,8 @@ import UIKit
 /// so content can extend behind the tab bar on legacy OS versions. Top inset handling
 /// is preserved by leaving `contentInsetAdjustmentBehavior` untouched; we only zero
 /// the bottom content/indicator insets and disable automatic indicator inset tweaks.
+/// Supersedes the legacy ``UBScrollViewInsetAdjustmentDisabler`` helper so there's a
+/// single traversal path for scroll inset neutralization.
 struct UBUnderbarScrollInsetsNeutralizer: UIViewRepresentable {
     /// Creates a host view that can traverse the view tree to find scroll views.
     func makeUIView(context: Context) -> UBUnderbarNeutralizerView {

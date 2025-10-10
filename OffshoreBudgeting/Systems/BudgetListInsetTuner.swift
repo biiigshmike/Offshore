@@ -34,23 +34,19 @@ final class UBBudgetListInsetNeutralizerView: UIView {
                 scroll.automaticallyAdjustsScrollIndicatorInsets = false
             }
 
-            // MARK: Safe-area-only bottom inset policy
-            let windowSafeBottom = max(scroll.window?.safeAreaInsets.bottom ?? 0, 0)
-            let desiredBottom = windowSafeBottom
+            // Compute a bottom inset that lifts content fully above the opaque tab bar.
+            let windowSafeBottom = scroll.window?.safeAreaInsets.bottom ?? 0
+            let tabBarHeight: CGFloat = 49 // iPhone/iPad standard tab bar height in points
+            let desiredBottom = windowSafeBottom + tabBarHeight
 
-            let needsContentInsetUpdate = abs(scroll.contentInset.bottom - desiredBottom) > 0.5
-            let needsIndicatorReset = scroll.verticalScrollIndicatorInsets.bottom != 0
-
-            guard needsContentInsetUpdate || needsIndicatorReset else { return }
-
-            if needsContentInsetUpdate {
+            if abs(scroll.contentInset.bottom - desiredBottom) > 0.5 {
                 var inset = scroll.contentInset
                 inset.bottom = desiredBottom
                 scroll.contentInset = inset
             }
 
             // Keep indicators flush; we don't need extra bottom room for them.
-            if needsIndicatorReset {
+            if scroll.verticalScrollIndicatorInsets.bottom != 0 {
                 scroll.verticalScrollIndicatorInsets.bottom = 0
             }
         }

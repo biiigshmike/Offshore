@@ -114,7 +114,6 @@ struct PresetsView: View {
                     }
                 }
                 .ub_listStyleLiquidAware()
-                .ub_rootTabLegacyListInsets(capabilities: capabilities)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

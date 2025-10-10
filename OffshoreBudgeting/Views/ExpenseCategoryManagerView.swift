@@ -125,7 +125,6 @@ struct ExpenseCategoryManagerView: View {
                         }
                     }
                     .ub_listStyleLiquidAware()
-                    .ub_rootTabLegacyListInsets(capabilities: capabilities)
                 }
             }
         }

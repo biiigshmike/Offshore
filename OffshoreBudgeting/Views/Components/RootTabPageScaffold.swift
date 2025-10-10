@@ -459,34 +459,4 @@ extension View {
                 )
             )
     }
-
-    /// Applies the legacy root-tab List adjustments so classic (pre–OS 26)
-    /// releases stay flush with the tab bar while preserving the modern
-    /// safe-area handling on newer systems.
-    @ViewBuilder
-    func ub_rootTabLegacyListInsets(capabilities: PlatformCapabilities) -> some View {
-        #if os(iOS)
-        #if targetEnvironment(macCatalyst)
-        self
-        #else
-        if capabilities.supportsOS26Translucency {
-            self
-        } else {
-            self
-                .overlay(alignment: .topLeading) {
-                    UBBudgetListInsetTuner()
-                        .frame(width: 0, height: 0)
-                }
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear
-                        .frame(height: DS.Spacing.l)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                }
-        }
-        #endif
-        #else
-        self
-        #endif
-    }
 }

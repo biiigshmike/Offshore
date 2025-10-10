@@ -955,14 +955,9 @@ private struct PlannedListFR: View {
                 // MARK: Real List for native swipe
                 List {
                     if let header {
-                        Section {
-                            headerListRow(header, applyDefaultInsets: !headerManagesPadding)
-                            listRows(items: items)
-                        }
-                        .ifAvailableContentMarginsZero()
-                    } else {
-                        listRows(items: items)
+                        headerListRow(header, applyDefaultInsets: !headerManagesPadding)
                     }
+                    listRows(items: items)
                     #if DEBUG
                     Color.clear
                         .frame(height: 1)
@@ -1328,14 +1323,9 @@ private struct VariableListFR: View {
                 // MARK: Real List for native swipe
                 List {
                     if let header {
-                        Section {
-                            headerListRow(header, applyDefaultInsets: !headerManagesPadding)
-                            listRows(items: items)
-                        }
-                        .ifAvailableContentMarginsZero()
-                    } else {
-                        listRows(items: items)
+                        headerListRow(header, applyDefaultInsets: !headerManagesPadding)
                     }
+                    listRows(items: items)
                 }
                 .refreshable { onTotalsChanged() }
                 .styledList()

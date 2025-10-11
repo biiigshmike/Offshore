@@ -187,6 +187,7 @@ struct CardsView: View {
                 }
             }
             .padding([.horizontal, .top], DS.Spacing.l)
+            .padding(.bottom, proxy.tabBarGutterSpacing(proxy.compactAwareTabBarGutter))
         }
         // Removed extra bottom inset; RootTabPageScaffold + rootTabContentPadding
         // control any desired gutter above the tab bar.
@@ -240,6 +241,7 @@ struct CardsView: View {
                 }
             }
             .padding([.horizontal, .top], DS.Spacing.l)
+            .padding(.bottom, proxy.tabBarGutterSpacing(proxy.compactAwareTabBarGutter))
             // Disable the default animation for grid changes to prevent "grid hop".
             .animation(nil, value: cards)
         }

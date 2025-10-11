@@ -1591,8 +1591,6 @@ private extension View {
                         .frame(height: inset)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(.init())
                 }
             } else {
                 self
@@ -1616,8 +1614,6 @@ private extension View {
                     }
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(.init())
                 }
         }
         #endif

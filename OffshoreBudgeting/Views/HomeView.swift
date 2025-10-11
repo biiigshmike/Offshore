@@ -179,9 +179,11 @@ struct HomeView: View {
     private func glassToolbarLabel(_ symbol: String) -> some View {
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Image(systemName: symbol)
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(.primary)
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 32, height: 32)
-                .glassEffect()
+                .glassEffect(.regular.tint(.clear))
                 .glassEffectUnion(id: "home-toolbar", namespace: homeToolbarGlassNamespace)
                 .glassEffectTransition(.matchedGeometry)
         } else {

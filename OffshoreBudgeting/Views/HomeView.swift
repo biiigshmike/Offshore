@@ -543,6 +543,8 @@ struct HomeView: View {
             Text(title).font(.subheadline.weight(.medium))
             Text(formatCurrency(amount)).font(.subheadline.weight(.semibold))
         }
+            .padding(.horizontal, 12)
+            .frame(height: 33)
             .background(.clear)
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: {}) { chipLabel }
@@ -551,7 +553,7 @@ struct HomeView: View {
                 .foregroundStyle(.primary)
                 .allowsHitTesting(false)
                 .disabled(true)
-                .frame(minHeight: 33)
+                .frame(height: 33)
                 .clipShape(Capsule())
                 .compositingGroup()
         } else {
@@ -562,8 +564,10 @@ struct HomeView: View {
                             traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
                         }))
                 )
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .frame(height: 33)
         }
-            
+
     }
 
     // MARK: Rows + Data

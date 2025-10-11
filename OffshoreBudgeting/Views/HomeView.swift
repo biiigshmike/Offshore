@@ -74,16 +74,16 @@ struct HomeView: View {
         .toolbar { toolbarContent }
         .task {
             vm.startIfNeeded()
-            reloadRows()
             isAddMenuVisible = summary != nil
+            reloadRows()
         }
         .onChange(of: segment) { _ in reloadRows() }
         .onChange(of: sort) { _ in reloadRows() }
         .onChange(of: summaryIDString) { _ in
-            reloadRows()
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            withAnimation(.easeInOut(duration: 0.2)) {
                 isAddMenuVisible = summary != nil
             }
+            reloadRows()
         }
         .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
         .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
@@ -116,17 +116,26 @@ struct HomeView: View {
                 GlassEffectContainer(spacing: 16) {
                     HStack(spacing: 16) {
                         calendarMenu
-                        if isAddMenuVisible { addExpenseMenu }
+                        if isAddMenuVisible {
+                            addExpenseMenu
+                                .transition(.scale.combined(with: .opacity))
+                        }
                         ellipsisMenu
                     }
                 }
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isAddMenuVisible)
             }
         } else {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                calendarMenu
-                if isAddMenuVisible { addExpenseMenu }
-                ellipsisMenu
+            ToolbarItem(placement: .navigationBarTrailing) {
+                HStack(spacing: 16) {
+                    calendarMenu
+                    if isAddMenuVisible {
+                        addExpenseMenu
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                    ellipsisMenu
+                }
+                .animation(.easeInOut(duration: 0.2), value: isAddMenuVisible)
             }
         }
     }

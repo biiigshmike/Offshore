@@ -474,27 +474,46 @@ private struct CategoryChip: View {
             colorScheme: colorScheme
         )
 
-        let pill = CategoryChipPill(
-            isSelected: isSelected,
-            glassTint: style.glassTint,
-            glassTextColor: style.glassTextColor,
-            fallbackTextColor: style.fallbackTextColor,
-            fallbackFill: style.fallbackFill,
-            fallbackStrokeColor: style.fallbackStroke.color,
-            fallbackStrokeLineWidth: style.fallbackStroke.lineWidth
-        ) {
-            HStack(spacing: DS.Spacing.s) {
-                Circle()
-                    .fill(categoryColor)
-                    .frame(width: 10, height: 10)
-                Text(name)
-                    .font(.subheadline.weight(.semibold))
+        let chipLabel = HStack(spacing: DS.Spacing.s) {
+            Circle()
+                .fill(categoryColor)
+                .frame(width: 10, height: 10)
+            Text(name)
+                .font(.subheadline.weight(.semibold))
+        }
+
+        let legacyShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+
+        Group {
+            if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                CategoryChipPill(
+                    isSelected: isSelected,
+                    glassTint: style.glassTint,
+                    glassTextColor: style.glassTextColor,
+                    fallbackTextColor: style.glassTextColor,
+                    fallbackFill: style.fallbackFill,
+                    fallbackStrokeColor: style.fallbackStroke.color,
+                    fallbackStrokeLineWidth: style.fallbackStroke.lineWidth
+                ) {
+                    chipLabel
+                }
+                .glass()
+            } else {
+                chipLabel
+                    .foregroundStyle(style.fallbackTextColor)
+                    .padding(.horizontal, 12)
+                    .frame(height: 33)
+                    .background(legacyShape.fill(style.fallbackFill))
+                    .overlay(
+                        legacyShape
+                            .stroke(style.fallbackStroke.color, lineWidth: style.fallbackStroke.lineWidth)
+                    )
+                    .contentShape(legacyShape)
             }
         }
-        pill
-            .scaleEffect(style.scale)
-            .animation(.easeOut(duration: 0.15), value: isSelected)
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .scaleEffect(style.scale)
+        .animation(.easeOut(duration: 0.15), value: isSelected)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
 }

@@ -423,19 +423,37 @@ private struct AddCategoryPill: View {
     @EnvironmentObject private var themeManager: ThemeManager
 
     var body: some View {
-        Button(action: onTap) {
-            Label("Add", systemImage: "plus")
-                .font(.subheadline.weight(.semibold))
+        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            Button(action: onTap) {
+                Label("Add", systemImage: "plus")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .tint(themeManager.selectedTheme.resolvedTint)
+            .buttonStyle(.glass)
+            .buttonBorderShape(.capsule)
+            .controlSize(.regular)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 33, alignment: .center)
+            .accessibilityLabel("Add Category")
+        } else {
+            Button(action: onTap) {
+                Label("Add", systemImage: "plus")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 33, alignment: .center)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color(UIColor { traits in
+                                traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
+                            }))
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .controlSize(.regular)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 33, alignment: .center)
+            .accessibilityLabel("Add Category")
         }
-        .buttonStyle(
-            AddCategoryPillStyle(
-                tint: themeManager.selectedTheme.resolvedTint,
-                fillsWidth: fillsWidth
-            )
-        )
-        .controlSize(.regular)
-        .accessibilityLabel("Add Category")
-        .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .center)
     }
 }
 
@@ -490,38 +508,4 @@ fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
     let g = Double((intVal >> 8) & 0xFF) / 255.0
     let b = Double(intVal & 0xFF) / 255.0
     return Color(red: r, green: g, blue: b)
-}
-
-// MARK: - Styles
-private struct AddCategoryPillStyle: ButtonStyle {
-    let tint: Color
-    var fillsWidth: Bool = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        let isActive = configuration.isPressed
-
-        let capsule = Capsule(style: .continuous)
-
-        return CategoryChipPill(
-            isSelected: configuration.isPressed,
-            glassTint: tint,
-            glassTextColor: .primary,
-            fallbackTextColor: .primary,
-            fallbackFill: DS.Colors.chipFill,
-            fallbackStrokeColor: DS.Colors.chipFill,
-            fallbackStrokeLineWidth: 1,
-            isInteractive: true
-        ) {
-            configuration.label
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .center)
-        }
-        .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .center)
-        .overlay {
-            if isActive {
-                capsule.strokeBorder(tint.opacity(0.35), lineWidth: 2)
-            }
-        }
-        .animation(.easeOut(duration: 0.15), value: isActive)
-    }
 }

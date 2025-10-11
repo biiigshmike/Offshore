@@ -275,9 +275,9 @@ struct HomeView: View {
                         .padding(.vertical, 8)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 33, alignment: .leading)
         }
-        .frame(height: 44)
+        .frame(height: 33)
     }
 
     // MARK: Segment Picker

@@ -944,6 +944,9 @@ private struct PlannedListFR: View {
                     #if DEBUG
                     Color.clear
                         .frame(height: 1)
+                        .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                         .accessibilityIdentifier("BottomTailAnchor_List")
                     #endif
                 }
@@ -961,6 +964,9 @@ private struct PlannedListFR: View {
                     #if DEBUG
                     Color.clear
                         .frame(height: 1)
+                        .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                         .accessibilityIdentifier("BottomTailAnchor_List")
                     #endif
                 }

@@ -186,8 +186,9 @@ struct RootTabPageScaffold<Header: View, Content: View>: View {
         .ub_surfaceBackground(
             themeManager.selectedTheme,
             configuration: themeManager.glassConfiguration,
-            ignoringSafeArea: .bottom
+            ignoringSafeArea: .all
         )
+        .modifier(IgnoreBottomSafeAreaIfClassic(capabilities: platformCapabilities))
     }
 
     // MARK: Stack Content
@@ -434,6 +435,18 @@ private struct RootTabSectionHeightPreferenceKey: PreferenceKey {
 }
 
 // MARK: - Padding Helpers
+private struct IgnoreBottomSafeAreaIfClassic: ViewModifier {
+    let capabilities: PlatformCapabilities
+
+    func body(content: Content) -> some View {
+        if capabilities.supportsOS26Translucency {
+            content // respect safe area on OS 26
+        } else {
+            content.ub_ignoreSafeArea(edges: .bottom)
+        }
+    }
+}
+
 extension View {
     /// Applies the shared horizontal and bottom padding recommended for content
     /// hosted inside a ``RootTabPageScaffold``. Accepts the proxy supplied to the

@@ -70,9 +70,9 @@ enum SystemThemeAdapter {
         let tabAppearance = UITabBarAppearance()
         tabAppearance.configureWithOpaqueBackground()
         tabAppearance.backgroundColor = resolvedBackground
+        tabAppearance.backgroundEffect = nil
         UITabBar.appearance().standardAppearance = tabAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabAppearance
-        UITabBar.appearance().isTranslucent = false
     }
 
     /// Picks a readable title/controls color for classic opaque chrome.

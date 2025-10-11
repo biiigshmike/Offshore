@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Scaffold that standardizes the layout behaviour for root level tab pages.
 ///
@@ -289,7 +292,14 @@ struct RootTabPageProxy {
     let isScrollEnabled: Bool
     let platformCapabilities: PlatformCapabilities
 
-    private static let legacyTabBarLift: CGFloat = 0
+    private struct LegacyTabBarLift {
+        var chromeHeight: CGFloat
+        var safeArea: CGFloat
+
+        var total: CGFloat { chromeHeight + safeArea }
+
+        static let zero = LegacyTabBarLift(chromeHeight: 0, safeArea: 0)
+    }
 
     /// Controls the amount of vertical spacing inserted between tab content and the tab bar.
     enum TabBarGutter {
@@ -350,7 +360,10 @@ struct RootTabPageProxy {
             // controlled separately via `includeSafeArea`.
             return 0
         } else {
-            return Self.legacyTabBarLift
+            return Self.legacyTabBarLift(
+                layoutContext: layoutContext,
+                safeAreaInsets: effectiveSafeAreaInsets
+            ).chromeHeight
         }
         #else
         return 0
@@ -366,7 +379,7 @@ struct RootTabPageProxy {
     }
 
     var standardTabContentBottomPadding: CGFloat {
-        safeAreaBottomInset + tabBarGutterSpacing
+        tabContentBottomPadding()
     }
 
     func tabContentBottomPadding(
@@ -374,9 +387,19 @@ struct RootTabPageProxy {
         extraBottom: CGFloat = 0,
         tabBarGutter: TabBarGutter = .standard
     ) -> CGFloat {
-        let safeAreaContribution = includeSafeArea ? safeAreaBottomInset : 0
-        let gutterSpacing = tabBarGutterSpacing(tabBarGutter)
-        return gutterSpacing + safeAreaContribution + extraBottom
+        if platformCapabilities.supportsOS26Translucency {
+            let safeAreaContribution = includeSafeArea ? safeAreaBottomInset : 0
+            let gutterSpacing = tabBarGutterSpacing(tabBarGutter)
+            return gutterSpacing + safeAreaContribution + extraBottom
+        } else {
+            let lift = Self.legacyTabBarLift(
+                layoutContext: layoutContext,
+                safeAreaInsets: effectiveSafeAreaInsets
+            )
+            let chromeContribution = lift.chromeHeight
+            let safeAreaContribution = includeSafeArea ? lift.safeArea : 0
+            return chromeContribution + safeAreaContribution + extraBottom
+        }
     }
 
     func standardContentInsets(
@@ -397,6 +420,75 @@ struct RootTabPageProxy {
             trailing: horizontal
         )
     }
+
+    private static func legacyTabBarLift(
+        layoutContext: ResponsiveLayoutContext,
+        safeAreaInsets: EdgeInsets
+    ) -> LegacyTabBarLift {
+        #if os(iOS)
+        let totalHeight = resolvedLegacyTabBarHeight(for: layoutContext)
+        let safeArea = resolvedLegacySafeAreaLift(from: safeAreaInsets)
+        let chromeHeight = max(totalHeight - safeArea, minimumLegacyTabBarChromeHeight)
+
+        return LegacyTabBarLift(
+            chromeHeight: max(chromeHeight, 0),
+            safeArea: max(safeArea, 0)
+        )
+        #else
+        return .zero
+        #endif
+    }
+
+    #if os(iOS)
+    private static func resolvedLegacyTabBarHeight(
+        for layoutContext: ResponsiveLayoutContext
+    ) -> CGFloat {
+        let fallbackWidth = max(layoutContext.containerSize.width, Self.fallbackTabBarWidth)
+        let tabBar = UITabBar(frame: CGRect(origin: .zero, size: CGSize(width: fallbackWidth, height: 0)))
+        let fittedHeight = tabBar.sizeThatFits(CGSize(width: fallbackWidth, height: 0)).height
+        if fittedHeight > 0 {
+            return fittedHeight
+        }
+
+        return minimumLegacyTabBarChromeHeight
+    }
+
+    private static func resolvedLegacySafeAreaLift(from safeAreaInsets: EdgeInsets) -> CGFloat {
+        let measured = max(safeAreaInsets.bottom, 0)
+        let windowInset = activeWindowBottomSafeAreaInset()
+        return max(measured, windowInset)
+    }
+
+    private static func activeWindowBottomSafeAreaInset() -> CGFloat {
+        let resolve: () -> CGFloat = {
+            guard let scene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first(where: { $0.activationState == .foregroundActive }) else {
+                return UIApplication.shared.connectedScenes
+                    .compactMap({ $0 as? UIWindowScene })
+                    .first?.windows
+                    .first?.safeAreaInsets.bottom ?? 0
+            }
+
+            return scene.windows.first(where: { $0.isKeyWindow })?.safeAreaInsets.bottom
+                ?? scene.windows.first?.safeAreaInsets.bottom
+                ?? 0
+        }
+
+        if Thread.isMainThread {
+            return resolve()
+        }
+
+        var inset: CGFloat = 0
+        DispatchQueue.main.sync {
+            inset = resolve()
+        }
+        return inset
+    }
+
+    private static let minimumLegacyTabBarChromeHeight: CGFloat = 49
+    private static let fallbackTabBarWidth: CGFloat = 375
+    #endif
 }
 
 extension RootTabPageProxy {

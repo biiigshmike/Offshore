@@ -636,7 +636,7 @@ private struct AddCategoryPill: View {
         )
         .controlSize(.regular)
         .accessibilityLabel("Add Category")
-        .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .center)
+        .frame(height: 33)
     }
 }
 

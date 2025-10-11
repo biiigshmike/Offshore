@@ -552,7 +552,7 @@ struct HomeView: View {
                 .buttonBorderShape(.capsule)
                 .foregroundStyle(.primary)
                 .allowsHitTesting(false)
-                .disabled(true)
+                .disabled(false)
                 .frame(height: 33)
                 .clipShape(Capsule())
                 .compositingGroup()

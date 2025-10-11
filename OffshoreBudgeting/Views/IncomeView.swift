@@ -165,7 +165,7 @@ struct IncomeView: View {
             Button(action: action) {
                 Text(title)
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .frame(minWidth: 64, minHeight: 44)
+                    .frame(minWidth: 64, minHeight: 33)
                     .padding(.horizontal, 10)
             }
             .buttonStyle(.plain)

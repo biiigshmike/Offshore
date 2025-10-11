@@ -223,7 +223,7 @@ struct IncomeView: View {
 
             return resolved
         }
-        .frame(height: 320)
+        .frame(height: 335)
         .transaction { t in t.animation = nil; t.disablesAnimations = true }
     }
 
@@ -330,5 +330,4 @@ struct IncomeView: View {
     // MARK: Sheet Box
     private struct SheetDateBox: Identifiable { let id = UUID(); let value: Date }
 }
-
 //

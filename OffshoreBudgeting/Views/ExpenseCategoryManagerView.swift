@@ -11,46 +11,66 @@ import UIKit
 
 // MARK: - ExpenseCategoryManagerView
 struct ExpenseCategoryManagerView: View {
-
+    
     // MARK: Dependencies
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.isOnboardingPresentation) private var isOnboardingPresentation
     @Environment(\.platformCapabilities) private var capabilities
     @Environment(\.ub_safeAreaInsets) private var legacySafeAreaInsets
-
+    @Environment(\.dismiss) private var dismiss
+    
     // MARK: Sorting
     private static let sortByName: [NSSortDescriptor] = [
         NSSortDescriptor(key: "name", ascending: true)
     ]
-
+    
     // MARK: Fetch Request
     @FetchRequest(
         sortDescriptors: ExpenseCategoryManagerView.sortByName,
         animation: .default
     )
     private var categories: FetchedResults<ExpenseCategory>
-
+    
     // MARK: UI State
     @State private var isPresentingAddSheet: Bool = false
     @State private var categoryToEdit: ExpenseCategory?
     @State private var categoryToDelete: ExpenseCategory?
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
-
+    
     // MARK: Body
     var body: some View {
-        Group {
-            if isOnboardingPresentation {
-                baseView
-            } else {
-                baseView
-                    .ub_surfaceBackground(
-                        themeManager.selectedTheme,
-                        configuration: themeManager.glassConfiguration,
-                        ignoringSafeArea: .all
-                    )
+        navigationContainer {
+            groupedListContent
+                .navigationTitle("Categories")
+                .toolbar {
+                    // Left: Done (clear/plain, larger tap target)
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(action: { dismiss() }) {
+                            Text("Done")
+                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.primary)
+                                .frame(minWidth: 44, minHeight: 34)
+                                .padding(.horizontal, 14)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Done")
+                    }
                     
-            }
+                    // Right: Add Category (clear/plain, 33x33 hit box)
+                    ToolbarItem(placement: .primaryAction) {
+                        Button(action: { isPresentingAddSheet = true }) {
+                            Image(systemName: "plus")
+                                .symbolRenderingMode(.monochrome)
+                                .foregroundStyle(.primary)
+                                .font(.system(size: 17, weight: .semibold))
+                                .frame(width: 33, height: 33)
+                                .contentShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Add Category")
+                    }
+                }
         }
         .accentColor(themeManager.selectedTheme.resolvedTint)
         .tint(themeManager.selectedTheme.resolvedTint)
@@ -90,28 +110,22 @@ struct ExpenseCategoryManagerView: View {
             )
         }
     }
-
-    private var baseView: some View {
+    
+    private var groupedListContent: some View {
         Group {
-            if categories.isEmpty {
+            if isOnboardingPresentation && categories.isEmpty {
+                // Onboarding-specific empty state message
                 emptyState
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
-                VStack(alignment: .leading, spacing: DS.Spacing.xs) {
-                    // Title + helper message outside the list so it stays above
-                    Text("Categories")
-                        .font(.headline)
-                        .padding(.horizontal, DS.Spacing.l)
+                List {
                     Text("These categories appear when adding expenses. Colors help visually group spending.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, DS.Spacing.l)
-                        .padding(.bottom, DS.Spacing.s)
-
-                    List {
+                    
+                    Section(header: Text("All Categories")) {
                         ForEach(categories, id: \.objectID) { category in
                             categoryRow(for: category)
-                                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-                                .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
                         }
                         .onDelete { offsets in
                             let targets = offsets.map { categories[$0] }
@@ -124,18 +138,22 @@ struct ExpenseCategoryManagerView: View {
                             }
                         }
                     }
-                    .ub_listStyleLiquidAware()
                 }
-            }
-        }
-        .navigationTitle("Manage Categories")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { isPresentingAddSheet = true } label: { Label("Add Category", systemImage: "plus") }
+                .listStyle(.insetGrouped)
             }
         }
     }
-
+    
+    // MARK: Navigation container
+    @ViewBuilder
+    private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            NavigationStack { content() }
+        } else {
+            NavigationView { content() }
+        }
+    }
+    
     // MARK: - Row Builders
     @ViewBuilder
     private func categoryRow(for category: ExpenseCategory) -> some View {
@@ -156,16 +174,13 @@ struct ExpenseCategoryManagerView: View {
             }
         )
     }
-
+    
     @ViewBuilder
     private func rowLabel(for category: ExpenseCategory) -> some View {
         HStack(spacing: 12) {
             ColorCircle(hex: category.color ?? "#999999")
             VStack(alignment: .leading) {
                 Text(category.name ?? "Untitled")
-                Text(category.color ?? "#999999")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
             Spacer()
             Image(systemName: "chevron.right")
@@ -173,7 +188,7 @@ struct ExpenseCategoryManagerView: View {
                 .foregroundStyle(.secondary)
         }
     }
-
+    
     // MARK: - Empty State
     private var emptyState: some View {
         UBEmptyState(
@@ -183,7 +198,7 @@ struct ExpenseCategoryManagerView: View {
         )
         .padding(.horizontal, DS.Spacing.l)
     }
-
+    
     // MARK: - CRUD
     private func addCategory(name: String, hex: String) {
         let new = ExpenseCategory(context: viewContext)
@@ -192,23 +207,23 @@ struct ExpenseCategoryManagerView: View {
         new.color = hex
         saveContext()
     }
-
+    
     private func deleteCategory(_ cat: ExpenseCategory) {
         // Fetch and delete all expenses referencing this category (planned and variable).
         let reqP = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
         reqP.predicate = NSPredicate(format: "expenseCategory == %@", cat)
         let planned = (try? viewContext.fetch(reqP)) ?? []
-
+        
         let reqU = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
         reqU.predicate = NSPredicate(format: "expenseCategory == %@", cat)
         let unplanned = (try? viewContext.fetch(reqU)) ?? []
-
+        
         planned.forEach { viewContext.delete($0) }
         unplanned.forEach { viewContext.delete($0) }
         viewContext.delete(cat)
         saveContext()
     }
-
+    
     // MARK: Usage counting (excludes global templates to match user-visible "in use")
     private func usageCounts(for category: ExpenseCategory) -> (planned: Int, unplanned: Int, total: Int) {
         // Planned: exclude isGlobal == true (templates)
@@ -219,16 +234,16 @@ struct ExpenseCategoryManagerView: View {
             NSPredicate(format: "isGlobal == NO")
         ])
         let plannedCount = (try? viewContext.count(for: reqP)) ?? 0
-
+        
         // Unplanned: count all
         let reqU = NSFetchRequest<NSNumber>(entityName: "UnplannedExpense")
         reqU.resultType = .countResultType
         reqU.predicate = NSPredicate(format: "expenseCategory == %@", category)
         let unplannedCount = (try? viewContext.count(for: reqU)) ?? 0
-
+        
         return (plannedCount, unplannedCount, plannedCount + unplannedCount)
     }
-
+    
     private func saveContext() {
         do { try viewContext.save() }
         catch { AppLog.ui.error("Failed to save categories: \(error.localizedDescription)") }
@@ -237,14 +252,14 @@ struct ExpenseCategoryManagerView: View {
 
 // MARK: - CategoryRowView
 private struct CategoryRowView<Label: View>: View {
-
+    
     // MARK: Properties
     var config: UnifiedSwipeConfig
     @ViewBuilder var label: () -> Label
     var onTap: () -> Void
     var onEdit: () -> Void
     var onDelete: () -> Void
-
+    
     // MARK: Body
     var body: some View {
         label()
@@ -274,52 +289,80 @@ private extension View {
 // MARK: - ExpenseCategoryEditorSheet
 struct ExpenseCategoryEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
-
+    
     @State private var name: String
     @State private var color: Color
-
+    
     let onSave: (_ name: String, _ hex: String) -> Void
-
+    
     init(initialName: String, initialHex: String, onSave: @escaping (_ name: String, _ hex: String) -> Void) {
         self._name = State(initialValue: initialName)
-        self._color = State(initialValue: Color(hex: initialHex) ?? .blue)
+        self._color = State(initialValue: UBColorFromHex(initialHex) ?? .blue)
         self.onSave = onSave
     }
-
+    
     var body: some View {
-        EditSheetScaffold(
-            title: "New Category",
-            saveButtonTitle: "Save",
-            cancelButtonTitle: "Cancel",
-            isSaveEnabled: !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-            onCancel: nil,
-            onSave: {
-                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty, let hex = colorToHex(color) else { return false }
-                onSave(trimmed, hex)
-                return true
-            }
-        ) {
-            UBFormSection("Name") {
-                UBFormRow {
-                    TextField("", text: $name, prompt: Text("Shopping"))
-                        .multilineTextAlignment(.leading)
+        navigationContainer {
+            Form {
+                Section {
+                    HStack(alignment: .center) {
+                        TextField("", text: $name, prompt: Text("Shopping"))
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .autocorrectionDisabled(true)
+                            .textInputAutocapitalization(.never)
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                } header: {
+                    Text("Name")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                }
+                
+                Section {
+                    ColorPicker("Color", selection: $color, supportsOpacity: false)
+                        .labelsHidden()
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .autocorrectionDisabled(true)
-                        .textInputAutocapitalization(.never)
+                } header: {
+                    Text("Color")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
                 }
             }
-
-            UBFormSection("Color") {
-                ColorPicker("Color", selection: $color, supportsOpacity: false)
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            .listStyle(.insetGrouped)
+            .scrollIndicators(.hidden)
+            .navigationTitle("New Category")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty, let hex = colorToHex(color) else { return }
+                        onSave(trimmed, hex)
+                        dismiss()
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
             }
         }
-        .ub_formStyleGrouped()
-        .ub_hideScrollIndicators()
+        .applyDetentsIfAvailable(detents: [.medium], selection: nil)
     }
-
+    
+    // Minimal nav container for older OS support
+    @ViewBuilder
+    private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            NavigationStack { content() }
+        } else {
+            NavigationView { content() }
+        }
+    }
+    
     private func colorToHex(_ color: Color) -> String? {
         let ui = UIColor(color)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
@@ -332,24 +375,25 @@ struct ExpenseCategoryEditorSheet: View {
 // MARK: - ColorCircle
 struct ColorCircle: View {
     var hex: String
-
+    
     var body: some View {
         Circle()
-            .fill(colorFromHex(hex) ?? .gray.opacity(0.4))
+            .fill(UBColorFromHex(hex) ?? .gray.opacity(0.4))
             .frame(width: 24, height: 24)
             .overlay(
                 Circle().strokeBorder(Color.primary.opacity(0.1))
             )
             .accessibilityHidden(true)
     }
+}
 
-    private func colorFromHex(_ hex: String) -> Color? {
-        var value = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if value.hasPrefix("#") { value.removeFirst() }
-        guard value.count == 6, let intVal = Int(value, radix: 16) else { return nil }
-        let r = Double((intVal >> 16) & 0xFF) / 255.0
-        let g = Double((intVal >> 8) & 0xFF) / 255.0
-        let b = Double(intVal & 0xFF) / 255.0
-        return Color(red: r, green: g, blue: b)
-    }
+// MARK: - Hex Color Helper (local)
+fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
+    guard var value = hex?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+    if value.hasPrefix("#") { value.removeFirst() }
+    guard value.count == 6, let intVal = Int(value, radix: 16) else { return nil }
+    let r = Double((intVal >> 16) & 0xFF) / 255.0
+    let g = Double((intVal >> 8) & 0xFF) / 255.0
+    let b = Double(intVal & 0xFF) / 255.0
+    return Color(red: r, green: g, blue: b)
 }

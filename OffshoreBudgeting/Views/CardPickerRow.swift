@@ -63,7 +63,7 @@ struct CardPickerRow: View {
             .padding(.vertical, DS.Spacing.s)
         }
         // Hide indicators across platforms; remove neutral background for flat look
-        .ub_hideScrollIndicators()
+        .scrollIndicators(.hidden)
         // Default to the first available card if none selected yet and no "None" option.
         .onAppear {
             if selectedCardID == nil,

@@ -25,7 +25,8 @@ struct OffshoreBudgetingApp: App {
         let cardPickerStore = CardPickerStore()
         _cardPickerStore = StateObject(wrappedValue: cardPickerStore)
         CoreDataService.shared.ensureLoaded()
-        UITestDataSeeder.applyIfNeeded()
+        // Removed test seeding hook (UITestDataSeeder) to avoid requiring
+        // UI test-only code in the main app target.
         cardPickerStore.start()
         logPlatformCapabilities()
         // No macOS-specific setup required at the moment.
@@ -95,7 +96,7 @@ struct OffshoreBudgetingApp: App {
                     platformCapabilities: platformCapabilities
                 )
             }
-            .ub_onChange(of: systemColorScheme) { newScheme in
+            .onChange(of: systemColorScheme) { newScheme in
                 themeManager.refreshSystemAppearance(newScheme)
                 SystemThemeAdapter.applyGlobalChrome(
                     theme: themeManager.selectedTheme,
@@ -103,7 +104,7 @@ struct OffshoreBudgetingApp: App {
                     platformCapabilities: platformCapabilities
                 )
             }
-            .ub_onChange(of: themeManager.selectedTheme) {
+            .onChange(of: themeManager.selectedTheme) { _ in
                 SystemThemeAdapter.applyGlobalChrome(
                     theme: themeManager.selectedTheme,
                     colorScheme: systemColorScheme,

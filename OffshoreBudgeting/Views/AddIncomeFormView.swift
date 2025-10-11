@@ -29,27 +29,22 @@ struct AddIncomeFormView: View {
     }
 
     var body: some View {
-        EditSheetScaffold(
-            title: viewModel.isEditing ? "Edit Income" : "Add Income",
-            detents: [.medium, .large],
-            saveButtonTitle: viewModel.isEditing ? "Save Changes" : "Add Income",
-            isSaveEnabled: viewModel.canSave,
-            onSave: { saveTapped() }
-        ) {
-            Group {
-                if viewModel.isEditing && viewModel.isPartOfSeries {
-                    Text("Editing a recurring income. Choosing \"Edit this and all future instances\" will create a new series. Changes from this point forward will be treated as a new series.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.bottom, 4)
+        navigationContainer {
+            formContent
+                .navigationTitle(viewModel.isEditing ? "Edit Income" : "Add Income")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(viewModel.isEditing ? "Save Changes" : "Add Income") {
+                            _ = saveTapped()
+                        }
+                        .disabled(!viewModel.canSave)
+                    }
                 }
-                typeSection
-                sourceSection
-                amountSection
-                firstDateSection
-                recurrenceSection
-            }
         }
+        .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
         .onAppear {
             do { try viewModel.loadIfNeeded(from: viewContext) }
             catch { /* This error is handled at save time */ }
@@ -64,7 +59,7 @@ struct AddIncomeFormView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
-        .ub_onChange(of: viewModel.isPresentingCustomRecurrenceEditor) { newValue in
+        .onChange(of: viewModel.isPresentingCustomRecurrenceEditor) { newValue in
             if newValue {
                 if case .custom(let raw, _) = viewModel.recurrenceRule {
                     viewModel.customRuleSeed = CustomRecurrence.roughParse(rruleString: raw)
@@ -95,22 +90,58 @@ struct AddIncomeFormView: View {
         }
     }
 
+    // MARK: Navigation container
+    @ViewBuilder
+    private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            NavigationStack { content() }
+        } else {
+            NavigationView { content() }
+        }
+    }
+
+    // MARK: - Form content
+    @ViewBuilder
+    private var formContent: some View {
+        Form {
+            if viewModel.isEditing && viewModel.isPartOfSeries {
+                Text("Editing a recurring income. Choosing \"Edit this and all future instances\" will create a new series. Changes from this point forward will be treated as a new series.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 4)
+            }
+            typeSection
+            sourceSection
+            amountSection
+            firstDateSection
+            recurrenceSection
+        }
+        .listStyle(.insetGrouped)
+        .scrollIndicators(.hidden)
+        .multilineTextAlignment(.leading)
+    }
+
     @ViewBuilder
     private var typeSection: some View {
-        UBFormSection("Type", isUppercased: true) {
+        Section {
             PillSegmentedControl(selection: $viewModel.isPlanned) {
                 Text("Planned").tag(true)
                 Text("Actual").tag(false)
             }
             .accessibilityIdentifier("incomeTypeSegmentedControl")
+        } header: {
+            Text("Type")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
         }
     }
     
     // ... (Rest of file is unchanged)
     @ViewBuilder
     private var sourceSection: some View {
-        UBFormSection("Source", isUppercased: true) {
-            UBFormRow {
+        Section {
+            HStack(alignment: .center) {
                 if #available(iOS 15.0, macCatalyst 15.0, *) {
                     TextField("", text: $viewModel.source, prompt: Text("Paycheck"))
                         .autocorrectionDisabled(true)
@@ -126,13 +157,20 @@ struct AddIncomeFormView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Income Source")
                 }
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } header: {
+            Text("Source")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
         }
     }
     @ViewBuilder
     private var amountSection: some View {
-        UBFormSection("Amount", isUppercased: true) {
-            UBFormRow {
+        Section {
+            HStack(alignment: .center) {
                 if #available(iOS 15.0, macCatalyst 15.0, *) {
                     TextField("", text: $viewModel.amountInput, prompt: Text("1000"))
                         .keyboardType(.decimalPad)
@@ -146,24 +184,41 @@ struct AddIncomeFormView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Income Amount")
                 }
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } header: {
+            Text("Amount")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
         }
     }
     @ViewBuilder
     private var firstDateSection: some View {
-        UBFormSection("Entry Date", isUppercased: true) {
+        Section {
             DatePicker("", selection: $viewModel.firstDate, displayedComponents: [.date])
                 .labelsHidden()
-                .ub_compactDatePickerStyle()
+                .datePickerStyle(.compact)
                 .accessibilityIdentifier("incomeFirstDatePicker")
                 .accessibilityLabel("Entry Date")
+        } header: {
+            Text("Entry Date")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
         }
     }
     @ViewBuilder
     private var recurrenceSection: some View {
-        UBFormSection("Recurrence", isUppercased: true) {
+        Section {
             RecurrencePickerView(rule: $viewModel.recurrenceRule,
                                  isPresentingCustomEditor: $viewModel.isPresentingCustomRecurrenceEditor)
+        } header: {
+            Text("Recurrence")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
         }
     }
     private func saveTapped() -> Bool {
@@ -188,8 +243,9 @@ struct AddIncomeFormView: View {
         }
     }
     private func sectionHeader(_ title: String) -> some View {
-        Text(title.uppercased())
-            .font(.caption)
+        Text(title)
+            .font(.footnote)
             .foregroundStyle(.secondary)
+            .textCase(.uppercase)
     }
 }

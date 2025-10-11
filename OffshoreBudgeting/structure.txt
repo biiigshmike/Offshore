@@ -1,236 +1,131 @@
-.
-├── Offshore Budgeting.xcodeproj
-│   └── project.xcworkspace
-│       └── contents.xcworkspacedata
-├── Offshore.xcodeproj
-│   ├── project.pbxproj
-│   ├── project.pbxproj.clean
-│   ├── project.xcworkspace
-│   │   ├── contents.xcworkspacedata
-│   │   ├── xcshareddata
-│   │   │   └── swiftpm
-│   │   │       ├── configuration
-│   │   │       └── Package.resolved
-│   │   └── xcuserdata
-│   │       └── Michael.xcuserdatad
-│   │           └── UserInterfaceState.xcuserstate
-│   ├── xcshareddata
-│   │   └── xcschemes
-│   │       └── OffshoreBudgeting.xcscheme
-│   └── xcuserdata
-│       └── Michael.xcuserdatad
-│           └── xcschemes
-│               └── xcschememanagement.plist
-├── OffshoreBudgeting
-│   ├── AGENTS.md
-│   ├── AppIcon.icon
-│   │   ├── Assets
-│   │   │   └── ChatGPT Image Sep 30, 2025 at 11_32_01 AM.png
-│   │   └── icon.json
-│   ├── Apple Documentation
-│   │   ├── Apple Design System Conventions.txt
-│   │   ├── Applying Liquid Glass to custom views.txt
-│   │   ├── Building and customizing the menu bar with SwiftUI.txt
-│   │   ├── Cross-platform SwiftUI design, the Apple way.txt
-│   │   ├── Liquid Glass in Practice (Summary).txt
-│   │   ├── LiquidGlassMethods.txt
-│   │   ├── LiquidGlassStyling.txt
-│   │   ├── SwiftUI App Structure & Data Flow (Apple’s Baseline).txt
-│   │   └── TipsTricksExamplesofLiquidGlass.txt
-│   ├── Assets.xcassets
-│   │   ├── AppIcon.appiconset
-│   │   │   ├── Contents.json
-│   │   │   ├── DarkIcon.png
-│   │   │   ├── LightIcon.png
-│   │   │   └── TintedIcon.png
-│   │   └── Contents.json
-│   ├── ContentView.swift
-│   ├── Info.plist
-│   ├── Models
-│   │   ├── BudgetPeriod.swift
-│   │   └── CardItem.swift
-│   ├── OffshoreBudgeting.entitlements
-│   ├── OffshoreBudgetingApp.swift
-│   ├── OffshoreBudgetingModel.xcdatamodeld
-│   │   └── OffshoreBudgetingModel.xcdatamodel
-│   │       └── contents
-│   ├── Resources
-│   │   ├── AddIncomeFormView+Lifecycle.swift
-│   │   ├── BudgetIncomeCalculator.swift
-│   │   ├── CardItem+CoreDataBridge.swift
-│   │   ├── Color+Hex.swift
-│   │   ├── CoreDataEntityChangeMonitor.swift
-│   │   ├── CoreDataListObserver.swift
-│   │   ├── HolographicMetallicText.swift
-│   │   ├── NotificationName+Extensions.swift
-│   │   ├── PlannedExpenseService+Templates.swift
-│   │   ├── RecurrenceRule.swift
-│   │   ├── SaveError.swift
-│   │   └── UnifiedSwipeActions.swift
-│   ├── Screenshots
-│   │   ├── CardDetailViewHierarchy.png
-│   │   ├── CardsViewHierarchy.png
-│   │   ├── HomeViewHierarchy.png
-│   │   ├── IncomeView.png
-│   │   ├── IncomeViewHierarchy.png
-│   │   ├── iOS26ViewHierarchySettingsView.png
-│   │   ├── ManageCategoriesViewHierarchy.png
-│   │   ├── PresetsViewHierarchy.png
-│   │   ├── SettingsView.png
-│   │   ├── SettingsViewHierarchy.png
-│   │   └── SettingsViewOniOS26.png
-│   ├── Services
-│   │   ├── BudgetService.swift
-│   │   ├── CardService.swift
-│   │   ├── CloudAccountStatusProvider.swift
-│   │   ├── CoreDataService.swift
-│   │   ├── ExpenseCategoryService.swift
-│   │   ├── IncomeService.swift
-│   │   ├── PlannedExpenseService.swift
-│   │   ├── PlannedExpenseUpdateScope.swift
-│   │   ├── RecurrenceEngine.swift
-│   │   ├── Repository
-│   │   │   └── CoreDataRepository.swift
-│   │   └── UnplannedExpenseService.swift
-│   ├── Support
-│   │   └── Logging.swift
-│   ├── Systems
-│   │   ├── AppSettings.swift
-│   │   ├── AppTheme.swift
-│   │   ├── CardAppearanceStore.swift
-│   │   ├── CardPickerStore.swift
-│   │   ├── CardTheme.swift
-│   │   ├── Compatibility.swift
-│   │   ├── DesignSystem.swift
-│   │   ├── DesignSystem+Motion.swift
-│   │   ├── IncomeCalendarPalette.swift
-│   │   ├── LegacyUnderbarScrollBehavior.swift
-│   │   ├── MetallicTextStyles.swift
-│   │   ├── MotionSupport.swift
-│   │   ├── OnboardingEnvironment.swift
-│   │   ├── PlatformCapabilities.swift
-│   │   ├── ResponsiveLayoutContext.swift
-│   │   ├── RootTabView.swift
-│   │   ├── SafeAreaInsetsCompatibility.swift
-│   │   ├── ScrollViewInsetAdjustment.swift
-│   │   └── SystemTheme.swift
-│   ├── Testing
-│   │   ├── LiquidGlassQANotes.md
-│   │   └── UITestDataSeeder.swift
-│   ├── View Models
-│   │   ├── AddBudgetViewModel.swift
-│   │   ├── AddIncomeFormViewModel.swift
-│   │   ├── AddPlannedExpenseViewModel.swift
-│   │   ├── AddUnplannedExpenseViewModel.swift
-│   │   ├── BudgetDetailsViewModel.swift
-│   │   ├── BudgetDetailsViewModelStore.swift
-│   │   ├── CardDetailViewModel.swift
-│   │   ├── CardsViewModel.swift
-│   │   ├── HomeViewModel.swift
-│   │   ├── IncomeScreenViewModel.swift
-│   │   └── SettingsViewModel.swift
-│   └── Views
-│       ├── AddBudgetView.swift
-│       ├── AddCardFormView.swift
-│       ├── AddIncomeFormView.swift
-│       ├── AddPlannedExpenseView.swift
-│       ├── AddUnplannedExpenseView.swift
-│       ├── BudgetDetailsView.swift
-│       ├── CardDetailView.swift
-│       ├── CardPickerItemTile.swift
-│       ├── CardPickerRow.swift
-│       ├── CardsView.swift
-│       ├── CardTileView.swift
-│       ├── CategoryChipStyle.swift
-│       ├── Components
-│       │   ├── CalendarNavigationButtonStyle.swift
-│       │   ├── CategoryTotalsRow.swift
-│       │   ├── GlassCapsuleContainer.swift
-│       │   ├── GlassCTAButton.swift
-│       │   ├── HomeViewHelpers.swift
-│       │   ├── PeriodNavigationControl.swift
-│       │   ├── PillSegmentedControl.swift
-│       │   ├── RootHeaderActions.swift
-│       │   ├── RootTabHeader.swift
-│       │   ├── RootTabPageScaffold.swift
-│       │   ├── RootViewTopPlanes.swift
-│       │   ├── TranslucentButtonStyle.swift
-│       │   └── UBFormListRowBackground.swift
-│       ├── CustomRecurrenceEditorView.swift
-│       ├── EditSheetScaffold.swift
-│       ├── ExpenseCategoryManagerView.swift
-│       ├── HelpView.swift
-│       ├── HomeView.swift
-│       ├── IncomeEditorView.swift
-│       ├── IncomeView.swift
-│       ├── ManageBudgetCardsSheet.swift
-│       ├── ManageBudgetPresetsSheet.swift
-│       ├── OnboardingView.swift
-│       ├── PresetBudgetAssignmentSheet.swift
-│       ├── PresetRowView.swift
-│       ├── PresetsView.swift
-│       ├── RecurrencePickerView.swift
-│       ├── RenameCardSheet.swift
-│       ├── SettingsView.swift
-│       ├── SidebarViewController.swift
-│       ├── UBEmptyState.swift
-│       ├── UBFormRow.swift
-│       └── UBFormSection.swift
-├── OffshoreBudgeting.xcodeproj
-│   └── project.xcworkspace
-│       └── contents.xcworkspacedata
-├── OffshoreBudgeting.xctestplan
-├── OffshoreBudgetingTests
-│   ├── BudgetAndCardServiceTests.swift
-│   ├── ExpenseCategoryServiceTests.swift
-│   ├── IncomeAndTotalsTests.swift
-│   ├── IncomeRecurrenceMatrixTests.swift
-│   ├── PlannedExpenseServiceTests.swift
-│   ├── PlatformCapabilitiesTests.swift
-│   ├── RecurrenceEngineEdgeCasesTests.swift
-│   ├── RecurrenceEngineSemimonthlyTests.swift
-│   ├── SystemThemeAdapterTests.swift
-│   ├── TestSupport.swift
-│   └── UnplannedExpenseServiceTests.swift
-├── OffshoreBudgetingUITests
-│   ├── IncomeCalendarPrefetchUITests.swift
-│   ├── LegacyUnderbarGapUITests.swift
-│   ├── OffshoreBudgetingUITests.swift
-│   └── OffshoreBudgetingUITestsLaunchTests.swift
-├── structure.txt
-├── xcodebuild_align_details_window.log
-├── xcodebuild_chips_height.log
-├── xcodebuild_cta_width.log
-├── xcodebuild_current.log
-├── xcodebuild_ellipsis_behavior.log
-├── xcodebuild_finalHIG.log
-├── xcodebuild_hide_plus_when_inactive.log
-├── xcodebuild_holographic_cardname.log
-├── xcodebuild_home_chip_cta.log
-├── xcodebuild_home_height.log
-├── xcodebuild_list_offshore.json
-├── xcodebuild_metallic_rearrange.log
-├── xcodebuild_period_guard.log
-├── xcodebuild_phase1.log
-├── xcodebuild_phase1b.log
-├── xcodebuild_phase2.log
-├── xcodebuild_phase3.log
-├── xcodebuild_phase3b.log
-├── xcodebuild_phase3c.log
-├── xcodebuild_phase3d.log
-├── xcodebuild_phase3e.log
-├── xcodebuild_phase4a.log
-├── xcodebuild_phase4b.log
-├── xcodebuild_phase4c.log
-├── xcodebuild_phase5.log
-├── xcodebuild_phase7.log
-├── xcodebuild_phase7b.log
-├── xcodebuild_phase7c.log
-├── xcodebuild_presets_swipe_build_iossim.log
-├── xcodebuild_presets_swipe_build_maccatalyst_2.log
-├── xcodebuild_presets_swipe_build_maccatalyst.log
-├── xcodebuild_presets_swipe_build.log
-├── xcodebuild_remove_noop.log
-└── xcodebuild_toolbar_reorder.log
-
-38 directories, 196 files
+OffshoreBudgeting/
+  AGENTS.md
+  AppIcon.icon/
+    Assets/
+      ChatGPT Image Sep 30, 2025 at 11_32_01 AM.png
+    icon.json
+  Apple Documentation/
+    Apple Design System Conventions.txt
+    Applying Liquid Glass to custom views.txt
+    Building and customizing the menu bar with SwiftUI.txt
+    Cross-platform SwiftUI design, the Apple way.txt
+    Liquid Glass in Practice (Summary).txt
+    LiquidGlassMethods.txt
+    LiquidGlassStyling.txt
+    SwiftUI App Structure & Data Flow (Apple’s Baseline).txt
+    TipsTricksExamplesofLiquidGlass.txt
+  Assets.xcassets/
+    AppIcon.appiconset/
+      Contents.json
+      DarkIcon.png
+      LightIcon.png
+      TintedIcon.png
+    Contents.json
+  ContentView.swift
+  Info.plist
+  OffshoreBudgeting.entitlements
+  OffshoreBudgetingApp.swift
+  OffshoreBudgetingModel.xcdatamodeld/
+    OffshoreBudgetingModel.xcdatamodel/
+      contents
+  Models/
+    BudgetPeriod.swift
+    CardItem.swift
+  Resources/
+    BudgetIncomeCalculator.swift
+    CardItem+CoreDataBridge.swift
+    CoreDataEntityChangeMonitor.swift
+    CoreDataListObserver.swift
+    HolographicMetallicText.swift
+    NotificationName+Extensions.swift
+    PlannedExpenseService+Templates.swift
+    RecurrenceRule.swift
+    SaveError.swift
+    UnifiedSwipeActions.swift
+  Screenshots/
+    homeViewCategoryChips.png
+  Services/
+    BudgetService.swift
+    CardService.swift
+    CloudAccountStatusProvider.swift
+    CoreDataService.swift
+    ExpenseCategoryService.swift
+    IncomeService.swift
+    PlannedExpenseService.swift
+    PlannedExpenseUpdateScope.swift
+    RecurrenceEngine.swift
+    Repository/
+      CoreDataRepository.swift
+    UnplannedExpenseService.swift
+  Support/
+    Logging.swift
+  Systems/
+    AppSettings.swift
+    AppTheme.swift
+    CardAppearanceStore.swift
+    CardPickerStore.swift
+    CardTheme.swift
+    Compatibility.swift
+    DesignSystem.swift
+    DesignSystem+Motion.swift
+    IncomeCalendarPalette.swift
+    MetallicTextStyles.swift
+    MotionSupport.swift
+    OnboardingEnvironment.swift
+    PlatformCapabilities.swift
+    ResponsiveLayoutContext.swift
+    RootTabView.swift
+    SafeAreaInsetsCompatibility.swift
+    SystemTheme.swift
+  Testing/
+    LiquidGlassQANotes.md
+    UITestDataSeeder.swift
+  View Models/
+    AddBudgetViewModel.swift
+    AddIncomeFormViewModel.swift
+    AddPlannedExpenseViewModel.swift
+    AddUnplannedExpenseViewModel.swift
+    BudgetDetailsViewModel.swift
+    BudgetDetailsViewModelStore.swift
+    CardDetailViewModel.swift
+    CardsViewModel.swift
+    HomeViewModel.swift
+    IncomeScreenViewModel.swift
+    PresetsViewModel.swift
+    SettingsViewModel.swift
+  Views/
+    AddBudgetView.swift
+    AddCardFormView.swift
+    AddIncomeFormView.swift
+    AddPlannedExpenseView.swift
+    AddUnplannedExpenseView.swift
+    CardDetailView.swift
+    CardPickerItemTile.swift
+    CardPickerRow.swift
+    CardTileView.swift
+    CategoryChipStyle.swift
+    Components/
+      Buttons.swift
+      CalendarNavigationButtonStyle.swift
+      CategoryChipPill.swift
+      GlassCTAButton.swift
+      PillSegmentedControl.swift
+      SheetDetentsCompat.swift
+      TranslucentButtonStyle.swift
+    CustomRecurrenceEditorView.swift
+    ExpenseCategoryManagerView.swift
+    HelpView.swift
+    HomeView.swift
+    IncomeEditorView.swift
+    IncomeView.swift
+    ManageBudgetCardsSheet.swift
+    ManageBudgetPresetsSheet.swift
+    OnboardingView.swift
+    PresetBudgetAssignmentSheet.swift
+    PresetRowView.swift
+    PresetsView.swift
+    RecurrencePickerView.swift
+    RenameCardSheet.swift
+    SettingsView.swift
+    SidebarViewController.swift
+    UBEmptyState.swift

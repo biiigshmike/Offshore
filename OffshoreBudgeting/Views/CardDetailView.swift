@@ -210,7 +210,7 @@ struct CardDetailView: View {
         }
             .ub_listStyleLiquidAware()
             .listRowSeparator(.hidden)
-            .ub_hideScrollIndicators()
+            .scrollIndicators(.hidden)
             .cardDetailListBottomInset(capabilities: capabilities, layoutContext: layoutContext)
         
 
@@ -430,14 +430,15 @@ struct CardDetailView: View {
                         IconOnlyButton(systemName: "pencil") {
                             onEdit()
                         }
-                        // Add Expense menu (Planned or Variable) — keep as the rightmost control
+                        // Add Expense menu (Planned or Variable) — rightmost control
                         Menu {
                             Button("Add Planned Expense") { isPresentingAddPlanned = true }
                             Button("Add Variable Expense") { isPresentingAddExpense = true }
                         } label: {
-                            RootHeaderControlIcon(systemImage: "plus")
+                            Image(systemName: "plus")
+                                .font(.system(size: 18, weight: .semibold))
+                                .symbolRenderingMode(.monochrome)
                         }
-                        .modifier(HideMenuIndicatorIfPossible())
                         .accessibilityLabel("Add Expense")
                     }
                 }

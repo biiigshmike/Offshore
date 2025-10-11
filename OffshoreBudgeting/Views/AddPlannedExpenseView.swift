@@ -84,14 +84,10 @@ struct AddPlannedExpenseView: View {
 
     // MARK: Body
     var body: some View {
-        EditSheetScaffold(
-            title: vm.isEditing ? "Edit Planned Expense" : "Add Planned Expense",
-            saveButtonTitle: vm.isEditing ? "Save Changes" : "Save",
-            isSaveEnabled: vm.canSave,
-            onSave: { trySave() }
-        ) {
+        navigationContainer {
+            Form {
             // MARK: Card Selection
-            UBFormSection("Card", isUppercased: true) {
+            Section {
                 if !vm.cardsLoaded {
                     ProgressView()
                         .frame(maxWidth: .infinity)
@@ -118,14 +114,24 @@ struct AddPlannedExpenseView: View {
                     )
                     .frame(maxWidth: .infinity, alignment: .center)
                     .frame(height: cardRowHeight)
-                    .ub_hideScrollIndicators()
+                    .scrollIndicators(.hidden)
                 }
+            } header: {
+                Text("Card")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
             }
 
             // MARK: Budget Assignment
             if showAssignBudgetToggle && !vm.allBudgets.isEmpty {
-                UBFormSection("Add to a budget now?", isUppercased: true) {
+                Section {
                     Toggle("Select a Budget", isOn: $isAssigningToBudget)
+                } header: {
+                    Text("Add to a budget now?")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
                 }
                 if isAssigningToBudget {
                     budgetPickerSection
@@ -135,7 +141,7 @@ struct AddPlannedExpenseView: View {
             }
 
             // MARK: Category Selection
-            UBFormSection("Category", isUppercased: true) {
+            Section {
                 CategoryChipsRow(selectedCategoryID: $vm.selectedCategoryID)
             }
 //            .ub_formSectionClearBackground()
@@ -149,9 +155,9 @@ struct AddPlannedExpenseView: View {
             // to be empty, so the placeholder remains visible and left‑aligned.
 
             // Expense Description
-            UBFormSection("Expense Description", isUppercased: true) {
+            Section {
                 // Use an empty label and a prompt for true placeholder styling on modern OSes.
-                UBFormRow {
+                HStack(alignment: .center) {
                     if #available(iOS 15.0, macCatalyst 15.0, *) {
                         TextField("", text: $vm.descriptionText, prompt: Text("Electric"))
                             .autocorrectionDisabled(true)
@@ -167,12 +173,19 @@ struct AddPlannedExpenseView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityLabel("Expense Description")
                     }
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } header: {
+                Text("Expense Description")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
             }
 
             // Planned Amount
-            UBFormSection("Planned Amount", isUppercased: true) {
-                UBFormRow {
+            Section {
+                HStack(alignment: .center) {
                     if #available(iOS 15.0, macCatalyst 15.0, *) {
                         TextField("", text: $vm.plannedAmountString, prompt: Text("100"))
                             .keyboardType(.decimalPad)
@@ -186,12 +199,19 @@ struct AddPlannedExpenseView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityLabel("Planned Amount")
                     }
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } header: {
+                Text("Planned Amount")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
             }
 
             // Actual Amount
-            UBFormSection("Actual Amount", isUppercased: true) {
-                UBFormRow {
+            Section {
+                HStack(alignment: .center) {
                     if #available(iOS 15.0, macCatalyst 15.0, *) {
                         TextField("", text: $vm.actualAmountString, prompt: Text("102.50"))
                             .keyboardType(.decimalPad)
@@ -205,23 +225,55 @@ struct AddPlannedExpenseView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityLabel("Actual Amount")
                     }
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } header: {
+                Text("Actual Amount")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
             }
 
             // Transaction Date
-            UBFormSection("Transaction Date", isUppercased: true) {
+            Section {
                 // Hide the label of the DatePicker itself; the section header supplies the label.
                 DatePicker("", selection: $vm.transactionDate, displayedComponents: [.date])
                     .labelsHidden()
-                    .ub_compactDatePickerStyle()
+                    .datePickerStyle(.compact)
                     .accessibilityLabel("Transaction Date")
+            } header: {
+                Text("Transaction Date")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
             }
-
             // MARK: Use in future budgets?
-            UBFormSection("Use in future budgets?", isUppercased: true) {
+            Section {
                 Toggle("Use in future budgets?", isOn: $vm.saveAsGlobalPreset)
+            } header: {
+                Text("Use in future budgets?")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+            }
+            }
+            .listStyle(.insetGrouped)
+            .scrollIndicators(.hidden)
+            .navigationTitle(vm.isEditing ? "Edit Planned Expense" : "Add Planned Expense")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(vm.isEditing ? "Save Changes" : "Save") {
+                        if trySave() { dismiss() }
+                    }
+                    .disabled(!vm.canSave)
+                }
             }
         }
+        .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
         .onAppear {
             vm.attachCardPickerStoreIfNeeded(cardPickerStore)
             vm.startIfNeeded()
@@ -234,7 +286,7 @@ struct AddPlannedExpenseView: View {
         .onChange(of: vm.allCards) { _ in
             applyInitialCardSelectionIfNeeded()
         }
-        .ub_onChange(of: isAssigningToBudget) { newValue in
+        .onChange(of: isAssigningToBudget) { newValue in
             guard showAssignBudgetToggle else { return }
             if newValue {
                 vm.selectedBudgetID = vm.allBudgets.first?.objectID
@@ -335,8 +387,8 @@ struct AddPlannedExpenseView: View {
 
     @ViewBuilder
     private var budgetPickerSection: some View {
-        UBFormSection("Choose Budget", isUppercased: true) {
-            UBFormRow {
+        Section {
+            HStack(alignment: .center) {
                 // Use a custom binding so the selection is cleared immediately
                 // when the search text changes to a string that doesn't include
                 // the currently selected budget.  This avoids transient invalid
@@ -369,7 +421,7 @@ struct AddPlannedExpenseView: View {
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            UBFormRow {
+            HStack(alignment: .center) {
                 // Use a Menu instead of a Picker to prevent warnings about
                 // invalid selections when the available budgets change.
                 Menu {
@@ -387,7 +439,14 @@ struct AddPlannedExpenseView: View {
                 .menuStyle(.borderlessButton)
                 .id(budgetSearchText)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } header: {
+            Text("Choose Budget")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
         }
     }
 
@@ -405,6 +464,18 @@ struct AddPlannedExpenseView: View {
               vm.allCards.contains(where: { $0.objectID == initialCardID }) else { return }
         vm.selectedCardID = initialCardID
         didApplyInitialCardSelection = true
+    }
+}
+
+// MARK: - Navigation container
+private extension AddPlannedExpenseView {
+    @ViewBuilder
+    func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            NavigationStack { content() }
+        } else {
+            NavigationView { content() }
+        }
     }
 }
 
@@ -429,13 +500,15 @@ private struct CategoryChipsRow: View {
     private let chipRowClipShape = Rectangle()
 
     var body: some View {
-        UBFormRow {
+        HStack(alignment: .center) {
             HStack(spacing: DS.Spacing.s) {
                 addCategoryButton
                 chipsScrollContainer()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .listRowInsets(rowInsets)
         .listRowSeparator(.hidden)
         .sheet(isPresented: $isPresentingNewCategory) {
@@ -459,7 +532,7 @@ private struct CategoryChipsRow: View {
             .modifier(PresentationDetentsCompat())
             .environment(\.managedObjectContext, viewContext)
         }
-        .ub_onChange(of: categories.count) {
+        .onChange(of: categories.count) { _ in
             if selectedCategoryID == nil, let first = categories.first {
                 selectedCategoryID = first.objectID
             }
@@ -500,7 +573,7 @@ private extension CategoryChipsRow {
             categoryChips
                 .padding(.trailing, DS.Spacing.s)
         }
-        .ub_hideScrollIndicators()
+        .scrollIndicators(.hidden)
         .ub_disableHorizontalBounce()
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -576,7 +649,7 @@ private struct CategoryChip: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        let categoryColor = Color(hex: colorHex) ?? .secondary
+        let categoryColor = UBColorFromHex(colorHex) ?? .secondary
         let style = CategoryChipStyle.make(
             isSelected: isSelected,
             categoryColor: categoryColor,
@@ -606,6 +679,17 @@ private struct CategoryChip: View {
             .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
+}
+
+// MARK: - Hex Color Helper (local)
+fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
+    guard var value = hex?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+    if value.hasPrefix("#") { value.removeFirst() }
+    guard value.count == 6, let intVal = Int(value, radix: 16) else { return nil }
+    let r = Double((intVal >> 16) & 0xFF) / 255.0
+    let g = Double((intVal >> 8) & 0xFF) / 255.0
+    let b = Double(intVal & 0xFF) / 255.0
+    return Color(red: r, green: g, blue: b)
 }
 
 // MARK: - Styles

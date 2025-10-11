@@ -93,319 +93,94 @@ Deliver short summary of reasoning and actionable steps
 
 ## Repository overview
 
-
-
 ```
 ./
-Offshore/
-  .DS_Store
+Offshore.xcodeproj/
+OffshoreBudgeting/
+  AGENTS.md
+  AppIcon.icon/
+  Apple Documentation/
+  Assets.xcassets/
   ContentView.swift
   Info.plist
   OffshoreBudgeting.entitlements
   OffshoreBudgetingApp.swift
-  OffshoreBudgeting/View Models/
-    AddBudgetViewModel.swift
-    AddIncomeFormViewModel.swift
-    AddPlannedExpenseViewModel.swift
-    AddUnplannedExpenseViewModel.swift
-    BudgetDetailsViewModel.swift
-    BudgetDetailsViewModelStore.swift
-    CardDetailViewModel.swift
-    CardsViewModel.swift
-    HomeViewModel.swift
-    IncomeScreenViewModel.swift
-    SettingsViewModel.swift
-  OffshoreBudgeting/Resources/
-    AddIncomeFormView+Lifecycle.swift
-    BudgetIncomeCalculator.swift
-    CardItem+CoreDataBridge.swift
-    Color+Hex.swift
-    CoreDataEntityChangeMonitor.swift
-    CoreDataListObserver.swift
-    HolographicMetallicText.swift
-    NotificationName+Extensions.swift
-    PlannedExpenseService+Templates.swift
-    RecurrenceRule.swift
-    SaveError.swift
-    UnifiedSwipeActions.swift
-  OffshoreBudgeting/Assets.xcassets/
-    .DS_Store
-    Contents.json
-  OffshoreBudgeting/Models/
-    BudgetPeriod.swift
-    CardItem.swift
-  OffshoreBudgeting/AppIcon.icon/
-    icon.json
-    OffshoreBudgeting/AppIcon.icon/Assets/
-      Offshore Budgeting Icon Design.png
-  OffshoreBudgeting/Testing/
-    UITestDataSeeder.swift
-  OffshoreBudgeting/Support/
-    Logging.swift
-  OffshoreBudgeting/OffshoreBudgetingModel.xcdatamodeld/
-    OffshoreBudgeting/OffshoreBudgetingModel.xcdatamodeld/OffshoreBudgetingModel.xcdatamodel/
-      contents
-  OffshoreBudgeting/Systems/
-    AppSettings.swift
-    AppTheme.swift
-    CardAppearanceStore.swift
-    CardTheme.swift
-    Compatibility.swift
-    DesignSystem+Motion.swift
-    DesignSystem.swift
-    MetallicTextStyles.swift
-    IncomeCalendarPalette.swift
-    MotionSupport.swift
-    OnboardingEnvironment.swift
-    PlatformCapabilities.swift
-    ResponsiveLayoutContext.swift
-    RootTabView.swift
-    SafeAreaInsetsCompatibility.swift
-    ScrollViewInsetAdjustment.swift
-    SystemTheme.swift
-  OffshoreBudgeting/Views/
-    AddBudgetView.swift
-    AddCardFormView.swift
-    AddIncomeFormView.swift
-    AddPlannedExpenseView.swift
-    AddUnplannedExpenseView.swift
-    BudgetDetailsView.swift
-    CardDetailView.swift
-    CardPickerItemTile.swift
-    CardPickerRow.swift
-    CardTileView.swift
-    CardsView.swift
-    CustomRecurrenceEditorView.swift
-    EditSheetScaffold.swift
-    ExpenseCategoryManagerView.swift
-    HelpView.swift
-    HomeView.swift
-    IncomeEditorView.swift
-    IncomeView.swift
-    ManageBudgetCardsSheet.swift
-    NoCardTile.swift
-    OnboardingView.swift
-    PresetBudgetAssignmentSheet.swift
-    PresetRowView.swift
-    PresetsView.swift
-    RecurrencePickerView.swift
-    RenameCardSheet.swift
-    SettingsView.swift
-    UBEmptyState.swift
-    UBFormRow.swift
-    UBFormSection.swift
-    OffshoreBudgeting/Views/Components/
-      CalendarNavigationButtonStyle.swift
-      PeriodNavigationControl.swift
-      RootHeaderActions.swift
-      RootTabHeader.swift
-      RootTabPageScaffold.swift
-      RootViewTopPlanes.swift
-      TranslucentButtonStyle.swift
-  OffshoreBudgeting/Services/
-    BudgetService.swift
-    CardService.swift
-    CloudAccountStatusProvider.swift
-    CoreDataService.swift
-    ExpenseCategoryService.swift
-    IncomeService.swift
-    PlannedExpenseService.swift
-    RecurrenceEngine.swift
-    UnplannedExpenseService.swift
-    OffshoreBudgeting/Services/Repository/
-      CoreDataRepository.swift
-__MACOSX/
-  __MACOSX/OffshoreBudgeting/
-    ._.DS_Store
-    ._AppIcon.icon
-    ._ContentView.swift
-    ._Info.plist
-    ._OffshoreBudgetingApp.swift
-    ._Testing
-    __MACOSX/OffshoreBudgeting/View Models/
-      ._AddBudgetViewModel.swift
-      ._AddIncomeFormViewModel.swift
-      ._AddPlannedExpenseViewModel.swift
-      ._AddUnplannedExpenseViewModel.swift
-      ._BudgetDetailsViewModel.swift
-      ._CardDetailViewModel.swift
-      ._CardsViewModel.swift
-      ._HomeViewModel.swift
-      ._IncomeScreenViewModel.swift
-      ._SettingsViewModel.swift
-    __MACOSX/OffshoreBudgeting/Resources/
-      ._AddIncomeFormView+Lifecycle.swift
-      ._BudgetIncomeCalculator.swift
-      ._CardItem+CoreDataBridge.swift
-      ._Color+Hex.swift
-      ._CoreDataEntityChangeMonitor.swift
-      ._CoreDataListObserver.swift
-      ._HolographicMetallicText.swift
-      ._NotificationName+Extensions.swift
-      ._PlannedExpenseService+Templates.swift
-      ._RecurrenceRule.swift
-      ._SaveError.swift
-      ._UnifiedSwipeActions.swift
-    __MACOSX/OffshoreBudgeting/Assets.xcassets/
-      ._.DS_Store
-    __MACOSX/OffshoreBudgeting/Models/
-      ._BudgetPeriod.swift
-      ._CardItem.swift
-    __MACOSX/OffshoreBudgeting/AppIcon.icon/
-      ._Assets
-      ._icon.json
-      __MACOSX/OffshoreBudgeting/AppIcon.icon/Assets/
-        ._Offshore Budgeting Icon Design.png
-    __MACOSX/OffshoreBudgeting/Testing/
-      ._UITestDataSeeder.swift
-    __MACOSX/OffshoreBudgeting/OffshoreBudgetingModel.xcdatamodeld/
-      ._OffshoreBudgetingModel.xcdatamodel
-      __MACOSX/OffshoreBudgeting/OffshoreBudgetingModel.xcdatamodeld/OffshoreBudgetingModel.xcdatamodel/
-        ._contents
-    __MACOSX/OffshoreBudgeting/Systems/
-      ._AppSettings.swift
-      ._AppTheme.swift
-      ._CardAppearanceStore.swift
-      ._CardTheme.swift
-      ._Compatibility.swift
-      ._DesignSystem+Motion.swift
-      ._DesignSystem.swift
-      ._MetallicTextStyles.swift
-      ._IncomeCalendarPalette.swift
-      ._MotionSupport.swift
-      ._OnboardingEnvironment.swift
-      ._PlatformCapabilities.swift
-      ._ResponsiveLayoutContext.swift
-      ._RootTabView.swift
-      ._SafeAreaInsetsCompatibility.swift
-      ._SystemTheme.swift
-    __MACOSX/OffshoreBudgeting/Views/
-      ._AddBudgetView.swift
-      ._AddCardFormView.swift
-      ._AddIncomeFormView.swift
-      ._AddPlannedExpenseView.swift
-      ._AddUnplannedExpenseView.swift
-      ._BudgetDetailsView.swift
-      ._CardDetailView.swift
-      ._CardPickerItemTile.swift
-      ._CardPickerRow.swift
-      ._CardTileView.swift
-      ._CardsView.swift
-      ._Components
-      ._CustomRecurrenceEditorView.swift
-      ._EditSheetScaffold.swift
-      ._ExpenseCategoryManagerView.swift
-      ._HelpView.swift
-      ._HomeView.swift
-      ._IncomeEditorView.swift
-      ._IncomeView.swift
-      ._NoCardTile.swift
-      ._OnboardingView.swift
-      ._PresetBudgetAssignmentSheet.swift
-      ._PresetRowView.swift
-      ._PresetsView.swift
-      ._RecurrencePickerView.swift
-      ._RenameCardSheet.swift
-      ._SettingsView.swift
-      ._UBEmptyState.swift
-      ._UBFormRow.swift
-      ._UBFormSection.swift
-      __MACOSX/OffshoreBudgeting/Views/Components/
-        ._CalendarNavigationButtonStyle.swift
-        ._PeriodNavigationControl.swift
-        ._RootHeaderActions.swift
-        ._RootTabHeader.swift
-        ._RootTabPageScaffold.swift
-        ._RootViewTopPlanes.swift
-        ._TranslucentButtonStyle.swift
-    __MACOSX/OffshoreBudgeting/Services/
-      ._BudgetService.swift
-      ._CardService.swift
-      ._CloudAccountStatusProvider.swift
-      ._CoreDataService.swift
-      ._ExpenseCategoryService.swift
-      ._IncomeService.swift
-      ._PlannedExpenseService.swift
-      ._RecurrenceEngine.swift
-      ._UnplannedExpenseService.swift
-      __MACOSX/OffshoreBudgeting/Services/Repository/
-        ._CoreDataRepository.swift
+  OffshoreBudgetingModel.xcdatamodeld/
+  Models/
+  Resources/
+  Screenshots/
+  Services/
+  Support/
+  Systems/
+  Testing/
+  View Models/
+  Views/
 ```
 
 ## Important files by role
 
 ### Views (SwiftUI / UI)
-- OffshoreBudgeting/ContentView.swift — types: ContentView
-- OffshoreBudgeting/Systems/RootTabView.swift — types: RootTabView, Tab, MacToolbarBackgroundModifier, MacRootTabBar, MacTabLabel
-- OffshoreBudgeting/Views/PresetsView.swift — types: PresetsView, AddGlobalPlannedExpenseSheet, PresetListItem, PresetsViewModel, Outline
-- OffshoreBudgeting/Views/CustomRecurrenceEditorView.swift — types: CustomRecurrence, Unit, CustomRecurrenceEditorView, WeekdayMultiPicker
-- OffshoreBudgeting/Views/SettingsView.swift — types: SettingsView
-- OffshoreBudgeting/Views/PresetRowView.swift — types: PresetRowView, LabeledAmountBlock
-- OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift — types: ExpenseCategoryManagerView, ExpenseCategoryEditorSheet, ColorCircle
-- OffshoreBudgeting/Views/HomeView.swift — types: HomeView, HomeHeaderPrimarySummaryView, HomeHeaderPrimarySummaryStyle, HomeHeaderFallbackTitleView, HomeIncomeSavingsZeroSummaryView
-- OffshoreBudgeting/Views/AddBudgetView.swift — types: AddBudgetView
-- OffshoreBudgeting/Views/CardTileView.swift — types: CardTileView
-- OffshoreBudgeting/Views/AddPlannedExpenseView.swift — types: AddPlannedExpenseView, CategoryChipsRow, PresentationDetentsCompat, AddCategoryPill, CategoryChip
-- OffshoreBudgeting/Views/IncomeEditorView.swift — types: IncomeEditorMode, IncomeEditorAction, IncomeEditorForm, RecurrenceOption, IncomeEditorView
-- OffshoreBudgeting/Views/RecurrencePickerView.swift — types: RecurrencePickerView, Preset, WeekdayPicker, DayOfMonthPicker
-- OffshoreBudgeting/Views/AddCardFormView.swift — types: AddCardFormView, Mode, ThemeSwatch
-- OffshoreBudgeting/Views/HelpView.swift — types: HelpView, HelpPage, HelpView_Previews
-- OffshoreBudgeting/Views/IncomeView.swift — types: AddIncomeSheetDate, IncomeView, CalendarSectionMetrics, IncomeCardHeights, IncomeRow
-- OffshoreBudgeting/Views/AddUnplannedExpenseView.swift — types: AddUnplannedExpenseView, CategoryChipsRow, AddCategoryPill, CategoryChip
-- OffshoreBudgeting/Views/BudgetDetailsView.swift — types: BudgetDetailsView, PeriodNavigationConfiguration, CombinedBudgetHeaderGrid, SummarySection, BudgetIncomeSavingsSummaryView
-- OffshoreBudgeting/Views/CardsView.swift — types: CardsView, ShimmerOverlay
-- OffshoreBudgeting/Views/OnboardingView.swift — types: OnboardingView, Step, WelcomeStep, ThemeStep, ThemePreviewTile
+- OffshoreBudgeting/ContentView.swift — ContentView
+- OffshoreBudgeting/Systems/RootTabView.swift — RootTabView
+- OffshoreBudgeting/Views/HomeView.swift — HomeView2
+- OffshoreBudgeting/Views/CardsView.swift — CardsView2
+- OffshoreBudgeting/Views/IncomeView.swift — IncomeView2
+- OffshoreBudgeting/Views/PresetsView.swift — PresetsView2
+- OffshoreBudgeting/Views/SettingsView.swift — SettingsView2
+- OffshoreBudgeting/Views/CardDetailView.swift — CardDetailView
+- OffshoreBudgeting/Views/AddPlannedExpenseView.swift — AddPlannedExpenseView (CategoryChipsRow, AddCategoryPill)
+- OffshoreBudgeting/Views/AddUnplannedExpenseView.swift — AddUnplannedExpenseView (CategoryChipsRow, AddCategoryPill)
+- OffshoreBudgeting/Views/AddCardFormView.swift — AddCardFormView (ThemeSwatch)
+- OffshoreBudgeting/Views/AddBudgetView.swift — AddBudgetView
+- OffshoreBudgeting/Views/IncomeEditorView.swift — IncomeEditorView
+- OffshoreBudgeting/Views/RecurrencePickerView.swift — RecurrencePickerView
+- OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift — ExpenseCategoryManagerView, ExpenseCategoryEditorSheet, ColorCircle
+- OffshoreBudgeting/Views/CustomRecurrenceEditorView.swift — CustomRecurrenceEditorView
+- OffshoreBudgeting/Views/PresetBudgetAssignmentSheet.swift — PresetBudgetAssignmentSheet
+- OffshoreBudgeting/Views/RenameCardSheet.swift — RenameCardSheet
+- OffshoreBudgeting/Views/UBEmptyState.swift — UBEmptyState
+- OffshoreBudgeting/Views/Components/CalendarNavigationButtonStyle.swift — CalendarNavigationButtonStyle
+- OffshoreBudgeting/Views/Components/GlassCTAButton.swift — GlassCTAButton
+- OffshoreBudgeting/Views/Components/PillSegmentedControl.swift — PillSegmentedControl
+- OffshoreBudgeting/Views/Components/CategoryChipPill.swift — CategoryChipPill
+- OffshoreBudgeting/Views/Components/TranslucentButtonStyle.swift — TranslucentButtonStyle
+- OffshoreBudgeting/Views/Components/Buttons.swift — Buttons
+- OffshoreBudgeting/Views/Components/SheetDetentsCompat.swift — UBPresentationDetent + applyDetentsIfAvailable
 
 ### Services / Data access
-- OffshoreBudgeting/Resources/PlannedExpenseService+Templates.swift — types: here
-- OffshoreBudgeting/Services/CoreDataService.swift — types: CoreDataService, PersistentStoreMode
-- OffshoreBudgeting/Services/CardService.swift — types: CardService
-- OffshoreBudgeting/Services/BudgetService.swift — types: BudgetService
-- OffshoreBudgeting/Services/ExpenseCategoryService.swift — types: ExpenseCategoryService
-- OffshoreBudgeting/Services/RecurrenceEngine.swift — types: RecurrenceEngine
-- OffshoreBudgeting/Services/CloudAccountStatusProvider.swift — types: CloudAccountStatusProvider, Availability
-- OffshoreBudgeting/Services/PlannedExpenseService.swift — types: PlannedExpenseServiceError, PlannedExpenseService
-- OffshoreBudgeting/Services/IncomeService.swift — types: RecurrenceScope, IncomeService, IncomeEvent
-- OffshoreBudgeting/Services/UnplannedExpenseService.swift — types: UnplannedExpenseService, UnplannedEvent, SplitPart
-- OffshoreBudgeting/Services/Repository/CoreDataRepository.swift — types: CoreDataRepository
-- __MACOSX/OffshoreBudgeting/Resources/._PlannedExpenseService+Templates.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/Services/._CoreDataService.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/Services/._CardService.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/Services/._BudgetService.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/Services/._ExpenseCategoryService.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/Services/._RecurrenceEngine.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/Services/._CloudAccountStatusProvider.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/Services/._PlannedExpenseService.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/Services/._IncomeService.swift — types: N/A
+- OffshoreBudgeting/Resources/PlannedExpenseService+Templates.swift
+- OffshoreBudgeting/Services/CoreDataService.swift
+- OffshoreBudgeting/Services/CardService.swift
+- OffshoreBudgeting/Services/BudgetService.swift
+- OffshoreBudgeting/Services/ExpenseCategoryService.swift
+- OffshoreBudgeting/Services/RecurrenceEngine.swift
+- OffshoreBudgeting/Services/CloudAccountStatusProvider.swift
+- OffshoreBudgeting/Services/PlannedExpenseService.swift
+- OffshoreBudgeting/Services/IncomeService.swift
+- OffshoreBudgeting/Services/UnplannedExpenseService.swift
+- OffshoreBudgeting/Services/Repository/CoreDataRepository.swift
 
 ### Models / Entities
-- OffshoreBudgeting/View Models/AddIncomeFormViewModel.swift — types: AddIncomeFormViewModel, ValidationError
-- OffshoreBudgeting/View Models/CardsViewModel.swift — types: CardsLoadState, CardsViewAlert, Kind, CardsViewModel
-- OffshoreBudgeting/View Models/HomeViewModel.swift — types: BudgetLoadState, HomeViewAlert, Kind, BudgetSummary, CategorySpending
-- OffshoreBudgeting/View Models/CardDetailViewModel.swift — types: CardCategoryTotal, CardExpense, CardDetailLoadState, CardDetailViewModel
-- OffshoreBudgeting/View Models/AddPlannedExpenseViewModel.swift — types: AddPlannedExpenseViewModel
-- OffshoreBudgeting/View Models/SettingsViewModel.swift — types: SettingsViewModel, SettingsIcon, SettingsCard, SettingsRow
-- OffshoreBudgeting/View Models/AddUnplannedExpenseViewModel.swift — types: AddUnplannedExpenseViewModel
-- OffshoreBudgeting/View Models/BudgetDetailsViewModelStore.swift — types: BudgetDetailsViewModelStore
-- OffshoreBudgeting/View Models/AddBudgetViewModel.swift — types: AddBudgetViewModel
-- OffshoreBudgeting/View Models/BudgetDetailsViewModel.swift — types: BudgetDetailsViewModel, Segment, SortOption, BudgetDetailsAlert, Kind
-- OffshoreBudgeting/View Models/IncomeScreenViewModel.swift — types: IncomeScreenViewModel
-- OffshoreBudgeting/Models/CardItem.swift — types: CardItem
-- OffshoreBudgeting/Models/BudgetPeriod.swift — types: BudgetPeriod
-- OffshoreBudgeting/Views/PresetsView.swift — types: PresetsView, AddGlobalPlannedExpenseSheet, PresetListItem, PresetsViewModel, Outline
-- __MACOSX/OffshoreBudgeting/View Models/._AddIncomeFormViewModel.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/View Models/._CardsViewModel.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/View Models/._HomeViewModel.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/View Models/._CardDetailViewModel.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/View Models/._AddPlannedExpenseViewModel.swift — types: N/A
-- __MACOSX/OffshoreBudgeting/View Models/._SettingsViewModel.swift — types: N/A
+- OffshoreBudgeting/View Models/AddIncomeFormViewModel.swift — AddIncomeFormViewModel
+- OffshoreBudgeting/View Models/CardsViewModel.swift — CardsViewModel
+- OffshoreBudgeting/View Models/HomeViewModel.swift — HomeViewModel
+- OffshoreBudgeting/View Models/CardDetailViewModel.swift — CardDetailViewModel
+- OffshoreBudgeting/View Models/AddPlannedExpenseViewModel.swift — AddPlannedExpenseViewModel
+- OffshoreBudgeting/View Models/SettingsViewModel.swift — SettingsViewModel
+- OffshoreBudgeting/View Models/AddUnplannedExpenseViewModel.swift — AddUnplannedExpenseViewModel
+- OffshoreBudgeting/View Models/BudgetDetailsViewModelStore.swift — BudgetDetailsViewModelStore
+- OffshoreBudgeting/View Models/AddBudgetViewModel.swift — AddBudgetViewModel
+- OffshoreBudgeting/View Models/BudgetDetailsViewModel.swift — BudgetDetailsViewModel
+- OffshoreBudgeting/View Models/IncomeScreenViewModel.swift — IncomeScreenViewModel
+- OffshoreBudgeting/Models/CardItem.swift — CardItem
+- OffshoreBudgeting/Models/BudgetPeriod.swift — BudgetPeriod
 
 ### Systems / Environment / Helpers
 - OffshoreBudgeting/Systems/MetallicTextStyles.swift — types: UBTypography, UBDecor
 - OffshoreBudgeting/Systems/AppSettings.swift — types: AppSettingsKeys
 - OffshoreBudgeting/Systems/ScrollViewInsetAdjustment.swift — types: UBScrollViewInsetAdjustmentDisabler
 - OffshoreBudgeting/Systems/PlatformCapabilities.swift — types: PlatformCapabilities, PlatformCapabilitiesKey
-- OffshoreBudgeting/Systems/Compatibility.swift — types: UBListStyleLiquidAwareModifier, UBListStyleSeparators, UBPreOS26ListRowBackgroundModifier, UBRootTabNavigationTitleModifier, UBOnChangeWithoutValueModifier
+- OffshoreBudgeting/Systems/Compatibility.swift — types: UBListStyleLiquidAwareModifier, UBListStyleSeparators, UBPreOS26ListRowBackgroundModifier, UBRootNavigationChromeModifier, UBNavigationBackgroundModifier, UBHorizontalBounceDisabler
 - OffshoreBudgeting/Systems/IncomeCalendarPalette.swift — types: UBMonthLabel, UBDayView, UBWeekdayLabel, UBWeekdaysView
 - OffshoreBudgeting/Systems/DesignSystem+Motion.swift — types: Motion
 - OffshoreBudgeting/Systems/DesignSystem.swift — types: DesignSystem, Spacing, Radius
@@ -601,9 +376,7 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: Totals Bucket
 - // MARK: Helpers
 
-**OffshoreBudgeting/Resources/Color+Hex.swift**
-- // MARK: - Color + Hex
-- // MARK: init?(hex:)
+<!-- Removed: OffshoreBudgeting/Resources/Color+Hex.swift -->
 
 **OffshoreBudgeting/Resources/PlannedExpenseService+Templates.swift**
 - // MARK: - PlannedExpenseService + Templates
@@ -640,8 +413,8 @@ Use the following // MARK anchors to understand intent and safe insertion points
 **OffshoreBudgeting/Resources/NotificationName+Extensions.swift**
 - // MARK: - App Notification Names
 - // MARK: - dataStoreDidChange
-- // MARK: - dataStoreDidChangeRemotely
-- // MARK: - BudgetDetails Add Requests
+<!-- Removed: // MARK: - dataStoreDidChangeRemotely -->
+
 
 **OffshoreBudgeting/Resources/HolographicMetallicText.swift**
 - // MARK: - HolographicMetallicText
@@ -657,8 +430,7 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: Metallic Angle
 - // MARK: Shine Angle
 
-**OffshoreBudgeting/Resources/AddIncomeFormView+Lifecycle.swift**
-- // MARK: - Eager Load Existing Income On Appear
+<!-- Removed: OffshoreBudgeting/Resources/AddIncomeFormView+Lifecycle.swift -->
 
 **OffshoreBudgeting/Resources/UnifiedSwipeActions.swift**
 - // MARK: - UnifiedSwipeConfig
@@ -689,20 +461,19 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: - Environment support
 
 **OffshoreBudgeting/Systems/Compatibility.swift**
-- // MARK: - View Modifiers (Cross-Platform)
-- // MARK: ub_onChange(of:initial:)
+- // MARK: - SwiftUI View Extensions (Cross-Platform)
+- // MARK: ub_rootNavigationChrome()
 - // MARK: ub_cardTitleShadow()
-- // MARK: ub_compactDatePickerStyle()
-- // MARK: ub_formStyleGrouped()
-- // MARK: ub_pickerBackground()
-- // MARK: ub_hideScrollIndicators()
+- // MARK: ub_surfaceBackground()
+- // MARK: ub_navigationBackground()
+- // MARK: ub_disableHorizontalBounce()
 - // MARK: ub_listStyleLiquidAware()
 - // MARK: ub_preOS26ListRowBackground(_:)
 - // MARK: - Internal Modifiers (List Styling)
 - // MARK: - List Separators Helper
 - // MARK: - Private Modifiers
-  (Removed wrappers: ub_noAutoCapsAndCorrection, ub_decimalKeyboard, ub_tabNavigationTitle, ub_toolbarTitleInline, ub_toolbarTitleLarge, ub_sheetPadding)
-  (Removed UBChromeGlassModifier and UBColor)
+  (Removed wrappers: ub_noAutoCapsAndCorrection, ub_decimalKeyboard, ub_tabNavigationTitle, ub_toolbarTitleInline, ub_toolbarTitleLarge, ub_sheetPadding, ub_onChange, ub_compactDatePickerStyle, ub_formStyleGrouped, ub_pickerBackground, ub_hideScrollIndicators, ub_chromeBackground, ub_glassBackground)
+  (Removed UBChromeBackgroundModifier, UBOnChange* modifiers, and UBGlassBackgroundView)
 
 **OffshoreBudgeting/Systems/HomeHeaderLayoutEnvironment.swift**
 - // MARK: - Environment Key
@@ -1060,18 +831,9 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: - AddCategoryPill
 - // MARK: - CategoryChip
 
-**OffshoreBudgeting/Views/EditSheetScaffold.swift**
-- // MARK: - UBPresentationDetent (compat wrapper)
-- // MARK: - EditSheetScaffold
-- // MARK: Inputs
-- // MARK: Environment
-- // MARK: Init
-- // MARK: body
-- // MARK: Standard sheet behavior (platform-aware)
-- // MARK: - Subviews
-- // MARK: Row Background
-- // MARK: Detent selection binding (iOS only)
-- // MARK: - Detents application helper
+**OffshoreBudgeting/Views/Components/SheetDetentsCompat.swift**
+- UBPresentationDetent (compat wrapper)
+- View.applyDetentsIfAvailable(detents:selection:) — applies presentationDetents on iOS 16+ with a safe no-op fallback
 
 **OffshoreBudgeting/Views/BudgetDetailsView.swift**
 - // MARK: - BudgetDetailsView
@@ -1108,10 +870,6 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: - Save
 - // MARK: - Formatting
 
-**OffshoreBudgeting/Views/UBFormSection.swift**
-- // MARK: Inputs
-- // MARK: Init
-- // MARK: Body
 
 **OffshoreBudgeting/Views/CardsView.swift**
 - // MARK: - CardsView
@@ -1374,5 +1132,3 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: deleteAll(predicate:)
 - // MARK: saveIfNeeded()
 - // MARK: performBackgroundTask(_:)
-
-

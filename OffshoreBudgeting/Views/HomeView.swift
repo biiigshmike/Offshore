@@ -1,418 +1,345 @@
-//
-//  HomeView.swift
-//  SoFar
-//
-//  Displays month header and, when a budget exists for the selected month,
-//  shows the full BudgetDetailsView inline. Otherwise an empty state encourages
-//  creating a budget.
-//
-//  Scroll behaviour:
-//  - RootTabPageScaffold now manages the primary scroll host so large titles
-//    collapse naturally.
-//  - BudgetDetailsView accepts the home header so the summary and expense lists
-//    share a single scroll container.
-//  - Empty periods reuse the same header and place their CTA directly beneath
-//    the sort controls for consistent alignment.
-//
-
 import SwiftUI
-import UIKit
 import CoreData
-import Foundation
-import Combine
 
-// MARK: - HomeView
+// MARK: - HomeView2
+/// A simplified, self‑contained rebuild of the Home screen that follows
+/// "Apple Way" SwiftUI layout primitives and native styles.
+///
+/// Goals:
+/// - Minimize indirection and helpers; rely on VStack/HStack/List/ScrollView
+/// - Use .glass() on iOS 26/macCatalyst 26/macOS 26 with a sensible fallback
+/// - Reuse existing HomeViewModel for data/state
+/// - Keep layouts responsive via intrinsic sizing and targeted padding
 struct HomeView: View {
 
-    // MARK: State & ViewModel
+    // MARK: State & View Model
     @StateObject private var vm = HomeViewModel()
-    @AppStorage(AppSettingsKeys.budgetPeriod.rawValue) private var budgetPeriodRawValue: String = BudgetPeriod.monthly.rawValue
-    private var budgetPeriod: BudgetPeriod { BudgetPeriod(rawValue: budgetPeriodRawValue) ?? .monthly }
-    @State private var selectedSegment: BudgetDetailsViewModel.Segment = .planned
-    @State private var homeSort: BudgetDetailsViewModel.SortOption = .dateNewOld
+    @AppStorage(AppSettingsKeys.budgetPeriod.rawValue)
+    private var budgetPeriodRawValue: String = BudgetPeriod.monthly.rawValue
 
-    // MARK: Add Budget Sheet
+    // MARK: Local UI State
+    enum Segment: String, CaseIterable, Identifiable { case planned, variable; var id: String { rawValue } }
+    @State private var segment: Segment = .planned
+
+    enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
+    @State private var sort: Sort = .dateNewOld
+
+    // MARK: Sheet Toggles (kept small and focused)
+    @State private var isPresentingAddPlanned: Bool = false
+    @State private var isPresentingAddVariable: Bool = false
     @State private var isPresentingAddBudget: Bool = false
-    @State private var editingBudget: BudgetSummary?
-    // Direct add flows when no budget is active
-    @State private var isPresentingAddPlannedFromHome: Bool = false
-    @State private var isPresentingAddVariableFromHome: Bool = false
-    // Manage sheets
     @State private var isPresentingManageCards: Bool = false
     @State private var isPresentingManagePresets: Bool = false
-    @State private var isPresentingManageCategories: Bool = false
-    @Namespace private var toolbarGlassNamespace
-    @State private var hasActiveBudget: Bool = false
-    @State private var lastKnownActionableBudgetID: NSManagedObjectID?
+    @State private var editingBudget: BudgetSummary?
+
+    // Edit sheets for rows
+    private struct ObjectIDBox: Identifiable { let id: NSManagedObjectID }
+    @State private var editingPlannedBox: ObjectIDBox?
+    @State private var editingUnplannedBox: ObjectIDBox?
+
+    // Backing data for list rows
+    @State private var plannedRows: [PlannedExpense] = []
+    @State private var variableRows: [UnplannedExpense] = []
+
+    // MARK: Environment
+    @Environment(\.managedObjectContext) private var moc
 
     // MARK: Body
-    @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.platformCapabilities) private var capabilities
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
-        // Sticky header is managed by RootTabPageScaffold.
-        // - Empty states leverage the scaffold's scroll view for reachability.
-        // - Loaded budgets embed the overview header within BudgetDetailsView so
-        //   the summary and expense lists share a single scroll container.
-        RootTabPageScaffold(
-            scrollBehavior: requiresScaffoldScrollHosting ? .always : .auto,
-            spacing: 0,
-            wrapsContentInScrollView: requiresScaffoldScrollHosting
-        ) { _ in
-            EmptyView()
-        } content: { proxy in
-            contentContainer(proxy: proxy)
-                .frame(maxWidth: .infinity, alignment: .top)
-                .rootTabContentPadding(
-                    proxy,
-                    horizontal: 0,
-                    extraTop: 0,
-                    extraBottom: 0, // host owns bottom tail (List/ScrollView)
-                    includeSafeArea: false,
-                    tabBarGutter: proxy.compactAwareTabBarGutter
-                )
-        }
-        .navigationTitle("Home")
-        .toolbar {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                    GlassEffectContainer(spacing: DS.Spacing.s) {
-                        // Order: ellipsis, calendar, plus
-                        if let periodSummary = actionableSummaryForSelectedPeriod {
-                            optionsToolbarMenu(summary: periodSummary)
-                        } else {
-                            optionsToolbarMenu()
-                        }
-
-                        calendarToolbarMenu()
-
-                        if hasActiveBudget, let cachedID = lastKnownActionableBudgetID {
-                            let budgetID = actionableSummaryForSelectedPeriod?.id ?? cachedID
-                            addExpenseToolbarMenu(for: budgetID)
-                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                        }
-                    }
-                    .animation(nil, value: actionableSummaryForSelectedPeriod?.id)
-                } else {
-                    // Legacy / older OS
-                    if let periodSummary = actionableSummaryForSelectedPeriod {
-                        optionsToolbarMenu(summary: periodSummary)
-                    } else {
-                        optionsToolbarMenu()
-                    }
-
-                    calendarToolbarMenu()
-
-                    if hasActiveBudget, let cachedID = lastKnownActionableBudgetID {
-                        let budgetID = actionableSummaryForSelectedPeriod?.id ?? cachedID
-                        addExpenseToolbarMenu(for: budgetID)
-                    }
+        List {
+            // Header + controls grouped as one vertical block so List owns scrolling
+            Section {
+                VStack(alignment: .leading, spacing: 20) {
+                    headerBlock
+                    periodNavigator
+                    metricsGrid
+                    categoryChips
+                    segmentPicker
+                    sortBar
                 }
+                .padding(.horizontal, horizontalPadding)
+                .padding(.top, 8)
+                .padding(.bottom, 8) // space before first row section
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
             }
-        }
-        .task {
-            CoreDataService.shared.ensureLoaded()
-            vm.startIfNeeded()
-        }
-        .onAppear {
-            applyActionableSummaryChange(
-                actionableSummaryForSelectedPeriod,
-                allowClearing: isTerminalBudgetState(for: vm.state)
-            )
-        }
-        .ub_onChange(of: actionableSummaryForSelectedPeriod?.id) { _ in
-            applyActionableSummaryChange(
-                actionableSummaryForSelectedPeriod,
-                allowClearing: false
-            )
-        }
-        .ub_onChange(of: vm.state) { newState in
-            applyActionableSummaryChange(
-                actionableSummaryForSelectedPeriod,
-                allowClearing: isTerminalBudgetState(for: newState)
-            )
-        }
-        // Temporarily disable automatic refresh on every Core Data save to
-        // prevent re-entrant view reconstruction and load() loops. Explicit
-        // onSaved callbacks already trigger refreshes where it matters.
-        .ub_onChange(of: budgetPeriodRawValue) { newValue in
-            let newPeriod = BudgetPeriod(rawValue: newValue) ?? .monthly
-            vm.updateBudgetPeriod(to: newPeriod)
-        }
 
-        // MARK: ADD SHEET — present new budget UI for the selected period
+            // Rows Section (Planned/Variable)
+            Section { listRows }
+        }
+        .listStyle(.plain)
+        .navigationTitle("Home")
+        .toolbar { toolbarContent }
+        .task { vm.startIfNeeded(); reloadRows() }
+        .onChange(of: segment) { _ in reloadRows() }
+        .onChange(of: sort) { _ in reloadRows() }
+        .onChange(of: summaryIDString) { _ in reloadRows() }
+        .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
+        .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
         .sheet(isPresented: $isPresentingAddBudget, content: makeAddBudgetView)
         .sheet(item: $editingBudget, content: makeEditBudgetView)
-        .sheet(isPresented: $isPresentingAddPlannedFromHome) {
+        .sheet(isPresented: $isPresentingManageCards) { manageCardsSheet }
+        .sheet(isPresented: $isPresentingManagePresets) { managePresetsSheet }
+        .sheet(item: $editingPlannedBox) { box in
             AddPlannedExpenseView(
-                preselectedBudgetID: nil,
-                defaultSaveAsGlobalPreset: false,
-                showAssignBudgetToggle: true,
-                onSaved: { Task { await vm.refresh() } }
+                plannedExpenseID: box.id,
+                onSaved: { Task { await vm.refresh(); reloadRows() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            .environment(\.platformCapabilities, capabilities)
         }
-        .sheet(isPresented: $isPresentingAddVariableFromHome) {
+        .sheet(item: $editingUnplannedBox) { box in
             AddUnplannedExpenseView(
-                allowedCardIDs: nil,
-                initialDate: vm.selectedDate,
-                onSaved: { Task { await vm.refresh() } }
+                unplannedExpenseID: box.id,
+                onSaved: { Task { await vm.refresh(); reloadRows() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            .environment(\.platformCapabilities, capabilities)
-        }
-        .sheet(isPresented: $isPresentingManageCards) {
-            if let budgetID = primarySummary?.id,
-               let budget = try? CoreDataService.shared.viewContext.existingObject(with: budgetID) as? Budget {
-                ManageBudgetCardsSheet(budget: budget) { Task { await vm.refresh() } }
-                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-                    .environment(\.platformCapabilities, capabilities)
-            } else {
-                Text("No budget selected")
-                    .environment(\.platformCapabilities, capabilities)
-            }
-        }
-        .sheet(isPresented: $isPresentingManagePresets) {
-            if let budgetID = primarySummary?.id,
-               let budget = try? CoreDataService.shared.viewContext.existingObject(with: budgetID) as? Budget {
-                ManageBudgetPresetsSheet(budget: budget) { Task { await vm.refresh() } }
-                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-                    .environment(\.platformCapabilities, capabilities)
-            } else {
-                Text("No budget selected")
-                    .environment(\.platformCapabilities, capabilities)
-            }
-        }
-        .sheet(isPresented: $isPresentingManageCategories) {
-            ExpenseCategoryManagerView()
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-                .environment(\.platformCapabilities, capabilities)
         }
         .alert(item: $vm.alert, content: alert(for:))
     }
 
-    private func homeHeaderPage<Content: View>(
-        for summary: BudgetSummary?,
-        topPaddingStyle: RootTabHeaderLayout.TopPaddingStyle = .standard,
-        @ViewBuilder content: @escaping (AnyView) -> Content
-    ) -> some View {
-        HomeHeaderTablePage(
-            summary: summary,
-            displayTitle: periodHeaderTitle,
-            displayDetail: periodRangeDetail,
-            categorySpending: headerCategoryBreakdown(for: summary),
-            selectedSegment: $selectedSegment,
-            sort: $homeSort,
-            periodNavigationTitle: title(for: vm.selectedDate),
-            onAdjustPeriod: { delta in vm.adjustSelectedPeriod(by: delta) },
-            onAddCategory: { isPresentingManageCategories = true },
-            topPaddingStyle: topPaddingStyle,
-            content: content
-        )
-    }
-
-    // MARK: Toolbar Actions
-    private var toolbarGlassTransition: Any? {
-        guard capabilities.supportsOS26Translucency else {
-            return nil
-        }
-
-        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            let t: GlassEffectTransition = reduceMotion ? .identity : .matchedGeometry
-            return t
-        } else {
-            return nil
-        }
-    }
-
-    private var periodAdjustmentAnimation: Animation {
-        .spring(response: 0.34, dampingFraction: 0.78, blendDuration: 0.1)
-    }
-
-    private func applyActionableSummaryChange(_ summary: BudgetSummary?, allowClearing: Bool) {
-        if let summary {
-            lastKnownActionableBudgetID = summary.id
-            updateHasActiveBudget(true)
-        } else if allowClearing {
-            lastKnownActionableBudgetID = nil
-            updateHasActiveBudget(false)
-        }
-    }
-
-    private func updateHasActiveBudget(_ newValue: Bool) {
-        guard hasActiveBudget != newValue else { return }
-
-        if capabilities.supportsOS26Translucency && !reduceMotion {
-            withAnimation(periodAdjustmentAnimation) {
-                hasActiveBudget = newValue
+    // MARK: Toolbar
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .navigationBarTrailing) {
+            Menu {
+                // Calendar period picker
+                ForEach(BudgetPeriod.selectableCases) { p in
+                    Button(p.displayName) { updateBudgetPeriod(to: p) }
+                }
+            } label: {
+                Buttons.toolbarIcon("calendar") {}
             }
-        } else {
-            hasActiveBudget = newValue
+
+            Menu {
+                Button("Add Planned Expense") { isPresentingAddPlanned = true }
+                Button("Add Variable Expense") { isPresentingAddVariable = true }
+            } label: {
+                Buttons.toolbarIcon("plus") {}
+            }
+
+            // Ellipsis present for parity; simple placeholder menu keeps UI symmetrical
+            Menu {
+                if let summary {
+                    Button("Manage Cards") { isPresentingManageCards = true }
+                    Button("Manage Presets") { isPresentingManagePresets = true }
+                    Button("Edit Budget") { editingBudget = summary }
+                    Button(role: .destructive) { vm.requestDelete(budgetID: summary.id) } label: { Text("Delete Budget") }
+                } else {
+                    Button("Create Budget") { isPresentingAddBudget = true }
+                }
+            } label: {
+                Buttons.toolbarIcon("ellipsis") {}
+            }
         }
     }
 
-    private func isTerminalBudgetState(for state: BudgetLoadState) -> Bool {
-        switch state {
-        case .initial, .loading:
-            return false
-        case .empty:
-            return true
-        case .loaded(_):
-            return true
+    // MARK: Header
+    /// Title and date range for the selected period.
+    private var headerBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(periodTitle) Budget")
+                .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Text(periodRangeString)
+                .foregroundStyle(.secondary)
+                .font(.callout)
         }
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: Period Navigator
+    /// Back/forward chevrons around the centered month/period title.
+    private var periodNavigator: some View {
+        HStack(alignment: .center, spacing: 16) {
+            periodChevron("chevron.left", delta: -1)
+            Text(periodTitle)
+                .font(.title2.weight(.semibold))
+                .frame(maxWidth: .infinity)
+            periodChevron("chevron.right", delta: +1)
+        }
+        .padding(.top, 2)
     }
 
     @ViewBuilder
-    private func calendarToolbarMenu() -> some View {
-        let menu = Menu {
-            ForEach(BudgetPeriod.selectableCases) { period in
-                Button {
-                    budgetPeriodRawValue = period.rawValue
-                } label: {
-                    Label {
-                        Text(period.displayName)
-                    } icon: {
-                        if budgetPeriod == period {
-                            Image(systemName: "checkmark")
-                        } else {
-                            Image(systemName: "checkmark")
-                                .hidden()
-                                .accessibilityHidden(true)
-                        }
-                    }
+    private func periodChevron(_ systemName: String, delta: Int) -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(action: { vm.adjustSelectedPeriod(by: delta) }) {
+                Image(systemName: systemName)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .tint(.accentColor)
+        } else {
+            Buttons.toolbarIcon(systemName) { vm.adjustSelectedPeriod(by: delta) }
+        }
+    }
+
+    // MARK: Metrics Grid
+    /// Two columns: income on the left, savings on the right, then the segment‑specific total row.
+    private var metricsGrid: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .lastTextBaseline) {
+                metricColumn(title: "POTENTIAL INCOME", value: potentialIncome, color: .orange, trailing: false)
+                Spacer(minLength: 0)
+                metricColumn(title: "POTENTIAL SAVINGS", value: potentialSavings, color: .green, trailing: true)
+            }
+            HStack(alignment: .lastTextBaseline) {
+                metricColumn(title: "ACTUAL INCOME", value: actualIncome, color: .blue, trailing: false)
+                Spacer(minLength: 0)
+                metricColumn(title: "ACTUAL SAVINGS", value: actualSavings, color: .green, trailing: true)
+            }
+            HStack(alignment: .lastTextBaseline) {
+                Text(segment == .planned ? "PLANNED EXPENSES" : "VARIABLE EXPENSES")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                Text(formatCurrency(segment == .planned ? plannedTotal : variableTotal))
+                    .font(.title3.weight(.semibold))
+            }
+        }
+    }
+
+    // MARK: Category Chips
+    private var categoryChips: some View {
+        let categories = (segment == .planned ? summary?.plannedCategoryBreakdown : summary?.variableCategoryBreakdown) ?? []
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(categories) { cat in
+                    chipView(title: cat.categoryName, amount: cat.amount, hex: cat.hexColor)
+                }
+                if categories.isEmpty {
+                    Text("No categories yet")
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
                 }
             }
-        } label: {
-            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                RootHeaderMenuButtonLabel(
-                    systemImage: "calendar",
-                    glassNamespace: toolbarGlassNamespace,
-                    glassID: HomeToolbarGlassIdentifiers.calendar,
-                    glassUnionID: HomeGlassUnionID.main.rawValue,
-                    glassTransition: toolbarGlassTransition,
-                    background: .clear
-                )
-                .accessibilityLabel(budgetPeriod.displayName)
-            } else {
-                HeaderMenuGlassLabel(
-                    systemImage: "calendar",
-                    glassNamespace: toolbarGlassNamespace,
-                    glassID: HomeToolbarGlassIdentifiers.calendar,
-                    glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
-                    transition: toolbarGlassTransition
-                )
-                .accessibilityLabel(budgetPeriod.displayName)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .modifier(HideMenuIndicatorIfPossible())
-        .accessibilityLabel(budgetPeriod.displayName)
+        .frame(height: 44)
+    }
 
-        if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            menu
-                .menuStyle(.button)
-                .buttonBorderShape(.circle)
-                .tint(themeManager.selectedTheme.resolvedTint)
+    // MARK: Segment Picker
+    private var segmentPicker: some View {
+        Picker("", selection: $segment) {
+            Text("Planned Expenses").tag(Segment.planned)
+            Text("Variable Expenses").tag(Segment.variable)
+        }
+        .pickerStyle(.segmented)
+    }
+
+    // MARK: Sort Bar
+    private var sortBar: some View {
+        Picker("Sort", selection: $sort) {
+            Text("A–Z").tag(Sort.titleAZ)
+            Text("$↓").tag(Sort.amountLowHigh)
+            Text("$↑").tag(Sort.amountHighLow)
+            Text("Date ↑").tag(Sort.dateOldNew)
+            Text("Date ↓").tag(Sort.dateNewOld)
+        }
+        .pickerStyle(.segmented)
+    }
+
+    // MARK: Expense List / Empty State
+    @ViewBuilder
+    private var listRows: some View {
+        if segment == .variable, variableRows.isEmpty {
+            // Empty state CTA inside the List
+            Buttons.primary("Add Variable Expense", systemImage: "plus", fillHorizontally: true) {
+                isPresentingAddVariable = true
+            }
+            .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
+            .listRowSeparator(.hidden)
+            .frame(minHeight: 33)                   // Comfortable height
+            .clipShape(Capsule())                   // Hard-clip to the pill
+            .compositingGroup()                     // Prevent odd shape
+            Text("No variable expenses in this period.")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 8)
+                .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
+                .listRowSeparator(.hidden)
+        } else if segment == .planned, plannedRows.isEmpty {
+            Buttons.primary("Add Planned Expense", systemImage: "plus", fillHorizontally: true) {
+                isPresentingAddPlanned = true
+            }
+            .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
+            .listRowSeparator(.hidden)
+            .frame(minHeight: 33)                   // Comfortable height
+            .clipShape(Capsule())                   // Hard-clip to the pill
+            .compositingGroup()                     // Prevent odd shape
+            Text("No planned expenses in this period.")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 8)
+                .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
+                .listRowSeparator(.hidden)
+        } else if segment == .planned {
+            ForEach(plannedRows, id: \.objectID) { exp in
+                plannedRow(exp)
+                    .unifiedSwipeActions(.standard,
+                        onEdit: { editingPlannedBox = ObjectIDBox(id: exp.objectID) },
+                        onDelete: { delete(planned: exp) })
+            }
         } else {
-            menu
+            ForEach(variableRows, id: \.objectID) { exp in
+                variableRow(exp)
+                    .unifiedSwipeActions(.standard,
+                        onEdit: { editingUnplannedBox = ObjectIDBox(id: exp.objectID) },
+                        onDelete: { delete(unplanned: exp) })
+            }
         }
     }
 
-    private func addExpenseToolbarMenu() -> some View {
-        Menu {
-            Button("Add Planned Expense") { isPresentingAddPlannedFromHome = true }
-            Button("Add Variable Expense") { isPresentingAddVariableFromHome = true }
-        } label: {
-            HeaderMenuGlassLabel(
-                systemImage: "plus",
-                glassNamespace: toolbarGlassNamespace,
-                glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
-                transition: toolbarGlassTransition
-            )
-        }
-        .modifier(HideMenuIndicatorIfPossible())
-        .accessibilityLabel("Add Expense")
+    // MARK: Sheets
+    private var addPlannedSheet: some View {
+        AddPlannedExpenseView(
+            preselectedBudgetID: summary?.id,
+            defaultSaveAsGlobalPreset: false,
+            showAssignBudgetToggle: true,
+            onSaved: { Task { await vm.refresh() } }
+        )
+        .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
     }
 
-    private func addExpenseToolbarMenu(for budgetID: NSManagedObjectID) -> some View {
-        Menu {
-            Button("Add Planned Expense") {
-                triggerAddExpense(
-                    .budgetDetailsRequestAddPlannedExpense,
-                    budgetID: budgetID,
-                    fallback: { isPresentingAddPlannedFromHome = true }
-                )
-            }
-            Button("Add Variable Expense") {
-                triggerAddExpense(
-                    .budgetDetailsRequestAddVariableExpense,
-                    budgetID: budgetID,
-                    fallback: { isPresentingAddVariableFromHome = true }
-                )
-            }
-        } label: {
-            HeaderMenuGlassLabel(
-                systemImage: "plus",
-                glassNamespace: toolbarGlassNamespace,
-                glassID: HomeToolbarGlassIdentifiers.addExpense,
-                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
-                transition: toolbarGlassTransition
-            )
-        }
-        .modifier(HideMenuIndicatorIfPossible())
-        .accessibilityLabel("Add Expense")
+    private var addVariableSheet: some View {
+        AddUnplannedExpenseView(
+            allowedCardIDs: nil,
+            initialDate: vm.selectedDate,
+            onSaved: { Task { await vm.refresh() } }
+        )
+        .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
     }
 
-    private func optionsToolbarMenu() -> some View {
-        Menu {
-            Button {
-                isPresentingAddBudget = true
-            } label: {
-                Label("Create Budget", systemImage: "plus")
+    // MARK: Manage Sheets
+    private var manageCardsSheet: some View {
+        Group {
+            if let id = summary?.id,
+               let budget = try? CoreDataService.shared.viewContext.existingObject(with: id) as? Budget {
+                ManageBudgetCardsSheet(budget: budget) { Task { await vm.refresh(); reloadRows() } }
+            } else {
+                Text("No budget selected")
             }
-        } label: {
-            HeaderMenuGlassLabel(
-                systemImage: "ellipsis",
-                glassNamespace: toolbarGlassNamespace,
-                glassID: HomeToolbarGlassIdentifiers.options,
-                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
-                transition: toolbarGlassTransition
-            )
         }
-        .modifier(HideMenuIndicatorIfPossible())
-        .accessibilityLabel("Budget Options")
+        .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
     }
 
-    private func optionsToolbarMenu(summary: BudgetSummary) -> some View {
-        Menu {
-            Button { isPresentingManageCards = true } label: { Label("Manage Cards", systemImage: "creditcard") }
-            Button { isPresentingManagePresets = true } label: { Label("Manage Presets", systemImage: "list.bullet.rectangle") }
-            Button {
-                editingBudget = summary
-            } label: {
-                Label("Edit Budget", systemImage: "pencil")
+    private var managePresetsSheet: some View {
+        Group {
+            if let id = summary?.id,
+               let budget = try? CoreDataService.shared.viewContext.existingObject(with: id) as? Budget {
+                ManageBudgetPresetsSheet(budget: budget) { Task { await vm.refresh(); reloadRows() } }
+            } else {
+                Text("No budget selected")
             }
-            Button(role: .destructive) {
-                vm.requestDelete(budgetID: summary.id)
-            } label: {
-                Label("Delete Budget", systemImage: "trash")
-            }
-        } label: {
-            HeaderMenuGlassLabel(
-                systemImage: "ellipsis",
-                symbolVariants: SymbolVariants.none,
-                glassNamespace: toolbarGlassNamespace,
-                glassID: HomeToolbarGlassIdentifiers.options,
-                glassUnionID: capabilities.supportsOS26Translucency ? HomeGlassUnionID.main.rawValue : nil,
-                transition: toolbarGlassTransition
-            )
         }
-        .modifier(HideMenuIndicatorIfPossible())
-        .accessibilityLabel("Budget Actions")
+        .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
     }
 
-    // MARK: Sheets & Alerts
+    // MARK: Add/Edit Budget Sheets
     @ViewBuilder
     private func makeAddBudgetView() -> some View {
         let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
@@ -420,19 +347,17 @@ struct HomeView: View {
             AddBudgetView(
                 initialStartDate: start,
                 initialEndDate: end,
-                onSaved: { Task { await vm.refresh() } }
+                onSaved: { Task { await vm.refresh(); reloadRows() } }
             )
-            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            .environment(\.platformCapabilities, capabilities)
             .presentationDetents([.large, .medium])
+            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         } else {
             AddBudgetView(
                 initialStartDate: start,
                 initialEndDate: end,
-                onSaved: { Task { await vm.refresh() } }
+                onSaved: { Task { await vm.refresh(); reloadRows() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            .environment(\.platformCapabilities, capabilities)
         }
     }
 
@@ -443,31 +368,26 @@ struct HomeView: View {
                 editingBudgetObjectID: summary.id,
                 fallbackStartDate: summary.periodStart,
                 fallbackEndDate: summary.periodEnd,
-                onSaved: { Task { await vm.refresh() } }
+                onSaved: { Task { await vm.refresh(); reloadRows() } }
             )
-            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            .environment(\.platformCapabilities, capabilities)
             .presentationDetents([.large, .medium])
+            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         } else {
             AddBudgetView(
                 editingBudgetObjectID: summary.id,
                 fallbackStartDate: summary.periodStart,
                 fallbackEndDate: summary.periodEnd,
-                onSaved: { Task { await vm.refresh() } }
+                onSaved: { Task { await vm.refresh(); reloadRows() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            .environment(\.platformCapabilities, capabilities)
         }
     }
 
+    // MARK: Alerts
     private func alert(for alert: HomeViewAlert) -> Alert {
         switch alert.kind {
         case .error(let message):
-            return Alert(
-                title: Text("Error"),
-                message: Text(message),
-                dismissButton: .default(Text("OK"))
-            )
+            return Alert(title: Text("Error"), message: Text(message), dismissButton: .default(Text("OK")))
         case .confirmDelete(let id):
             return Alert(
                 title: Text("Delete Budget?"),
@@ -478,729 +398,245 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Content Container
-    private func contentContainer(proxy: RootTabPageProxy) -> some View {
-        Group {
-            switch vm.state {
-            case .initial:
-                // Initially nothing is shown to prevent blinking
-                Color.clear
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    // MARK: Derived Data
+    private var budgetPeriod: BudgetPeriod { BudgetPeriod(rawValue: budgetPeriodRawValue) ?? .monthly }
 
-            case .loading:
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    private var periodTitle: String { budgetPeriod.title(for: vm.selectedDate) }
 
-            case .empty:
-                emptyPeriodContent(proxy: proxy)
-
-            case .loaded(let summaries):
-                if let primary = selectPrimarySummary(from: summaries) {
-                    loadedBudgetContent(for: primary)
-                } else {
-                    emptyPeriodContent(proxy: proxy)
-                }
-            }
-        }
-    }
-
-    // MARK: Empty Period Content (replaces generic empty state)
-    @ViewBuilder
-    private func emptyPeriodContent(proxy: RootTabPageProxy) -> some View {
-        let availableContentHeight = proxy.availableHeightBelowHeader
-
-        homeHeaderPage(for: nil) { header in
-            VStack(alignment: .leading, spacing: DS.Spacing.l) {
-                header
-
-                VStack(alignment: .leading, spacing: DS.Spacing.m) {
-                    // Always-offer primary CTA when no budget exists so users can
-                    // quickly create a budget or add expenses for this period.
-                    Group {
-                        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                            Button(action: addExpenseCTAAction) {
-                                Label(addExpenseCTATitle, systemImage: "plus")
-                                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                    .frame(
-                                maxWidth: .infinity,
-                                minHeight: HomeHeaderOverviewMetrics.categoryControlHeight
-                            )
-                                    .frame(minHeight: 44)
-                            }
-                            .buttonStyle(.glass)
-                            .tint(themeManager.selectedTheme.resolvedTint)
-                        } else {
-                            Button(action: addExpenseCTAAction) {
-                                Label(addExpenseCTATitle, systemImage: "plus")
-                                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(minHeight: 44)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .accessibilityIdentifier("emptyPeriodAddExpenseCTA")
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, RootTabHeaderLayout.defaultHorizontalPadding)
-
-                    // Segment-specific guidance — centered consistently across platforms
-                    Text(emptyShellMessage)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, RootTabHeaderLayout.defaultHorizontalPadding)
-
-                    Spacer(minLength: 0)
-                }
-                // Horizontal padding applied to individual rows above for precise matching
-            }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .frame(minHeight: availableContentHeight, alignment: .top)
-        }
-    }
-
-    @ViewBuilder
-    private func loadedBudgetContent(
-        for summary: BudgetSummary
-    ) -> some View {
-        homeHeaderPage(for: summary, topPaddingStyle: .contentEmbedded) { header in
-            BudgetDetailsView(
-                budgetObjectID: summary.id,
-                periodNavigation: nil,
-                displaysBudgetTitle: false,
-                headerTopPadding: DS.Spacing.xs,
-                appliesSurfaceBackground: false,
-                showsCategoryChips: false,
-                selectedSegment: $selectedSegment,
-                sort: $homeSort,
-                onSegmentChange: { newSegment in
-                    self.selectedSegment = newSegment
-                },
-                onRequestCreateBudget: { isPresentingAddBudget = true },
-                headerManagesPadding: true,
-                header: header,
-                listHeaderBehavior: .omitsHeader,
-                initialFilterRange: filterOverrideRangeForCurrentSelection
-            )
-            .id(summary.id)
-            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-    }
-    // MARK: Helpers
-    private func title(for date: Date) -> String {
-        budgetPeriod.title(for: date)
-    }
-
-    // Period-driven header title, e.g. "September 2025 Budget" or
-    // "Sep 1 – Sep 7, 2025 Budget" when viewing Weekly, etc.
-    private var periodHeaderTitle: String {
-        "\(title(for: vm.selectedDate)) Budget"
-    }
-
-    private var periodRangeDetail: String {
+    private var periodRangeString: String {
         let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
         let f = DateFormatter()
         f.dateStyle = .medium
         return "\(f.string(from: start)) through \(f.string(from: end))"
     }
 
-    private func headerCategoryBreakdown(for summary: BudgetSummary?) -> [BudgetSummary.CategorySpending] {
-        guard let summary else { return [] }
-        if selectedSegment == .planned {
-            return summary.plannedCategoryBreakdown
-        } else {
-            return summary.variableCategoryBreakdown
-        }
-    }
-
-    private var primarySummary: BudgetSummary? {
-        if case .loaded(let summaries) = vm.state {
-            return selectPrimarySummary(from: summaries)
-        }
-        return nil
-    }
-
-    // Summary that is considered "active" for the currently selected period
-    // (exact canonical match or same period type containing the selected date).
-    private var actionableSummaryForSelectedPeriod: BudgetSummary? {
-        if case .loaded(let summaries) = vm.state {
-            return selectActionableSummary(from: summaries)
-        }
-        return nil
-    }
-
-    /// Choose the most relevant budget summary for the current Home selection.
-    /// Preference order:
-    /// 1) Exact match to the selected period's canonical start/end for `vm.selectedDate`.
-    /// 2) A summary whose detected period type matches the selected period and contains `vm.selectedDate`.
-    /// 3) Fallback to the earliest (current behavior via `.first`).
-    private func selectPrimarySummary(from summaries: [BudgetSummary]) -> BudgetSummary? {
-        guard !summaries.isEmpty else { return nil }
-
-        let cal = Calendar.current
-        let selectedPeriod = budgetPeriod
-        let (selStart, selEnd) = selectedPeriod.range(containing: vm.selectedDate)
-
-        // 1) Exact match to canonical range for the selected period
-        if let exact = summaries.first(where: { s in
-            cal.isDate(s.periodStart, inSameDayAs: selStart) && cal.isDate(s.periodEnd, inSameDayAs: selEnd)
-        }) {
-            return exact
-        }
-
-        // 2) Match by detected period type and containment of selected date
-        if let typeMatch = summaries.first(where: { s in
-            let detected = BudgetPeriod.selectableCases.first { $0.matches(startDate: s.periodStart, endDate: s.periodEnd) }
-            let containsSelected = (s.periodStart ... s.periodEnd).contains(vm.selectedDate)
-            return detected == selectedPeriod && containsSelected
-        }) {
-            return typeMatch
-        }
-
-        // 3) Fallback: maintain current behavior
-        return summaries.first
-    }
-
-    /// Returns a summary only if it matches the selected period exactly or by type.
-    /// This is used to decide whether the options menu should present Edit actions,
-    /// otherwise it will offer Create Budget.
-    private func selectActionableSummary(from summaries: [BudgetSummary]) -> BudgetSummary? {
-        guard !summaries.isEmpty else { return nil }
-        let cal = Calendar.current
-        let selectedPeriod = budgetPeriod
-        let (selStart, selEnd) = selectedPeriod.range(containing: vm.selectedDate)
-
-        if let exact = summaries.first(where: { s in
-            cal.isDate(s.periodStart, inSameDayAs: selStart) && cal.isDate(s.periodEnd, inSameDayAs: selEnd)
-        }) {
-            return exact
-        }
-        if let typeMatch = summaries.first(where: { s in
-            let detected = BudgetPeriod.selectableCases.first { $0.matches(startDate: s.periodStart, endDate: s.periodEnd) }
-            let containsSelected = (s.periodStart ... s.periodEnd).contains(vm.selectedDate)
-            return detected == selectedPeriod && containsSelected
-        }) {
-            return typeMatch
-        }
-        return nil
-    }
-
-    private var requiresScaffoldScrollHosting: Bool {
-        primarySummary == nil
-    }
-
-    // For Daily/Weekly/Bi-Weekly, align the BudgetDetailsView lists to the
-    // selected period range. Monthly/Quarterly/Yearly: keep default.
-    private var filterOverrideRangeForCurrentSelection: ClosedRange<Date>? {
-        switch budgetPeriod {
-        case .daily, .weekly, .biWeekly:
-            let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
-            return start...end
+    private var summary: BudgetSummary? {
+        switch vm.state {
+        case .loaded(let items):
+            // Prefer a summary that contains the selected date; otherwise the first available.
+            let chosen = items.first(where: { $0.periodStart <= vm.selectedDate && vm.selectedDate <= $0.periodEnd })
+            return chosen ?? items.first
         default:
             return nil
         }
     }
 
-    private var emptyShellMessage: String {
-        guard actionableSummaryForSelectedPeriod != nil else {
-            return inactiveBudgetGuidanceMessage
-        }
-
-        switch selectedSegment {
-        case .planned:
-            return "No planned expenses in this period."
-        case .variable:
-            return "No variable expenses in this period."
-        }
-    }
-
-    // MARK: Empty-period CTA helpers
-    private var addExpenseCTATitle: String {
-        guard actionableSummaryForSelectedPeriod != nil else {
-            return "Create Budget"
-        }
-        return selectedSegment == .planned ? "Add Planned Expense" : "Add Variable Expense"
-    }
-
-    private var inactiveBudgetGuidanceMessage: String {
-        "This budget is not currently active. Press the button above to get started budgeting for \(periodHeaderTitle)."
-    }
-
-    private func addExpenseCTAAction() {
-        guard actionableSummaryForSelectedPeriod != nil else {
-            isPresentingAddBudget = true
-            return
-        }
-        if selectedSegment == .planned {
-            isPresentingAddPlannedFromHome = true
-        } else {
-            isPresentingAddVariableFromHome = true
-        }
-    }
-
-    private func triggerAddExpense(
-        _ notificationName: Notification.Name,
-        budgetID _: NSManagedObjectID,
-        fallback: () -> Void
-    ) {
-        guard hasActiveBudget else {
-            fallback()
-            return
-        }
-
-        guard let resolvedBudgetID = actionableSummaryForSelectedPeriod?.id ?? lastKnownActionableBudgetID else {
-            fallback()
-            return
-        }
-
-        NotificationCenter.default.post(name: notificationName, object: resolvedBudgetID)
-    }
-}
-
-// MARK: - Home Header Table Page
-private struct HomeHeaderTablePage<Content: View>: View {
-    @Environment(\.platformCapabilities) private var capabilities
-    @Environment(\.responsiveLayoutContext) private var layoutContext
-
-    let summary: BudgetSummary?
-    let displayTitle: String
-    let displayDetail: String
-    let categorySpending: [BudgetSummary.CategorySpending]
-    @Binding var selectedSegment: BudgetDetailsViewModel.Segment
-    @Binding var sort: BudgetDetailsViewModel.SortOption
-    let periodNavigationTitle: String
-    let onAdjustPeriod: (Int) -> Void
-    let onAddCategory: () -> Void
-    let topPaddingStyle: RootTabHeaderLayout.TopPaddingStyle
-    let content: (AnyView) -> Content
-    @State private var globalCategoryCache: [BudgetSummary.CategorySpending] = []
-
-    var body: some View {
-        let header = AnyView(headerContent)
-        return content(header)
-            .task { loadGlobalCategories() }
-            .onReceive(NotificationCenter.default.publisher(for: .dataStoreDidChange)) { _ in
-                loadGlobalCategories()
-            }
-    }
-
-    private var headerContent: some View {
-        let horizontalPadding = HomeHeaderOverviewMetrics.horizontalPadding(
-            for: capabilities,
-            layoutContext: layoutContext,
-            requiresLegacyBaselinePadding: summary == nil
-        )
-
-        return VStack(spacing: HomeHeaderOverviewMetrics.sectionSpacing) {
-            RootViewTopPlanes(
-                title: "Home",
-                titleDisplayMode: .hidden,
-                horizontalPadding: horizontalPadding,
-                topPaddingStyle: topPaddingStyle
-            )
-
-            HomeHeaderOverviewTable(
-                summary: summary,
-                displayTitle: displayTitle,
-                displayDetail: displayDetail,
-                categorySpending: categorySpending,
-                globalCategorySpending: globalCategoryCache,
-                selectedSegment: $selectedSegment,
-                sort: $sort,
-                periodNavigationTitle: periodNavigationTitle,
-                onAdjustPeriod: onAdjustPeriod,
-                onAddCategory: onAddCategory
-            )
-            .padding(.horizontal, horizontalPadding)
-        }
-    }
-
-    // Build zero-amount placeholders for all categories in the system so
-    // inactive/empty periods still show chips rather than the Add Category CTA.
-    @MainActor
-    private func loadGlobalCategories() {
-        let ctx = CoreDataService.shared.viewContext
-        let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
-        req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
-        let all: [ExpenseCategory] = (try? ctx.fetch(req)) ?? []
-        let categories = all.compactMap { cat -> BudgetSummary.CategorySpending? in
-            let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else { return nil }
-            return BudgetSummary.CategorySpending(categoryName: name, hexColor: cat.color, amount: 0)
-        }
-        globalCategoryCache = categories
-    }
-}
-
-// MARK: - Home Header Overview Table
-private struct HomeHeaderOverviewTable: View {
-    let summary: BudgetSummary?
-    let displayTitle: String
-    let displayDetail: String
-    let categorySpending: [BudgetSummary.CategorySpending]
-    let globalCategorySpending: [BudgetSummary.CategorySpending]
-    @Binding var selectedSegment: BudgetDetailsViewModel.Segment
-    @Binding var sort: BudgetDetailsViewModel.SortOption
-    let periodNavigationTitle: String
-    let onAdjustPeriod: (Int) -> Void
-    let onAddCategory: () -> Void
-
-    var body: some View {
-        LazyVStack(alignment: .leading, spacing: HomeHeaderOverviewMetrics.sectionSpacing) {
-            titleRow
-            periodNavigationRow
-            metricsSection
-            categoryRow
-            segmentPicker
-            sortPicker
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var titleRow: some View {
-        VStack(alignment: .leading, spacing: HomeHeaderOverviewMetrics.titleSpacing) {
-            Text(displayTitle)
-                .font(HomeHeaderOverviewMetrics.titleFont)
-                .lineLimit(HomeHeaderOverviewMetrics.titleLineLimit)
-                .layoutPriority(2)
-                .minimumScaleFactor(HomeHeaderOverviewMetrics.titleMinimumScaleFactor)
-
-            Text(displayDetail)
-                .font(HomeHeaderOverviewMetrics.subtitleFont)
-                .foregroundStyle(.secondary)
-                .lineLimit(HomeHeaderOverviewMetrics.subtitleLineLimit)
-                .layoutPriority(0)
-                .minimumScaleFactor(HomeHeaderOverviewMetrics.subtitleMinimumScaleFactor)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private var periodNavigationRow: some View {
-        PeriodNavigationControl(
-            title: periodNavigationTitle,
-            onPrevious: { onAdjustPeriod(-1) },
-            onNext: { onAdjustPeriod(+1) }
-        )
-        .frame(maxWidth: .infinity)
-        .padding(.top, HomeHeaderOverviewMetrics.titleToPeriodNavigationSpacing)
-    }
-
-    private var metricsSection: some View {
-        LazyVStack(alignment: .leading, spacing: HomeHeaderOverviewMetrics.metricRowSpacing) {
-            HomeHeaderTableTwoColumnRow {
-                metricHeader("POTENTIAL INCOME")
-            } trailing: {
-                metricHeader("POTENTIAL SAVINGS")
-            }
-
-            HomeHeaderTableTwoColumnRow {
-                metricValue(potentialIncome, color: DS.Colors.plannedIncome)
-            } trailing: {
-                metricValue(potentialSavings, color: DS.Colors.savingsGood)
-            }
-
-            Group {
-                HomeHeaderTableTwoColumnRow {
-                    metricHeader("ACTUAL INCOME")
-                } trailing: {
-                    metricHeader("ACTUAL SAVINGS")
-                }
-
-                HomeHeaderTableTwoColumnRow {
-                    metricValue(actualIncome, color: DS.Colors.actualIncome)
-                } trailing: {
-                    metricValue(actualSavings, color: DS.Colors.savingsGood)
-                }
-            }
-            .padding(.top, HomeHeaderOverviewMetrics.metricGroupSpacing)
-
-            HomeHeaderTableTwoColumnRow {
-                totalLabelView
-            } trailing: {
-                totalValueView
-            }
-            .padding(.top, HomeHeaderOverviewMetrics.metricGroupSpacing)
-        }
-    }
-
-    private var categoryRow: some View {
-        Group {
-            if !categorySpending.isEmpty {
-                CategoryTotalsRow(
-                    categories: categorySpending,
-                    isPlaceholder: false,
-                    horizontalInset: 0
-                )
-                .frame(height: HomeHeaderOverviewMetrics.categoryControlHeight)
-            } else if !globalCategorySpending.isEmpty {
-                // Show zero-amount chips for all categories when no spending yet
-                CategoryTotalsRow(
-                    categories: globalCategorySpending,
-                    isPlaceholder: false,
-                    horizontalInset: 0
-                )
-                .frame(height: HomeHeaderOverviewMetrics.categoryControlHeight)
-            } else {
-                // Only when there are no categories in the system, show Add Category CTA
-                GlassCapsuleContainer(
-                    horizontalPadding: DS.Spacing.l,
-                    verticalPadding: DS.Spacing.s,
-                    alignment: .center
-                ) {
-                    Button(action: onAddCategory) {
-                        Label("Add Category", systemImage: "plus")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
-                            .frame(
-                                maxWidth: .infinity,
-                                minHeight: HomeHeaderOverviewMetrics.categoryControlHeight
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("home_add_category_cta")
-                }
-                .frame(height: HomeHeaderOverviewMetrics.categoryControlHeight)
-            }
-        }
-        .padding(.top, HomeHeaderOverviewMetrics.categoryChipTopSpacing)
-    }
-
-    private var totalLabelView: some View {
-        Text(selectedSegment == .planned ? "PLANNED EXPENSES" : "VARIABLE EXPENSES")
-            .font(HomeHeaderOverviewMetrics.labelFont)
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
-            .lineLimit(1)
-    }
-
-    private var totalValueView: some View {
-        Text(formatCurrency(selectedSegmentTotal))
-            .font(HomeHeaderOverviewMetrics.totalValueFont)
-            .lineLimit(1)
-    }
-
-    private func metricHeader(_ title: String) -> some View {
-        Text(title)
-            .font(HomeHeaderOverviewMetrics.labelFont)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-    }
-
-    private func metricValue(_ amount: Double, color: Color) -> some View {
-        Text(formatCurrency(amount))
-            .font(HomeHeaderOverviewMetrics.valueFont)
-            .foregroundStyle(color)
-            .lineLimit(1)
-    }
-
-    private var segmentPicker: some View {
-        GlassCapsuleContainer(
-            horizontalPadding: HomeHeaderOverviewMetrics.controlHorizontalPadding,
-            verticalPadding: HomeHeaderOverviewMetrics.controlVerticalPadding
-        ) {
-            Picker("", selection: $selectedSegment) {
-                Text("Planned Expenses").segmentedFill().tag(BudgetDetailsViewModel.Segment.planned)
-                Text("Variable Expenses").segmentedFill().tag(BudgetDetailsViewModel.Segment.variable)
-            }
-            .pickerStyle(.segmented)
-            .equalWidthSegments()
-            .frame(maxWidth: .infinity)
-        }
-    }
-
-    private var sortPicker: some View {
-        GlassCapsuleContainer(
-            horizontalPadding: HomeHeaderOverviewMetrics.controlHorizontalPadding,
-            verticalPadding: HomeHeaderOverviewMetrics.controlVerticalPadding,
-            alignment: .center
-        ) {
-            Picker("Sort", selection: $sort) {
-                Text("A–Z").segmentedFill().tag(BudgetDetailsViewModel.SortOption.titleAZ)
-                Text("$↓").segmentedFill().tag(BudgetDetailsViewModel.SortOption.amountLowHigh)
-                Text("$↑").segmentedFill().tag(BudgetDetailsViewModel.SortOption.amountHighLow)
-                Text("Date ↑").segmentedFill().tag(BudgetDetailsViewModel.SortOption.dateOldNew)
-                Text("Date ↓").segmentedFill().tag(BudgetDetailsViewModel.SortOption.dateNewOld)
-            }
-            .pickerStyle(.segmented)
-            .equalWidthSegments()
-            .frame(maxWidth: .infinity)
-        }
+    private var summaryIDString: String {
+        if let s = summary { return s.id.uriRepresentation().absoluteString }
+        return "none"
     }
 
     private var potentialIncome: Double { summary?.potentialIncomeTotal ?? 0 }
     private var potentialSavings: Double { summary?.potentialSavingsTotal ?? 0 }
     private var actualIncome: Double { summary?.actualIncomeTotal ?? 0 }
     private var actualSavings: Double { summary?.actualSavingsTotal ?? 0 }
-    private var plannedExpensesTotal: Double { summary?.plannedExpensesActualTotal ?? 0 }
-    private var variableExpensesTotal: Double { summary?.variableExpensesTotal ?? 0 }
-    private var selectedSegmentTotal: Double { selectedSegment == .planned ? plannedExpensesTotal : variableExpensesTotal }
+    private var plannedTotal: Double { summary?.plannedExpensesActualTotal ?? 0 }
+    private var variableTotal: Double { summary?.variableExpensesTotal ?? 0 }
 
+    private var horizontalPadding: CGFloat { 20 }
+
+    // MARK: Helpers
+    /// Updates the budget period preference and triggers a model refresh.
+    private func updateBudgetPeriod(to newValue: BudgetPeriod) {
+        budgetPeriodRawValue = newValue.rawValue
+        Task { await vm.refresh() }
+    }
+
+    /// Renders a metric label/value pair for a given amount.
+    private func metricColumn(title: String, value: Double, color: Color, trailing: Bool) -> some View {
+        VStack(alignment: trailing ? .trailing : .leading, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)
+            Text(formatCurrency(value))
+                .font(.body.weight(.semibold))
+                .foregroundStyle(color)
+                .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)
+    }
+
+    /// Currency formatting that adapts to the device locale.
     private func formatCurrency(_ amount: Double) -> String {
         if #available(iOS 15.0, macCatalyst 15.0, *) {
             let currencyCode: String
             if #available(iOS 16.0, macCatalyst 16.0, *) {
-                currencyCode = Locale.current.currency?.identifier ?? HomeHeaderOverviewMetrics.fallbackCurrencyCode
+                currencyCode = Locale.current.currency?.identifier ?? "USD"
             } else {
-                currencyCode = Locale.current.currencyCode ?? HomeHeaderOverviewMetrics.fallbackCurrencyCode
+                currencyCode = Locale.current.currencyCode ?? "USD"
             }
             return amount.formatted(.currency(code: currencyCode))
         } else {
             let formatter = NumberFormatter()
             formatter.numberStyle = .currency
-            formatter.currencyCode = Locale.current.currencyCode ?? HomeHeaderOverviewMetrics.fallbackCurrencyCode
+            formatter.currencyCode = Locale.current.currencyCode ?? "USD"
             return formatter.string(from: amount as NSNumber) ?? String(format: "%.2f", amount)
         }
     }
-}
 
-private struct HomeHeaderTableTwoColumnRow<Leading: View, Trailing: View>: View {
-    private let alignment: VerticalAlignment
-    private let leading: () -> Leading
-    private let trailing: () -> Trailing
-
-    init(
-        alignment: VerticalAlignment = .lastTextBaseline,
-        @ViewBuilder leading: @escaping () -> Leading,
-        @ViewBuilder trailing: @escaping () -> Trailing
-    ) {
-        self.alignment = alignment
-               self.leading = leading
-        self.trailing = trailing
-    }
-
-    var body: some View {
-        HStack(alignment: alignment, spacing: DS.Spacing.m) {
-            leading()
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            trailing()
-                .frame(maxWidth: .infinity, alignment: .trailing)
+    // MARK: Chips Styling
+    @ViewBuilder
+    private func chipView(title: String, amount: Double, hex: String?) -> some View {
+        let dot = UBColorFromHex(hex) ?? .secondary
+        let chipLabel = HStack(spacing: 8) {
+            Circle().fill(dot).frame(width: 8, height: 8)
+            Text(title).font(.subheadline.weight(.medium))
+            Text(formatCurrency(amount)).font(.subheadline.weight(.semibold))
         }
-    }
-}
-
-// MARK: - Header Menu Glass Label (OS26)
-private struct HeaderMenuGlassLabel: View {
-    @Environment(\.platformCapabilities) private var capabilities
-    @EnvironmentObject private var themeManager: ThemeManager
-    var systemImage: String
-    var symbolVariants: SymbolVariants? = nil
-    var glassNamespace: Namespace.ID? = nil
-    var glassID: String? = nil
-    var glassUnionID: String? = nil
-    var transition: Any? = nil
-
-    var body: some View {
-        RootHeaderGlassControl(
-            sizing: .icon,
-            background: .clear,
-            glassNamespace: glassNamespace,
-            glassID: glassID,
-            glassUnionID: glassUnionID,
-            glassTransition: transition
-        ) {
-            RootHeaderControlIcon(systemImage: systemImage, symbolVariants: symbolVariants)
-                .frame(
-                    width: RootHeaderActionMetrics.minimumIconDimension,
-                    height: RootHeaderActionMetrics.minimumIconDimension
+            .background(.clear)
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(action: {}) { chipLabel }
+                .buttonStyle(.glass)
+                .buttonBorderShape(.capsule)
+                .foregroundStyle(.primary)
+                .allowsHitTesting(false)
+                .disabled(true)
+                .frame(minHeight: 33)
+                .clipShape(Capsule())
+                .compositingGroup()
+        } else {
+            chipLabel
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color(UIColor { traits in
+                            traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
+                        }))
                 )
         }
+            
     }
-}
 
-private enum HomeToolbarGlassIdentifiers {
-    static let options = "home-toolbar.options"
-    static let calendar = "home-toolbar.calendar"
-    static let addExpense = "home-toolbar.add-expense"
-    static let union = "home-toolbar.union"
-}
+    // MARK: Rows + Data
+    private func plannedRow(_ exp: PlannedExpense) -> some View {
+        let title = (exp.value(forKey: "descriptionText") as? String) ?? (exp.value(forKey: "title") as? String) ?? "Expense"
+        let dateStr: String = {
+            let f = DateFormatter(); f.dateStyle = .medium
+            if let d = exp.transactionDate { return f.string(from: d) }
+            return ""
+        }()
+        return HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.headline)
+                Text(dateStr).font(.subheadline).foregroundStyle(.secondary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Planned: \(formatCurrency(exp.plannedAmount))")
+                    .font(.subheadline.weight(.semibold))
+                Text("Actual: \(formatCurrency(exp.actualAmount))")
+                    .font(.subheadline)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
 
-private enum HomeGlassUnionID: String {
-    case main = "home-toolbar.union.main"
-    case extras = "home-toolbar.union.extras"
-}
+    private func variableRow(_ exp: UnplannedExpense) -> some View {
+        let title = readUnplannedDescription(exp) ?? "Expense"
+        let f = DateFormatter(); f.dateStyle = .medium
+        let dateStr: String = { let f = DateFormatter(); f.dateStyle = .medium; if let d = exp.transactionDate { return f.string(from: d) }; return "" }()
+        return HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.headline)
+                Text(dateStr).font(.subheadline).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(formatCurrency(exp.amount)).font(.headline)
+        }
+        .frame(maxWidth: .infinity)
+    }
 
-private enum HomeHeaderOverviewMetrics {
-    static let sectionSpacing: CGFloat = DS.Spacing.m
-    static let titleSpacing: CGFloat = DS.Spacing.xs / 2
-    static let titleToPeriodNavigationSpacing: CGFloat = DS.Spacing.xs / 2
-    static let metricRowSpacing: CGFloat = DS.Spacing.xs
-    static let metricGroupSpacing: CGFloat = DS.Spacing.xs
-    static let categoryChipTopSpacing: CGFloat = DS.Spacing.s
-    static let categoryControlHeight: CGFloat = 44
-    static let controlHorizontalPadding: CGFloat = DS.Spacing.s
-    static let controlVerticalPadding: CGFloat = DS.Spacing.s
-    static let titleFont: Font = .largeTitle.bold()
-    static let titleLineLimit: Int = 1
-    static let titleMinimumScaleFactor: CGFloat = 0.6
-    static let subtitleFont: Font = .callout
-    static let subtitleLineLimit: Int = 1
-    static let subtitleMinimumScaleFactor: CGFloat = 0.75
-    static let labelFont: Font = .caption.weight(.semibold)
-    static let valueFont: Font = .body.weight(.semibold)
-    static let totalValueFont: Font = .title3.weight(.semibold)
-    static let fallbackCurrencyCode = "USD"
-
-    static func horizontalPadding(
-        for capabilities: PlatformCapabilities,
-        layoutContext: ResponsiveLayoutContext,
-        requiresLegacyBaselinePadding: Bool = false
-    ) -> CGFloat {
-        if capabilities.supportsOS26Translucency {
-            return RootTabHeaderLayout.defaultHorizontalPadding
+    private func reloadRows() {
+        guard let summary else { plannedRows = []; variableRows = []; return }
+        let context = CoreDataService.shared.viewContext
+        guard let budget = try? context.existingObject(with: summary.id) as? Budget else {
+            plannedRows = []; variableRows = []; return
         }
 
-        if layoutContext.containerSize.width >= 600 {
-            return RootTabHeaderLayout.defaultHorizontalPadding
+        // Build date range for the selected period
+        let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
+
+        // Planned
+        do {
+            let req = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+            req.predicate = NSPredicate(format: "budget == %@ AND transactionDate >= %@ AND transactionDate <= %@",
+                                        budget, start as NSDate, end as NSDate)
+            req.sortDescriptors = plannedSortDescriptors
+            plannedRows = try context.fetch(req)
+        } catch { plannedRows = [] }
+
+        // Variable (Unplanned) via card relation
+        do {
+            let req = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
+            if let cards = budget.cards as? Set<Card>, !cards.isEmpty {
+                req.predicate = NSPredicate(format: "card IN %@ AND transactionDate >= %@ AND transactionDate <= %@",
+                                            cards as NSSet, start as NSDate, end as NSDate)
+            } else {
+                req.predicate = NSPredicate(value: false)
+            }
+            req.sortDescriptors = variableSortDescriptors
+            variableRows = try context.fetch(req)
+        } catch { variableRows = [] }
+    }
+
+    private var plannedSortDescriptors: [NSSortDescriptor] {
+        switch sort {
+        case .titleAZ: return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+        case .amountLowHigh: return [NSSortDescriptor(key: "actualAmount", ascending: true)]
+        case .amountHighLow: return [NSSortDescriptor(key: "actualAmount", ascending: false)]
+        case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
+        case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
         }
+    }
 
-        let safeAreaLeading = max(layoutContext.safeArea.leading, 0)
-
-        if safeAreaLeading == 0, requiresLegacyBaselinePadding {
-            return RootTabHeaderLayout.defaultHorizontalPadding
+    private var variableSortDescriptors: [NSSortDescriptor] {
+        switch sort {
+        case .titleAZ: return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+        case .amountLowHigh: return [NSSortDescriptor(key: "amount", ascending: true)]
+        case .amountHighLow: return [NSSortDescriptor(key: "amount", ascending: false)]
+        case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
+        case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
         }
-
-        return safeAreaLeading
-    }
-}
-
-// MARK: - Segmented control sizing helpers
-private extension View {
-    func segmentedFill() -> some View { frame(maxWidth: .infinity) }
-    func equalWidthSegments() -> some View { modifier(HomeEqualWidthSegmentsModifier()) }
-}
-
-private struct HomeEqualWidthSegmentsModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content.background(HomeEqualWidthSegmentApplier())
-    }
-}
-
-private struct HomeEqualWidthSegmentApplier: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        view.isUserInteractionEnabled = false
-        DispatchQueue.main.async { applyEqualWidthIfNeeded(from: view) }
-        return view
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {
-        DispatchQueue.main.async { applyEqualWidthIfNeeded(from: uiView) }
+    private func delete(planned: PlannedExpense) {
+        do {
+            try PlannedExpenseService().delete(planned)
+            reloadRows()
+            Task { await vm.refresh() }
+        } catch { /* swallow for now */ }
     }
 
-    private func applyEqualWidthIfNeeded(from view: UIView) {
-        guard let segmented = findSegmentedControl(from: view) else { return }
-        segmented.apportionsSegmentWidthsByContent = false
-        segmented.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        segmented.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        segmented.invalidateIntrinsicContentSize()
+    private func delete(unplanned: UnplannedExpense) {
+        do {
+            try UnplannedExpenseService().delete(unplanned)
+            reloadRows()
+            Task { await vm.refresh() }
+        } catch { /* swallow for now */ }
     }
 
-    private func findSegmentedControl(from view: UIView) -> UISegmentedControl? {
-        var current: UIView? = view
-        while let candidate = current {
-            if let segmented = candidate as? UISegmentedControl { return segmented }
-            current = candidate.superview
+    /// Reads `descriptionText` or `title` from an `UnplannedExpense`, matching the service's behavior.
+    private func readUnplannedDescription(_ object: NSManagedObject) -> String? {
+        let keys = object.entity.attributesByName.keys
+        if keys.contains("descriptionText") {
+            return object.value(forKey: "descriptionText") as? String
+        } else if keys.contains("title") {
+            return object.value(forKey: "title") as? String
         }
         return nil
     }
+}
+
+//
+
+// MARK: - Hex Color Helper (local)
+fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
+    guard var value = hex?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+    if value.hasPrefix("#") { value.removeFirst() }
+    guard value.count == 6, let intVal = Int(value, radix: 16) else { return nil }
+    let r = Double((intVal >> 16) & 0xFF) / 255.0
+    let g = Double((intVal >> 8) & 0xFF) / 255.0
+    let b = Double((intVal & 0xFF)) / 255.0
+    return Color(red: r, green: g, blue: b)
 }

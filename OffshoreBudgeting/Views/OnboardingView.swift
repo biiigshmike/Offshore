@@ -1,804 +1,216 @@
 import SwiftUI
-import UIKit
 import Combine
 
-// MARK: - OnboardingView
-/// Root container presenting a multi-step onboarding flow.
-/// Steps:
-/// 1. Welcome screen
-/// 2. Theme selection
-/// 3. Category creation
-/// 4. Card creation
-/// 5. Preset creation
-/// 6. iCloud sync configuration
-/// 7. Loading completion screen
+// MARK: - OnboardingView2
 struct OnboardingView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.platformCapabilities) private var capabilities
-
-    // MARK: AppStorage
-    /// Persisted flag indicating the user finished onboarding.
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
-
-    /// Cloud sync preferences stored globally so onboarding can opt the user in.
     @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
     @AppStorage(AppSettingsKeys.syncCardThemes.rawValue) private var syncCardThemes: Bool = false
     @AppStorage(AppSettingsKeys.syncBudgetPeriod.rawValue) private var syncBudgetPeriod: Bool = false
 
-    // MARK: Step
-    /// Enumeration of onboarding steps.
-    enum Step: Int { case welcome, categories, cards, presets, cloudSync, loading }
-    /// Current step in the flow.
+    enum Step { case welcome, categories, cards, presets, loading }
     @State private var step: Step = .welcome
 
-    // MARK: - Body
     var body: some View {
         ZStack {
-            OnboardingBackgroundSurface(
-                baseColor: themeManager.selectedTheme.background,
-                capabilities: capabilities
-            )
-            .ignoresSafeArea()
+            themeManager.selectedTheme.background
+                .overlay(Color.black.opacity(capabilities.supportsOS26Translucency ? 0.04 : 0.06))
+                .ignoresSafeArea()
 
             switch step {
             case .welcome:
-                WelcomeStep { step = .categories }
+                WelcomeStep2 { step = .categories }
             case .categories:
-                CategoriesStep(
+                CategoriesStep2(
                     onNext: { step = .cards },
                     onBack: { step = .welcome }
                 )
             case .cards:
-                CardsStep(
+                CardsStep2(
                     onNext: { step = .presets },
                     onBack: { step = .categories }
                 )
             case .presets:
-                PresetsStep(
+                PresetsStep2(
                     onNext: { step = .loading },
                     onBack: { step = .cards }
                 )
-            case .cloudSync:
-                CloudSyncStep(
-                    enableCloudSync: $enableCloudSync,
-                    syncCardThemes: $syncCardThemes,
-                    syncBudgetPeriod: $syncBudgetPeriod
-                ) {
-                    step = .loading
-                } onBack: {
-                    step = .presets
-                }
             case .loading:
-                LoadingStep {
-                    didCompleteOnboarding = true
-                }
+                LoadingStep2 { didCompleteOnboarding = true }
             }
         }
-        .onboardingPresentation()
         .animation(.easeInOut, value: step)
         .transition(.opacity)
-        .ub_onChange(of: enableCloudSync) { newValue in
-            guard !newValue else { return }
-            syncCardThemes = false
-            syncBudgetPeriod = false
+        .onboardingPresentation() // mark hierarchy for onboarding-specific styling
+        .onChange(of: enableCloudSync) { newValue in
+            guard newValue else { return }
+            if !syncCardThemes { syncCardThemes = true }
+            if !syncBudgetPeriod { syncBudgetPeriod = true }
         }
     }
 }
 
-// MARK: - WelcomeStep
-/// Greets the user and begins onboarding.
-/// - Parameter onNext: Callback fired when user taps "Get Started".
-private struct WelcomeStep: View {
+// MARK: - Steps
+private struct WelcomeStep2: View {
     let onNext: () -> Void
-
-    @EnvironmentObject private var themeManager: ThemeManager
-
     var body: some View {
-        VStack(spacing: DS.Spacing.xl) {
+        VStack(spacing: 24) {
             Spacer()
-
-            VStack(spacing: DS.Spacing.s) {
-                Text("Welcome to Offshore Budgeting")
-                    .font(.largeTitle.bold())
+            VStack(spacing: 8) {
+                Text("Welcome to Offshore Budgeting").font(.largeTitle.bold())
                 Text("Let's set up your budgeting workspace.")
-                    .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
             .frame(maxWidth: 520)
-
             Spacer()
-
-            OnboardingButtonRow(
-                buttons: [
-                    .primary("Get Started", action: onNext)
-                ],
-                contentInsets: .init(
-                    top: 0,
-                    leading: DS.Spacing.xl,
-                    bottom: DS.Spacing.xxl,
-                    trailing: DS.Spacing.xl
-                )
-            )
+            OnboardingButtonsRow2(back: nil, nextTitle: "Get Started", onBack: {}, onNext: onNext)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-// Theme selection UI removed.
-
-// MARK: - CardsStep
-/// Allows users to add cards before proceeding.
-/// - Parameters:
-///   - onNext: Callback fired after user finishes adding cards.
-///   - onBack: Callback fired when the user wants to revisit the previous step.
-private struct CardsStep: View {
+private struct CategoriesStep2: View {
     let onNext: () -> Void
     let onBack: () -> Void
-
-    var body: some View {
-        OnboardingNavigationContainer {
-            ZStack(alignment: .bottom) {
-                CardsView()
-                OnboardingButtonRow(
-                    buttons: [
-                        .secondary("Back", action: onBack),
-                        .primary("Done", action: onNext)
-                    ]
-                )
-            }
-        }
-    }
-}
-
-// MARK: - PresetsStep
-/// Introduces planned expense presets.
-/// - Parameters:
-///   - onNext: Callback fired after user finishes adding presets.
-///   - onBack: Callback fired when the user wants to revisit the previous step.
-private struct PresetsStep: View {
-    let onNext: () -> Void
-    let onBack: () -> Void
-
-    var body: some View {
-        OnboardingNavigationContainer {
-            ZStack(alignment: .bottom) {
-                PresetsView()
-                OnboardingButtonRow(
-                    buttons: [
-                        .secondary("Back", action: onBack),
-                        .primary("Done", action: onNext)
-                    ]
-                )
-            }
-        }
-    }
-}
-
-// MARK: - OnboardingNavigationContainer
-private struct OnboardingNavigationContainer<Content: View>: View {
-    @EnvironmentObject private var themeManager: ThemeManager
-    private let content: () -> Content
-
-    init(@ViewBuilder content: @escaping () -> Content) {
-        self.content = content
-    }
-
-    var body: some View {
-        navigationContent
-            .ub_navigationBackground(
-                theme: themeManager.selectedTheme,
-                configuration: themeManager.glassConfiguration
-            )
-    }
-
-    @ViewBuilder
-    private var navigationContent: some View {
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
-            NavigationStack { content() }
-        } else {
-            NavigationView { content() }
-                .navigationViewStyle(.stack)
-        }
-    }
-}
-
-// MARK: - CloudSyncStep
-/// Gives users the option to enable iCloud syncing during onboarding.
-/// - Parameters:
-///   - enableCloudSync: Binding to the master iCloud sync toggle.
-///   - syncCardThemes: Binding to the card appearance sync toggle.
-///   - syncBudgetPeriod: Binding to the budget period sync toggle.
-///   - onNext: Callback fired after the user makes a choice.
-///   - onBack: Callback fired when the user wants to revisit the previous step.
-private struct CloudSyncStep: View {
-    @Binding var enableCloudSync: Bool
-    @Binding var syncCardThemes: Bool
-    @Binding var syncBudgetPeriod: Bool
-    let onNext: () -> Void
-    let onBack: () -> Void
-
-    @EnvironmentObject private var themeManager: ThemeManager
-    @State private var cloudStatusProvider: CloudAccountStatusProvider?
-    @State private var availabilityCancellable: AnyCancellable?
-    @State private var cloudAvailability: CloudAccountStatusProvider.Availability = .unknown
-
-    var body: some View {
-        GeometryReader { proxy in
-            ScrollView {
-                content
-                    .frame(minHeight: proxy.size.height, alignment: .center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .ub_onChange(of: enableCloudSync) { newValue in
-            guard newValue else { return }
-            if !syncCardThemes { syncCardThemes = true }
-            if !syncBudgetPeriod { syncBudgetPeriod = true }
-        }
-        .task {
-            if enableCloudSync {
-                await requestCloudAvailabilityCheck(force: false)
-            }
-        }
-        .ub_onChange(of: enableCloudSync, handleCloudSyncToggleChange)
-        .ub_onChange(of: cloudAvailability, handleCloudAvailabilityChange)
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.xl) {
-            header
-            cloudOptionsCard
-            OnboardingButtonRow(
-                buttons: [
-                    .secondary("Back", action: onBack),
-                    .primary("Continue", action: onNext)
-                ],
-                contentInsets: .init(
-                    top: DS.Spacing.l,
-                    leading: 0,
-                    bottom: 0,
-                    trailing: 0
-                )
-            )
-        }
-        .padding(.vertical, DS.Spacing.xxl)
-        .padding(.horizontal, DS.Spacing.xl)
-        .frame(maxWidth: 560, alignment: .leading)
-        .frame(maxWidth: .infinity)
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.s) {
-            Text("Sync with iCloud")
-                .font(.largeTitle.bold())
-            Text("Keep your budgets and settings up to date across every device signed into your iCloud account. You can change this anytime from Settings.")
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var cloudOptionsCard: some View {
-        OnboardingGlassCard(
-            alignment: .leading,
-            maxWidth: 620,
-            contentPadding: .init(
-                top: DS.Spacing.xl,
-                leading: DS.Spacing.xl,
-                bottom: DS.Spacing.l,
-                trailing: DS.Spacing.xl
-            )
-        ) {
-            CloudOptionToggle(
-                title: "Enable iCloud Sync",
-                subtitle: "Keep budgets, themes, and settings identical everywhere.",
-                isOn: $enableCloudSync,
-                isEnabled: canUseCloudSync
-            )
-
-            Divider()
-                .opacity(0.25)
-                .padding(.vertical, DS.Spacing.s)
-
-            VStack(alignment: .leading, spacing: DS.Spacing.m) {
-                CloudOptionToggle(
-                    title: "Sync card themes",
-                    subtitle: "Mirror your custom card colors across devices.",
-                    isOn: $syncCardThemes,
-                    isEnabled: enableCloudSync && canUseCloudSync
-                )
-
-                CloudOptionToggle(
-                    title: "Sync budget period",
-                    subtitle: "Align the start and end dates of each cycle.",
-                    isOn: $syncBudgetPeriod,
-                    isEnabled: enableCloudSync && canUseCloudSync
-                )
-            }
-
-            if isCheckingCloudAvailability {
-                Text("Checking your iCloud status…")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, DS.Spacing.s)
-            } else if isCloudUnavailable {
-                Text("iCloud is currently unavailable. You can finish onboarding and enable sync later from Settings when iCloud is active again.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, DS.Spacing.s)
-            }
-
-            Text("We never see your data. Everything stays encrypted with your Apple ID and can be turned off later.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, DS.Spacing.s)
-        }
-        .tint(themeManager.selectedTheme.resolvedTint)
-    }
-
-    @MainActor
-    private func ensureCloudStatusProvider() -> CloudAccountStatusProvider {
-        if let provider = cloudStatusProvider {
-            return provider
-        }
-
-        let provider = CloudAccountStatusProvider.shared
-        cloudStatusProvider = provider
-        subscribe(to: provider)
-        return provider
-    }
-
-    @MainActor
-    private func subscribe(to provider: CloudAccountStatusProvider) {
-        availabilityCancellable?.cancel()
-        cloudAvailability = provider.availability
-        availabilityCancellable = provider.availabilityPublisher
-            .sink { availability in
-                Task { @MainActor in
-                    cloudAvailability = availability
-                }
-            }
-    }
-
-    private func requestCloudAvailabilityCheck(force: Bool) async {
-        let provider = await MainActor.run { ensureCloudStatusProvider() }
-        _ = await provider.resolveAvailability(forceRefresh: force)
-    }
-
-    private func handleCloudSyncToggleChange(_ isEnabled: Bool) {
-        if isEnabled {
-            Task { await requestCloudAvailabilityCheck(force: false) }
-            if cloudAvailability == .available {
-                Task { await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true) }
-            }
-        } else {
-            syncCardThemes = false
-            syncBudgetPeriod = false
-            Task { await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: false) }
-            cloudAvailability = .unknown
-        }
-    }
-
-    private func handleCloudAvailabilityChange(_ availability: CloudAccountStatusProvider.Availability) {
-        switch availability {
-        case .available where enableCloudSync:
-            Task { await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true) }
-        case .unavailable:
-            if enableCloudSync {
-                enableCloudSync = false
-            }
-            syncCardThemes = false
-            syncBudgetPeriod = false
-        case .available, .unknown:
-            break
-        }
-    }
-
-    private var canUseCloudSync: Bool {
-        cloudAvailability == .available
-    }
-
-    private var isCloudUnavailable: Bool {
-        cloudAvailability == .unavailable
-    }
-
-    private var isCheckingCloudAvailability: Bool {
-        enableCloudSync && cloudAvailability == .unknown
-    }
-}
-
-// MARK: - CategoriesStep
-/// Lets users create expense categories.
-/// - Parameters:
-///   - onNext: Callback fired after categories are added.
-///   - onBack: Callback fired when the user wants to revisit the previous step.
-private struct CategoriesStep: View {
-    let onNext: () -> Void
-    let onBack: () -> Void
-    @EnvironmentObject private var themeManager: ThemeManager
-
     var body: some View {
         navigationContainer {
             ZStack(alignment: .bottom) {
                 ExpenseCategoryManagerView()
-                OnboardingButtonRow(
-                    buttons: [
-                        .secondary("Back", action: onBack),
-                        .primary("Done", action: onNext)
-                    ]
-                )
+                OnboardingButtonsRow2(back: "Back", nextTitle: "Done", onBack: onBack, onNext: onNext)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
             }
         }
-        .ub_navigationBackground(
-            theme: themeManager.selectedTheme,
-            configuration: themeManager.glassConfiguration
-        )
-    }
-
-    // MARK: - Navigation container compatibility
-    @ViewBuilder
-    private func navigationContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
-            navigationStack(content: content)
-        } else {
-            navigationView(content: content)
-        }
-    }
-
-    @available(iOS 16.0, macCatalyst 16.0, *)
-    private func navigationStack<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        NavigationStack { content() }
-    }
-
-    private func navigationView<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        NavigationView { content() }
-            .navigationViewStyle(.stack)
     }
 }
 
-// MARK: - LoadingStep
-/// Simulates loading before completing onboarding.
-/// - Parameter onFinish: Callback fired after the simulated delay.
-private struct LoadingStep: View {
+private struct CardsStep2: View {
+    let onNext: () -> Void
+    let onBack: () -> Void
+    var body: some View {
+        navigationContainer {
+            ZStack(alignment: .bottom) {
+                CardsView()
+                OnboardingButtonsRow2(back: "Back", nextTitle: "Done", onBack: onBack, onNext: onNext)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+            }
+        }
+    }
+}
+
+private struct PresetsStep2: View {
+    let onNext: () -> Void
+    let onBack: () -> Void
+    var body: some View {
+        navigationContainer {
+            ZStack(alignment: .bottom) {
+                PresetsView()
+                OnboardingButtonsRow2(back: "Back", nextTitle: "Done", onBack: onBack, onNext: onNext)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+            }
+        }
+    }
+}
+
+private struct LoadingStep2: View {
     let onFinish: () -> Void
-
     var body: some View {
-        VStack(spacing: DS.Spacing.m) {
+        VStack(spacing: 12) {
             ProgressView()
-            Text("Preparing your workspace…")
-                .foregroundStyle(.secondary)
+            Text("Preparing your workspace…").foregroundStyle(.secondary)
         }
-        .task {
-            // Simulate a brief loading delay then finish.
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            onFinish()
-        }
-        .padding()
+        .task { try? await Task.sleep(nanoseconds: 1_000_000_000); onFinish() }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-// MARK: - Shared Components
-
-private struct OnboardingPrimaryButton: View {
-    let title: String
-    let action: () -> Void
-
+// MARK: - Buttons Row
+private struct OnboardingButtonsRow2: View {
+    let back: String?
+    let nextTitle: String
+    let onBack: () -> Void
+    let onNext: () -> Void
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.platformCapabilities) private var capabilities
 
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .frame(maxWidth: .infinity)
+        HStack(spacing: 12) {
+            if let back { secondaryButton(title: back, action: onBack) }
+            primaryButton(title: nextTitle, action: onNext)
         }
-        .modifier(PrimaryButtonStyleAdapter(tint: themeManager.selectedTheme.resolvedTint, capabilities: capabilities))
-    }
-}
-
-private struct OnboardingSecondaryButton: View {
-    let title: String
-    let action: () -> Void
-
-    @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.platformCapabilities) private var capabilities
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .frame(maxWidth: .infinity)
-        }
-        .modifier(SecondaryButtonStyleAdapter(tint: themeManager.selectedTheme.resolvedTint, capabilities: capabilities))
-    }
-}
-
-// MARK: - Button Style Adapters (OS26 Glass vs Legacy)
-private struct PrimaryButtonStyleAdapter: ViewModifier {
-    let tint: Color
-    let capabilities: PlatformCapabilities
-
-    func body(content: Content) -> some View {
-        Group {
-            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                content
-                    .frame(minHeight: 44)
-                    .buttonStyle(.glass)
-                    .tint(tint)
-                    .controlSize(.large)
-            } else {
-                content
-                    .frame(minHeight: 44)
-                    .buttonStyle(TranslucentButtonStyle(tint: tint))
-            }
-        }
-    }
-}
-
-private struct SecondaryButtonStyleAdapter: ViewModifier {
-    let tint: Color
-    let capabilities: PlatformCapabilities
-
-    func body(content: Content) -> some View {
-        Group {
-            if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                content
-                    .frame(minHeight: 44)
-                    .buttonStyle(.glass)
-                    .tint(tint)
-                    .controlSize(.large)
-            } else {
-                content
-                    .frame(minHeight: 44)
-                    .buttonStyle(OnboardingSecondaryButtonStyle(tint: tint))
-            }
-        }
-    }
-}
-
-private struct OnboardingButtonRow: View {
-    struct ButtonConfiguration: Identifiable {
-        enum Kind { case primary, secondary }
-
-        let id = UUID()
-        let title: String
-        let kind: Kind
-        let action: () -> Void
-
-        static func primary(_ title: String, action: @escaping () -> Void) -> ButtonConfiguration {
-            ButtonConfiguration(title: title, kind: .primary, action: action)
-        }
-
-        static func secondary(_ title: String, action: @escaping () -> Void) -> ButtonConfiguration {
-            ButtonConfiguration(title: title, kind: .secondary, action: action)
-        }
+        .frame(maxWidth: 560)
     }
 
-    let buttons: [ButtonConfiguration]
-    var contentInsets: EdgeInsets = .init(
-        top: DS.Spacing.m,
-        leading: DS.Spacing.xl,
-        bottom: DS.Spacing.xxl,
-        trailing: DS.Spacing.xl
-    )
-
-    var body: some View {
-        HStack(spacing: DS.Spacing.m) {
-            ForEach(buttons) { configuration in
-                button(for: configuration)
-            }
-        }
-        .padding(contentInsets)
-        .frame(maxWidth: .infinity, alignment: .center)
-    }
-
+    // iOS26: glass capsule; legacy: rounded rectangle
     @ViewBuilder
-    private func button(for configuration: ButtonConfiguration) -> some View {
-        switch configuration.kind {
-        case .primary:
-            OnboardingPrimaryButton(title: configuration.title, action: configuration.action)
-        case .secondary:
-            OnboardingSecondaryButton(title: configuration.title, action: configuration.action)
-        }
-    }
-}
-
-private struct OnboardingSecondaryButtonStyle: ButtonStyle {
-    @Environment(\.platformCapabilities) private var capabilities
-
-    var tint: Color
-
-    func makeBody(configuration: Configuration) -> some View {
-        let radius: CGFloat = 26
-
-        return configuration.label
-            .font(.headline)
-            .foregroundStyle(tint)
-            .padding(.vertical, DS.Spacing.m)
-            .padding(.horizontal, DS.Spacing.l)
-            .frame(maxWidth: .infinity)
-            .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .background(background(isPressed: configuration.isPressed, radius: radius))
-            .overlay(border(radius: radius, isPressed: configuration.isPressed))
-            .overlay(highlight(radius: radius))
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.spring(response: 0.32, dampingFraction: 0.72), value: configuration.isPressed)
-    }
-
-    @ViewBuilder
-    private func background(isPressed: Bool, radius: CGFloat) -> some View {
-        if capabilities.supportsOS26Translucency, #available(iOS 15.0, macCatalyst 16.0, *) {
-            RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .fill(tint.opacity(isPressed ? 0.2 : 0.14))
-                .background(
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                )
-                .compositingGroup()
+    private func primaryButton(title: String, action: @escaping () -> Void) -> some View {
+        let tint = themeManager.selectedTheme.resolvedTint
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(title, action: action)
+                .buttonStyle(.glass)
+                .buttonBorderShape(.capsule)
+                .tint(tint)
+                .frame(minHeight: 33)
         } else {
-            RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .fill(tint.opacity(isPressed ? 0.18 : 0.12))
-        }
-    }
-
-    private func border(radius: CGFloat, isPressed: Bool) -> some View {
-        RoundedRectangle(cornerRadius: radius, style: .continuous)
-            .stroke(tint.opacity(isPressed ? 0.6 : 0.45), lineWidth: 1.5)
-    }
-
-    @ViewBuilder
-    private func highlight(radius: CGFloat) -> some View {
-        if capabilities.supportsOS26Translucency {
-            RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .stroke(Color.white.opacity(0.22), lineWidth: 1)
-                .blendMode(.screen)
-        } else {
-            EmptyView()
-        }
-    }
-}
-
-private struct OnboardingGlassCard<Content: View>: View {
-    @Environment(\.platformCapabilities) private var capabilities
-    @EnvironmentObject private var themeManager: ThemeManager
-
-    private let vStackAlignment: HorizontalAlignment
-    private let frameAlignment: Alignment
-    private let maxWidth: CGFloat?
-    private let contentPadding: EdgeInsets
-    private let content: Content
-
-    init(
-        alignment: Alignment = .leading,
-        maxWidth: CGFloat? = 520,
-        contentPadding: EdgeInsets = .init(top: DS.Spacing.xl, leading: DS.Spacing.xl, bottom: DS.Spacing.xl, trailing: DS.Spacing.xl),
-        @ViewBuilder content: () -> Content
-    ) {
-        switch alignment {
-        case .leading, .topLeading, .bottomLeading:
-            self.vStackAlignment = .leading
-            self.frameAlignment = .leading
-        case .trailing, .topTrailing, .bottomTrailing:
-            self.vStackAlignment = .trailing
-            self.frameAlignment = .trailing
-        default:
-            self.vStackAlignment = .center
-            self.frameAlignment = .center
-        }
-
-        self.maxWidth = maxWidth
-        self.contentPadding = contentPadding
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: vStackAlignment, spacing: DS.Spacing.l) {
-            content
-        }
-        .padding(contentPadding)
-        .frame(maxWidth: maxWidth ?? .infinity, alignment: frameAlignment)
-        .background(
-            OnboardingGlassBackground(
-                tint: themeManager.selectedTheme.resolvedTint,
-                capabilities: capabilities,
-                cornerRadius: 32
-            )
-        )
-    }
-}
-
-private struct OnboardingGlassBackground: View {
-    let tint: Color
-    let capabilities: PlatformCapabilities
-    let cornerRadius: CGFloat
-
-    var body: some View {
-        Group {
-            if capabilities.supportsOS26Translucency, #available(iOS 15.0, macCatalyst 16.0, *) {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            Button(action: action) {
+                Text(title).font(.headline).frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 33)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(tint.opacity(0.16))
-                    .background(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(Color.white.opacity(0.28), lineWidth: 1)
-                            .blendMode(.screen)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(tint.opacity(0.18), lineWidth: 0.8)
-                            .blendMode(.overlay)
-                    )
-                    //.shadow(color: tint.opacity(0.14), radius: 26, x: 0, y: 16)
-                    .compositingGroup()
-            } else {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(tint.opacity(0.14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(tint.opacity(0.2), lineWidth: 1)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(Color.white.opacity(0.16), lineWidth: 0.6)
-                            .blendMode(.screen)
-                    )
-                    //.shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 8)
-            }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(tint.opacity(0.35), lineWidth: 1)
+            )
         }
     }
-}
 
-private struct CloudOptionToggle: View {
-    let title: String
-    let subtitle: String?
-    @Binding var isOn: Bool
-    var isEnabled: Bool
-
-    var body: some View {
-        HStack(alignment: .center, spacing: DS.Spacing.l) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer(minLength: DS.Spacing.m)
-
-            Toggle("", isOn: $isOn)
-                .labelsHidden()
-                .disabled(!isEnabled)
-                .controlSize(.large)
-        }
-        .padding(.vertical, DS.Spacing.s)
-        .opacity(isEnabled ? 1 : 0.45)
-        .animation(.easeInOut(duration: 0.2), value: isEnabled)
-    }
-}
-
-private struct OnboardingBackgroundSurface: View {
-    let baseColor: Color
-    let capabilities: PlatformCapabilities
-
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        baseColor
-            .overlay(subtleOverlay)
-    }
-
-    private var subtleOverlay: Color {
-        if colorScheme == .dark {
-            return Color.white.opacity(capabilities.supportsOS26Translucency ? 0.05 : 0.08)
+    @ViewBuilder
+    private func secondaryButton(title: String, action: @escaping () -> Void) -> some View {
+        let tint = themeManager.selectedTheme.resolvedTint
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(title, action: action)
+                .buttonStyle(.glass)
+                .buttonBorderShape(.capsule)
+                .tint(tint)
+                .frame(minHeight: 33)
         } else {
-            return Color.black.opacity(capabilities.supportsOS26Translucency ? 0.04 : 0.06)
+            Button(action: action) {
+                Text(title).font(.headline).frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 33)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(tint.opacity(0.35), lineWidth: 1)
+            )
         }
+    }
+}
+
+// MARK: - Nav container (compat)
+@ViewBuilder
+private func navigationContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    if #available(iOS 16.0, macCatalyst 16.0, *) {
+        NavigationStack { content() }
+    } else {
+        NavigationView { content() }.navigationViewStyle(.stack)
     }
 }

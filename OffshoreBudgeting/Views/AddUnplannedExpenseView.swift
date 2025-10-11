@@ -57,109 +57,25 @@ struct AddUnplannedExpenseView: View {
     }
 
     // MARK: Body
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        EditSheetScaffold(
-            title: vm.isEditing ? "Edit Variable Expense" : "Add Variable Expense",
-            saveButtonTitle: vm.isEditing ? "Save Changes" : "Save",
-            isSaveEnabled: vm.canSave,
-            onSave: { trySave() }
-        ) {
-            // MARK: Card Picker (horizontal)
-            UBFormSection("Assign a Card to Expense", isUppercased: false) {
-                if !vm.cardsLoaded {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .frame(height: cardRowHeight)
-                } else if vm.allCards.isEmpty {
-                    VStack(spacing: DS.Spacing.m) {
-                        Text("No cards yet. Add one to assign this expense.")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        GlassCTAButton(
-                            maxWidth: .infinity,
-                            fillHorizontally: true,
-                            fallbackAppearance: .neutral,
-                            action: { isPresentingAddCard = true }
-                        ) {
-                            Label("Add Card", systemImage: "plus")
+        navigationContainer {
+            formContent
+                .navigationTitle(vm.isEditing ? "Edit Variable Expense" : "Add Variable Expense")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(vm.isEditing ? "Save Changes" : "Save") {
+                            if trySave() { dismiss() }
                         }
-                        .accessibilityLabel("Add Card")
-                    }
-                } else {
-                    CardPickerRow(
-                        allCards: vm.allCards,
-                        selectedCardID: $vm.selectedCardID
-                    )
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .frame(height: cardRowHeight)
-                    .ub_hideScrollIndicators()
-                }
-            }
-
-            // MARK: Category Chips Row
-            UBFormSection("Category", isUppercased: false) {
-                CategoryChipsRow(
-                    selectedCategoryID: $vm.selectedCategoryID
-                )
-                .accessibilityElement(children: .contain)
-            }
-//            .ub_formSectionClearBackground()
-
-
-            // MARK: Individual Fields
-            // Give each field its own section with a header so that the
-            // descriptive label appears outside the cell, mirroring the
-            // appearance of the Add Card form.  Also left‑align text for
-            // improved readability on macOS and avoid right‑aligned text.
-
-            // Expense Description
-            UBFormSection("Expense Description", isUppercased: false) {
-                UBFormRow {
-                    if #available(iOS 15.0, macCatalyst 15.0, *) {
-                        TextField("", text: $vm.descriptionText, prompt: Text("Apple Store"))
-                            .autocorrectionDisabled(true)
-                            .textInputAutocapitalization(.never)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .accessibilityLabel("Expense Description")
-                    } else {
-                        TextField("Apple Store", text: $vm.descriptionText)
-                            .autocorrectionDisabled(true)
-                            .textInputAutocapitalization(.never)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .accessibilityLabel("Expense Description")
+                        .disabled(!vm.canSave)
                     }
                 }
-            }
-
-            // Amount
-            UBFormSection("Amount", isUppercased: false) {
-                UBFormRow {
-                    if #available(iOS 15.0, macCatalyst 15.0, *) {
-                        TextField("", text: $vm.amountString, prompt: Text("299.99"))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .accessibilityLabel("Amount")
-                    } else {
-                        TextField("299.99", text: $vm.amountString)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .accessibilityLabel("Amount")
-                    }
-                }
-            }
-
-            // Transaction Date
-            UBFormSection("Transaction Date", isUppercased: false) {
-                DatePicker("", selection: $vm.transactionDate, displayedComponents: [.date])
-                    .labelsHidden()
-                    .ub_compactDatePickerStyle()
-                    .accessibilityLabel("Transaction Date")
-            }
         }
+        .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
         .onAppear {
             vm.attachCardPickerStoreIfNeeded(cardPickerStore)
             vm.startIfNeeded()
@@ -186,6 +102,144 @@ struct AddUnplannedExpenseView: View {
                 }
             }
         }
+    }
+
+    // MARK: Navigation container
+    @ViewBuilder
+    private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            NavigationStack { content() }
+        } else {
+            NavigationView { content() }
+        }
+    }
+
+    // MARK: Form content
+    @ViewBuilder
+    private var formContent: some View {
+        Form {
+            // MARK: Card Picker (horizontal)
+            Section {
+                if !vm.cardsLoaded {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: cardRowHeight)
+                } else if vm.allCards.isEmpty {
+                    VStack(spacing: DS.Spacing.m) {
+                        Text("No cards yet. Add one to assign this expense.")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        GlassCTAButton(
+                            maxWidth: .infinity,
+                            fillHorizontally: true,
+                            fallbackAppearance: .neutral,
+                            action: { isPresentingAddCard = true }
+                        ) {
+                            Label("Add Card", systemImage: "plus")
+                        }
+                        .accessibilityLabel("Add Card")
+                    }
+                } else {
+                    CardPickerRow(
+                        allCards: vm.allCards,
+                        selectedCardID: $vm.selectedCardID
+                    )
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(height: cardRowHeight)
+                    .scrollIndicators(.hidden)
+                }
+            } header: {
+                Text("Assign a Card to Expense")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            // MARK: Category Chips Row
+            Section {
+                CategoryChipsRow(
+                    selectedCategoryID: $vm.selectedCategoryID
+                )
+                .accessibilityElement(children: .contain)
+            } header: {
+                Text("Category")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+//            .ub_formSectionClearBackground()
+
+
+            // MARK: Individual Fields
+            // Give each field its own section with a header so that the
+            // descriptive label appears outside the cell, mirroring the
+            // appearance of the Add Card form.  Also left‑align text for
+            // improved readability on macOS and avoid right‑aligned text.
+
+            // Expense Description
+            Section {
+                HStack(alignment: .center) {
+                    if #available(iOS 15.0, macCatalyst 15.0, *) {
+                        TextField("", text: $vm.descriptionText, prompt: Text("Apple Store"))
+                            .autocorrectionDisabled(true)
+                            .textInputAutocapitalization(.never)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityLabel("Expense Description")
+                    } else {
+                        TextField("Apple Store", text: $vm.descriptionText)
+                            .autocorrectionDisabled(true)
+                            .textInputAutocapitalization(.never)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityLabel("Expense Description")
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } header: {
+                Text("Expense Description")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Amount
+            Section {
+                HStack(alignment: .center) {
+                    if #available(iOS 15.0, macCatalyst 15.0, *) {
+                        TextField("", text: $vm.amountString, prompt: Text("299.99"))
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityLabel("Amount")
+                    } else {
+                        TextField("299.99", text: $vm.amountString)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityLabel("Amount")
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } header: {
+                Text("Amount")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Transaction Date
+            Section {
+                DatePicker("", selection: $vm.transactionDate, displayedComponents: [.date])
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                    .accessibilityLabel("Transaction Date")
+            } header: {
+                Text("Transaction Date")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollIndicators(.hidden)
     }
 
     // MARK: - trySave()
@@ -241,13 +295,15 @@ private struct CategoryChipsRow: View {
     private let chipRowClipShape = Rectangle()
 
     var body: some View {
-        UBFormRow {
+        HStack(alignment: .center) {
             HStack(spacing: DS.Spacing.s) {
                 addCategoryButton
                 chipsScrollContainer()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .listRowInsets(rowInsets)
         .listRowSeparator(.hidden)
         .sheet(isPresented: $isPresentingNewCategory) {
@@ -282,7 +338,7 @@ private struct CategoryChipsRow: View {
                 }
             }
         }
-        .ub_onChange(of: categories.count) {
+        .onChange(of: categories.count) { _ in
             // Auto-pick first category if none selected yet
             if selectedCategoryID == nil, let first = categories.first {
                 selectedCategoryID = first.objectID
@@ -324,7 +380,7 @@ private extension CategoryChipsRow {
             categoryChips
                 .padding(.trailing, DS.Spacing.s)
         }
-        .ub_hideScrollIndicators()
+        .scrollIndicators(.hidden)
         .ub_disableHorizontalBounce()
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -393,7 +449,7 @@ private struct CategoryChip: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        let categoryColor = Color(hex: colorHex) ?? .secondary
+        let categoryColor = UBColorFromHex(colorHex) ?? .secondary
         let style = CategoryChipStyle.make(
             isSelected: isSelected,
             categoryColor: categoryColor,
@@ -423,6 +479,17 @@ private struct CategoryChip: View {
             .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
+}
+
+// MARK: - Hex Color Helper (local)
+fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
+    guard var value = hex?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+    if value.hasPrefix("#") { value.removeFirst() }
+    guard value.count == 6, let intVal = Int(value, radix: 16) else { return nil }
+    let r = Double((intVal >> 16) & 0xFF) / 255.0
+    let g = Double((intVal >> 8) & 0xFF) / 255.0
+    let b = Double(intVal & 0xFF) / 255.0
+    return Color(red: r, green: g, blue: b)
 }
 
 // MARK: - Styles

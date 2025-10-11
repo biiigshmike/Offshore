@@ -85,19 +85,12 @@ struct AddCardFormView: View {
     }
 
     // MARK: - Body
-    /// Main view composition using the standardized edit scaffold.
-    /// The scaffold wraps content in a `Form`, provides toolbar, and handles dismissal when `onSave` returns true.
+    /// Main view composition using a native NavigationStack + Form + toolbar.
+    @Environment(\.dismiss) private var dismiss
     var body: some View {
-        EditSheetScaffold(
-            // MARK: Standardized Sheet Chrome (matches Add Budget)
-            title: mode == .add ? "Add Card" : "Edit Card",
-            detents: [.medium, .large],
-            saveButtonTitle: mode == .add ? "Create Card" : "Save Changes",
-            isSaveEnabled: canSave,
-            onSave: { saveTapped() }    // return true to dismiss
-        ) {
-            // MARK: Form Content (standardized)
-            // Put only the fields inside; the scaffold wraps this in a Form and toolbar.
+        navigationContainer {
+            Form {
+                // MARK: Form Content
 
             // ---- Preview
             Section {
@@ -116,7 +109,7 @@ struct AddCardFormView: View {
                 // MARK: Cross-platform placeholder handling
                 // On macOS inside a Form, TextField("Title", text:) can render as a static label.
                 // Using the `prompt:` initializer ensures true placeholder styling.
-                UBFormRow {
+                HStack(alignment: .center) {
                     if #available(iOS 15.0, macCatalyst 15.0, *) {
                         TextField("", text: $cardName, prompt: Text("Apple Card"))
                             .autocorrectionDisabled(true)
@@ -135,7 +128,9 @@ struct AddCardFormView: View {
                             .submitLabel(.done)
                             .accessibilityLabel("Card Name")
                     }
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
                 Text("Name")
                     .font(.footnote)
@@ -159,13 +154,39 @@ struct AddCardFormView: View {
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
             }
+            }
+            .listStyle(.insetGrouped)
+            .scrollIndicators(.hidden)
+            .navigationTitle(mode == .add ? "Add Card" : "Edit Card")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(mode == .add ? "Create Card" : "Save Changes") {
+                        if saveTapped() { dismiss() }
+                    }
+                    .disabled(!canSave)
+                }
+            }
         }
+        .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
         // Error alert (if validation or save logic fails)
         .alert("Error", isPresented: .constant(saveErrorMessage != nil), actions: {
             Button("OK", role: .cancel) { saveErrorMessage = nil }
         }, message: {
             Text(saveErrorMessage ?? "")
         })
+    }
+
+    // MARK: Navigation container
+    @ViewBuilder
+    private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            NavigationStack { content() }
+        } else {
+            NavigationView { content() }
+        }
     }
 
     // MARK: - Actions

@@ -1,0 +1,34 @@
+Gauge
+A view that shows a value within a range.
+iOS 16.0+
+iPadOS 16.0+
+Mac Catalyst 16.0+
+macOS 13.0+
+visionOS 1.0+
+watchOS 7.0+
+
+struct Gauge<Label, CurrentValueLabel, BoundsLabel, MarkedValueLabels> where Label : View, CurrentValueLabel : View, BoundsLabel : View, MarkedValueLabels : View
+
+Overview
+A gauge is a view that shows a current level of a value in relation to a specified finite capacity, very much like a fuel gauge in an automobile. Gauge displays are configurable; they can show any combination of the gauge’s current value, the range the gauge can display, and a label describing the purpose of the gauge itself.
+
+You can make a gauge more descriptive by describing its purpose, showing its current value and its start and end values. This example shows the gauge variant that accepts a range and adds labels using multiple trailing closures describing the current value and the minimum and maximum values of the gauge:
+
+struct LabeledGauge: View {
+    @State private var current = 67.0
+    @State private var minValue = 0.0
+    @State private var maxValue = 170.0
+
+
+    var body: some View {
+        Gauge(value: current, in: minValue...maxValue) {
+            Text("BPM")
+        } currentValueLabel: {
+            Text("\(Int(current))")
+        } minimumValueLabel: {
+            Text("\(Int(minValue))")
+        } maximumValueLabel: {
+            Text("\(Int(maxValue))")
+        }
+    }
+}

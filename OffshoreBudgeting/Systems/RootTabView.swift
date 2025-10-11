@@ -68,12 +68,25 @@ struct RootTabView: View {
     /// Applies theme-aware navigation background and chrome to the tab content.
     /// - Parameter tab: Logical tab identifier.
     private func decoratedTabContent(for tab: Tab) -> some View {
-        tabContent(for: tab)
+        let base = tabContent(for: tab)
             .ub_navigationBackground(
                 theme: themeManager.selectedTheme,
                 configuration: themeManager.glassConfiguration
             )
             .ub_rootNavigationChrome()
+
+        // On legacy OS versions (pre‑OS26), explicitly style the tab bar background
+        // so it matches the app theme instead of an opaque system white. This
+        // avoids the bottom “white bar” appearance and makes more content visible.
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            base
+        } else if #available(iOS 16.0, macCatalyst 16.0, macOS 13.0, *) {
+            base
+                .toolbarBackground(.visible, for: .tabBar)
+                .toolbarBackground(themeManager.selectedTheme.legacyChromeBackground, for: .tabBar)
+        } else {
+            base
+        }
     }
 
     @ViewBuilder

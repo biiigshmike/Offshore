@@ -79,28 +79,7 @@ struct TranslucentButtonStyle: ButtonStyle {
             overridesLabelForeground: false
         )
 
-        static func macRootTab(for capabilities: PlatformCapabilities) -> Metrics {
-            guard capabilities.supportsOS26Translucency else {
-                return .macNavigationControl
-            }
-
-            let baseHeight = RootHeaderActionMetrics.dimension(for: capabilities)
-            let resolvedHeight = max(baseHeight, 44)
-            let resolvedCornerRadius = resolvedHeight / 2
-            let horizontalPadding = DS.Spacing.l + (DS.Spacing.s / 2)
-
-            return Metrics(
-                layout: .hugging,
-                width: nil,
-                height: resolvedHeight,
-                cornerRadius: resolvedCornerRadius,
-                horizontalPadding: horizontalPadding,
-                verticalPadding: 0,
-                pressedScale: 0.97,
-                font: nil,
-                overridesLabelForeground: false
-            )
-        }
+        static func macRootTab(for capabilities: PlatformCapabilities) -> Metrics { .macNavigationControl }
     }
 
     @Environment(\.platformCapabilities) private var capabilities

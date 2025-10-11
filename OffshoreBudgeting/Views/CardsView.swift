@@ -1,335 +1,121 @@
-//
-//  CardsView.swift
-//  SoFar
-//
-//  Responsive grid of cards with a single, stable data stream.
-//  Jitter hardened by:
-//   1) Stable identity (objectID-based) on items.
-//   2) Disabling implicit animations for list diffs.
-//   3) Consistent tile height to prevent adaptive grid reflow.
-//
-//  Update (selection):
-//  - Tracks selected card via stable CardItem.id
-//  - Passes isSelected into CardTileView
-//  - Tap selects card (ready to show expenses panel next)
-//
-//  Usage tips:
-//  - Keep `CardTileView` in sync with the same “credit card” style used elsewhere
-//  - For consistency, this view only owns selection & presentation state.
-//
-
 import SwiftUI
 import CoreData
 
-// MARK: - CardsView
+// MARK: - CardsView2
+/// Simple grid of cards with modal CardDetailView.
+/// - Uses ScrollView + LazyVGrid
+/// - '+' button is glass on iOS 26+, plain on older OSes
+/// - Tapping a card presents CardDetailView in a sheet
 struct CardsView: View {
 
-    // MARK: State & Dependencies
-    @StateObject private var viewModel = CardsViewModel()
-    @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.platformCapabilities) private var capabilities
+    // MARK: State & ViewModel
+    @StateObject private var vm = CardsViewModel()
     @State private var isPresentingAddCard = false
-    @State private var editingCard: CardItem? = nil // NEW: for edit sheet
-    @State private var isPresentingAddExpense = false
+    @State private var detailCard: CardItem? = nil
 
-    // MARK: Selection State
-    /// Stable selection keyed to CardItem.id (works for objectID-backed and preview items).
-    @State private var selectedCardStableID: String? = nil
+    // MARK: Grid
+    private let columns = [GridItem(.adaptive(minimum: 260, maximum: 260), spacing: 16)]
+    private let cardHeight: CGFloat = 160
 
-    private var selectedCard: CardItem? {
-        guard case .loaded(let cards) = viewModel.state,
-              let selectedID = selectedCardStableID else {
-            return nil
-        }
-
-        return cards.first(where: { $0.id == selectedID })
-    }
-
-    // MARK: Grid Layout
-    private let gridColumns: [GridItem] = [
-        GridItem(.adaptive(minimum: 260, maximum: 260), spacing: DS.Spacing.l)
-    ]
-
-    // MARK: Layout Constants
-    private let fixedCardHeight: CGFloat = 160
-
-    // MARK: Body
     var body: some View {
-        RootTabPageScaffold(scrollBehavior: .always, spacing: DS.Spacing.s) {
-            EmptyView()
-        } content: { proxy in
-            contentView(using: proxy)
-        }
-        .overlay(alignment: .top) {
-            detailOverlay
-        }
-        // MARK: Start observing when view appears
-        .onAppear { viewModel.startIfNeeded() }
-        // Pull to refresh to manually reload cards
-        .refreshable { await viewModel.refresh() }
-        // MARK: App Toolbar
-        .navigationTitle("Cards")
-        .toolbar {
-            // Always provide the item; render EmptyView when a card is selected.
-            ToolbarItem(placement: .primaryAction) {
-                if selectedCardStableID == nil {
-                    addActionToolbarButton
-                } else {
-                    EmptyView()
+        ScrollView {
+            Group {
+                switch vm.state {
+                case .initial:
+                    Color.clear.frame(height: 1)
+                case .loading:
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(0..<2, id: \.self) { _ in
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color.primary.opacity(0.06))
+                                .frame(height: cardHeight)
+                                .redacted(reason: .placeholder)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                case .empty:
+                    VStack(spacing: 12) {
+                        Image(systemName: "creditcard")
+                            .font(.system(size: 42, weight: .regular))
+                            .foregroundStyle(.secondary)
+                        Text("No cards yet")
+                            .font(.title3.weight(.semibold))
+                        Text("Tap + to add your first card.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 240)
+                    .padding(.top, 24)
+                case .loaded(let cards):
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(cards) { card in
+                            CardTileView(
+                                card: card,
+                                isSelected: false,
+                                onTap: { detailCard = card },
+                                enableMotionShine: true,
+                                showsBaseShadow: false
+                            )
+                            .frame(height: cardHeight)
+                            .contextMenu {
+                                Button("Edit", systemImage: "pencil") { detailCard = card }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .top)
         }
-        // MARK: Add Sheet
+        .navigationTitle("Cards")
+        .toolbar { toolbarContent }
+        .onAppear { vm.startIfNeeded() }
+        // Add Card
         .sheet(isPresented: $isPresentingAddCard) {
-            AddCardFormView { newName, selectedTheme in
-                Task { await viewModel.addCard(name: newName, theme: selectedTheme) }
+            AddCardFormView { newName, theme in
+                Task { await vm.addCard(name: newName, theme: theme) }
             }
         }
-        // MARK: Edit Sheet
-        .sheet(item: $editingCard) { card in
-            AddCardFormView(mode: .edit, editingCard: card) { newName, selectedTheme in
-                Task { await viewModel.edit(card: card, name: newName, theme: selectedTheme) }
-            }
+        // Detail (modal)
+        .sheet(item: $detailCard) { card in
+            CardDetailView(
+                card: card,
+                isPresentingAddExpense: .constant(false),
+                onDone: { detailCard = nil },
+                onEdit: { /* handled in detail */ }
+            )
         }
-        // MARK: Alerts
-        .alert(item: $viewModel.alert) { alert in
+        .alert(item: $vm.alert) { alert in
             switch alert.kind {
             case .error(let message):
-                return Alert(
-                    title: Text("Error"),
-                    message: Text(message),
-                    dismissButton: .default(Text("OK"))
-                )
+                return Alert(title: Text("Error"), message: Text(message), dismissButton: .default(Text("OK")))
             case .confirmDelete(let card):
                 return Alert(
                     title: Text("Delete “\(card.name)”?"),
                     message: Text("This will delete the card and all of its expenses."),
-                    primaryButton: .destructive(Text("Delete"), action: {
-                        Task { await viewModel.confirmDelete(card: card) }
-                    }),
+                    primaryButton: .destructive(Text("Delete"), action: { Task { await vm.confirmDelete(card: card) } }),
                     secondaryButton: .cancel()
                 )
             case .rename:
-                // No longer exposed in the menu; keeping alert route disabled.
-                return Alert(
-                    title: Text("Rename Card"),
-                    message: Text("Use “Edit…” instead."),
-                    dismissButton: .default(Text("OK"))
-                )
+                return Alert(title: Text("Rename Card"), message: Text("Use Edit instead."), dismissButton: .default(Text("OK")))
             }
         }
-        // Keeping this for backwards-compat; not used now that we have “Edit…”.
-        .sheet(item: $viewModel.renameTarget) { card in
-            RenameCardSheet(
-                originalName: card.name,
-                onSave: { newName in Task { await viewModel.rename(card: card, to: newName) } }
-            )
-        }
-        .tint(themeManager.selectedTheme.resolvedTint)
     }
 
-    private var addActionToolbarButton: some View {
-        Button {
-            if selectedCardStableID == nil {
-                isPresentingAddCard = true
-            } else {
-                isPresentingAddExpense = true
-            }
-        } label: {
-            Image(systemName: "plus")
-                //.imageScale(.medium)
-        }
-        .accessibilityLabel(selectedCardStableID == nil ? "Add Card" : "Add Expense")
-    }
-
-    // MARK: - Content View (Type-Safe)
-    /// Breaks out the conditional UI so the compiler can infer a single `some View`.
-    @ViewBuilder
-    private func contentView(using proxy: RootTabPageProxy) -> some View {
-        let tabBarGutter = proxy.compactAwareTabBarGutter
-
-        Group {
-            if case .initial = viewModel.state {
-                Color.clear
-            } else if case .loading = viewModel.state {
-                loadingView(using: proxy)
-            } else if case .empty = viewModel.state {
-                emptyView(using: proxy)
-            } else if case .loaded(let cards) = viewModel.state {
-                gridView(cards: cards, using: proxy)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .rootTabContentPadding(
-            proxy,
-            horizontal: 0,
-            extraTop: 0,
-            extraBottom: 0,
-            includeSafeArea: true,
-            tabBarGutter: tabBarGutter
-        )
-    }
-
-    // MARK: Loading View
-    private func loadingView(using proxy: RootTabPageProxy) -> some View {
-        ScrollView {
-            LazyVGrid(columns: gridColumns, spacing: DS.Spacing.l) {
-                ForEach(0..<2, id: \.self) { _ in
-                    RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
-                        .fill(Color.primary.opacity(0.06))
-                        .frame(height: fixedCardHeight)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: DS.Radius.card)
-                                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                        )
-                        .redacted(reason: .placeholder)
-                        .shimmer()
-                }
-            }
-            .padding([.horizontal, .top], DS.Spacing.l)
-            .padding(.bottom, proxy.tabBarGutterSpacing(proxy.compactAwareTabBarGutter))
-        }
-        // Removed extra bottom inset; RootTabPageScaffold + rootTabContentPadding
-        // control any desired gutter above the tab bar.
-    }
-
-    // MARK: Empty View
-    private func emptyView(using proxy: RootTabPageProxy) -> some View {
-        UBEmptyState(
-            iconSystemName: "creditcard",
-            title: "Cards",
-            message: "Add the cards you use for spending. We'll use them in budgets later. Press the '+' on the top right to get started."
-        )
-        .padding(.horizontal, DS.Spacing.l)
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: proxy.availableHeightBelowHeader, alignment: .center)
-    }
-
-    // MARK: Grid View
-    /// - Parameter cards: Data snapshot to render.
-    private func gridView(cards: [CardItem], using proxy: RootTabPageProxy) -> some View {
-        ScrollView {
-            LazyVGrid(columns: gridColumns, spacing: DS.Spacing.l) {
-                ForEach(cards) { card in
-                    CardTileView(
-                        card: card,
-                        isSelected: selectedCardStableID == card.id,
-                        onTap: {
-                        // MARK: On Tap → Select Card
-                        // This highlights the card with a color-matched ring + glow.
-                        selectedCardStableID = card.id
-
-                        // TODO: Navigate or reveal expenses for `card`.
-                        // e.g., vm.showExpenses(for: card) or set a sidebar selection.
-                        },
-                        enableMotionShine: true,
-                        showsBaseShadow: false
-                    )
-                    .frame(height: fixedCardHeight)
-                    .opacity(selectedCardStableID == nil ? 1 : 0)
-                    .animation(.smooth(duration: 0.25), value: selectedCardStableID)
-                    .contextMenu {
-                        Button("Edit", systemImage: "pencil") {
-                            editingCard = card
-                        }
-                        Button(role: .destructive) {
-                            viewModel.requestDelete(card: card)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                }
-            }
-            .padding([.horizontal, .top], DS.Spacing.l)
-            .padding(.bottom, proxy.tabBarGutterSpacing(proxy.compactAwareTabBarGutter))
-            // Disable the default animation for grid changes to prevent "grid hop".
-            .animation(nil, value: cards)
-        }
-        // Removed extra bottom inset; RootTabPageScaffold + rootTabContentPadding
-        // control any desired gutter above the tab bar.
-        // MARK: Keep selection valid when dataset changes (delete/rename)
-        .ub_onChange(of: cards.map(\.id)) { newIDs in
-            guard let sel = selectedCardStableID, !newIDs.contains(sel) else { return }
-
-            // Core Data can momentarily emit a data set that omits the
-            // selected card when inserting the very first expense. Verify the
-            // card still exists before clearing the selection so the detail
-            // view remains on screen.
-            if let url = URL(string: sel),
-               let oid = CoreDataService.shared.container
-                .persistentStoreCoordinator
-                    .managedObjectID(forURIRepresentation: url),
-               (try? CoreDataService.shared.viewContext
-                    .existingObject(with: oid)) is Card {
-                return
-            }
-
-            selectedCardStableID = nil
+    // MARK: Toolbar
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            addButton
         }
     }
 
     @ViewBuilder
-    private var detailOverlay: some View {
-        if let selected = selectedCard {
-            CardDetailView(
-                card: selected,
-                isPresentingAddExpense: $isPresentingAddExpense,
-                onDone: {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
-                        selectedCardStableID = nil
-                        isPresentingAddExpense = false
-                    }
-                },
-                onEdit: { editingCard = selected }
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea(edges: [.horizontal, .bottom])
-            .transition(
-                .asymmetric(
-                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                    removal: .opacity
-                )
-            )
-            .zIndex(10)
-        }
-    }
-
-}
-
-// MARK: - Tiny shimmer for placeholder
-private extension View {
-    /// Lightweight shimmer to hint loading (iOS/macOS). No external deps.
-    /// Implemented with a stable, self-contained animation to avoid
-    /// recomposition loops that can stall gesture handling on newer OSes.
-    func shimmer() -> some View {
-        overlay(ShimmerOverlay().mask(self))
-    }
-}
-
-private struct ShimmerOverlay: View {
-    @State private var animate = false
-
-    private var gradient: LinearGradient {
-        LinearGradient(
-            gradient: Gradient(stops: [
-                .init(color: .white.opacity(0.0), location: 0.0),
-                .init(color: .white.opacity(0.35), location: 0.45),
-                .init(color: .white.opacity(0.0), location: 1.0),
-            ]),
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    var body: some View {
-        Rectangle()
-            .fill(gradient)
-            .rotationEffect(.degrees(12))
-            .blendMode(.overlay)
-            .opacity(0.35)
-            .offset(x: animate ? 300 : -300)
-            .allowsHitTesting(false)
-            .animation(.linear(duration: 1.2).repeatForever(autoreverses: false), value: animate)
-            .onAppear { animate = true }
+    private var addButton: some View {
+        // Clear, no-background toolbar icon (matches IncomeView2)
+        Buttons.toolbarIcon("plus") { isPresentingAddCard = true }
+            .accessibilityLabel("Add Card")
     }
 }

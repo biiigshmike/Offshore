@@ -2,8 +2,8 @@
 //  IncomeEditorView.swift
 //  SoFar
 //
-//  A standardized sheet using EditSheetScaffold to add or edit an Income.
-//  Fields: Source, Amount, Date, Planned/Actual, Recurring? Frequency, End Date, Second Payday (for semi-monthly).
+//  Editor for adding or editing an Income.
+//  Fields: Source, Amount, Date, Planned/Actual, Recurrence controls.
 //
 
 import SwiftUI
@@ -36,13 +36,13 @@ struct IncomeEditorForm {
     var amountString: String = ""
     var date: Date = Date()
     var isPlanned: Bool = true
-    
+
     // Recurrence
     var isRecurring: Bool = false
     var frequency: RecurrenceOption = .none
     var recurrenceEndDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
     var secondBiMonthlyDay: Int = 15
-    
+
     // Derived
     var amountDouble: Double { Double(amountString.replacingOccurrences(of: ",", with: "")) ?? 0 }
     var recurrenceString: String? {
@@ -61,7 +61,7 @@ enum RecurrenceOption: String, CaseIterable, Identifiable {
     case biweekly
     case semimonthly
     case monthly
-    
+
     var id: String { rawValue }
     var displayName: String {
         switch self {
@@ -80,10 +80,11 @@ struct IncomeEditorView: View {
     let mode: IncomeEditorMode
     let seedIncome: Income?
     let onCommit: (IncomeEditorAction) -> Bool   // return true to dismiss
-    
+
     // MARK: State
     @State private var form: IncomeEditorForm = .init()
-    
+    @Environment(\.dismiss) private var dismiss
+
     // MARK: Init
     /// - Parameters:
     ///   - mode: `.add(date)` to prefill the date; `.edit` to edit `seedIncome`
@@ -95,69 +96,83 @@ struct IncomeEditorView: View {
         self.onCommit = onCommit
         _form = State(initialValue: Self.makeInitialForm(mode: mode, seed: seedIncome))
     }
-    
+
     // MARK: Body
     var body: some View {
-        EditSheetScaffold(
-            title: titleText,
-            detents: [.medium, .large],
-            saveButtonTitle: saveButtonTitle,
-            cancelButtonTitle: "Cancel",
-            isSaveEnabled: canSave,
-            onCancel: { _ = onCommit(.cancelled) },
-            onSave: { handleSave() }
-        ) {
-            // MARK: Details
-            Section {
-                UBFormRow {
-                    TextField("Paycheck", text: $form.source)
-                        .autocorrectionDisabled(true)
-                        .textInputAutocapitalization(.never)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+        navigationContainer {
+            Form {
+                // MARK: Details
+                Section {
+                    HStack(alignment: .center) {
+                        TextField("Paycheck", text: $form.source)
+                            .autocorrectionDisabled(true)
+                            .textInputAutocapitalization(.never)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    amountField
+                    DatePicker("Date", selection: $form.date, displayedComponents: .date)
+
+                    Picker("Type", selection: $form.isPlanned) {
+                        Text("Planned").tag(true)
+                        Text("Actual").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("Details")
                 }
 
-                amountField
-                DatePicker("Date", selection: $form.date, displayedComponents: .date)
+                // MARK: Recurrence
+                Section {
+                    Toggle("Recurring?", isOn: $form.isRecurring.animation())
+                    if form.isRecurring {
+                        Picker("Frequency", selection: $form.frequency) {
+                            ForEach(RecurrenceOption.allCases) { option in
+                                Text(option.displayName).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
 
-                Picker("Type", selection: $form.isPlanned) {
-                    Text("Planned").tag(true)
-                    Text("Actual").tag(false)
-                }
-                .pickerStyle(.segmented)
-            } header: {
-                Text("Details")
-            }
-            
-            // MARK: Recurrence
-            Section {
-                Toggle("Recurring?", isOn: $form.isRecurring.animation())
-                if form.isRecurring {
-                    Picker("Frequency", selection: $form.frequency) {
-                        ForEach(RecurrenceOption.allCases) { option in
-                            Text(option.displayName).tag(option)
+                        if form.frequency != .none {
+                            DatePicker("End Date", selection: $form.recurrenceEndDate, displayedComponents: .date)
+                        }
+
+                        if form.frequency == .semimonthly {
+                            Stepper("Second Payday: \(form.secondBiMonthlyDay)", value: $form.secondBiMonthlyDay, in: 1...28)
+                                .help("For twice-monthly schedules, choose the second day of the month.")
                         }
                     }
-                    .pickerStyle(.menu)
-                    
-                    if form.frequency != .none {
-                        DatePicker("End Date", selection: $form.recurrenceEndDate, displayedComponents: .date)
-                    }
-                    
-                    if form.frequency == .semimonthly {
-                        Stepper("Second Payday: \(form.secondBiMonthlyDay)", value: $form.secondBiMonthlyDay, in: 1...28)
-                            .help("For twice-monthly schedules, choose the second day of the month.")
+                } header: {
+                    Text("Recurrence")
+                } footer: {
+                    if form.isRecurring && form.frequency != .none {
+                        Text("Projected occurrences will appear on the calendar within the selected window.")
                     }
                 }
-            } header: {
-                Text("Recurrence")
-            } footer: {
-                if form.isRecurring && form.frequency != .none {
-                    Text("Projected occurrences will appear on the calendar within the selected window.")
+            }
+            .listStyle(.insetGrouped)
+            .scrollIndicators(.hidden)
+            .navigationTitle(titleText)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        _ = onCommit(.cancelled)
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(saveButtonTitle) {
+                        if handleSave() { dismiss() }
+                    }
+                    .disabled(!canSave)
                 }
             }
         }
+        .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
     }
-    
+
     // MARK: Labels
     private var titleText: String {
         switch mode {
@@ -171,12 +186,12 @@ struct IncomeEditorView: View {
         case .edit: return "Save Changes"
         }
     }
-    
+
     // MARK: Validation
     private var canSave: Bool {
         !form.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && form.amountDouble > 0
     }
-    
+
     // MARK: Amount Field
     /// Right-aligned numeric entry with decimal keyboard on iOS; cross-platform safe.
     private var amountField: some View {
@@ -191,7 +206,7 @@ struct IncomeEditorView: View {
             #endif
         }
     }
-    
+
     // MARK: Save Handler
     /// Validates and emits `.created` / `.updated`. Returns `true` to dismiss.
     @discardableResult
@@ -224,7 +239,7 @@ struct IncomeEditorView: View {
                                      secondBiMonthlyDay: secondDay))
         }
     }
-    
+
     // MARK: Initial Form
     /// Builds initial field values based on mode and optional seed income.
     /// - Parameters:
@@ -254,6 +269,16 @@ struct IncomeEditorView: View {
             return f
         } else {
             return IncomeEditorForm()
+        }
+    }
+
+    // MARK: Navigation container
+    @ViewBuilder
+    private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            NavigationStack { content() }
+        } else {
+            NavigationView { content() }
         }
     }
 }

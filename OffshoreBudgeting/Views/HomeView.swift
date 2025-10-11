@@ -182,10 +182,8 @@ struct HomeView: View {
                 .foregroundStyle(.primary)
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 32, height: 32)
-                .glassEffect(.regular.tint(.clear))
                 .glassEffectUnion(id: "home-toolbar", namespace: homeToolbarGlassNamespace)
                 .glassEffectTransition(.matchedGeometry)
-                .buttonStyle(.glass)
         } else {
             Image(systemName: symbol)
                 .font(.system(size: 16, weight: .semibold))

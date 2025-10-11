@@ -20,6 +20,7 @@ struct HomeView: View {
     // MARK: Local UI State
     enum Segment: String, CaseIterable, Identifiable { case planned, variable; var id: String { rawValue } }
     @State private var segment: Segment = .planned
+    @Namespace private var homeToolbarGlassNamespace
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
     @State private var sort: Sort = .dateNewOld
@@ -30,6 +31,7 @@ struct HomeView: View {
     @State private var isPresentingAddBudget: Bool = false
     @State private var isPresentingManageCards: Bool = false
     @State private var isPresentingManagePresets: Bool = false
+    @State private var isAddMenuVisible: Bool = false
     @State private var editingBudget: BudgetSummary?
 
     // Edit sheets for rows
@@ -70,10 +72,19 @@ struct HomeView: View {
         .listStyle(.plain)
         .navigationTitle("Home")
         .toolbar { toolbarContent }
-        .task { vm.startIfNeeded(); reloadRows() }
+        .task {
+            vm.startIfNeeded()
+            reloadRows()
+            isAddMenuVisible = summary != nil
+        }
         .onChange(of: segment) { _ in reloadRows() }
         .onChange(of: sort) { _ in reloadRows() }
-        .onChange(of: summaryIDString) { _ in reloadRows() }
+        .onChange(of: summaryIDString) { _ in
+            reloadRows()
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                isAddMenuVisible = summary != nil
+            }
+        }
         .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
         .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
         .sheet(isPresented: $isPresentingAddBudget, content: makeAddBudgetView)
@@ -100,36 +111,74 @@ struct HomeView: View {
     // MARK: Toolbar
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup(placement: .navigationBarTrailing) {
-            Menu {
-                // Calendar period picker
-                ForEach(BudgetPeriod.selectableCases) { p in
-                    Button(p.displayName) { updateBudgetPeriod(to: p) }
+        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                GlassEffectContainer(spacing: 16) {
+                    HStack(spacing: 16) {
+                        calendarMenu
+                        if isAddMenuVisible { addExpenseMenu }
+                        ellipsisMenu
+                    }
                 }
-            } label: {
-                Buttons.toolbarIcon("calendar") {}
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isAddMenuVisible)
             }
+        } else {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                calendarMenu
+                if isAddMenuVisible { addExpenseMenu }
+                ellipsisMenu
+            }
+        }
+    }
 
-            Menu {
-                Button("Add Planned Expense") { isPresentingAddPlanned = true }
-                Button("Add Variable Expense") { isPresentingAddVariable = true }
-            } label: {
-                Buttons.toolbarIcon("plus") {}
+    private var calendarMenu: some View {
+        Menu {
+            // Calendar period picker
+            ForEach(BudgetPeriod.selectableCases) { p in
+                Button(p.displayName) { updateBudgetPeriod(to: p) }
             }
+        } label: {
+            glassToolbarLabel("calendar")
+        }
+    }
 
-            // Ellipsis present for parity; simple placeholder menu keeps UI symmetrical
-            Menu {
-                if let summary {
-                    Button("Manage Cards") { isPresentingManageCards = true }
-                    Button("Manage Presets") { isPresentingManagePresets = true }
-                    Button("Edit Budget") { editingBudget = summary }
-                    Button(role: .destructive) { vm.requestDelete(budgetID: summary.id) } label: { Text("Delete Budget") }
-                } else {
-                    Button("Create Budget") { isPresentingAddBudget = true }
-                }
-            } label: {
-                Buttons.toolbarIcon("ellipsis") {}
+    private var addExpenseMenu: some View {
+        Menu {
+            Button("Add Planned Expense") { isPresentingAddPlanned = true }
+            Button("Add Variable Expense") { isPresentingAddVariable = true }
+        } label: {
+            glassToolbarLabel("plus")
+        }
+    }
+
+    private var ellipsisMenu: some View {
+        Menu {
+            if let summary {
+                Button("Manage Cards") { isPresentingManageCards = true }
+                Button("Manage Presets") { isPresentingManagePresets = true }
+                Button("Edit Budget") { editingBudget = summary }
+                Button(role: .destructive) { vm.requestDelete(budgetID: summary.id) } label: { Text("Delete Budget") }
+            } else {
+                Button("Create Budget") { isPresentingAddBudget = true }
             }
+        } label: {
+            glassToolbarLabel("ellipsis")
+        }
+    }
+
+    @ViewBuilder
+    private func glassToolbarLabel(_ symbol: String) -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 32, height: 32)
+                .glassEffect()
+                .glassEffectUnion(id: "home-toolbar", namespace: homeToolbarGlassNamespace)
+                .glassEffectTransition(.matchedGeometry)
+        } else {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 32, height: 32)
         }
     }
 

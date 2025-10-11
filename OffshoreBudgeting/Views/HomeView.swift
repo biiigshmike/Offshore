@@ -41,6 +41,8 @@ struct HomeView: View {
     @State private var plannedRows: [PlannedExpense] = []
     @State private var variableRows: [UnplannedExpense] = []
 
+    @Namespace private var toolbarGlassNamespace
+
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
 
@@ -101,34 +103,89 @@ struct HomeView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
-            Menu {
-                // Calendar period picker
-                ForEach(BudgetPeriod.selectableCases) { p in
-                    Button(p.displayName) { updateBudgetPeriod(to: p) }
-                }
-            } label: {
-                Buttons.toolbarIcon("calendar") {}
-            }
+            if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+                GlassEffectContainer(spacing: 12) {
+                    HStack(spacing: 12) {
+                        Menu {
+                            // Calendar period picker
+                            ForEach(BudgetPeriod.selectableCases) { p in
+                                Button(p.displayName) { updateBudgetPeriod(to: p) }
+                            }
+                        } label: {
+                            Image(systemName: "calendar")
+                                .font(.system(size: 16, weight: .semibold))
+                                .frame(width: 32, height: 32)
+                                .glassEffect(in: Capsule())
+                                .glassEffectID("calendar", in: toolbarGlassNamespace)
+                        }
 
-            Menu {
-                Button("Add Planned Expense") { isPresentingAddPlanned = true }
-                Button("Add Variable Expense") { isPresentingAddVariable = true }
-            } label: {
-                Buttons.toolbarIcon("plus") {}
-            }
+                        if hasActiveBudget {
+                            Menu {
+                                Button("Add Planned Expense") { isPresentingAddPlanned = true }
+                                Button("Add Variable Expense") { isPresentingAddVariable = true }
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .frame(width: 32, height: 32)
+                                    .glassEffect(in: Circle())
+                                    .glassEffectID("plus", in: toolbarGlassNamespace)
+                                    .glassEffectTransition(.matchedGeometry)
+                            }
+                        }
 
-            // Ellipsis present for parity; simple placeholder menu keeps UI symmetrical
-            Menu {
-                if let summary {
-                    Button("Manage Cards") { isPresentingManageCards = true }
-                    Button("Manage Presets") { isPresentingManagePresets = true }
-                    Button("Edit Budget") { editingBudget = summary }
-                    Button(role: .destructive) { vm.requestDelete(budgetID: summary.id) } label: { Text("Delete Budget") }
-                } else {
-                    Button("Create Budget") { isPresentingAddBudget = true }
+                        Menu {
+                            if let summary {
+                                Button("Manage Cards") { isPresentingManageCards = true }
+                                Button("Manage Presets") { isPresentingManagePresets = true }
+                                Button("Edit Budget") { editingBudget = summary }
+                                Button(role: .destructive) { vm.requestDelete(budgetID: summary.id) } label: { Text("Delete Budget") }
+                            } else {
+                                Button("Create Budget") { isPresentingAddBudget = true }
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 16, weight: .semibold))
+                                .frame(width: 32, height: 32)
+                                .glassEffect(in: Capsule())
+                                .glassEffectID("ellipsis", in: toolbarGlassNamespace)
+                        }
+                    }
                 }
-            } label: {
-                Buttons.toolbarIcon("ellipsis") {}
+            } else {
+                Group {
+                    Menu {
+                        // Calendar period picker
+                        ForEach(BudgetPeriod.selectableCases) { p in
+                            Button(p.displayName) { updateBudgetPeriod(to: p) }
+                        }
+                    } label: {
+                        Buttons.toolbarIcon("calendar") {}
+                    }
+
+                    if hasActiveBudget {
+                        Menu {
+                            Button("Add Planned Expense") { isPresentingAddPlanned = true }
+                            Button("Add Variable Expense") { isPresentingAddVariable = true }
+                        } label: {
+                            Buttons.toolbarIcon("plus") {}
+                        }
+                        .transition(.opacity.combined(with: .scale))
+                    }
+
+                    Menu {
+                        if let summary {
+                            Button("Manage Cards") { isPresentingManageCards = true }
+                            Button("Manage Presets") { isPresentingManagePresets = true }
+                            Button("Edit Budget") { editingBudget = summary }
+                            Button(role: .destructive) { vm.requestDelete(budgetID: summary.id) } label: { Text("Delete Budget") }
+                        } else {
+                            Button("Create Budget") { isPresentingAddBudget = true }
+                        }
+                    } label: {
+                        Buttons.toolbarIcon("ellipsis") {}
+                    }
+                }
+                .animation(.easeInOut(duration: 0.2), value: hasActiveBudget)
             }
         }
     }
@@ -424,6 +481,16 @@ struct HomeView: View {
     private var summaryIDString: String {
         if let s = summary { return s.id.uriRepresentation().absoluteString }
         return "none"
+    }
+
+    private var hasActiveBudget: Bool {
+        guard let summary else { return false }
+        let referenceDate = vm.selectedDate
+        if summary.periodStart <= referenceDate && referenceDate <= summary.periodEnd {
+            return true
+        }
+        let today = Date()
+        return summary.periodStart <= today && today <= summary.periodEnd
     }
 
     private var potentialIncome: Double { summary?.potentialIncomeTotal ?? 0 }

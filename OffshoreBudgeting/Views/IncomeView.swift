@@ -223,13 +223,7 @@ struct IncomeView: View {
 
             return resolved
         }
-        #if os(iOS)
         .frame(height: 335)
-        #elseif os(MacCatalyst)
-        .frame(height: 660)
-        #elseif os (macOS)
-        .frame(height: 660)
-        #endif
         .transaction { t in t.animation = nil; t.disablesAnimations = true }
     }
 

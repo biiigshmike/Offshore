@@ -243,11 +243,13 @@ struct CardDetailView: View {
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
+                                .tint(.red)
                                 Button {
                                     editingExpense = expense
                                 } label: {
                                     Label("Edit", systemImage: "pencil")
                                 }
+                                .tint(.gray)
                             }
                     }
                     .onDelete(perform: handleDelete)

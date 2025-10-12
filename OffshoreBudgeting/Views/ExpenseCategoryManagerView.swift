@@ -350,7 +350,7 @@ struct ExpenseCategoryEditorSheet: View {
                 }
             }
         }
-        .applyDetentsIfAvailable(detents: [.medium], selection: nil)
+        .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
     }
     
     // Minimal nav container for older OS support

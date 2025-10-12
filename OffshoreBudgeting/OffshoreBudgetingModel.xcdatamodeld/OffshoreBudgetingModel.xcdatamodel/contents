@@ -19,11 +19,19 @@
         <relationship name="plannedExpenses" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PlannedExpense" inverseName="card" inverseEntity="PlannedExpense"/>
         <relationship name="unplannedExpenses" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="UnplannedExpense" inverseName="card" inverseEntity="UnplannedExpense"/>
     </entity>
+    <entity name="CategorySpendingCap" representedClassName="CategorySpendingCap" syncable="YES" codeGenerationType="class">
+        <attribute name="amount" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="expenseType" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="period" optional="YES" attributeType="String"/>
+        <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ExpenseCategory" inverseName="spendingCaps" inverseEntity="ExpenseCategory"/>
+    </entity>
     <entity name="ExpenseCategory" representedClassName="ExpenseCategory" syncable="YES" codeGenerationType="class">
         <attribute name="color" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <relationship name="plannedExpense" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PlannedExpense" inverseName="expenseCategory" inverseEntity="PlannedExpense"/>
+        <relationship name="spendingCaps" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CategorySpendingCap" inverseName="category" inverseEntity="CategorySpendingCap"/>
         <relationship name="unplannedExpense" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="UnplannedExpense" inverseName="expenseCategory" inverseEntity="UnplannedExpense"/>
     </entity>
     <entity name="Income" representedClassName="Income" syncable="YES" codeGenerationType="class">

@@ -11,7 +11,6 @@ struct SettingsView: View {
     // MARK: State
     @StateObject private var vm = SettingsViewModel()
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
-    @State private var isPresentingCategories = false
     @State private var showResetAlert = false
 
     var body: some View {
@@ -49,14 +48,17 @@ struct SettingsView: View {
                     }
                 }
 
-                // Expense Categories (modal)
+                // Expense Categories
                 SettingsCard(
                     iconSystemName: "tag",
                     title: "Expense Categories",
                     subtitle: "Manage expense categories for Variable Expenses."
                 ) {
                     VStack(spacing: 0) {
-                        Button(action: { isPresentingCategories = true }) {
+                        NavigationLink {
+                            ExpenseCategoryManagerView()
+                                .environment(\.managedObjectContext, viewContext)
+                        } label: {
                             SettingsRow(title: "Manage Categories", detail: "Open", showsTopDivider: false) {
                                 Image(systemName: "chevron.right").foregroundStyle(.secondary)
                             }
@@ -114,11 +116,6 @@ struct SettingsView: View {
             .padding(.bottom, 24) // comfortable tail space below Reset card
         }
         .navigationTitle("Settings")
-        // Manage Categories (modal)
-        .sheet(isPresented: $isPresentingCategories) {
-            ExpenseCategoryManagerView()
-                .environment(\.managedObjectContext, viewContext)
-        }
         // Erase confirmation
         .alert("Erase All Data?", isPresented: $showResetAlert) {
             Button("Erase", role: .destructive) { performDataWipe() }

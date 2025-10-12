@@ -21,7 +21,6 @@ struct CardDetailView: View {
     // MARK: State
     @StateObject private var viewModel: CardDetailViewModel
     @Environment(\.responsiveLayoutContext) private var layoutContext
-    @Environment(\.platformCapabilities) private var capabilities
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.managedObjectContext) private var viewContext
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
@@ -40,7 +39,6 @@ struct CardDetailView: View {
     // @State private var headerOffset: CGFloat = 0
 
     private let initialHeaderTopPadding: CGFloat = 16
-    private let listRowHorizontalPadding: CGFloat = DesignSystem.Spacing.l
     
     // MARK: Init
     init(card: CardItem,
@@ -169,163 +167,82 @@ struct CardDetailView: View {
             .padding()
         case .loaded(let total, _, _):
             let cardMaxWidth = resolvedCardMaxWidth(in: layoutContext)
-            listContent(cardMaxWidth: cardMaxWidth, total: total)
+            detailsList(cardMaxWidth: cardMaxWidth, total: total)
     }
     }
 
     @ViewBuilder
-    private func listContent(cardMaxWidth: CGFloat?, total: Double) -> some View {
+    private func detailsList(cardMaxWidth: CGFloat?, total: Double) -> some View {
+        let list = List {
+            Section {
+                CardTileView(card: card, enableMotionShine: true)
+                    .frame(maxWidth: cardMaxWidth)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, initialHeaderTopPadding)
+                    .padding(.bottom, 12)
+            }
+
+            Section {
+                totalsSection(total: total)
+            }
+
+            Section {
+                categoryBreakdown(categories: viewModel.filteredCategories)
+            }
+
+            Section {
+                let expenses = viewModel.filteredExpenses
+                if expenses.isEmpty {
+                    Text(viewModel.searchText.isEmpty ? "No expenses found." : "No results for “\(viewModel.searchText)”")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, DesignSystem.Spacing.l)
+                } else {
+                    ForEach(expenses) { expense in
+                        ExpenseRow(expense: expense, currencyCode: currencyCode)
+                            .unifiedSwipeActions(
+                                UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
+                                onEdit: { editingExpense = expense },
+                                onDelete: { requestDelete(expense) }
+                            )
+                    }
+                    .onDelete(perform: handleDelete)
+                }
+            } header: {
+                Text("EXPENSES")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 16)
+                    .padding(.trailing, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 4)
+                    .textCase(nil)
+            }
+        }
+        .ub_listStyleLiquidAware()
+        .listRowSeparator(.hidden)
+        .listStyle(.insetGrouped)
+        .scrollIndicators(.hidden)
+
         if #available(iOS 16.0, macCatalyst 16.0, *) {
             if #available(iOS 17.0, macCatalyst 17.0, *) {
-                baseList(cardMaxWidth: cardMaxWidth, total: total)
+                list
                     .scrollContentBackground(.hidden)
+                    .listSectionSeparator(.hidden, edges: .all)
                     .listSectionSpacing(20)
             } else {
-                baseList(cardMaxWidth: cardMaxWidth, total: total)
+                list
                     .scrollContentBackground(.hidden)
+                    .listSectionSeparator(.hidden, edges: .all)
             }
-        } else {
-            baseList(cardMaxWidth: cardMaxWidth, total: total)
-        }
-    }
-
-    @ViewBuilder
-    private func baseList(cardMaxWidth: CGFloat?, total: Double) -> some View {
-        let list = List {
-            // Card header as its own section to ensure consistent rendering
-            // with modern List defaults across iOS 16/17.
-            Section {
-                cardRow(maxWidth: cardMaxWidth)
-            }
-
-            // Totals + categories grouped together so they remain visible
-            // above the expenses list, regardless of List section spacing.
-            Section {
-                totalsListRow(total: total)
-                categoryListRow(categories: viewModel.filteredCategories)
-            }
-
-            // Expenses list (already returns a Section)
-            expensesSection
-        }
-            .ub_listStyleLiquidAware()
-            .listRowSeparator(.hidden)
-            .scrollIndicators(.hidden)
-            .cardDetailListBottomInset(capabilities: capabilities, layoutContext: layoutContext)
-        
-
-        if #available(iOS 15.0, macCatalyst 15.0, *) {
+        } else if #available(iOS 15.0, macCatalyst 15.0, *) {
             list
                 .listSectionSeparator(.hidden, edges: .all)
         } else {
             list
         }
-    }
-
-    // MARK: Bottom inset for comfortable/infinite scrolling
-    // Mirrors the strategy used in BudgetDetailsView so lists remain scrollable
-    // even when content is short, and to keep spacing consistent above the tab bar.
-    @ViewBuilder
-    private func cardDetailBottomSpacer() -> some View {
-        Color.clear.frame(height: CardDetailListBottomInsetMetrics.bottomInset(for: layoutContext))
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-    }
-
-    @ViewBuilder
-    private func cardRow(maxWidth: CGFloat?) -> some View {
-        CardTileView(card: card, enableMotionShine: true)
-            .frame(maxWidth: maxWidth)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, listRowHorizontalPadding)
-            .padding(.top, initialHeaderTopPadding)
-            .padding(.bottom, 12)
-            .listRowInsets(.init())
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-    }
-
-    @ViewBuilder
-    private func totalsListRow(total: Double) -> some View {
-        totalsSection(total: total)
-            .padding(.horizontal, listRowHorizontalPadding)
-            .listRowInsets(.init(top: 0, leading: 0, bottom: 12, trailing: 0))
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-    }
-
-    @ViewBuilder
-    private func categoryListRow(categories: [CardCategoryTotal]) -> some View {
-        categoryBreakdown(categories: categories)
-            .padding(.horizontal, listRowHorizontalPadding)
-            .listRowInsets(.init(top: 0, leading: 0, bottom: 12, trailing: 0))
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-    }
-
-    @ViewBuilder
-    private var expensesSection: some View {
-        let section = Section {
-            let expenses = viewModel.filteredExpenses
-            if expenses.isEmpty {
-                expenseRowContainer(topInset: 0, bottomInset: 24) {
-                    Text(viewModel.searchText.isEmpty ? "No expenses found." : "No results for “\(viewModel.searchText)”")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-            } else {
-                ForEach(Array(expenses.enumerated()), id: \.element.id) { pair in
-                    let isFirst = pair.offset == 0
-                    let isLast = pair.offset == expenses.count - 1
-                    expenseRowContainer(
-                        topInset: isFirst ? 0 : 4,
-                        bottomInset: isLast ? 24 : 12
-                    ) {
-                        ExpenseRow(expense: pair.element, currencyCode: currencyCode)
-                    }
-                        .unifiedSwipeActions(
-                            UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
-                            onEdit: { editingExpense = pair.element },
-                            onDelete: { requestDelete(pair.element) }
-                        )
-                }
-                .onDelete { handleDelete($0) }
-            }
-        } header: {
-            Text("EXPENSES")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 16)
-                .padding(.trailing, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
-                .textCase(nil)
-        }
-        if #available(iOS 15.0, macCatalyst 15.0, *) {
-            section
-                .listSectionSeparator(.hidden, edges: .top)
-        } else {
-            section
-        }
-    }
-
-    private func expenseRowContainer<Content: View>(
-        topInset: CGFloat,
-        bottomInset: CGFloat,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        content()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, DesignSystem.Spacing.l)
-            .padding(.horizontal, DesignSystem.Spacing.l)
-            .background(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
-            .padding(.horizontal, listRowHorizontalPadding)
-            .contentShape(Rectangle())
-            .listRowInsets(.init(top: topInset, leading: 0, bottom: bottomInset, trailing: 0))
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-            .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
     }
 
     private func refreshCardDetails() {
@@ -369,11 +286,6 @@ struct CardDetailView: View {
                 deletionError = DeletionError(message: error.localizedDescription)
             }
         }
-    }
-
-    private func rowBackground(color: Color) -> some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(color)
     }
 
     private var currencyCode: String {
@@ -572,55 +484,4 @@ private struct IconOnlyButton: View {
 private struct DeletionError: Identifiable {
     let id = UUID()
     let message: String
-}
-
-// MARK: - List Bottom Inset Helpers
-private extension View {
-    @ViewBuilder
-    func cardDetailListBottomInset(capabilities: PlatformCapabilities, layoutContext: ResponsiveLayoutContext) -> some View {
-        #if os(iOS)
-        #if targetEnvironment(macCatalyst)
-        self
-        #else
-        if capabilities.supportsOS26Translucency {
-            self.safeAreaInset(edge: .bottom) {
-                Color.clear
-                    .frame(height: CardDetailListBottomInsetMetrics.bottomInset(for: layoutContext))
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-            }
-        } else {
-            self
-        }
-        #endif
-        #else
-        self
-        #endif
-    }
-}
-
-private enum CardDetailListBottomInsetMetrics {
-    #if os(iOS)
-    #if targetEnvironment(macCatalyst)
-    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat { 0 }
-    #else
-    // Match BudgetDetailsView behavior: ensure at least the tab bar height is
-    // represented so the list always scrolls comfortably.
-    private static let compactTabBarHeight: CGFloat = 49
-    private static let regularTabBarHeight: CGFloat = 49
-
-    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat {
-        let safeAreaBottom = layoutContext.safeArea.bottom
-        let sizeClass = layoutContext.horizontalSizeClass ?? .compact
-        let tabBarHeight = sizeClass == .regular ? regularTabBarHeight : compactTabBarHeight
-        if safeAreaBottom >= tabBarHeight - 1 {
-            return safeAreaBottom
-        } else {
-            return safeAreaBottom + tabBarHeight
-        }
-    }
-    #endif
-    #else
-    static func bottomInset(for layoutContext: ResponsiveLayoutContext) -> CGFloat { 0 }
-    #endif
 }

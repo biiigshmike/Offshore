@@ -188,6 +188,7 @@ struct HomeView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 44, height: 44)
                 .glassEffectUnion(id: "home-toolbar", namespace: homeToolbarGlassNamespace)
+                .glassEffectID(symbol, in: homeToolbarGlassNamespace)
                 .glassEffectTransition(.matchedGeometry)
         } else {
             Image(systemName: symbol)

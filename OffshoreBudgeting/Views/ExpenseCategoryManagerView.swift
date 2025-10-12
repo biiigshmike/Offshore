@@ -64,7 +64,7 @@ struct ExpenseCategoryManagerView: View {
                                 .symbolRenderingMode(.monochrome)
                                 .foregroundStyle(.primary)
                                 .font(.system(size: 17, weight: .semibold))
-                                .frame(width: 44, height: 44)
+                                .frame(width: 33, height: 33)
                                 .contentShape(Circle())
                         }
                         .buttonStyle(.plain)

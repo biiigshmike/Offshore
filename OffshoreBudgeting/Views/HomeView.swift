@@ -551,7 +551,7 @@ struct HomeView: View {
                 .buttonStyle(.glass)
                 .buttonBorderShape(.capsule)
                 .foregroundStyle(.primary)
-                .allowsHitTesting(false)
+                .allowsHitTesting(true)
                 .disabled(false)
                 .frame(height: 33)
                 .clipShape(Capsule())

@@ -229,16 +229,16 @@ struct IncomeView: View {
     }
 
     private var calendarHeight: CGFloat {
-        switch layoutContext.idiom {
-        case .pad:
-            return layoutContext.isLandscape ? 440 : 450
-        case .mac:
-            return layoutContext.isLandscape ? 440 : 450
-        case .phone:
-            return layoutContext.isLandscape ? 420 : 335
-        default:
-            return layoutContext.isLandscape ? 420 : 335
-        }
+        let containerWidth = layoutContext.containerSize.width
+        guard containerWidth.isFinite, containerWidth > 0 else { return 335 }
+
+        let horizontalInsets: CGFloat = 40 // 20pt leading + trailing list insets
+        let availableWidth = max(0, containerWidth - horizontalInsets)
+        let dayDimension = max(48, (availableWidth / 7).rounded(.down))
+        let headerPadding: CGFloat = 47 // Matches existing phone layout baseline
+        let computedHeight = dayDimension * 6 + headerPadding
+
+        return max(335, computedHeight)
     }
 
     // MARK: Selected Day Section

@@ -363,10 +363,6 @@ struct CardDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
         #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") { dismiss(); onDone() }
-                        .keyboardShortcut(.escape, modifiers: [])
-                }
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     if isSearchActive {
                         TextField("Search expenses", text: $viewModel.searchText)

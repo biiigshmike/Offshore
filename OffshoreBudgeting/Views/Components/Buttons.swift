@@ -30,7 +30,7 @@ enum Buttons {
                         .frame(maxWidth: fillHorizontally ? .infinity : nil)
                         .padding(.vertical, 12)
                         .padding(.horizontal, 20)
-                        .glassEffect(.regular.tint(.none).interactive())
+                        .glassEffect(.regular.tint(.blue.opacity(0.0125)).interactive())
                 }
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)

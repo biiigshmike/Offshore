@@ -550,19 +550,23 @@ struct HomeView: View {
             Text(title).font(.subheadline.weight(.medium))
             Text(formatCurrency(amount)).font(.subheadline.weight(.semibold))
         }
-            .padding(.horizontal, 12)
-            .frame(height: 44)
-            .background(.clear)
+        .padding(.horizontal, 12)
+        .frame(height: 44)
+        .background(.clear)
+
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Button(action: {}) { chipLabel }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.capsule)
-                .foregroundStyle(.primary)
-                .allowsHitTesting(false)
-                .disabled(true)
-                .frame(height: 44)
-                .clipShape(Capsule())
-                .compositingGroup()
+            Button(action: {}) {
+                chipLabel
+                    .glassEffect(.regular.tint(.none).interactive(false))
+            }
+            .buttonStyle(.plain)
+            .buttonBorderShape(.capsule)
+            .foregroundStyle(.primary)
+            .allowsHitTesting(false)
+            .disabled(true)
+            .frame(height: 44)
+            .clipShape(Capsule())
+            .compositingGroup()
         } else {
             chipLabel
                 .background(

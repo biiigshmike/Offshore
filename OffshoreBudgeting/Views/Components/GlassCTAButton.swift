@@ -10,6 +10,7 @@ struct GlassCTAButton<Label: View>: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private let maxWidth: CGFloat?
+    private let height: CGFloat?
     private let fillHorizontally: Bool
     private let action: () -> Void
     private let labelBuilder: () -> Label
@@ -18,6 +19,7 @@ struct GlassCTAButton<Label: View>: View {
 
     init(
         maxWidth: CGFloat? = nil,
+        height: CGFloat? = nil,
         fillHorizontally: Bool = false,
         fallbackAppearance: TranslucentButtonStyle.Appearance = .tinted,
         fallbackMetrics: TranslucentButtonStyle.Metrics = .standard,
@@ -25,6 +27,7 @@ struct GlassCTAButton<Label: View>: View {
         @ViewBuilder label: @escaping () -> Label
     ) {
         self.maxWidth = maxWidth
+        self.height = height
         self.fillHorizontally = fillHorizontally
         self.action = action
         self.labelBuilder = label

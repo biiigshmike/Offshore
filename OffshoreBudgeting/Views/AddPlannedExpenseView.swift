@@ -108,6 +108,7 @@ struct AddPlannedExpenseView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         GlassCTAButton(
                             maxWidth: .infinity,
+                            height: 33,
                             fillHorizontally: true,
                             fallbackAppearance: .neutral,
                             action: { isPresentingAddCard = true }
@@ -657,13 +658,12 @@ private struct AddCategoryPill: View {
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 12)
                 .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
-
+                .glassEffect(.regular.tint(.none).interactive(true))
             Button(action: onTap) {
                 label
             }
             .buttonStyle(.plain)
             .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
-            .glassEffect(.regular.tint(.none).interactive(true))
             .accessibilityLabel("Add Category")
         } else {
             Button(action: onTap) {

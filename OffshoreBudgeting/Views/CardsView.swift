@@ -13,7 +13,6 @@ struct CardsView: View {
     @State private var isPresentingAddCard = false
     @State private var isPresentingCardVariableExpense = false
     @State private var detailCard: CardItem? = nil
-    @State private var navigationPath = NavigationPath()
 
     // MARK: Grid
     private let columns = [GridItem(.adaptive(minimum: 260, maximum: 260), spacing: 16)]
@@ -58,18 +57,14 @@ struct CardsView: View {
                                     CardTileView(
                                         card: card,
                                         isSelected: false,
+                                        onTap: { detailCard = card },
                                         enableMotionShine: true,
                                         showsBaseShadow: false
                                     )
                                     .frame(height: cardHeight)
                                 }
                                 .contextMenu {
-                                    Button("Edit", systemImage: "pencil") {
-                                        detailCard = card
-                                        if #available(iOS 16.0, macCatalyst 16.0, *) {
-                                            navigationPath.append(card)
-                                        }
-                                    }
+                                    Button("Edit", systemImage: "pencil") { detailCard = card }
                                 }
                             }
                         }
@@ -86,6 +81,11 @@ struct CardsView: View {
             .sheet(isPresented: $isPresentingAddCard) {
                 AddCardFormView { newName, theme in
                     Task { await vm.addCard(name: newName, theme: theme) }
+                }
+            }
+            .onChange(of: detailCard) { newValue in
+                if newValue == nil {
+                    isPresentingCardVariableExpense = false
                 }
             }
             .alert(item: $vm.alert) { alert in
@@ -105,10 +105,10 @@ struct CardsView: View {
             }
             // Destination for value-based navigation
             .navigationDestination(for: CardItem.self) { card in
-                CardDetailDestination(
+                CardDetailView(
                     card: card,
-                    detailCard: $detailCard,
-                    isPresentingAddExpense: $isPresentingCardVariableExpense
+                    isPresentingAddExpense: $isPresentingCardVariableExpense,
+                    onDone: { detailCard = nil }
                 )
             }
         }
@@ -133,39 +133,13 @@ struct CardsView: View {
     @ViewBuilder
     private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
         if #available(iOS 16.0, macCatalyst 16.0, *) {
-            NavigationStack(path: $navigationPath) {
+            NavigationStack {
                 content()
             }
         } else {
             NavigationView {
                 content()
             }
-        }
-    }
-}
-
-// MARK: - CardDetailDestination
-private struct CardDetailDestination: View {
-    let card: CardItem
-    @Binding var detailCard: CardItem?
-    @Binding var isPresentingAddExpense: Bool
-
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        CardDetailView(
-            card: card,
-            isPresentingAddExpense: $isPresentingAddExpense,
-            onDone: { dismiss() }
-        )
-        .onAppear {
-            detailCard = card
-        }
-        .onDisappear {
-            if detailCard?.id == card.id {
-                detailCard = nil
-            }
-            isPresentingAddExpense = false
         }
     }
 }

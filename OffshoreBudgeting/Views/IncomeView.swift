@@ -120,7 +120,7 @@ struct IncomeView: View {
 
     private var calendarNav: some View {
         HStack(alignment: .center) {
-            navText("<<") { goToPreviousMonth() }
+            navIcon("chevron.backward.2") { goToPreviousMonth() }
             Spacer(minLength: 12)
             navIcon("chevron.backward") { goToPreviousDay() }
             Spacer(minLength: 12)
@@ -128,7 +128,7 @@ struct IncomeView: View {
             Spacer(minLength: 12)
             navIcon("chevron.forward") { goToNextDay() }
             Spacer(minLength: 12)
-            navText(">>") { goToNextMonth() }
+            navIcon("chevron.forward.2") { goToNextMonth() }
         }
         .frame(maxWidth: .infinity)
     }
@@ -139,9 +139,10 @@ struct IncomeView: View {
             Button(action: action) {
                 Image(systemName: systemName)
                     .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 32, height: 32)
+                    .frame(width: 44, height: 44)
+                    .glassEffect(.regular.tint(.none).interactive(true))
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
         } else {
@@ -156,11 +157,11 @@ struct IncomeView: View {
             Button(action: action) {
                 Text(title)
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .frame(minWidth: 64, minHeight: 33)
-                    .padding(.horizontal, 10)
+                    .frame(minWidth: 64, minHeight: 44)
+                    .glassEffect(.regular.tint(.none).interactive(true))
             }
-            .buttonStyle(.glass)
-            .buttonBorderShape(.capsule)
+            .buttonStyle(.plain)
+            .buttonBorderShape(.circle)
             .tint(.accentColor)
         } else {
             Button(action: action) {

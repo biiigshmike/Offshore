@@ -279,9 +279,9 @@ struct HomeView: View {
                         .padding(.vertical, 8)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 33, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         }
-        .frame(height: 33)
+        .frame(height: 44)
     }
 
     // MARK: Segment Picker
@@ -315,7 +315,7 @@ struct HomeView: View {
             }
             .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
             .listRowSeparator(.hidden)
-            .frame(minHeight: 33)                   // Comfortable height
+            .frame(minHeight: 44)                   // Comfortable height
             .clipShape(Capsule())                   // Hard-clip to the pill
             .compositingGroup()                     // Prevent odd shape
             Text("No variable expenses in this period.")
@@ -330,7 +330,7 @@ struct HomeView: View {
             }
             .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
             .listRowSeparator(.hidden)
-            .frame(minHeight: 33)                   // Comfortable height
+            .frame(minHeight: 44)                   // Comfortable height
             .clipShape(Capsule())                   // Hard-clip to the pill
             .compositingGroup()                     // Prevent odd shape
             Text("No planned expenses in this period.")
@@ -551,7 +551,7 @@ struct HomeView: View {
             Text(formatCurrency(amount)).font(.subheadline.weight(.semibold))
         }
             .padding(.horizontal, 12)
-            .frame(height: 33)
+            .frame(height: 44)
             .background(.clear)
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: {}) { chipLabel }
@@ -560,7 +560,7 @@ struct HomeView: View {
                 .foregroundStyle(.primary)
                 .allowsHitTesting(false)
                 .disabled(true)
-                .frame(height: 33)
+                .frame(height: 44)
                 .clipShape(Capsule())
                 .compositingGroup()
         } else {
@@ -572,7 +572,7 @@ struct HomeView: View {
                         }))
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                .frame(height: 33)
+                .frame(height: 44)
         }
 
     }

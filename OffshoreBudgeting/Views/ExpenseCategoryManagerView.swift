@@ -45,17 +45,17 @@ struct ExpenseCategoryManagerView: View {
                 .navigationTitle("Categories")
                 .toolbar {
                     // Left: Done (clear/plain, larger tap target)
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button(action: { dismiss() }) {
-                            Text("Done")
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                .foregroundStyle(.primary)
-                                .frame(minWidth: 44, minHeight: 34)
-                                .padding(.horizontal, 14)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Done")
-                    }
+//                    ToolbarItem(placement: .cancellationAction) {
+//                        Button(action: { dismiss() }) {
+//                            Text("Done")
+//                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+//                                .foregroundStyle(.primary)
+//                                .frame(minWidth: 44, minHeight: 34)
+//                                .padding(.horizontal, 14)
+//                        }
+//                        .buttonStyle(.plain)
+//                        .accessibilityLabel("Done")
+//                    }
                     
                     // Right: Add Category (clear/plain, 33x33 hit box)
                     ToolbarItem(placement: .primaryAction) {
@@ -64,7 +64,7 @@ struct ExpenseCategoryManagerView: View {
                                 .symbolRenderingMode(.monochrome)
                                 .foregroundStyle(.primary)
                                 .font(.system(size: 17, weight: .semibold))
-                                .frame(width: 33, height: 33)
+                                .frame(width: 44, height: 44)
                                 .contentShape(Circle())
                         }
                         .buttonStyle(.plain)

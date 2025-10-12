@@ -156,7 +156,7 @@ private struct OnboardingButtonsRow2: View {
                 .buttonStyle(.glass)
                 .buttonBorderShape(.capsule)
                 .tint(tint)
-                .frame(minHeight: 33)
+                .frame(minHeight: 44)
         } else {
             Button(action: action) {
                 Text(title).font(.headline).frame(maxWidth: .infinity)
@@ -164,7 +164,7 @@ private struct OnboardingButtonsRow2: View {
             .buttonStyle(.plain)
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
-            .frame(minHeight: 33)
+            .frame(minHeight: 44)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(tint.opacity(0.16))
@@ -184,7 +184,7 @@ private struct OnboardingButtonsRow2: View {
                 .buttonStyle(.glass)
                 .buttonBorderShape(.capsule)
                 .tint(tint)
-                .frame(minHeight: 33)
+                .frame(minHeight: 44)
         } else {
             Button(action: action) {
                 Text(title).font(.headline).frame(maxWidth: .infinity)
@@ -192,7 +192,7 @@ private struct OnboardingButtonsRow2: View {
             .buttonStyle(.plain)
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
-            .frame(minHeight: 33)
+            .frame(minHeight: 44)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color.clear)

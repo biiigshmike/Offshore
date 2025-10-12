@@ -628,19 +628,19 @@ private struct AddCategoryPill: View {
             Button(action: onTap) {
                 Label("Add", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
+                    .glassEffect(.regular.tint(.none).interactive(true))
             }
             .tint(themeManager.selectedTheme.resolvedTint)
             .buttonStyle(.glass)
-            .buttonBorderShape(.capsule)
             .controlSize(.regular)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 33, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
             .accessibilityLabel("Add Category")
         } else {
             Button(action: onTap) {
                 Label("Add", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 12)
-                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 33, alignment: .center)
+                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(UIColor { traits in
@@ -652,7 +652,7 @@ private struct AddCategoryPill: View {
             }
             .buttonStyle(.plain)
             .controlSize(.regular)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 33, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
             .accessibilityLabel("Add Category")
         }
     }
@@ -701,7 +701,7 @@ private struct CategoryChip: View {
                 chipLabel
                     .foregroundStyle(style.fallbackTextColor)
                     .padding(.horizontal, 12)
-                    .frame(height: 33)
+                    .frame(height: 44)
                     .background(legacyShape.fill(style.fallbackFill))
                     .overlay(
                         legacyShape

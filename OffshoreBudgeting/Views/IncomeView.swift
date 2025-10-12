@@ -22,17 +22,28 @@ struct IncomeView: View {
 
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
-    @Environment(\.responsiveLayoutContext) private var layoutContext
 
     // MARK: Body
     var body: some View {
         List {
-            // Calendar section as a single row
-            VStack(alignment: .leading, spacing: 12) {
-                calendarNav
-                calendarView
+            ResponsiveLayoutReader { context in
+                let fallbackHeight: CGFloat = 335
+                let fallbackRowHeight = fallbackHeight / 7
+                let width = context.containerSize.width
+                let minRowHeight: CGFloat = 44
+                let maxRowHeight: CGFloat = 80
+                let rawRowHeight = width > 0 ? width / 7 : fallbackRowHeight
+                let rowHeight = min(max(rawRowHeight, minRowHeight), maxRowHeight)
+                let headerSpacing = rowHeight
+                let calendarHeight = width > 0 ? rowHeight * 6 + headerSpacing : fallbackHeight
+
+                return VStack(alignment: .leading, spacing: 12) {
+                    calendarNav
+                    calendarView(calendarHeight: calendarHeight)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
             }
-            .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
 
             // Selected Day Income section
             Section {
@@ -190,7 +201,7 @@ struct IncomeView: View {
         }
     }
 
-    private var calendarView: some View {
+    private func calendarView(calendarHeight: CGFloat) -> some View {
         let today = Date()
         let cal = sundayFirstCalendar
         let start = cal.date(byAdding: .year, value: -5, to: today)!
@@ -226,19 +237,6 @@ struct IncomeView: View {
         }
         .frame(height: calendarHeight)
         .transaction { t in t.animation = nil; t.disablesAnimations = true }
-    }
-
-    private var calendarHeight: CGFloat {
-        switch layoutContext.idiom {
-        case .pad:
-            return layoutContext.isLandscape ? 440 : 450
-        case .mac:
-            return layoutContext.isLandscape ? 440 : 450
-        case .phone:
-            return layoutContext.isLandscape ? 420 : 335
-        default:
-            return layoutContext.isLandscape ? 420 : 335
-        }
     }
 
     // MARK: Selected Day Section

@@ -496,10 +496,10 @@ struct HomeView: View {
     private var horizontalPadding: CGFloat { 20 }
 
     // MARK: Helpers
-    /// Updates the budget period preference and triggers a model refresh.
+    /// Forwards the budget period change to the view model so it can
+    /// persist the preference and refresh derived state.
     private func updateBudgetPeriod(to newValue: BudgetPeriod) {
-        budgetPeriodRawValue = newValue.rawValue
-        Task { await vm.refresh() }
+        vm.updateBudgetPeriod(to: newValue)
     }
 
     /// Renders a metric label/value pair for a given amount.

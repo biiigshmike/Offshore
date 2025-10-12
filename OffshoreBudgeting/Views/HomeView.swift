@@ -80,8 +80,13 @@ struct HomeView: View {
         .onChange(of: segment) { _ in reloadRows() }
         .onChange(of: sort) { _ in reloadRows() }
         .onChange(of: summaryIDString) { _ in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isAddMenuVisible = summary != nil
+            let shouldShowAddMenu = (summary != nil)
+            if shouldShowAddMenu != isAddMenuVisible {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isAddMenuVisible = shouldShowAddMenu
+                }
+            } else {
+                isAddMenuVisible = shouldShowAddMenu
             }
             reloadRows()
         }

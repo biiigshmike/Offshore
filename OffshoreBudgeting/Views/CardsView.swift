@@ -5,7 +5,7 @@ import CoreData
 /// Simple grid of cards with modal CardDetailView.
 /// - Uses ScrollView + LazyVGrid
 /// - '+' button is glass on iOS 26+, plain on older OSes
-/// - Tapping a card presents CardDetailView in a sheet
+/// - Tapping a card pushes CardDetailView in a navigation stack
 struct CardsView: View {
 
     // MARK: State & ViewModel
@@ -51,14 +51,22 @@ struct CardsView: View {
                 case .loaded(let cards):
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(cards) { card in
-                            CardTileView(
-                                card: card,
-                                isSelected: false,
-                                onTap: { detailCard = card },
-                                enableMotionShine: true,
-                                showsBaseShadow: false
-                            )
-                            .frame(height: cardHeight)
+                            NavigationLink(tag: card, selection: $detailCard) {
+                                CardDetailView(
+                                    card: card,
+                                    isPresentingAddExpense: $isPresentingCardVariableExpense,
+                                    onDone: { detailCard = nil }
+                                )
+                            } label: {
+                                CardTileView(
+                                    card: card,
+                                    isSelected: false,
+                                    onTap: { detailCard = card },
+                                    enableMotionShine: true,
+                                    showsBaseShadow: false
+                                )
+                                .frame(height: cardHeight)
+                            }
                             .contextMenu {
                                 Button("Edit", systemImage: "pencil") { detailCard = card }
                             }
@@ -78,14 +86,6 @@ struct CardsView: View {
             AddCardFormView { newName, theme in
                 Task { await vm.addCard(name: newName, theme: theme) }
             }
-        }
-        // Detail (modal)
-        .sheet(item: $detailCard) { card in
-            CardDetailView(
-                card: card,
-                isPresentingAddExpense: $isPresentingCardVariableExpense,
-                onDone: { detailCard = nil }
-            )
         }
         .onChange(of: detailCard) { newValue in
             if newValue == nil {

@@ -79,13 +79,13 @@ struct HomeView: View {
         }
         .onChange(of: segment) { _ in reloadRows() }
         .onChange(of: sort) { _ in reloadRows() }
-        .onChange(of: summaryIDString) { _ in
+        .onChange(of: vm.state) { _ in
+            reloadRows()
             let shouldShowAddMenu = (summary != nil)
             guard shouldShowAddMenu != isAddMenuVisible else { return }
             withAnimation(.easeInOut(duration: 0.2)) {
                 isAddMenuVisible = shouldShowAddMenu
             }
-            reloadRows()
         }
         .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
         .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
@@ -484,11 +484,6 @@ struct HomeView: View {
         default:
             return nil
         }
-    }
-
-    private var summaryIDString: String {
-        if let s = summary { return s.id.uriRepresentation().absoluteString }
-        return "none"
     }
 
     private var potentialIncome: Double { summary?.potentialIncomeTotal ?? 0 }

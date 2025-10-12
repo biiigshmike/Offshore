@@ -1,4 +1,3 @@
-//
 //  CardDetailView.swift
 //  SoFar
 //
@@ -173,7 +172,7 @@ struct CardDetailView: View {
 
     @ViewBuilder
     private func detailsList(cardMaxWidth: CGFloat?, total: Double) -> some View {
-        let list = List {
+        List {
             Section {
                 CardTileView(card: card, enableMotionShine: true)
                     .frame(maxWidth: cardMaxWidth)
@@ -183,11 +182,48 @@ struct CardDetailView: View {
             }
 
             Section {
-                totalsSection(total: total)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("TOTAL SPENT")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(total, format: .currency(code: currencyCode))
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
+            } header: {
+                Text("TOTALS")
+                    .font(.subheadline.weight(.semibold))
+                    .textCase(nil)
             }
 
             Section {
-                categoryBreakdown(categories: viewModel.filteredCategories)
+                if viewModel.filteredCategories.isEmpty {
+                    Text("No category totals available.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, DesignSystem.Spacing.l)
+                } else {
+                    ForEach(viewModel.filteredCategories) { cat in
+                        HStack {
+                            Circle()
+                                .fill(cat.color)
+                                .frame(width: 10, height: 10)
+                            Text(cat.name)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text(cat.amount, format: .currency(code: currencyCode))
+                                .monospacedDigit()
+                                .font(.callout.weight(.semibold))
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            } header: {
+                Text("BY CATEGORY")
+                    .font(.subheadline.weight(.semibold))
+                    .textCase(nil)
             }
 
             Section {
@@ -201,41 +237,28 @@ struct CardDetailView: View {
                 } else {
                     ForEach(expenses) { expense in
                         ExpenseRow(expense: expense, currencyCode: currencyCode)
-                            .unifiedSwipeActions(
-                                UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
-                                onEdit: { editingExpense = expense },
-                                onDelete: { requestDelete(expense) }
-                            )
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    requestDelete(expense)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                Button {
+                                    editingExpense = expense
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                            }
                     }
                     .onDelete(perform: handleDelete)
                 }
             } header: {
                 Text("EXPENSES")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 16)
-                    .padding(.trailing, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 4)
                     .textCase(nil)
             }
         }
-        .ub_listStyleLiquidAware()
-        .listRowSeparator(.hidden)
         .listStyle(.insetGrouped)
-        .scrollIndicators(.hidden)
-
-        // Simplified availability to avoid redundant platform checks.
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
-            list
-                .scrollContentBackground(.hidden)
-                .listSectionSeparator(.hidden, edges: .all)
-                // iOS 17/macCatalyst 17 add listSectionSpacing; safe to call conditionally.
-                .modifier(ListSectionSpacingIfAvailable())
-        } else {
-            list
-        }
     }
 
     private func refreshCardDetails() {
@@ -351,47 +374,6 @@ struct CardDetailView: View {
     }
 
     
-    // MARK: totalsSection
-    private func totalsSection(total: Double) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("TOTAL SPENT")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Text(total, format: .currency(code: currencyCode))
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(themeManager.selectedTheme.secondaryBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-    
-    // MARK: categoryBreakdown
-    private func categoryBreakdown(categories: [CardCategoryTotal]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("BY CATEGORY")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-            ForEach(categories) { cat in
-                HStack {
-                    Circle()
-                        .fill(cat.color)
-                        .frame(width: 10, height: 10)
-                    Text(cat.name)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(cat.amount, format: .currency(code: currencyCode))
-                        .monospacedDigit()
-                        .font(.callout.weight(.semibold))
-                }
-                .padding(.vertical, 2)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(themeManager.selectedTheme.secondaryBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-    
     // MARK: Layout Helpers
     private func resolvedCardMaxWidth(in context: ResponsiveLayoutContext) -> CGFloat? {
         let availableWidth = max(context.containerSize.width - context.safeArea.leading - context.safeArea.trailing, 0)
@@ -481,12 +463,4 @@ private struct DeletionError: Identifiable {
 
 // MARK: - Helpers
 // Back-deploy listSectionSpacing(…) only on iOS 17+/macCatalyst 17+.
-private struct ListSectionSpacingIfAvailable: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 17.0, macCatalyst 17.0, *) {
-            content.listSectionSpacing(20)
-        } else {
-            content
-        }
-    }
-}
+//

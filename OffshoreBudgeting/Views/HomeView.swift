@@ -25,19 +25,6 @@ struct HomeView: View {
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
     @State private var sort: Sort = .dateNewOld
 
-    private struct CategoryCapOverlayData: Identifiable {
-        let categoryID: UUID
-        var categoryName: String
-        var segment: Segment
-        var spent: Double
-        var capAmount: Double?
-
-        var id: UUID { categoryID }
-    }
-
-    @State private var categoryCapOverlay: CategoryCapOverlayData?
-    @State private var isShowingCategoryCapOverlay: Bool = false
-
     // MARK: Sheet Toggles (kept small and focused)
     @State private var isPresentingAddPlanned: Bool = false
     @State private var isPresentingAddVariable: Bool = false
@@ -98,14 +85,6 @@ struct HomeView: View {
             }
             reloadRows()
         }
-        .onChange(of: overlayRefreshToken) { _ in
-            refreshCategoryCapOverlay(reloadCap: true)
-        }
-        .onChange(of: vm.state) { state in
-            if case .loaded = state {
-                refreshCategoryCapOverlay(reloadCap: true)
-            }
-        }
         .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
         .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
         .sheet(isPresented: $isPresentingAddBudget, content: makeAddBudgetView)
@@ -125,9 +104,6 @@ struct HomeView: View {
                 onSaved: { Task { await vm.refresh(); reloadRows() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .overlay(alignment: .center) {
-            categoryCapOverlayView
         }
         .alert(item: $vm.alert, content: alert(for:))
     }
@@ -291,13 +267,7 @@ struct HomeView: View {
         return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(categories) { cat in
-                    chipView(
-                        categoryID: cat.categoryID,
-                        title: cat.categoryName,
-                        amount: cat.amount,
-                        hex: cat.hexColor,
-                        segment: segment
-                    )
+                    chipView(title: cat.categoryName, amount: cat.amount, hex: cat.hexColor)
                 }
                 if categories.isEmpty {
                     Text("No categories yet")
@@ -514,24 +484,6 @@ struct HomeView: View {
         return "none"
     }
 
-    private var overlayRefreshToken: String {
-        guard let summary else { return "none" }
-        func token(for breakdown: [BudgetSummary.CategorySpending]) -> String {
-            breakdown
-                .map { item in
-                    let idString = item.categoryID?.uuidString ?? "nil"
-                    let amountString = String(format: "%.2f", item.amount)
-                    return "\(idString):\(amountString)"
-                }
-                .joined(separator: "|")
-        }
-        return [
-            summary.id.uriRepresentation().absoluteString,
-            token(for: summary.plannedCategoryBreakdown),
-            token(for: summary.variableCategoryBreakdown)
-        ].joined(separator: "#")
-    }
-
     private var potentialIncome: Double { summary?.potentialIncomeTotal ?? 0 }
     private var potentialSavings: Double { summary?.potentialSavingsTotal ?? 0 }
     private var actualIncome: Double { summary?.actualIncomeTotal ?? 0 }
@@ -582,259 +534,9 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Category Cap Overlay
-    @ViewBuilder
-    private var categoryCapOverlayView: some View {
-        if isShowingCategoryCapOverlay, let overlay = categoryCapOverlay {
-            CategoryCapQuickLook(
-                model: makeQuickLookModel(from: overlay),
-                onDismiss: dismissCategoryCapOverlay,
-                onEdit: { editCategoryCap(overlay) }
-            )
-            .id(overlay.id)
-            .transition(.opacity.combined(with: .scale(scale: 0.97)))
-            .zIndex(1)
-        }
-    }
-
-    private func handleCategoryChipLongPress(categoryID: UUID?, fallbackName: String, displayedAmount: Double, segment: Segment) {
-        guard let categoryID else { return }
-        let resolvedSpending = categorySpending(for: categoryID, segment: segment)
-        let resolvedName = resolvedSpending?.categoryName ?? fallbackName
-        let resolvedSpent = resolvedSpending?.amount ?? displayedAmount
-        let capAmount = loadCapAmount(for: categoryID, segment: segment, period: budgetPeriod)
-        let overlayData = CategoryCapOverlayData(
-            categoryID: categoryID,
-            categoryName: resolvedName,
-            segment: segment,
-            spent: resolvedSpent,
-            capAmount: capAmount
-        )
-        withAnimation(.easeInOut(duration: 0.2)) {
-            categoryCapOverlay = overlayData
-            isShowingCategoryCapOverlay = true
-        }
-    }
-
-    private func refreshCategoryCapOverlay(reloadCap: Bool) {
-        guard isShowingCategoryCapOverlay, var overlay = categoryCapOverlay else { return }
-        guard let updated = categorySpending(for: overlay.categoryID, segment: overlay.segment) else {
-            dismissCategoryCapOverlay()
-            return
-        }
-        overlay.categoryName = updated.categoryName
-        overlay.spent = updated.amount
-        if reloadCap {
-            overlay.capAmount = loadCapAmount(for: overlay.categoryID, segment: overlay.segment, period: budgetPeriod)
-        }
-        categoryCapOverlay = overlay
-    }
-
-    private func dismissCategoryCapOverlay() {
-        guard isShowingCategoryCapOverlay else { return }
-        withAnimation(.easeInOut(duration: 0.2)) {
-            isShowingCategoryCapOverlay = false
-        }
-        categoryCapOverlay = nil
-    }
-
-    private func editCategoryCap(_: CategoryCapOverlayData) {
-        // Reserved for future editing flow integration.
-    }
-
-    private func categorySpending(for categoryID: UUID, segment: Segment) -> BudgetSummary.CategorySpending? {
-        let breakdown = segment == .planned ? summary?.plannedCategoryBreakdown : summary?.variableCategoryBreakdown
-        return breakdown?.first(where: { $0.categoryID == categoryID })
-    }
-
-    private func loadCapAmount(for categoryID: UUID, segment: Segment, period: BudgetPeriod) -> Double? {
-        do {
-            let service = CategorySpendingCapService()
-            return try service.loadCap(
-                categoryID: categoryID,
-                expenseType: expenseType(for: segment),
-                period: period
-            )?.amount
-        } catch {
-            return nil
-        }
-    }
-
-    private func expenseType(for segment: Segment) -> CategorySpendingCapService.ExpenseType {
-        switch segment {
-        case .planned: return .planned
-        case .variable: return .variable
-        }
-    }
-
-    private func makeQuickLookModel(from data: CategoryCapOverlayData) -> CategoryCapQuickLook.Model {
-        let capFormatted = data.capAmount.map { formatCurrency($0) }
-        let gaugeCandidate = max(data.capAmount ?? 0, data.spent)
-        let gaugeUpperBound = gaugeCandidate > 0 ? gaugeCandidate : 1
-        let gaugeMaximumLabel = capFormatted ?? formatCurrency(max(data.spent, 0))
-        return CategoryCapQuickLook.Model(
-            categoryName: data.categoryName,
-            segmentTitle: data.segment.displayTitle,
-            spentValue: data.spent,
-            spentFormatted: formatCurrency(data.spent),
-            capFormatted: capFormatted,
-            gaugeUpperBound: gaugeUpperBound,
-            gaugeMaximumLabel: gaugeMaximumLabel,
-            progressText: data.capAmount.flatMap { percentDescription(spent: data.spent, cap: $0) },
-            emptyCapMessage: data.capAmount == nil ? "No cap set" : nil
-        )
-    }
-
-    private func percentDescription(spent: Double, cap: Double) -> String? {
-        guard cap > 0 else { return nil }
-        let ratio = max(spent / cap, 0)
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .percent
-        formatter.maximumFractionDigits = ratio < 0.1 ? 1 : 0
-        formatter.minimumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: ratio)).map { "\($0) of cap used" }
-    }
-
-    private struct CategoryCapQuickLook: View {
-        struct Model {
-            let categoryName: String
-            let segmentTitle: String
-            let spentValue: Double
-            let spentFormatted: String
-            let capFormatted: String?
-            let gaugeUpperBound: Double
-            let gaugeMaximumLabel: String
-            let progressText: String?
-            let emptyCapMessage: String?
-        }
-
-        let model: Model
-        let onDismiss: () -> Void
-        let onEdit: () -> Void
-
-        var body: some View {
-            GeometryReader { proxy in
-                ZStack(alignment: .center) {
-                    Color.black.opacity(0.35)
-                        .ignoresSafeArea()
-                        .contentShape(Rectangle())
-                        .onTapGesture { onDismiss() }
-
-                    VStack(alignment: .leading, spacing: 18) {
-                        HStack {
-                            editButton
-                            Spacer()
-                        }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(model.categoryName)
-                                .font(.title3.weight(.semibold))
-                            Text(model.segmentTitle)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Gauge(value: model.spentValue, in: 0...model.gaugeUpperBound) {
-                            Text("Progress")
-                                .font(.caption.weight(.semibold))
-                        } currentValueLabel: {
-                            Text(model.spentFormatted)
-                                .font(.caption.weight(.semibold).monospacedDigit())
-                        } minimumValueLabel: {
-                            Text("$0")
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        } maximumValueLabel: {
-                            Text(model.gaugeMaximumLabel)
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        }
-
-                        HStack(alignment: .top, spacing: 20) {
-                            valueColumn(title: "Spent", value: model.spentFormatted)
-                            if let cap = model.capFormatted {
-                                valueColumn(title: "Cap", value: cap)
-                            }
-                        }
-
-                        if let message = model.emptyCapMessage {
-                            Text(message)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        if let progress = model.progressText {
-                            Text(progress)
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(22)
-                    .frame(
-                        maxWidth: max(260, min(max(proxy.size.width - 40, 0), 360)),
-                        alignment: .leading
-                    )
-                    .background(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                    )
-                    .shadow(color: Color.black.opacity(0.2), radius: 18, x: 0, y: 6)
-                }
-            }
-        }
-
-        @ViewBuilder
-        private var editButton: some View {
-            if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-                Button(action: onEdit) {
-                    Label("Edit", systemImage: "slider.horizontal.3")
-                        .font(.callout.weight(.semibold))
-                        .labelStyle(.titleAndIcon)
-                        .padding(.horizontal, 12)
-                        .frame(height: 33)
-                }
-                .buttonBorderShape(.capsule)
-                .buttonStyle(.glass)
-            } else {
-                Button(action: onEdit) {
-                    Label("Edit", systemImage: "slider.horizontal.3")
-                        .font(.callout.weight(.semibold))
-                        .labelStyle(.titleAndIcon)
-                        .padding(.horizontal, 12)
-                        .frame(height: 33)
-                        .background(
-                            Capsule(style: .circular)
-                                .fill(Color.primary.opacity(0.08))
-                        )
-                }
-                .buttonBorderShape(.capsule)
-                .buttonStyle(.plain)
-            }
-        }
-
-        private func valueColumn(title: String, value: String) -> some View {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.headline.monospacedDigit())
-            }
-        }
-    }
-
-    private extension Segment {
-        var displayTitle: String {
-            switch self {
-            case .planned: return "Planned Expenses"
-            case .variable: return "Variable Expenses"
-            }
-        }
-    }
-
     // MARK: Chips Styling
     @ViewBuilder
-    private func chipView(categoryID: UUID?, title: String, amount: Double, hex: String?, segment: Segment) -> some View {
+    private func chipView(title: String, amount: Double, hex: String?) -> some View {
         let dot = UBColorFromHex(hex) ?? .secondary
         let chipLabel = HStack(spacing: 8) {
             Circle().fill(dot).frame(width: 8, height: 8)
@@ -844,16 +546,6 @@ struct HomeView: View {
             .padding(.horizontal, 12)
             .frame(height: 33)
             .background(.clear)
-        let longPress = LongPressGesture(minimumDuration: 0.5)
-            .onEnded { isPressed in
-                guard isPressed else { return }
-                handleCategoryChipLongPress(
-                    categoryID: categoryID,
-                    fallbackName: title,
-                    displayedAmount: amount,
-                    segment: segment
-                )
-            }
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: {}) { chipLabel }
                 .buttonStyle(.glass)
@@ -864,7 +556,6 @@ struct HomeView: View {
                 .frame(height: 33)
                 .clipShape(Capsule())
                 .compositingGroup()
-                .simultaneousGesture(longPress)
         } else {
             chipLabel
                 .background(
@@ -875,7 +566,6 @@ struct HomeView: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .frame(height: 33)
-                .gesture(longPress)
         }
 
     }

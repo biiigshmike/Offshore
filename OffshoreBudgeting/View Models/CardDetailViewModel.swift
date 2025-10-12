@@ -45,6 +45,7 @@ struct CardExpense: Identifiable, Hashable {
     let date: Date?
     let category: ExpenseCategory?
     let isPlanned: Bool
+    let isPreset: Bool
 
     var id: String {
         if let oid = objectID { return oid.uriRepresentation().absoluteString }
@@ -160,7 +161,8 @@ final class CardDetailViewModel: ObservableObject {
                                    amount: exp.value(forKey: "amount") as? Double ?? 0,
                                    date: exp.value(forKey: "transactionDate") as? Date,
                                    category: cat,
-                                   isPlanned: false)
+                                   isPlanned: false,
+                                   isPreset: false)
             }
 
             let mappedPlanned: [CardExpense] = planned.map { exp in
@@ -175,10 +177,40 @@ final class CardDetailViewModel: ObservableObject {
                                    amount: amount,
                                    date: exp.transactionDate,
                                    category: cat,
-                                   isPlanned: true)
+                                   isPlanned: true,
+                                   isPreset: false)
             }
 
-            let combined = (mappedUnplanned + mappedPlanned).sorted { (a, b) in
+            let templates: [PlannedExpense]
+            if let interval = allowedInterval {
+                templates = try plannedService.fetchTemplatesForCard(uuid, in: interval, sortedByDateAscending: false)
+            } else {
+                templates = try plannedService.fetchTemplatesForCard(uuid, sortedByDateAscending: false)
+            }
+
+            let instantiatedTemplateIDs = Set(planned.compactMap { $0.globalTemplateID })
+            let filteredTemplates = templates.filter { exp in
+                guard let templateID = exp.value(forKey: "id") as? UUID else { return true }
+                return !instantiatedTemplateIDs.contains(templateID)
+            }
+
+            let mappedTemplates: [CardExpense] = filteredTemplates.map { exp in
+                let desc = (exp.value(forKey: "descriptionText") as? String)
+                    ?? (exp.value(forKey: "title") as? String) ?? ""
+                let uuid = exp.value(forKey: "id") as? UUID
+                let cat = exp.expenseCategory
+                let amount = exp.actualAmount != 0 ? exp.actualAmount : exp.plannedAmount
+                return CardExpense(objectID: exp.objectID,
+                                   uuid: uuid,
+                                   description: desc,
+                                   amount: amount,
+                                   date: exp.transactionDate,
+                                   category: cat,
+                                   isPlanned: true,
+                                   isPreset: true)
+            }
+
+            let combined = (mappedUnplanned + mappedPlanned + mappedTemplates).sorted { (a, b) in
                 let ad = a.date ?? .distantPast
                 let bd = b.date ?? .distantPast
                 return ad > bd

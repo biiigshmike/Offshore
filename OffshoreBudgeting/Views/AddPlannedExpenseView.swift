@@ -33,6 +33,7 @@ struct AddPlannedExpenseView: View {
     @EnvironmentObject private var cardPickerStore: CardPickerStore
     @StateObject private var vm: AddPlannedExpenseViewModel
     @State private var isAssigningToBudget: Bool
+    @State private var didSyncAssignBudgetToggle = false
 
     /// Guard to apply `defaultSaveAsGlobalPreset` only once on first load.
     @State private var didApplyDefaultGlobal = false
@@ -72,7 +73,15 @@ struct AddPlannedExpenseView: View {
         self.showAssignBudgetToggle = showAssignBudgetToggle
         self.onSaved = onSaved
         self.initialCardID = initialCardID
-        _isAssigningToBudget = State(initialValue: !showAssignBudgetToggle)
+        let shouldStartAssigning: Bool
+        if !showAssignBudgetToggle {
+            shouldStartAssigning = true
+        } else if plannedExpenseID != nil || preselectedBudgetID != nil {
+            shouldStartAssigning = true
+        } else {
+            shouldStartAssigning = false
+        }
+        _isAssigningToBudget = State(initialValue: shouldStartAssigning)
         _vm = StateObject(
             wrappedValue: AddPlannedExpenseViewModel(
                 plannedExpenseID: plannedExpenseID,
@@ -277,11 +286,19 @@ struct AddPlannedExpenseView: View {
         .onAppear {
             vm.attachCardPickerStoreIfNeeded(cardPickerStore)
             vm.startIfNeeded()
+            applyInitialAssignBudgetToggleIfNeeded()
         }
         .onChange(of: vm.cardsLoaded) { _ in
             guard vm.cardsLoaded else { return }
             applyDefaultSaveAsGlobalPresetIfNeeded()
             applyInitialCardSelectionIfNeeded()
+            applyInitialAssignBudgetToggleIfNeeded()
+        }
+        .onChange(of: vm.allBudgets.count) { _ in
+            applyInitialAssignBudgetToggleIfNeeded()
+        }
+        .onChange(of: vm.selectedBudgetID) { _ in
+            applyInitialAssignBudgetToggleIfNeeded()
         }
         .onChange(of: vm.allCards) { _ in
             applyInitialCardSelectionIfNeeded()
@@ -464,6 +481,17 @@ struct AddPlannedExpenseView: View {
               vm.allCards.contains(where: { $0.objectID == initialCardID }) else { return }
         vm.selectedCardID = initialCardID
         didApplyInitialCardSelection = true
+    }
+
+    private func applyInitialAssignBudgetToggleIfNeeded() {
+        guard showAssignBudgetToggle, !didSyncAssignBudgetToggle else { return }
+        let hasSelection = (vm.selectedBudgetID != nil)
+        if hasSelection != isAssigningToBudget {
+            isAssigningToBudget = hasSelection
+        }
+        if hasSelection || !vm.allBudgets.isEmpty {
+            didSyncAssignBudgetToggle = true
+        }
     }
 }
 

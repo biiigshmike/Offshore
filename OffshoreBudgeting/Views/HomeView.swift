@@ -20,15 +20,6 @@ struct HomeView: View {
     // MARK: Local UI State
     enum Segment: String, CaseIterable, Identifiable { case planned, variable; var id: String { rawValue } }
     @State private var segment: Segment = .planned
-    private struct CategorySelection: Equatable {
-        let segment: Segment
-        let category: BudgetSummary.CategorySpending
-
-        func matches(_ category: BudgetSummary.CategorySpending, segment: Segment) -> Bool {
-            self.segment == segment && self.category == category
-        }
-    }
-    @State private var selectedCategory: CategorySelection?
     @Namespace private var homeToolbarGlassNamespace
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
@@ -86,16 +77,12 @@ struct HomeView: View {
             isAddMenuVisible = summary != nil
             reloadRows()
         }
-        .onChange(of: segment) { _ in
-            selectedCategory = nil
-            reloadRows()
-        }
+        .onChange(of: segment) { _ in reloadRows() }
         .onChange(of: sort) { _ in reloadRows() }
         .onChange(of: summaryIDString) { _ in
             withAnimation(.easeInOut(duration: 0.2)) {
                 isAddMenuVisible = summary != nil
             }
-            selectedCategory = nil
             reloadRows()
         }
         .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
@@ -277,18 +264,10 @@ struct HomeView: View {
     // MARK: Category Chips
     private var categoryChips: some View {
         let categories = (segment == .planned ? summary?.plannedCategoryBreakdown : summary?.variableCategoryBreakdown) ?? []
-        let selection = selectedCategory
         return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(categories) { cat in
-                    chipView(
-                        title: cat.categoryName,
-                        amount: cat.amount,
-                        hex: cat.hexColor,
-                        isSelected: selection?.matches(cat, segment: segment) ?? false,
-                        onTap: { selectCategory(cat, in: segment) },
-                        onLongPress: { requestBudgetCap(for: cat, in: segment) }
-                    )
+                    chipView(title: cat.categoryName, amount: cat.amount, hex: cat.hexColor)
                 }
                 if categories.isEmpty {
                     Text("No categories yet")
@@ -555,26 +534,9 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Category Selection
-    private func selectCategory(_ category: BudgetSummary.CategorySpending, in segment: Segment) {
-        selectedCategory = CategorySelection(segment: segment, category: category)
-    }
-
-    private func requestBudgetCap(for category: BudgetSummary.CategorySpending, in segment: Segment) {
-        selectCategory(category, in: segment)
-        // The forthcoming gauge overlay observes `selectedCategory` to configure its presentation.
-    }
-
     // MARK: Chips Styling
     @ViewBuilder
-    private func chipView(
-        title: String,
-        amount: Double,
-        hex: String?,
-        isSelected: Bool = false,
-        onTap: (() -> Void)? = nil,
-        onLongPress: (() -> Void)? = nil
-    ) -> some View {
+    private func chipView(title: String, amount: Double, hex: String?) -> some View {
         let dot = UBColorFromHex(hex) ?? .secondary
         let chipLabel = HStack(spacing: 8) {
             Circle().fill(dot).frame(width: 8, height: 8)
@@ -585,73 +547,27 @@ struct HomeView: View {
             .frame(height: 33)
             .background(.clear)
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Button(action: { onTap?() }) { chipLabel }
+            Button(action: {}) { chipLabel }
                 .buttonStyle(.glass)
                 .buttonBorderShape(.capsule)
                 .foregroundStyle(.primary)
+                .allowsHitTesting(false)
+                .disabled(false)
                 .frame(height: 33)
                 .clipShape(Capsule())
-                .contentShape(Capsule())
                 .compositingGroup()
-                .overlay {
-                    if isSelected {
-                        Capsule()
-                            .stroke(Color.accentColor, lineWidth: 2)
-                    }
-                }
-                .modifier(CategoryChipInteractionModifier(onLongPress: onLongPress))
         } else {
-            Button(action: { onTap?() }) {
-                chipLabel
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(Color(UIColor { traits in
-                                traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
-                            }))
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .frame(height: 33)
-            .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .overlay {
-                if isSelected {
+            chipLabel
+                .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke(Color.accentColor, lineWidth: 1.5)
-                }
-            }
-            .modifier(CategoryChipInteractionModifier(onLongPress: onLongPress))
+                        .fill(Color(UIColor { traits in
+                            traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
+                        }))
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .frame(height: 33)
         }
 
-    }
-
-    private struct CategoryChipInteractionModifier: ViewModifier {
-        let onLongPress: (() -> Void)?
-
-        @ViewBuilder
-        func body(content: Content) -> some View {
-            #if os(macOS) || targetEnvironment(macCatalyst)
-            if let onLongPress {
-                content
-                    .onLongPressGesture(minimumDuration: 0.4) {
-                        onLongPress()
-                    }
-                    .contextMenu {
-                        Button("Adjust Budget Cap") { onLongPress() }
-                    }
-            } else {
-                content
-            }
-            #else
-            if let onLongPress {
-                content.onLongPressGesture(minimumDuration: 0.4) {
-                    onLongPress()
-                }
-            } else {
-                content
-            }
-            #endif
-        }
     }
 
     // MARK: Rows + Data

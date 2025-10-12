@@ -130,7 +130,35 @@ final class PlannedExpenseService {
         let sort = NSSortDescriptor(key: "transactionDate", ascending: sortedByDateAscending)
         return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
     }
-    
+
+    // MARK: fetchTemplatesForCard(_:sortedByDateAscending:)
+    /// Fetch global planned expense templates attached to a card.
+    /// - Parameters:
+    ///   - cardID: Card UUID.
+    ///   - sortedByDateAscending: Sort ascending (default true).
+    /// - Returns: Array of global PlannedExpense templates for the card.
+    func fetchTemplatesForCard(_ cardID: UUID,
+                               sortedByDateAscending: Bool = true) throws -> [PlannedExpense] {
+        let predicate = NSPredicate(format: "card.id == %@ AND isGlobal == YES", cardID as CVarArg)
+        let sort = NSSortDescriptor(key: "transactionDate", ascending: sortedByDateAscending)
+        return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
+    }
+
+    // MARK: fetchTemplatesForCard(_:in:sortedByDateAscending:)
+    /// Fetch global planned expense templates for a card constrained to a date interval (inclusive).
+    /// - Parameters:
+    ///   - cardID: Card UUID.
+    ///   - interval: Date interval filter (inclusive).
+    ///   - sortedByDateAscending: Sort ascending (default true).
+    func fetchTemplatesForCard(_ cardID: UUID,
+                               in interval: DateInterval,
+                               sortedByDateAscending: Bool = true) throws -> [PlannedExpense] {
+        let predicate = NSPredicate(format: "card.id == %@ AND isGlobal == YES AND transactionDate >= %@ AND transactionDate <= %@",
+                                    cardID as CVarArg, interval.start as CVarArg, interval.end as CVarArg)
+        let sort = NSSortDescriptor(key: "transactionDate", ascending: sortedByDateAscending)
+        return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
+    }
+
     // MARK: - CREATE
     
     // MARK: create(inBudgetID:titleOrDescription:plannedAmount:actualAmount:transactionDate:isGlobal:globalTemplateID:)

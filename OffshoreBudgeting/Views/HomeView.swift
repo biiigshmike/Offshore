@@ -559,7 +559,6 @@ struct HomeView: View {
                 chipLabel
                     .glassEffect(.regular.tint(.none).interactive(false))
             }
-            .buttonStyle(.plain)
             .buttonBorderShape(.capsule)
             .foregroundStyle(.primary)
             .allowsHitTesting(false)

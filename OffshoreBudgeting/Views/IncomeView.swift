@@ -343,6 +343,9 @@ struct IncomeView: View {
     private func format(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
 
     // MARK: Sheet Box
-    private struct SheetDateBox: Identifiable { let id = UUID(); let value: Date }
+    private struct SheetDateBox: Identifiable {
+        let value: Date
+        var id: Date { value }
+    }
 }
 //

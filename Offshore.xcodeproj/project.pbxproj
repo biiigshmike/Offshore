@@ -421,11 +421,8 @@
 				ASSETCATALOG_OTHER_FLAGS = "--enable-icon-stack-fallback-generation=disabled";
 				CLANG_TIDY_BUGPRONE_REDUNDANT_BRANCH_CONDITION = YES;
 				CLANG_TIDY_MISC_REDUNDANT_EXPRESSION = YES;
-                                CODE_SIGN_ENTITLEMENTS = OffshoreBudgeting/OffshoreBudgeting.entitlements;
-                                "CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = OffshoreBudgeting/OffshoreBudgeting.entitlements;
-                                "CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = OffshoreBudgeting/OffshoreBudgeting.entitlements;
-                                "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = OffshoreBudgeting/OffshoreBudgeting.mac.entitlements;
-                                CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_ENTITLEMENTS = OffshoreBudgeting/OffshoreBudgeting.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
@@ -479,10 +476,7 @@
 				ASSETCATALOG_OTHER_FLAGS = "--enable-icon-stack-fallback-generation=disabled";
 				CLANG_TIDY_BUGPRONE_REDUNDANT_BRANCH_CONDITION = YES;
 				CLANG_TIDY_MISC_REDUNDANT_EXPRESSION = YES;
-                                CODE_SIGN_ENTITLEMENTS = OffshoreBudgeting/OffshoreBudgeting.entitlements;
-                                "CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = OffshoreBudgeting/OffshoreBudgeting.entitlements;
-                                "CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = OffshoreBudgeting/OffshoreBudgeting.entitlements;
-                                "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = OffshoreBudgeting/OffshoreBudgeting.mac.entitlements;
+				CODE_SIGN_ENTITLEMENTS = OffshoreBudgeting/OffshoreBudgeting.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

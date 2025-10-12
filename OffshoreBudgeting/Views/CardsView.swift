@@ -48,8 +48,8 @@ struct CardsView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity, minHeight: 240)
-                        .padding(.top, 24)
+                        .frame(maxWidth: .infinity, minHeight: 260)
+                        .padding(.horizontal, 16)
                     case .loaded(let cards):
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(cards) { card in

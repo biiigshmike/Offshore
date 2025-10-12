@@ -37,7 +37,6 @@ struct HomeView: View {
 
     @State private var categoryCapOverlay: CategoryCapOverlayData?
     @State private var isShowingCategoryCapOverlay: Bool = false
-    @State private var editingCategoryCap: CategoryCapOverlayData?
 
     // MARK: Sheet Toggles (kept small and focused)
     @State private var isPresentingAddPlanned: Bool = false
@@ -126,24 +125,6 @@ struct HomeView: View {
                 onSaved: { Task { await vm.refresh(); reloadRows() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .sheet(item: $editingCategoryCap) { data in
-            CategoryCapEditorView(
-                categoryID: data.categoryID,
-                displayName: data.categoryName,
-                expenseType: expenseType(for: data.segment),
-                period: budgetPeriod,
-                existingAmount: data.capAmount,
-                onComplete: {
-                    Task {
-                        await vm.refresh()
-                        await MainActor.run {
-                            reloadRows()
-                            refreshCategoryCapOverlay(reloadCap: true)
-                        }
-                    }
-                }
-            )
         }
         .overlay(alignment: .center) {
             categoryCapOverlayView
@@ -657,8 +638,8 @@ struct HomeView: View {
         categoryCapOverlay = nil
     }
 
-    private func editCategoryCap(_ data: CategoryCapOverlayData) {
-        editingCategoryCap = data
+    private func editCategoryCap(_: CategoryCapOverlayData) {
+        // Reserved for future editing flow integration.
     }
 
     private func categorySpending(for categoryID: UUID, segment: Segment) -> BudgetSummary.CategorySpending? {

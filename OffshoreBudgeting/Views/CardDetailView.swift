@@ -237,18 +237,11 @@ struct CardDetailView: View {
                 } else {
                     ForEach(expenses) { expense in
                         ExpenseRow(expense: expense, currencyCode: currencyCode)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    requestDelete(expense)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                                Button {
-                                    editingExpense = expense
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                            }
+                            .unifiedSwipeActions(
+                                UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
+                                onEdit: { editingExpense = expense },
+                                onDelete: { requestDelete(expense) }
+                            )
                     }
                     .onDelete(perform: handleDelete)
                 }

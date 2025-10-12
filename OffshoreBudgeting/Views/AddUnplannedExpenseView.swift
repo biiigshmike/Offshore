@@ -497,7 +497,7 @@ private struct CategoryChip: View {
                         .tint(isSelected ? categoryColor : .none)
                         .interactive(true)
                 )
-                .opacity(0.9)
+                .opacity(0.5)
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)
         } else {

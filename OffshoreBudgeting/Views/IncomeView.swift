@@ -22,6 +22,7 @@ struct IncomeView: View {
 
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
+    @Environment(\.responsiveLayoutContext) private var layoutContext
 
     // MARK: Body
     var body: some View {
@@ -223,8 +224,21 @@ struct IncomeView: View {
 
             return resolved
         }
-        .frame(height: 335)
+        .frame(height: calendarHeight)
         .transaction { t in t.animation = nil; t.disablesAnimations = true }
+    }
+
+    private var calendarHeight: CGFloat {
+        switch layoutContext.idiom {
+        case .pad:
+            return layoutContext.isLandscape ? 440 : 450
+        case .mac:
+            return layoutContext.isLandscape ? 440 : 450
+        case .phone:
+            return layoutContext.isLandscape ? 420 : 335
+        default:
+            return layoutContext.isLandscape ? 420 : 335
+        }
     }
 
     // MARK: Selected Day Section

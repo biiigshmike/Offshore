@@ -148,17 +148,3 @@ enum BudgetPeriod: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: Storage Helpers
-extension BudgetPeriod {
-    /// Convert a stored raw string into a `BudgetPeriod` value.
-    /// - Parameter rawValue: Raw string persisted in Core Data or UserDefaults.
-    /// - Returns: Matching `BudgetPeriod` or `nil` if the value is unknown.
-    static func fromStorageString(_ rawValue: String?) -> BudgetPeriod? {
-        guard let rawValue else { return nil }
-        return BudgetPeriod(rawValue: rawValue)
-    }
-
-    /// Raw string representation suitable for persistence.
-    var storageString: String { rawValue }
-}
-

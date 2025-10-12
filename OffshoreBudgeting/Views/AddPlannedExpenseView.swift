@@ -724,7 +724,7 @@ private struct CategoryChip: View {
                         .tint(isSelected ? categoryColor : .none)
                         .interactive(true)
                 )
-                .opacity(0.5)
+                .opacity(0.25)
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)
         } else {
@@ -732,7 +732,7 @@ private struct CategoryChip: View {
             button
                 .buttonStyle(.plain)
                 .background(
-                    legacyShape.fill(isSelected ? categoryColor.opacity(0.9) : neutralFill)
+                    legacyShape.fill(isSelected ? categoryColor.opacity(0.25) : neutralFill)
                 )
                 .overlay(
                     legacyShape

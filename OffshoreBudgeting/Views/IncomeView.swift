@@ -232,11 +232,10 @@ struct IncomeView: View {
         let containerWidth = layoutContext.containerSize.width
         guard containerWidth.isFinite, containerWidth > 0 else { return 335 }
 
-        let horizontalInsets: CGFloat = 40 // 20pt leading + trailing list insets
+        let horizontalInsets: CGFloat = 40
         let availableWidth = max(0, containerWidth - horizontalInsets)
-        let dayDimension = max(48, (availableWidth / 7).rounded(.down))
-        let headerPadding: CGFloat = 47 // Matches existing phone layout baseline
-        let computedHeight = dayDimension * 6 + headerPadding
+        let dayDimension = max(35, (availableWidth / 7).rounded(.down))
+        let computedHeight = dayDimension * 4
 
         return max(335, computedHeight)
     }

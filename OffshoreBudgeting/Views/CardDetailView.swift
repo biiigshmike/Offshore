@@ -183,9 +183,6 @@ struct CardDetailView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("TOTAL SPENT")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
                     Text(total, format: .currency(code: currencyCode))
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -193,7 +190,7 @@ struct CardDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 8)
             } header: {
-                Text("TOTALS")
+                Text("TOTAL SPENT")
                     .font(.subheadline.weight(.semibold))
                     .textCase(nil)
             }
@@ -237,20 +234,25 @@ struct CardDetailView: View {
                 } else {
                     ForEach(expenses) { expense in
                         ExpenseRow(expense: expense, currencyCode: currencyCode)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    requestDelete(expense)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                                .tint(.red)
-                                Button {
-                                    editingExpense = expense
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                .tint(.gray)
-                            }
+//                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+//                                Button(role: .destructive) {
+//                                    requestDelete(expense)
+//                                } label: {
+//                                    Label("Delete", systemImage: "trash")
+//                                }
+//                                .tint(.red)
+//                                Button {
+//                                    editingExpense = expense
+//                                } label: {
+//                                    Label("Edit", systemImage: "pencil")
+//                                }
+//                                .tint(.gray)
+//                            }
+                            .unifiedSwipeActions(
+                                UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
+                                onEdit: { editingExpense = expense },
+                                onDelete: { requestDelete(expense) }
+                            )
                     }
                     .onDelete(perform: handleDelete)
                 }

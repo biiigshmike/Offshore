@@ -471,9 +471,12 @@ struct HomeView: View {
     private var summary: BudgetSummary? {
         switch vm.state {
         case .loaded(let items):
-            // Prefer a summary that contains the selected date; otherwise the first available.
-            let chosen = items.first(where: { $0.periodStart <= vm.selectedDate && vm.selectedDate <= $0.periodEnd })
-            return chosen ?? items.first
+            let targetRange = budgetPeriod.range(containing: vm.selectedDate)
+            let calendar = Calendar.current
+            return items.first { item in
+                calendar.isDate(item.periodStart, inSameDayAs: targetRange.start) &&
+                calendar.isDate(item.periodEnd, inSameDayAs: targetRange.end)
+            }
         default:
             return nil
         }

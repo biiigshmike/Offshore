@@ -25,6 +25,9 @@ struct CardTileView: View {
     var isSelected: Bool = false
     /// Optional tap callback.
     var onTap: (() -> Void)? = nil
+    /// When false, renders as a plain, non-interactive view (useful as a
+    /// NavigationLink label so the link receives taps instead of an inner button).
+    var isInteractive: Bool = true
     /// When true, enables motion‑driven metallic/shine overlays in the title.
     /// Keep this OFF for grids to avoid heavy per‑frame updates; turn ON for
     /// single, prominent tiles (e.g., detail header).
@@ -43,32 +46,14 @@ struct CardTileView: View {
 
     // MARK: Body
     var body: some View {
-        Button(action: { onTap?() }) {
-            ZStack(alignment: .bottomLeading) {
-
-                // MARK: Card Background (STATIC gradient + pattern)
-                ZStack {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(backgroundStyle)
-                    card.theme
-                        .patternOverlay(cornerRadius: cornerRadius)
-                        .blendMode(.overlay)
-                }
-
-                // MARK: Title (Metallic shimmer stays)
-                cardTitle
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .padding(.all, DS.Spacing.l)
+        Group {
+            if isInteractive {
+                Button(action: { onTap?() }) { tileVisual }
+                    .buttonStyle(.plain)
+            } else {
+                tileVisual
             }
-            .aspectRatio(aspectRatio, contentMode: .fit)
-            .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay(selectionRingOverlay) // <- inner visible ring
-            .overlay(selectionGlowOverlay) // <- outer glow (pretty when not clipped)
-            .overlay(thinEdgeOverlay)
-            //.shadow(color: .black.opacity(showsBaseShadow ? 0.20 : 0), radius: showsBaseShadow ? 6 : 0, x: 0, y: showsBaseShadow ? 4 : 0)
         }
-        .buttonStyle(.plain) // avoid system blue highlight
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(card.name)\(isSelected ? ", selected" : "")"))
         .accessibilityHint(Text("Tap to select card"))
@@ -78,6 +63,32 @@ struct CardTileView: View {
 
 // MARK: - Computed Views
 private extension CardTileView {
+    // MARK: Tile Visual
+    var tileVisual: some View {
+        ZStack(alignment: .bottomLeading) {
+
+            // MARK: Card Background (STATIC gradient + pattern)
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(backgroundStyle)
+                card.theme
+                    .patternOverlay(cornerRadius: cornerRadius)
+                    .blendMode(.overlay)
+            }
+
+            // MARK: Title (Metallic shimmer stays)
+            cardTitle
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .padding(.all, DS.Spacing.l)
+        }
+        .aspectRatio(aspectRatio, contentMode: .fit)
+        .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(selectionRingOverlay) // <- inner visible ring
+        .overlay(selectionGlowOverlay) // <- outer glow (pretty when not clipped)
+        .overlay(thinEdgeOverlay)
+        //.shadow(color: .black.opacity(showsBaseShadow ? 0.20 : 0), radius: showsBaseShadow ? 6 : 0, x: 0, y: showsBaseShadow ? 4 : 0)
+    }
 
     // MARK: Background Gradient (STATIC)
     var backgroundStyle: AnyShapeStyle {

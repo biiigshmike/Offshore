@@ -13,6 +13,7 @@ struct CardsView: View {
     @State private var isPresentingAddCard = false
     @State private var isPresentingCardVariableExpense = false
     @State private var detailCard: CardItem? = nil
+    @State private var editingCard: CardItem? = nil
 
     // MARK: Grid
     private let columns = [GridItem(.adaptive(minimum: 260, maximum: 260), spacing: 16)]
@@ -57,14 +58,18 @@ struct CardsView: View {
                                     CardTileView(
                                         card: card,
                                         isSelected: false,
-                                        onTap: { detailCard = card },
+                                        onTap: { /* handled by NavigationLink */ },
+                                        isInteractive: false,
                                         enableMotionShine: true,
                                         showsBaseShadow: false
                                     )
                                     .frame(height: cardHeight)
                                 }
                                 .contextMenu {
-                                    Button("Edit", systemImage: "pencil") { detailCard = card }
+                                    Button("Edit", systemImage: "pencil") { editingCard = card }
+                                    Button("Delete", systemImage: "trash", role: .destructive) {
+                                        vm.requestDelete(card: card)
+                                    }
                                 }
                             }
                         }
@@ -110,6 +115,12 @@ struct CardsView: View {
                     isPresentingAddExpense: $isPresentingCardVariableExpense,
                     onDone: { detailCard = nil }
                 )
+            }
+            // Edit sheet
+            .sheet(item: $editingCard) { card in
+                AddCardFormView(mode: .edit, editingCard: card) { name, theme in
+                    Task { await vm.edit(card: card, name: name, theme: theme) }
+                }
             }
         }
     }

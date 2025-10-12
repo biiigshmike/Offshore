@@ -129,7 +129,23 @@ final class CardDetailViewModel: ObservableObject {
     
     // MARK: load()
     func load() async {
-        guard let uuid = card.uuid else {
+        // Resolve a UUID for this card. If missing but we have an objectID,
+        // attempt to read/write a UUID on the managed object so downstream
+        // fetches can proceed.
+        var resolvedUUID: UUID? = card.uuid
+        if resolvedUUID == nil, let oid = card.objectID {
+            if let managed = try? viewContext.existingObject(with: oid) as? Card {
+                if let current = managed.value(forKey: "id") as? UUID {
+                    resolvedUUID = current
+                } else {
+                    let newID = UUID()
+                    managed.setValue(newID, forKey: "id")
+                    do { try viewContext.save() } catch { /* fall through with nil UUID */ }
+                    resolvedUUID = newID
+                }
+            }
+        }
+        guard let uuid = resolvedUUID else {
             state = .error("Missing card ID")
             return
         }

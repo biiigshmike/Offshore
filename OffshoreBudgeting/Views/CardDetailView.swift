@@ -23,6 +23,7 @@ struct CardDetailView: View {
     @Environment(\.responsiveLayoutContext) private var layoutContext
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
     @State private var isSearchActive: Bool = false
     @FocusState private var isSearchFieldFocused: Bool
@@ -53,7 +54,7 @@ struct CardDetailView: View {
     
     // MARK: Body
     var body: some View {
-        navigationContainer
+        navigationContent
         .ub_navigationBackground(
             theme: themeManager.selectedTheme,
             configuration: themeManager.glassConfiguration
@@ -355,20 +356,6 @@ struct CardDetailView: View {
         }
     }
 
-    // MARK: navigationContainer
-    @ViewBuilder
-    private var navigationContainer: some View {
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
-            NavigationStack {
-                navigationContent
-            }
-        } else {
-            NavigationView {
-                navigationContent
-            }
-        }
-    }
-
     private var navigationContent: some View {
         content
             .navigationTitle(cardSnapshot.name)
@@ -377,7 +364,7 @@ struct CardDetailView: View {
         #endif
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") { onDone() }
+                    Button("Done") { dismiss(); onDone() }
                         .keyboardShortcut(.escape, modifiers: [])
                 }
                 ToolbarItemGroup(placement: .navigationBarTrailing) {

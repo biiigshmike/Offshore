@@ -620,9 +620,9 @@ private extension CategoryChipsRow {
                         id: cat.objectID.uriRepresentation().absoluteString,
                         name: cat.name ?? "Untitled",
                         colorHex: cat.color ?? "#999999",
-                        isSelected: isSelected
+                        isSelected: isSelected,
+                        action: { selectedCategoryID = cat.objectID }
                     )
-                    .onTapGesture { selectedCategoryID = cat.objectID }
                 }
             }
         }
@@ -692,55 +692,52 @@ private struct CategoryChip: View {
     let name: String
     let colorHex: String
     let isSelected: Bool
-    @Environment(\.colorScheme) private var colorScheme
+    let action: () -> Void
 
     var body: some View {
         let categoryColor = UBColorFromHex(colorHex) ?? .secondary
-        let style = CategoryChipStyle.make(
-            isSelected: isSelected,
-            categoryColor: categoryColor,
-            colorScheme: colorScheme
-        )
+        let legacyShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
 
-        let chipLabel = HStack(spacing: DS.Spacing.s) {
+        let label = HStack(spacing: DS.Spacing.s) {
             Circle()
                 .fill(categoryColor)
                 .frame(width: 10, height: 10)
             Text(name)
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
         }
+        .padding(.horizontal, 12)
+        .frame(height: 44)
 
-        let legacyShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
-
-        Group {
-            if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                CategoryChipPill(
-                    isSelected: isSelected,
-                    glassTint: style.glassTint,
-                    glassTextColor: style.glassTextColor,
-                    fallbackTextColor: style.glassTextColor,
-                    fallbackFill: style.fallbackFill,
-                    fallbackStrokeColor: style.fallbackStroke.color,
-                    fallbackStrokeLineWidth: style.fallbackStroke.lineWidth
-                ) {
-                    chipLabel
-                }
-            } else {
-                chipLabel
-                    .foregroundStyle(style.fallbackTextColor)
-                    .padding(.horizontal, 12)
-                    .frame(height: 44)
-                    .background(legacyShape.fill(style.fallbackFill))
-                    .overlay(
-                        legacyShape
-                            .stroke(style.fallbackStroke.color, lineWidth: style.fallbackStroke.lineWidth)
-                    )
-                    .contentShape(legacyShape)
-            }
+        let button = Button(action: action) {
+            label
         }
-        .scaleEffect(style.scale)
-        .animation(.easeOut(duration: 0.15), value: isSelected)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .animation(.easeOut(duration: 0.15), value: isSelected)
+
+        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            button
+                .glassEffect(
+                    .regular
+                        .tint(isSelected ? categoryColor : .none)
+                        .opacity(0.9)
+                        .interactive(true)
+                )
+                .buttonStyle(.plain)
+                .buttonBorderShape(.capsule)
+        } else {
+            let neutralFill = DS.Colors.chipFill
+            button
+                .buttonStyle(.plain)
+                .background(
+                    legacyShape.fill(isSelected ? categoryColor.opacity(0.9) : neutralFill)
+                )
+                .overlay(
+                    legacyShape
+                        .stroke(neutralFill, lineWidth: 1)
+                )
+                .contentShape(legacyShape)
+        }
     }
 
 }

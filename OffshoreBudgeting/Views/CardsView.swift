@@ -11,6 +11,7 @@ struct CardsView: View {
     // MARK: State & ViewModel
     @StateObject private var vm = CardsViewModel()
     @State private var isPresentingAddCard = false
+    @State private var isPresentingCardVariableExpense = false
     @State private var detailCard: CardItem? = nil
 
     // MARK: Grid
@@ -82,10 +83,15 @@ struct CardsView: View {
         .sheet(item: $detailCard) { card in
             CardDetailView(
                 card: card,
-                isPresentingAddExpense: .constant(false),
+                isPresentingAddExpense: $isPresentingCardVariableExpense,
                 onDone: { detailCard = nil },
                 onEdit: { /* handled in detail */ }
             )
+        }
+        .onChange(of: detailCard) { newValue in
+            if newValue == nil {
+                isPresentingCardVariableExpense = false
+            }
         }
         .alert(item: $vm.alert) { alert in
             switch alert.kind {

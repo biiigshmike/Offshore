@@ -658,10 +658,9 @@ private struct AddCategoryPill: View {
                     .font(.subheadline.weight(.semibold))
                     .glassEffect(.regular.tint(.none).interactive(true))
             }
-            .tint(themeManager.selectedTheme.resolvedTint)
-            .buttonStyle(.glass)
-            .controlSize(.regular)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
+            .buttonStyle(.plain)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .center)
+            .frame(height: 44)
             .accessibilityLabel("Add Category")
         } else {
             Button(action: onTap) {
@@ -720,9 +719,9 @@ private struct CategoryChip: View {
                 .glassEffect(
                     .regular
                         .tint(isSelected ? categoryColor : .none)
-                        .opacity(0.9)
                         .interactive(true)
                 )
+                .opacity(0.9)
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)
         } else {

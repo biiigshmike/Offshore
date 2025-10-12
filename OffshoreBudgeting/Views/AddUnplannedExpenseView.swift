@@ -129,6 +129,7 @@ struct AddUnplannedExpenseView: View {
                         Text("No cards yet. Add one to assign this expense.")
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(height: 44)
                         GlassCTAButton(
                             maxWidth: .infinity,
                             fillHorizontally: true,
@@ -429,9 +430,7 @@ private struct AddCategoryPill: View {
                     .font(.subheadline.weight(.semibold))
                     .glassEffect(.regular.tint(.none).interactive(true))
             }
-            .tint(themeManager.selectedTheme.resolvedTint)
-            .buttonStyle(.glass)
-            .controlSize(.regular)
+            .buttonStyle(.plain)
             .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
             .accessibilityLabel("Add Category")
         } else {
@@ -492,9 +491,9 @@ private struct CategoryChip: View {
                 .glassEffect(
                     .regular
                         .tint(isSelected ? categoryColor : .none)
-                        .opacity(0.9)
                         .interactive(true)
                 )
+                .opacity(0.9)
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)
         } else {

@@ -697,7 +697,6 @@ private struct CategoryChip: View {
                 ) {
                     chipLabel
                 }
-                .glass()
             } else {
                 chipLabel
                     .foregroundStyle(style.fallbackTextColor)

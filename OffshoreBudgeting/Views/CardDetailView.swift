@@ -240,26 +240,26 @@ struct CardDetailView: View {
             .padding(.horizontal, listRowHorizontalPadding)
             .padding(.top, initialHeaderTopPadding)
             .padding(.bottom, 12)
-            .listRowInsets(.init())
-            .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
     }
 
     @ViewBuilder
     private func totalsListRow(total: Double) -> some View {
         totalsSection(total: total)
-            .padding(.horizontal, listRowHorizontalPadding)
-            .listRowInsets(.init(top: 0, leading: 0, bottom: 12, trailing: 0))
-            .listRowBackground(Color.clear)
+            .listRowBackground(
+                rowBackground(color: themeManager.selectedTheme.secondaryBackground)
+                    .padding(.horizontal, listRowHorizontalPadding)
+            )
             .listRowSeparator(.hidden)
     }
 
     @ViewBuilder
     private func categoryListRow(categories: [CardCategoryTotal]) -> some View {
         categoryBreakdown(categories: categories)
-            .padding(.horizontal, listRowHorizontalPadding)
-            .listRowInsets(.init(top: 0, leading: 0, bottom: 12, trailing: 0))
-            .listRowBackground(Color.clear)
+            .listRowBackground(
+                rowBackground(color: themeManager.selectedTheme.secondaryBackground)
+                    .padding(.horizontal, listRowHorizontalPadding)
+            )
             .listRowSeparator(.hidden)
     }
 
@@ -302,7 +302,11 @@ struct CardDetailView: View {
                 .padding(.bottom, 4)
                 .textCase(nil)
         }
-        if #available(iOS 15.0, macCatalyst 15.0, *) {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            section
+                .listSectionSeparator(.hidden, edges: .top)
+                .listRowSpacing(12)
+        } else if #available(iOS 15.0, macCatalyst 15.0, *) {
             section
                 .listSectionSeparator(.hidden, edges: .top)
         } else {
@@ -311,19 +315,19 @@ struct CardDetailView: View {
     }
 
     private func expenseRowContainer<Content: View>(
-        topInset: CGFloat,
-        bottomInset: CGFloat,
+        topInset _: CGFloat,
+        bottomInset _: CGFloat,
         @ViewBuilder content: () -> Content
     ) -> some View {
         content()
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, DesignSystem.Spacing.l)
             .padding(.horizontal, DesignSystem.Spacing.l)
-            .background(rowBackground(color: themeManager.selectedTheme.secondaryBackground))
-            .padding(.horizontal, listRowHorizontalPadding)
             .contentShape(Rectangle())
-            .listRowInsets(.init(top: topInset, leading: 0, bottom: bottomInset, trailing: 0))
-            .listRowBackground(Color.clear)
+            .listRowBackground(
+                rowBackground(color: themeManager.selectedTheme.secondaryBackground)
+                    .padding(.horizontal, listRowHorizontalPadding)
+            )
             .listRowSeparator(.hidden)
             .ub_preOS26ListRowBackground(themeManager.selectedTheme.secondaryBackground)
     }
@@ -457,10 +461,8 @@ struct CardDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(themeManager.selectedTheme.secondaryBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
-    
+
     // MARK: categoryBreakdown
     private func categoryBreakdown(categories: [CardCategoryTotal]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -483,8 +485,6 @@ struct CardDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(themeManager.selectedTheme.secondaryBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
     
     // MARK: Layout Helpers

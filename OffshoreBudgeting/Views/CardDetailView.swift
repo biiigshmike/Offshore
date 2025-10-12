@@ -226,20 +226,13 @@ struct CardDetailView: View {
         .listStyle(.insetGrouped)
         .scrollIndicators(.hidden)
 
+        // Simplified availability to avoid redundant platform checks.
         if #available(iOS 16.0, macCatalyst 16.0, *) {
-            if #available(iOS 17.0, macCatalyst 17.0, *) {
-                list
-                    .scrollContentBackground(.hidden)
-                    .listSectionSeparator(.hidden, edges: .all)
-                    .listSectionSpacing(20)
-            } else {
-                list
-                    .scrollContentBackground(.hidden)
-                    .listSectionSeparator(.hidden, edges: .all)
-            }
-        } else if #available(iOS 15.0, macCatalyst 15.0, *) {
             list
+                .scrollContentBackground(.hidden)
                 .listSectionSeparator(.hidden, edges: .all)
+                // iOS 17/macCatalyst 17 add listSectionSpacing; safe to call conditionally.
+                .modifier(ListSectionSpacingIfAvailable())
         } else {
             list
         }
@@ -484,4 +477,16 @@ private struct IconOnlyButton: View {
 private struct DeletionError: Identifiable {
     let id = UUID()
     let message: String
+}
+
+// MARK: - Helpers
+// Back-deploy listSectionSpacing(…) only on iOS 17+/macCatalyst 17+.
+private struct ListSectionSpacingIfAvailable: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 17.0, macCatalyst 17.0, *) {
+            content.listSectionSpacing(20)
+        } else {
+            content
+        }
+    }
 }

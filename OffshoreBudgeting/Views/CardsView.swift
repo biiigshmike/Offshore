@@ -84,8 +84,7 @@ struct CardsView: View {
             CardDetailView(
                 card: card,
                 isPresentingAddExpense: $isPresentingCardVariableExpense,
-                onDone: { detailCard = nil },
-                onEdit: { /* handled in detail */ }
+                onDone: { detailCard = nil }
             )
         }
         .onChange(of: detailCard) { newValue in

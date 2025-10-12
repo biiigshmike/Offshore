@@ -15,9 +15,10 @@ struct CardDetailView: View {
     let card: CardItem
     @Binding var isPresentingAddExpense: Bool
     var onDone: () -> Void
-    var onEdit: () -> Void
 
     // MARK: State
+    @State private var cardSnapshot: CardItem
+    @State private var isPresentingEditCard: Bool = false
     @StateObject private var viewModel: CardDetailViewModel
     @Environment(\.responsiveLayoutContext) private var layoutContext
     @EnvironmentObject private var themeManager: ThemeManager
@@ -42,12 +43,11 @@ struct CardDetailView: View {
     // MARK: Init
     init(card: CardItem,
          isPresentingAddExpense: Binding<Bool>,
-         onDone: @escaping () -> Void,
-         onEdit: @escaping () -> Void) {
+         onDone: @escaping () -> Void) {
         self.card = card
         self._isPresentingAddExpense = isPresentingAddExpense
         self.onDone = onDone
-        self.onEdit = onEdit
+        _cardSnapshot = State(initialValue: card)
         _viewModel = StateObject(wrappedValue: CardDetailViewModel(card: card))
     }
     
@@ -61,10 +61,18 @@ struct CardDetailView: View {
         .task { await viewModel.load() }
         //.accentColor(themeManager.selectedTheme.tint)
         //.tint(themeManager.selectedTheme.tint)
+        .sheet(isPresented: $isPresentingEditCard) {
+            AddCardFormView(
+                mode: .edit,
+                editingCard: cardSnapshot
+            ) { name, theme in
+                handleCardEdit(name: name, theme: theme)
+            }
+        }
         // Add Variable (Unplanned) Expense sheet for this card
         .sheet(isPresented: $isPresentingAddExpense) {
             AddUnplannedExpenseView(
-                initialCardID: card.objectID,
+                initialCardID: cardSnapshot.objectID ?? card.objectID,
                 initialDate: Date(),
                 onSaved: {
                     isPresentingAddExpense = false
@@ -82,7 +90,7 @@ struct CardDetailView: View {
                     isPresentingAddPlanned = false
                     refreshCardDetails()
                 },
-                initialCardID: card.objectID
+                initialCardID: cardSnapshot.objectID ?? card.objectID
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
@@ -96,13 +104,13 @@ struct CardDetailView: View {
                     onSaved: {
                         refreshCardDetails()
                     },
-                    initialCardID: card.objectID
+                    initialCardID: cardSnapshot.objectID ?? card.objectID
                 )
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
             } else {
                 AddUnplannedExpenseView(
                     unplannedExpenseID: expense.objectID,
-                    initialCardID: card.objectID,
+                    initialCardID: cardSnapshot.objectID ?? card.objectID,
                     initialDate: expense.date,
                     onSaved: {
                         refreshCardDetails()
@@ -174,7 +182,7 @@ struct CardDetailView: View {
     private func detailsList(cardMaxWidth: CGFloat?, total: Double) -> some View {
         List {
             Section {
-                CardTileView(card: card, enableMotionShine: true)
+                CardTileView(card: cardSnapshot, enableMotionShine: true)
                     .frame(maxWidth: cardMaxWidth)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, initialHeaderTopPadding)
@@ -269,6 +277,37 @@ struct CardDetailView: View {
         Task { await viewModel.load() }
     }
 
+    private func handleCardEdit(name: String, theme: CardTheme) {
+        let service = CardService()
+
+        do {
+            var managedCard: Card?
+
+            if let objectID = cardSnapshot.objectID,
+               let existingCard = try? viewContext.existingObject(with: objectID) as? Card {
+                managedCard = existingCard
+            } else if let uuid = cardSnapshot.uuid {
+                managedCard = try service.findCard(byID: uuid)
+            }
+
+            if let managedCard {
+                try service.updateCard(managedCard, name: name)
+
+                let resolvedUUID = cardSnapshot.uuid
+                    ?? (managedCard.value(forKey: "id") as? UUID)
+                if let resolvedUUID {
+                    CardAppearanceStore.shared.setTheme(theme, for: resolvedUUID)
+                }
+
+                cardSnapshot.name = name
+                cardSnapshot.theme = theme
+                refreshCardDetails()
+            }
+        } catch {
+            if viewContext.hasChanges { viewContext.rollback() }
+        }
+    }
+
     private func requestDelete(_ expense: CardExpense) {
         if confirmBeforeDelete {
             expensePendingDeletion = expense
@@ -332,7 +371,7 @@ struct CardDetailView: View {
 
     private var navigationContent: some View {
         content
-            .navigationTitle(card.name)
+            .navigationTitle(cardSnapshot.name)
         #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -360,7 +399,7 @@ struct CardDetailView: View {
                             isSearchFieldFocused = true
                         }
                         IconOnlyButton(systemName: "pencil") {
-                            onEdit()
+                            isPresentingEditCard = true
                         }
                         // Add Expense menu (Planned or Variable) — rightmost control
                         Menu {

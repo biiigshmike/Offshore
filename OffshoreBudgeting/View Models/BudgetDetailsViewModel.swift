@@ -90,25 +90,62 @@ final class BudgetDetailsViewModel: ObservableObject {
 
         var variableTotal: Double = 0
 
+        struct CategoryIdentifier: Hashable {
+            let id: UUID?
+            let name: String
+        }
+
+        struct CategoryAccumulator {
+            let id: UUID?
+            let name: String
+            var hex: String?
+            var total: Double
+        }
+
+        func trimmedName(for category: ExpenseCategory?) -> String? {
+            guard let rawName = category?.name?.trimmingCharacters(in: .whitespacesAndNewlines), !rawName.isEmpty else {
+                return nil
+            }
+            return rawName
+        }
+
+        func update(_ map: inout [CategoryIdentifier: CategoryAccumulator],
+                    with category: ExpenseCategory?,
+                    amount: Double) {
+            guard let name = trimmedName(for: category) else { return }
+            let key = CategoryIdentifier(id: category?.id, name: name)
+            var entry = map[key] ?? CategoryAccumulator(id: category?.id, name: name, hex: nil, total: 0)
+            if entry.hex == nil, let hex = category?.color, !hex.isEmpty {
+                entry.hex = hex
+            }
+            entry.total += amount
+            map[key] = entry
+        }
+
+        func ensureCategoryPresence(_ map: inout [CategoryIdentifier: CategoryAccumulator],
+                                    category: ExpenseCategory) {
+            guard let name = trimmedName(for: category) else { return }
+            let key = CategoryIdentifier(id: category.id, name: name)
+            var entry = map[key] ?? CategoryAccumulator(id: category.id, name: name, hex: nil, total: 0)
+            if entry.hex == nil, let hex = category.color, !hex.isEmpty {
+                entry.hex = hex
+            }
+            map[key] = entry
+        }
+
         // Build per‑segment category breakdowns (exclude Uncategorized)
-        var plannedCatMap: [String: (hex: String?, total: Double)] = [:]
-        var variableCatMap: [String: (hex: String?, total: Double)] = [:]
+        var plannedCatMap: [CategoryIdentifier: CategoryAccumulator] = [:]
+        var variableCatMap: [CategoryIdentifier: CategoryAccumulator] = [:]
 
         for e in plannedExpenses {
             let amt = e.actualAmount
-            guard let name = (e.expenseCategory?.name?.trimmingCharacters(in: .whitespacesAndNewlines)), !name.isEmpty else { continue }
-            let hex = e.expenseCategory?.color
-            let existing = plannedCatMap[name] ?? (hex: hex, total: 0)
-            plannedCatMap[name] = (hex: hex ?? existing.hex, total: existing.total + amt)
+            update(&plannedCatMap, with: e.expenseCategory, amount: amt)
         }
 
         for e in unplannedExpenses {
             let amt = e.amount
             variableTotal += amt
-            guard let name = (e.expenseCategory?.name?.trimmingCharacters(in: .whitespacesAndNewlines)), !name.isEmpty else { continue }
-            let hex = e.expenseCategory?.color
-            let existing = variableCatMap[name] ?? (hex: hex, total: 0)
-            variableCatMap[name] = (hex: hex ?? existing.hex, total: existing.total + amt)
+            update(&variableCatMap, with: e.expenseCategory, amount: amt)
         }
 
         // Include zero-amount categories by unioning with all ExpenseCategory records
@@ -116,36 +153,50 @@ final class BudgetDetailsViewModel: ObservableObject {
         req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
         let allCats = (try? context.fetch(req)) ?? []
         for cat in allCats {
-            let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else { continue }
-            if plannedCatMap[name] == nil { plannedCatMap[name] = (hex: cat.color, total: 0) }
-            if variableCatMap[name] == nil { variableCatMap[name] = (hex: cat.color, total: 0) }
+            ensureCategoryPresence(&plannedCatMap, category: cat)
+            ensureCategoryPresence(&variableCatMap, category: cat)
         }
 
         // Sort by amount desc, tie-break by name A–Z
         let plannedBreakdown = plannedCatMap
-            .map { BudgetSummary.CategorySpending(categoryName: $0.key, hexColor: $0.value.hex, amount: $0.value.total) }
+            .map { BudgetSummary.CategorySpending(categoryID: $0.value.id,
+                                                  categoryName: $0.value.name,
+                                                  hexColor: $0.value.hex,
+                                                  amount: $0.value.total) }
             .sorted { lhs, rhs in
                 if lhs.amount == rhs.amount { return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending }
                 return lhs.amount > rhs.amount
             }
 
         let variableBreakdown = variableCatMap
-            .map { BudgetSummary.CategorySpending(categoryName: $0.key, hexColor: $0.value.hex, amount: $0.value.total) }
+            .map { BudgetSummary.CategorySpending(categoryID: $0.value.id,
+                                                  categoryName: $0.value.name,
+                                                  hexColor: $0.value.hex,
+                                                  amount: $0.value.total) }
             .sorted { lhs, rhs in
                 if lhs.amount == rhs.amount { return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending }
                 return lhs.amount > rhs.amount
             }
 
         // Combined (legacy)
-        let categoryBreakdown = (plannedBreakdown + variableBreakdown)
-            .reduce(into: [String: BudgetSummary.CategorySpending]()) { dict, item in
-                let existing = dict[item.categoryName]
-                let sum = (existing?.amount ?? 0) + item.amount
-                dict[item.categoryName] = BudgetSummary.CategorySpending(categoryName: item.categoryName, hexColor: existing?.hexColor ?? item.hexColor, amount: sum)
-            }
+        var combinedCatMap = plannedCatMap
+        for (key, value) in variableCatMap {
+            var entry = combinedCatMap[key] ?? CategoryAccumulator(id: value.id, name: value.name, hex: nil, total: 0)
+            if entry.hex == nil { entry.hex = value.hex }
+            entry.total += value.total
+            combinedCatMap[key] = entry
+        }
+
+        let categoryBreakdown = combinedCatMap
             .values
-            .sorted { $0.amount > $1.amount }
+            .map { BudgetSummary.CategorySpending(categoryID: $0.id,
+                                                  categoryName: $0.name,
+                                                  hexColor: $0.hex,
+                                                  amount: $0.total) }
+            .sorted { lhs, rhs in
+                if lhs.amount == rhs.amount { return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending }
+                return lhs.amount > rhs.amount
+            }
 
         return BudgetSummary(
             id: budget.objectID,

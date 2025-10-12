@@ -199,7 +199,7 @@ final class HomeViewModel: ObservableObject {
 
     // MARK: refresh()
     /// Loads budgets that overlap the selected period and computes summaries.
-    /// - Important: Calculations clamp each budget's dates to the requested window.
+    /// - Important: This uses each budget's own start/end when computing totals.
     func refresh() async {
         if isRefreshing {
             needsAnotherRefresh = true
@@ -279,13 +279,10 @@ final class HomeViewModel: ObservableObject {
 
                 let summaries: [BudgetSummary] = budgets.compactMap { budget -> BudgetSummary? in
                     guard let startDate = budget.startDate, let endDate = budget.endDate else { return nil }
-                    let clampedStart = max(startDate, dateRange.lowerBound)
-                    let clampedEnd = min(endDate, dateRange.upperBound)
-                    guard clampedStart <= clampedEnd else { return nil }
                     return Self.buildSummary(
                         for: budget,
-                        periodStart: clampedStart,
-                        periodEnd: clampedEnd,
+                        periodStart: startDate,
+                        periodEnd: endDate,
                         in: backgroundContext
                     )
                 }
@@ -376,14 +373,7 @@ final class HomeViewModel: ObservableObject {
     ) -> BudgetSummary {
         // MARK: Planned Expenses (attached to budget)
         let plannedFetch = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-        plannedFetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "budget == %@", budget),
-            NSPredicate(
-                format: "transactionDate >= %@ AND transactionDate <= %@",
-                periodStart as NSDate,
-                periodEnd as NSDate
-            )
-        ])
+        plannedFetch.predicate = NSPredicate(format: "budget == %@", budget)
         let plannedExpenses: [PlannedExpense] = (try? context.fetch(plannedFetch)) ?? []
 
         let plannedExpensesPlannedTotal = plannedExpenses.reduce(0.0) { $0 + $1.plannedAmount }

@@ -237,7 +237,7 @@ struct IncomeView: View {
         let availableWidth = max(0, containerWidth - horizontalInsets)
         let dayDimension = max(35, (availableWidth / 7).rounded(.down))
         //let monthLabelHeight: CGFloat = 10
-        let computedHeight = dayDimension * 5 //+ monthLabelHeight
+        let computedHeight = dayDimension * 4 //+ monthLabelHeight
         
         return max(335, computedHeight)
     }

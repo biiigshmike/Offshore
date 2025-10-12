@@ -231,12 +231,13 @@ struct IncomeView: View {
     private var calendarHeight: CGFloat {
         let containerWidth = layoutContext.containerSize.width
         guard containerWidth.isFinite, containerWidth > 0 else { return 335 }
-
+        
         let horizontalInsets: CGFloat = 40
         let availableWidth = max(0, containerWidth - horizontalInsets)
         let dayDimension = max(35, (availableWidth / 7).rounded(.down))
-        let computedHeight = dayDimension * 4
-
+        //let monthLabelHeight: CGFloat = 10
+        let computedHeight = dayDimension * 5 //+ monthLabelHeight
+        
         return max(335, computedHeight)
     }
 

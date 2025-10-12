@@ -181,13 +181,13 @@ struct HomeView: View {
             Image(systemName: symbol)
                 .foregroundStyle(.primary)
                 .font(.system(size: 16, weight: .semibold))
-                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
                 .glassEffectUnion(id: "home-toolbar", namespace: homeToolbarGlassNamespace)
                 .glassEffectTransition(.matchedGeometry)
         } else {
             Image(systemName: symbol)
                 .font(.system(size: 16, weight: .semibold))
-                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
         }
     }
 
@@ -226,9 +226,10 @@ struct HomeView: View {
             Button(action: { vm.adjustSelectedPeriod(by: delta) }) {
                 Image(systemName: systemName)
                     .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 32, height: 32)
+                    .frame(width: 44, height: 44)
+                    .glassEffect(.regular.tint(.clear).interactive(true))
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
         } else {

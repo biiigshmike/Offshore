@@ -30,9 +30,11 @@ enum Buttons {
                         .frame(maxWidth: fillHorizontally ? .infinity : nil)
                         .padding(.vertical, 12)
                         .padding(.horizontal, 20)
+                        //.glassEffect(.regular.tint(.clear).interactive())
                 }
+                //.glassEffect()
                 .buttonStyle(.glass)
-                .tint(.accentColor)
+                //.tint(.accentColor)
             } else {
                 Button(action: action) {
                     HStack(spacing: 8) {
@@ -68,7 +70,7 @@ enum Buttons {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.system(size: 16, weight: .semibold))
-                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
     }
@@ -85,7 +87,8 @@ enum Buttons {
                 Button(action: action) {
                     Image(systemName: systemImage)
                         .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 32, height: 32)
+                        .frame(width: 44, height: 44)
+                        .glassEffect(.regular.tint(.clear).interactive(true))
                 }
                 .buttonStyle(.glass)
                 .buttonBorderShape(.circle)
@@ -94,7 +97,7 @@ enum Buttons {
                 Button(action: action) {
                     Image(systemName: systemImage)
                         .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 32, height: 32)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
             }

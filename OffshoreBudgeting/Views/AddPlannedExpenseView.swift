@@ -605,7 +605,6 @@ private extension CategoryChipsRow {
         .scrollIndicators(.hidden)
         .ub_disableHorizontalBounce()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .clipped()
     }
 
     @ViewBuilder
@@ -633,7 +632,6 @@ private extension CategoryChipsRow {
     private var addCategoryButton: some View {
         AddCategoryPill { isPresentingNewCategory = true }
             .padding(.leading, DS.Spacing.s)
-            .zIndex(1)
     }
 }
 

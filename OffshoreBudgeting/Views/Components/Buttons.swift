@@ -35,6 +35,7 @@ enum Buttons {
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)
             } else {
+                let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
                 Button(action: action) {
                     HStack(spacing: 8) {
                         if let name = systemImage { Image(systemName: name) }
@@ -44,11 +45,15 @@ enum Buttons {
                     .frame(maxWidth: fillHorizontally ? .infinity : nil)
                     .padding(.vertical, 12)
                     .padding(.horizontal, 20)
+                    .background(
+                        shape.fill(Color.secondary.opacity(0.12))
+                    )
+                    .contentShape(shape) // ensure hit area matches the rounded rect
                 }
                 .buttonStyle(.plain)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.secondary.opacity(0.12))
+                // Optional subtle stroke to reinforce the rectangle shape:
+                .overlay(
+                    shape.stroke(Color.secondary.opacity(0.18), lineWidth: 0.5)
                 )
             }
         }

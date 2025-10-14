@@ -309,31 +309,14 @@ struct HomeView: View {
     @ViewBuilder
     private var listRows: some View {
         if segment == .variable, variableRows.isEmpty {
-            // Empty state CTA inside the List
-            Buttons.primary("Add Variable Expense", systemImage: "plus", fillHorizontally: true) {
-                isPresentingAddVariable = true
-            }
-            .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
-            .listRowSeparator(.hidden)
-            .frame(minHeight: 44)                   // Comfortable height
-            .clipShape(Capsule())                   // Hard-clip to the pill
-            .compositingGroup()                     // Prevent odd shape
-            Text("No variable expenses in this period.")
+            Text("No variable expenses in this period.\nPress the '+' in the top right to add a planned expense.")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
                 .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
                 .listRowSeparator(.hidden)
         } else if segment == .planned, plannedRows.isEmpty {
-            Buttons.primary("Add Planned Expense", systemImage: "plus", fillHorizontally: true) {
-                isPresentingAddPlanned = true
-            }
-            .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
-            .listRowSeparator(.hidden)
-            .frame(minHeight: 44)                   // Comfortable height
-            .clipShape(Capsule())                   // Hard-clip to the pill
-            .compositingGroup()                     // Prevent odd shape
-            Text("No planned expenses in this period.")
+            Text("No planned expenses in this period.\nPress the '+' in the top right to add a planned expense.")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)

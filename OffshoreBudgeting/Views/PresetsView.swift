@@ -23,11 +23,11 @@ struct PresetsView: View {
                         Image(systemName: "list.bullet.rectangle")
                             .font(.system(size: 42))
                             .foregroundStyle(.secondary)
-                        Text("Presets").font(.title2.weight(.semibold))
-                        Text("Add recurring expenses so budgets are faster to create.")
+                        Text("No Presets Found").font(.title2.weight(.semibold))
+                        Text("Press + to add a Preset Expense.\nPresets make creating budgets faster\nand can be reused again and again.")
                             .font(.subheadline).foregroundStyle(.secondary)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 260)
+                    .frame(maxWidth: .infinity, minHeight: 260, alignment: .center)
                     .padding(.horizontal, 16)
                 }
                 .frame(maxWidth: .infinity, alignment: .top)

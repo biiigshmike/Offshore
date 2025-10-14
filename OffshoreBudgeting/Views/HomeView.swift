@@ -309,14 +309,14 @@ struct HomeView: View {
     @ViewBuilder
     private var listRows: some View {
         if segment == .variable, variableRows.isEmpty {
-            Text("No variable expenses in this period.\nPress the '+' in the top right to add a planned expense.")
+            Text("No variable expenses in this period.\nPress + to add a planned expense.")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
                 .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
                 .listRowSeparator(.hidden)
         } else if segment == .planned, plannedRows.isEmpty {
-            Text("No planned expenses in this period.\nPress the '+' in the top right to add a planned expense.")
+            Text("No planned expenses in this period.\nPress the + to add a planned expense.")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)

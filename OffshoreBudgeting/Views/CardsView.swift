@@ -42,13 +42,13 @@ struct CardsView: View {
                             Image(systemName: "creditcard")
                                 .font(.system(size: 42, weight: .regular))
                                 .foregroundStyle(.secondary)
-                            Text("No cards yet")
+                            Text("No Cards Found")
                                 .font(.title3.weight(.semibold))
-                            Text("Tap + to add your first card.")
+                            Text("Press + to add your first card.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity, minHeight: 260)
+                        .frame(maxWidth: .infinity, minHeight: 260, alignment: .center)
                         .padding(.horizontal, 16)
                     case .loaded(let cards):
                         LazyVGrid(columns: columns, spacing: 16) {

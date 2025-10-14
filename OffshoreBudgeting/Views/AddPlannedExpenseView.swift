@@ -529,13 +529,10 @@ private struct CategoryChipsRow: View {
     private let chipRowClipShape = Rectangle()
 
     var body: some View {
-        HStack(alignment: .center) {
-            HStack(spacing: DS.Spacing.s) {
-                addCategoryButton
-                chipsScrollContainer()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Spacer(minLength: 0)
+        HStack(alignment: .center, spacing: DS.Spacing.s) {
+            addCategoryButton
+            chipsScrollContainer()
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .listRowInsets(rowInsets)
@@ -585,9 +582,10 @@ private extension CategoryChipsRow {
             GlassEffectContainer(spacing: DS.Spacing.s) {
                 chipRowLayout()
             }
-            //.clipShape(chipRowClipShape)
+            .clipShape(chipRowClipShape)
         } else {
             chipRowLayout()
+                .clipShape(chipRowClipShape)
         }
     }
 

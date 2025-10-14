@@ -465,6 +465,8 @@ private struct AddCategoryPill: View {
 
 // MARK: - CategoryChip
 /// A single pill-shaped category with a color dot and name.
+private let selectedGlassOpacity: Double = 0.35
+
 private struct CategoryChip: View {
     let id: String
     let name: String
@@ -499,8 +501,8 @@ private struct CategoryChip: View {
                     .regular
                         .tint(isSelected ? categoryColor : .none)
                         .interactive(true)
+                        .opacity(isSelected ? selectedGlassOpacity : 0)
                 )
-                .opacity(0.25)
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)
         } else {
@@ -508,7 +510,7 @@ private struct CategoryChip: View {
             button
                 .buttonStyle(.plain)
                 .background(
-                    legacyShape.fill(isSelected ? categoryColor.opacity(0.25) : neutralFill)
+                    legacyShape.fill(isSelected ? categoryColor.opacity(selectedGlassOpacity) : neutralFill)
                 )
                 .overlay(
                     legacyShape

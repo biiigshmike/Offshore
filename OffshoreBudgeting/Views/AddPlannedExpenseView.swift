@@ -298,7 +298,7 @@ struct AddPlannedExpenseView: View {
         .onChange(of: vm.allBudgets.count) { _ in
             applyInitialAssignBudgetToggleIfNeeded()
         }
-        .onChange(of: vm.selectedBudgetID) { _ in
+        .onChange(of: vm.selectedBudgetIDs) { _ in
             applyInitialAssignBudgetToggleIfNeeded()
         }
         .onChange(of: vm.allCards) { _ in
@@ -307,9 +307,11 @@ struct AddPlannedExpenseView: View {
         .onChange(of: isAssigningToBudget) { newValue in
             guard showAssignBudgetToggle else { return }
             if newValue {
-                vm.selectedBudgetID = vm.allBudgets.first?.objectID
+                if vm.selectedBudgetIDs.isEmpty, let first = vm.allBudgets.first?.objectID {
+                    vm.selectedBudgetIDs = [first]
+                }
             } else {
-                vm.selectedBudgetID = nil
+                vm.selectedBudgetIDs = []
             }
         }
         .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
@@ -407,33 +409,7 @@ struct AddPlannedExpenseView: View {
     private var budgetPickerSection: some View {
         Section {
             HStack(alignment: .center) {
-                // Use a custom binding so the selection is cleared immediately
-                // when the search text changes to a string that doesn't include
-                // the currently selected budget.  This avoids transient invalid
-                // picker selections that trigger console warnings.
-                TextField(
-                    "Search Budgets",
-                    text: Binding(
-                        get: { budgetSearchText },
-                        set: { newValue in
-                            budgetSearchText = newValue
-                            let matching = vm.allBudgets.filter { budget in
-                                newValue.isEmpty || (budget.name ?? "").localizedCaseInsensitiveContains(newValue)
-                            }
-                            if newValue.isEmpty {
-                                vm.selectedBudgetID = nil
-                            } else if let current = vm.selectedBudgetID,
-                                      matching.contains(where: { $0.objectID == current }) {
-                                // Keep existing selection if it still matches
-                            } else {
-                                // Auto-select the first matching budget so the
-                                // menu label updates dynamically without the
-                                // user opening the dropdown.
-                                vm.selectedBudgetID = matching.first?.objectID
-                            }
-                        }
-                    )
-                )
+                TextField("Search Budgets", text: $budgetSearchText)
                 .autocorrectionDisabled(true)
                 .textInputAutocapitalization(.never)
                 .multilineTextAlignment(.leading)
@@ -444,14 +420,20 @@ struct AddPlannedExpenseView: View {
                 // invalid selections when the available budgets change.
                 Menu {
                     ForEach(filteredBudgets, id: \.objectID) { budget in
-                        Button(budget.name ?? "Untitled") {
-                            vm.selectedBudgetID = budget.objectID
+                        Button {
+                            vm.toggleBudgetSelection(for: budget.objectID)
+                        } label: {
+                            HStack {
+                                Text(budget.name ?? "Untitled")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                if vm.isBudgetSelected(budget.objectID) {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
                         }
                     }
                 } label: {
-                    Text(
-                        vm.allBudgets.first(where: { $0.objectID == vm.selectedBudgetID })?.name ?? "Select Budget"
-                    )
+                    Text(budgetSelectionSummary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .menuStyle(.borderlessButton)
@@ -486,13 +468,23 @@ struct AddPlannedExpenseView: View {
 
     private func applyInitialAssignBudgetToggleIfNeeded() {
         guard showAssignBudgetToggle, !didSyncAssignBudgetToggle else { return }
-        let hasSelection = (vm.selectedBudgetID != nil)
+        let hasSelection = !vm.selectedBudgetIDs.isEmpty
         if hasSelection != isAssigningToBudget {
             isAssigningToBudget = hasSelection
         }
         if hasSelection || !vm.allBudgets.isEmpty {
             didSyncAssignBudgetToggle = true
         }
+    }
+
+    private var budgetSelectionSummary: String {
+        let names = vm.selectedBudgetNames
+        guard !names.isEmpty else { return "Select Budgets" }
+        if names.count == 1 { return names[0] }
+        if names.count == 2 { return names.joined(separator: ", ") }
+        let prefix = names.prefix(2).joined(separator: ", ")
+        let remaining = names.count - 2
+        return "\(prefix) +\(remaining) more"
     }
 }
 

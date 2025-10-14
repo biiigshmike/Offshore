@@ -468,12 +468,13 @@ private struct CategoryChip: View {
     let action: () -> Void
 
     var body: some View {
-        let categoryColor = UBColorFromHex(colorHex) ?? .secondary
+        let accentColor = UBColorFromHex(colorHex) ?? .secondary
+        let glassTintColor = accentColor.opacity(0.25)
         let legacyShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
 
         let label = HStack(spacing: DS.Spacing.s) {
             Circle()
-                .fill(categoryColor)
+                .fill(accentColor)
                 .frame(width: 10, height: 10)
             Text(name)
                 .font(.subheadline.weight(.semibold))
@@ -492,10 +493,9 @@ private struct CategoryChip: View {
             button
                 .glassEffect(
                     .regular
-                        .tint(isSelected ? categoryColor : .none)
+                        .tint(isSelected ? glassTintColor : .none)
                         .interactive(true)
                 )
-                .opacity(0.25)
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)
         } else {
@@ -503,7 +503,7 @@ private struct CategoryChip: View {
             button
                 .buttonStyle(.plain)
                 .background(
-                    legacyShape.fill(isSelected ? categoryColor.opacity(0.25) : neutralFill)
+                    legacyShape.fill(isSelected ? glassTintColor : neutralFill)
                 )
                 .overlay(
                     legacyShape

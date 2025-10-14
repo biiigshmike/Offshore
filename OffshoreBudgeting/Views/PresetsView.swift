@@ -18,16 +18,19 @@ struct PresetsView: View {
     var body: some View {
         Group {
             if vm.items.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "list.bullet.rectangle")
-                        .font(.system(size: 42))
-                        .foregroundStyle(.secondary)
-                    Text("Presets").font(.title2.weight(.semibold))
-                    Text("Add recurring expenses so budgets are faster to create.")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                ScrollView {
+                    VStack(spacing: 12) {
+                        Image(systemName: "list.bullet.rectangle")
+                            .font(.system(size: 42))
+                            .foregroundStyle(.secondary)
+                        Text("Presets").font(.title2.weight(.semibold))
+                        Text("Add recurring expenses so budgets are faster to create.")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 260)
+                    .padding(.horizontal, 16)
                 }
-                .frame(maxWidth: .infinity, minHeight: 260)
-                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity, alignment: .top)
             } else {
                 List {
                     ForEach(vm.items) { item in

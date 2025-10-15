@@ -437,6 +437,7 @@ struct AddPlannedExpenseView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .menuStyle(.borderlessButton)
+                .menuActionDismissBehavior(.disabled)
                 .id(budgetSearchText)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Spacer(minLength: 0)

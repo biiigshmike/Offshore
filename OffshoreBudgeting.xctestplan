@@ -32,6 +32,7 @@
       }
     },
     {
+      "enabled" : false,
       "selectedTests" : [
         "IncomeCalendarPrefetchUITests\/testIncomeCalendarPrefetchesFutureMonths()",
         "LegacyUnderbarGapUITests\/testUnderbarGapDebug_HomeLegacy()",

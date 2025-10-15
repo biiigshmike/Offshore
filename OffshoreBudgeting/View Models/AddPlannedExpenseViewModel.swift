@@ -365,8 +365,12 @@ final class AddPlannedExpenseViewModel: ObservableObject {
 
     // MARK: Helpers - Budgets
     func toggleBudgetSelection(for id: NSManagedObjectID) {
-        if isEditing {
-            selectedBudgetIDs = [id]
+        if shouldForceSingleBudgetSelection {
+            if selectedBudgetIDs.contains(id) {
+                selectedBudgetIDs.remove(id)
+            } else {
+                selectedBudgetIDs = [id]
+            }
             return
         }
         if selectedBudgetIDs.contains(id) {
@@ -374,6 +378,16 @@ final class AddPlannedExpenseViewModel: ObservableObject {
         } else {
             selectedBudgetIDs.insert(id)
         }
+    }
+
+    /// Legacy editing surfaces that still rely on a single budget assignment
+    /// provide a preselected budget and expect the picker to enforce it.
+    /// Allow the modern multi-select behavior everywhere else.
+    private var shouldForceSingleBudgetSelection: Bool {
+        if isEditing, preselectedBudgetID != nil, requiresBudgetSelection {
+            return true
+        }
+        return false
     }
 
     func isBudgetSelected(_ id: NSManagedObjectID) -> Bool {

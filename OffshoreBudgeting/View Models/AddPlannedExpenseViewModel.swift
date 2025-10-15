@@ -105,7 +105,12 @@ final class AddPlannedExpenseViewModel: ObservableObject {
 
         if isEditing, let id = plannedExpenseID,
            let existing = try? context.existingObject(with: id) as? PlannedExpense {
-            selectedBudgetIDs = gatherBudgetSelections(for: existing)
+            var resolvedBudgetIDs: Set<NSManagedObjectID> = []
+            if let budgetID = existing.budget?.objectID {
+                resolvedBudgetIDs.insert(budgetID)
+            }
+            resolvedBudgetIDs.formUnion(gatherBudgetSelections(for: existing))
+            selectedBudgetIDs = resolvedBudgetIDs
             selectedCategoryID = existing.expenseCategory?.objectID
             selectedCardID = existing.card?.objectID
             descriptionText = existing.descriptionText ?? ""
@@ -423,27 +428,12 @@ final class AddPlannedExpenseViewModel: ObservableObject {
     }
 
     private func gatherBudgetSelections(for expense: PlannedExpense) -> Set<NSManagedObjectID> {
+        if let template = resolveTemplate(for: expense) {
+            let children = PlannedExpenseService.shared.fetchChildren(of: template, in: context)
+            return Set(children.compactMap { $0.budget?.objectID })
+        }
+
         var ids: Set<NSManagedObjectID> = []
-        if let budget = expense.budget {
-            ids.insert(budget.objectID)
-        }
-
-        if let templateID = expense.globalTemplateID {
-            let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
-            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                NSPredicate(format: "isGlobal == NO"),
-                NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg)
-            ])
-            if let siblings = try? context.fetch(request) {
-                for sibling in siblings where sibling != expense {
-                    if let budget = sibling.budget {
-                        ids.insert(budget.objectID)
-                    }
-                }
-            }
-            return ids
-        }
-
         let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
         var predicates: [NSPredicate] = [
             NSPredicate(format: "isGlobal == NO"),
@@ -475,6 +465,20 @@ final class AddPlannedExpenseViewModel: ObservableObject {
         }
 
         return ids
+    }
+
+    private func resolveTemplate(for expense: PlannedExpense) -> PlannedExpense? {
+        if expense.isGlobal {
+            return expense
+        }
+        guard let templateID = expense.globalTemplateID else { return nil }
+        let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
+        request.fetchLimit = 1
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "id == %@", templateID as CVarArg),
+            NSPredicate(format: "isGlobal == YES")
+        ])
+        return try? context.fetch(request).first
     }
 
     private func matchesDuplicate(_ candidate: PlannedExpense, of reference: PlannedExpense) -> Bool {

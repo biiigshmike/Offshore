@@ -25,6 +25,7 @@ struct OffshoreBudgetingApp: App {
         let cardPickerStore = CardPickerStore()
         _cardPickerStore = StateObject(wrappedValue: cardPickerStore)
         CoreDataService.shared.ensureLoaded()
+        configureForUITestingIfNeeded()
         // Removed test seeding hook (UITestDataSeeder) to avoid requiring
         // UI test-only code in the main app target.
         cardPickerStore.start()
@@ -111,6 +112,33 @@ struct OffshoreBudgetingApp: App {
                     platformCapabilities: platformCapabilities
                 )
             }
+    }
+
+    // MARK: UI Testing Helpers
+    private func configureForUITestingIfNeeded() {
+#if DEBUG
+        let processInfo = ProcessInfo.processInfo
+        guard processInfo.arguments.contains("-ui-testing") else { return }
+        guard processInfo.environment["UITEST_RESET_STATE"] == "1" else { return }
+        resetPersistentStateForUITests()
+#endif
+    }
+
+    private func resetPersistentStateForUITests() {
+        resetUserDefaultsForUITests()
+        do {
+            try CoreDataService.shared.wipeAllData()
+        } catch {
+            // Leave the store in its current state if wiping fails during tests.
+        }
+    }
+
+    private func resetUserDefaultsForUITests() {
+        guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
+        let defaults = UserDefaults.standard
+        defaults.removePersistentDomain(forName: bundleIdentifier)
+        defaults.set(false, forKey: "didCompleteOnboarding")
+        defaults.synchronize()
     }
 
     private func logPlatformCapabilities() {

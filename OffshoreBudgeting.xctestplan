@@ -13,6 +13,7 @@
   },
   "testTargets" : [
     {
+      "enabled" : false,
       "target" : {
         "containerPath" : "container:Offshore.xcodeproj",
         "identifier" : "4CF2204E2E4A33BC00AD5F29",

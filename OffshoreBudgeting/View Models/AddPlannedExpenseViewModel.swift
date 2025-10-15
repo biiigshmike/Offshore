@@ -227,12 +227,69 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                     in: context
                 )
             } else {
-                guard let budgetID = selectedBudgetIDs.first,
-                      let targetBudget = context.object(with: budgetID) as? Budget else {
+                let selectedBudgets = resolveSelectedBudgets()
+                guard !selectedBudgets.isEmpty else {
                     throw NSError(domain: "SoFar.AddPlannedExpense", code: 10, userInfo: [NSLocalizedDescriptionKey: "Please select a budget."])
                 }
+
+                let selectedBudgetMap = Dictionary(uniqueKeysWithValues: selectedBudgets.map { ($0.objectID, $0) })
+                var linkedByBudgetID: [NSManagedObjectID: PlannedExpense] = [:]
+                if let currentBudget = existing.budget {
+                    linkedByBudgetID[currentBudget.objectID] = existing
+                }
+                if let templateID = existing.globalTemplateID {
+                    let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
+                    request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                        NSPredicate(format: "isGlobal == NO"),
+                        NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg)
+                    ])
+                    if let siblings = try? context.fetch(request) {
+                        for sibling in siblings where sibling != existing {
+                            if let budget = sibling.budget {
+                                linkedByBudgetID[budget.objectID] = sibling
+                            }
+                        }
+                    }
+                }
+
+                let anchorBudget: Budget
+                if let existingBudget = existing.budget,
+                   selectedBudgetMap[existingBudget.objectID] != nil {
+                    anchorBudget = existingBudget
+                } else if let first = selectedBudgets.first {
+                    anchorBudget = first
+                } else {
+                    throw NSError(domain: "SoFar.AddPlannedExpense", code: 10, userInfo: [NSLocalizedDescriptionKey: "Please select a budget."])
+                }
+
                 existing.isGlobal = false
-                existing.budget = targetBudget
+                existing.budget = anchorBudget
+
+                let previouslyLinkedIDs = Set(linkedByBudgetID.keys)
+                var budgetsToAdd = Set(selectedBudgetMap.keys).subtracting(previouslyLinkedIDs)
+                budgetsToAdd.remove(anchorBudget.objectID)
+                let budgetsToRemove = previouslyLinkedIDs.subtracting(selectedBudgetMap.keys)
+
+                for budgetID in budgetsToRemove {
+                    guard let expense = linkedByBudgetID[budgetID], expense != existing else { continue }
+                    context.delete(expense)
+                }
+
+                for budgetID in budgetsToAdd {
+                    guard let budget = selectedBudgetMap[budgetID] else { continue }
+                    let item = PlannedExpense(context: context)
+                    item.id = item.id ?? UUID()
+                    item.descriptionText = trimmed
+                    item.plannedAmount = plannedAmt
+                    item.actualAmount = actualAmt
+                    item.transactionDate = transactionDate
+                    item.isGlobal = false
+                    item.globalTemplateID = existing.globalTemplateID
+                    item.budget = budget
+                    item.expenseCategory = category
+                    item.card = selectedCard
+                }
+
                 if existing.globalTemplateID != nil {
                     templateService.updateTemplateHierarchy(
                         for: existing,

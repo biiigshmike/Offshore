@@ -7,18 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4C73FEFD2EA01E2C003D4745 /* OffshoreBudgeting.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = 4C73FEFC2EA01E2C003D4745 /* OffshoreBudgeting.xctestplan */; };
 		4CF221902E4A42A500AD5F29 /* MijickCalendarView in Frameworks */ = {isa = PBXBuildFile; productRef = 4CF2218F2E4A42A500AD5F29 /* MijickCalendarView */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		4CF220462E4A33BC00AD5F29 /* PBXContainerItemProxy */ = {
+		4C73FEFE2EA01E5B003D4745 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 4CF2202F2E4A33B900AD5F29 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 4CF220362E4A33BA00AD5F29;
 			remoteInfo = OffshoreBudgeting;
 		};
-		4CF220502E4A33BC00AD5F29 /* PBXContainerItemProxy */ = {
+		4C73FF002EA01E61003D4745 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 4CF2202F2E4A33B900AD5F29 /* Project object */;
 			proxyType = 1;
@@ -29,7 +30,7 @@
 
 /* Begin PBXFileReference section */
 		3F81335D2095449DBFE630B8 /* OnboardingFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowUITests.swift; sourceTree = "<group>"; };
-		4C54117B2E8E1D37002EE82B /* OffshoreBudgeting.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = OffshoreBudgeting.xctestplan; sourceTree = "<group>"; };
+		4C73FEFC2EA01E2C003D4745 /* OffshoreBudgeting.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = OffshoreBudgeting.xctestplan; sourceTree = "<group>"; };
 		4CF220372E4A33BA00AD5F29 /* Offshore.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Offshore.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4CF220452E4A33BC00AD5F29 /* OffshoreBudgetingTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OffshoreBudgetingTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4CF2204F2E4A33BC00AD5F29 /* OffshoreBudgetingUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OffshoreBudgetingUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -46,17 +47,17 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		4C73FEF62EA01DF8003D4745 /* OffshoreBudgetingTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = OffshoreBudgetingTests;
+			sourceTree = "<group>";
+		};
 		4CF220392E4A33BA00AD5F29 /* OffshoreBudgeting */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				4C66A7752E53C0DE004F3F6F /* Exceptions for "OffshoreBudgeting" folder in "OffshoreBudgeting" target */,
 			);
 			path = OffshoreBudgeting;
-			sourceTree = "<group>";
-		};
-		4CF220482E4A33BC00AD5F29 /* OffshoreBudgetingTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = OffshoreBudgetingTests;
 			sourceTree = "<group>";
 		};
 		4CF220522E4A33BC00AD5F29 /* OffshoreBudgetingUITests */ = {
@@ -103,9 +104,9 @@
 		4CF2202E2E4A33B900AD5F29 = {
 			isa = PBXGroup;
 			children = (
-				4C54117B2E8E1D37002EE82B /* OffshoreBudgeting.xctestplan */,
+				4C73FEFC2EA01E2C003D4745 /* OffshoreBudgeting.xctestplan */,
 				4CF220392E4A33BA00AD5F29 /* OffshoreBudgeting */,
-				4CF220482E4A33BC00AD5F29 /* OffshoreBudgetingTests */,
+				4C73FEF62EA01DF8003D4745 /* OffshoreBudgetingTests */,
 				4CF220522E4A33BC00AD5F29 /* OffshoreBudgetingUITests */,
 				4CF220382E4A33BA00AD5F29 /* Products */,
 				4CA8CA192E9FFDB800397E4D /* Recovered References */,
@@ -159,10 +160,10 @@
 			buildRules = (
 			);
 			dependencies = (
-				4CF220472E4A33BC00AD5F29 /* PBXTargetDependency */,
+				4C73FEFF2EA01E5B003D4745 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				4CF220482E4A33BC00AD5F29 /* OffshoreBudgetingTests */,
+				4C73FEF62EA01DF8003D4745 /* OffshoreBudgetingTests */,
 			);
 			name = OffshoreBudgetingTests;
 			packageProductDependencies = (
@@ -182,7 +183,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				4CF220512E4A33BC00AD5F29 /* PBXTargetDependency */,
+				4C73FF012EA01E61003D4745 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4CF220522E4A33BC00AD5F29 /* OffshoreBudgetingUITests */,
@@ -246,6 +247,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C73FEFD2EA01E2C003D4745 /* OffshoreBudgeting.xctestplan in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -290,15 +292,15 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		4CF220472E4A33BC00AD5F29 /* PBXTargetDependency */ = {
+		4C73FEFF2EA01E5B003D4745 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 4CF220362E4A33BA00AD5F29 /* OffshoreBudgeting */;
-			targetProxy = 4CF220462E4A33BC00AD5F29 /* PBXContainerItemProxy */;
+			targetProxy = 4C73FEFE2EA01E5B003D4745 /* PBXContainerItemProxy */;
 		};
-		4CF220512E4A33BC00AD5F29 /* PBXTargetDependency */ = {
+		4C73FF012EA01E61003D4745 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 4CF220362E4A33BA00AD5F29 /* OffshoreBudgeting */;
-			targetProxy = 4CF220502E4A33BC00AD5F29 /* PBXContainerItemProxy */;
+			targetProxy = 4C73FF002EA01E61003D4745 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

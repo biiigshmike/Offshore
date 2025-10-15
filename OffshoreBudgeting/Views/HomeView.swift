@@ -604,19 +604,14 @@ struct HomeView: View {
             plannedRows = []; variableRows = []; return
         }
 
-        // Build date range for the selected period using the summary's bounds (fallback to budget dates).
-        let rangeStart = summary.periodStart
-        let rangeEnd = summary.periodEnd
-        let start = budget.startDate ?? rangeStart
-        let end = budget.endDate ?? rangeEnd
-        let lowerBound = min(start, rangeStart)
-        let upperBound = max(end, rangeEnd)
+        // Build date range for the selected period
+        let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
 
         // Planned
         do {
             let req = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
             req.predicate = NSPredicate(format: "budget == %@ AND transactionDate >= %@ AND transactionDate <= %@",
-                                        budget, lowerBound as NSDate, upperBound as NSDate)
+                                        budget, start as NSDate, end as NSDate)
             req.sortDescriptors = plannedSortDescriptors
             plannedRows = try context.fetch(req)
         } catch { plannedRows = [] }
@@ -626,7 +621,7 @@ struct HomeView: View {
             let req = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
             if let cards = budget.cards as? Set<Card>, !cards.isEmpty {
                 req.predicate = NSPredicate(format: "card IN %@ AND transactionDate >= %@ AND transactionDate <= %@",
-                                            cards as NSSet, lowerBound as NSDate, upperBound as NSDate)
+                                            cards as NSSet, start as NSDate, end as NSDate)
             } else {
                 req.predicate = NSPredicate(value: false)
             }

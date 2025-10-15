@@ -604,14 +604,17 @@ struct HomeView: View {
             plannedRows = []; variableRows = []; return
         }
 
-        // Build date range for the selected period
-        let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
+        // Build date range for the selected period using the active summary
+        let start = summary.periodStart
+        let end = summary.periodEnd
 
         // Planned
         do {
             let req = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-            req.predicate = NSPredicate(format: "budget == %@ AND transactionDate >= %@ AND transactionDate <= %@",
-                                        budget, start as NSDate, end as NSDate)
+            req.predicate = NSPredicate(
+                format: "budget == %@ AND (transactionDate == nil OR (transactionDate >= %@ AND transactionDate <= %@))",
+                budget, start as NSDate, end as NSDate
+            )
             req.sortDescriptors = plannedSortDescriptors
             plannedRows = try context.fetch(req)
         } catch { plannedRows = [] }

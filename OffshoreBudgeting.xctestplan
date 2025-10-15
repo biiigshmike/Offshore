@@ -32,7 +32,6 @@
       }
     },
     {
-      "enabled" : false,
       "selectedTests" : [
         "IncomeCalendarPrefetchUITests\/testIncomeCalendarPrefetchesFutureMonths()",
         "LegacyUnderbarGapUITests\/testUnderbarGapDebug_HomeLegacy()",
@@ -41,7 +40,8 @@
         "OffshoreBudgetingUITests\/testHomePrimaryActionHittableInLandscape()",
         "OffshoreBudgetingUITests\/testIncomeCalendarHittableInLandscape()",
         "OffshoreBudgetingUITests\/testPresetsAddButtonHittableInLandscape()",
-        "OffshoreBudgetingUITests\/testSettingsFirstToggleHittableInLandscape()"
+        "OffshoreBudgetingUITests\/testSettingsFirstToggleHittableInLandscape()",
+        "OnboardingFlowUITests\/testOnboardingFlowCreatesDataAndPersists()"
       ],
       "target" : {
         "containerPath" : "container:Offshore.xcodeproj",

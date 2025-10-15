@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		4CF221902E4A42A500AD5F29 /* MijickCalendarView in Frameworks */ = {isa = PBXBuildFile; productRef = 4CF2218F2E4A42A500AD5F29 /* MijickCalendarView */; };
-		C2686DAE7B174C45977EFEDC /* OnboardingFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F81335D2095449DBFE630B8 /* OnboardingFlowUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -285,7 +284,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C2686DAE7B174C45977EFEDC /* OnboardingFlowUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -93,47 +93,6 @@ final class CoreDataService: ObservableObject {
             await self.loadStores(file: file, line: line)
         }
     }
-
-    /// Removes the persistent store and user data so UI tests can start from a clean slate.
-    /// - Note: The next call to ``ensureLoaded(file:line:)`` will recreate the store.
-    @MainActor
-    func resetForUITesting() {
-        loadingTask?.cancel()
-        loadingTask = nil
-
-        if let observer = didSaveObserver { notificationCenter.removeObserver(observer); didSaveObserver = nil }
-        if let observer = remoteChangeObserver { notificationCenter.removeObserver(observer); remoteChangeObserver = nil }
-        if let observer = cloudKitEventObserver { notificationCenter.removeObserver(observer); cloudKitEventObserver = nil }
-
-        let coordinator = container.persistentStoreCoordinator
-        let stores = coordinator.persistentStores
-        for store in stores {
-            guard let url = store.url else { continue }
-            do {
-                try coordinator.destroyPersistentStore(at: url, ofType: store.type, options: nil)
-            } catch {
-                AppLog.coreData.error("Failed to destroy persistent store during UI test reset: \(error.localizedDescription)")
-            }
-        }
-
-        storesLoaded = false
-        viewContext.reset()
-
-        if let storeURL = container.persistentStoreDescriptions.first?.url {
-            let fileManager = FileManager.default
-            let walURL = URL(fileURLWithPath: storeURL.path + "-wal")
-            let shmURL = URL(fileURLWithPath: storeURL.path + "-shm")
-            [storeURL, walURL, shmURL].forEach { url in
-                do {
-                    if fileManager.fileExists(atPath: url.path) {
-                        try fileManager.removeItem(at: url)
-                    }
-                } catch {
-                    AppLog.coreData.error("Failed to remove persistent store file during UI test reset: \(error.localizedDescription)")
-                }
-            }
-        }
-    }
     
     /// Backwards-compat alias for older call sites.
     func loadPersistentStores() {

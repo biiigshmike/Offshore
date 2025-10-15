@@ -7,11 +7,11 @@ import Testing
 struct HomeViewModelTests {
 
     @Test
-    func refresh_populates_budget_summary_totals() async throws {
+    func refresh_withMixedBudgets_generatesCorrectSummaries() async throws {
         UserDefaults.standard.set(BudgetPeriod.monthly.rawValue, forKey: AppSettingsKeys.budgetPeriod.rawValue)
 
-        let container = try TestUtils.resetStore()
-        let context = container.viewContext
+        _ = try TestUtils.resetStore()
+        let context = CoreDataService.shared.viewContext
 
         let budgetService = BudgetService()
         let cardService = CardService()
@@ -21,79 +21,163 @@ struct HomeViewModelTests {
         let incomeService = IncomeService()
 
         let groceries = try categoryService.addCategory(name: "Groceries", color: "#00FF00")
-        let dining = try categoryService.addCategory(name: "Dining", color: "#FF3300")
+        let travel = try categoryService.addCategory(name: "Travel", color: "#0033FF")
+        let utilities = try categoryService.addCategory(name: "Utilities", color: "#FF33FF")
 
-        let budgetStart = TestUtils.makeDate(2025, 7, 1)
-        let budgetEnd = TestUtils.makeDate(2025, 7, 31)
-        let budget = try budgetService.createBudget(name: "July 2025", startDate: budgetStart, endDate: budgetEnd)
-        _ = try budgetService.createBudget(name: "Archive", startDate: TestUtils.makeDate(2025, 5, 1), endDate: TestUtils.makeDate(2025, 5, 31))
+        let bridgeBudget = try budgetService.createBudget(
+            name: "Bridge Budget",
+            startDate: TestUtils.makeDate(2025, 6, 25),
+            endDate: TestUtils.makeDate(2025, 7, 5)
+        )
+        let julyBudget = try budgetService.createBudget(
+            name: "Primary July",
+            startDate: TestUtils.makeDate(2025, 7, 1),
+            endDate: TestUtils.makeDate(2025, 7, 31)
+        )
+        _ = try budgetService.createBudget(
+            name: "Outside May",
+            startDate: TestUtils.makeDate(2025, 5, 1),
+            endDate: TestUtils.makeDate(2025, 5, 31)
+        )
+        _ = try budgetService.createBudget(
+            name: "Outside August",
+            startDate: TestUtils.makeDate(2025, 8, 1),
+            endDate: TestUtils.makeDate(2025, 8, 31)
+        )
 
-        guard let budgetID = budget.value(forKey: "id") as? UUID else {
-            #expect(false, "Expected budget to have UUID")
+        guard
+            let bridgeBudgetID = bridgeBudget.value(forKey: "id") as? UUID,
+            let julyBudgetID = julyBudget.value(forKey: "id") as? UUID
+        else {
+            #expect(false, "Expected budgets to expose UUID identifiers")
             return
         }
 
-        let card = try cardService.createCard(name: "Everyday Card", ensureUniqueName: false, attachToBudgetIDs: [budgetID])
-        guard let cardID = card.value(forKey: "id") as? UUID else {
-            #expect(false, "Expected card to have UUID")
+        let bridgeCard = try cardService.createCard(
+            name: "Bridge Card",
+            ensureUniqueName: false,
+            attachToBudgetIDs: [bridgeBudgetID]
+        )
+        let julyCard = try cardService.createCard(
+            name: "July Card",
+            ensureUniqueName: false,
+            attachToBudgetIDs: [julyBudgetID]
+        )
+
+        guard
+            let bridgeCardID = bridgeCard.value(forKey: "id") as? UUID,
+            let julyCardID = julyCard.value(forKey: "id") as? UUID
+        else {
+            #expect(false, "Expected cards to expose UUID identifiers")
             return
         }
 
-        let groceriesPlanned = try plannedExpenseService.create(
-            inBudgetID: budgetID,
-            titleOrDescription: "Groceries Plan",
-            plannedAmount: 500,
-            actualAmount: 450,
+        let bridgeGroceries = try plannedExpenseService.create(
+            inBudgetID: bridgeBudgetID,
+            titleOrDescription: "Bridge Groceries",
+            plannedAmount: 150,
+            actualAmount: 120,
+            transactionDate: TestUtils.makeDate(2025, 6, 26)
+        )
+        bridgeGroceries.expenseCategory = groceries
+
+        let bridgeTravel = try plannedExpenseService.create(
+            inBudgetID: bridgeBudgetID,
+            titleOrDescription: "Bridge Travel",
+            plannedAmount: 200,
+            actualAmount: 180,
+            transactionDate: TestUtils.makeDate(2025, 7, 3)
+        )
+        bridgeTravel.expenseCategory = travel
+
+        let julyGroceries = try plannedExpenseService.create(
+            inBudgetID: julyBudgetID,
+            titleOrDescription: "July Groceries",
+            plannedAmount: 400,
+            actualAmount: 390,
             transactionDate: TestUtils.makeDate(2025, 7, 5)
         )
-        groceriesPlanned.expenseCategory = groceries
+        julyGroceries.expenseCategory = groceries
 
-        let diningPlanned = try plannedExpenseService.create(
-            inBudgetID: budgetID,
-            titleOrDescription: "Dining Plan",
-            plannedAmount: 300,
-            actualAmount: 310,
-            transactionDate: TestUtils.makeDate(2025, 7, 12)
+        let julyUtilities = try plannedExpenseService.create(
+            inBudgetID: julyBudgetID,
+            titleOrDescription: "July Utilities",
+            plannedAmount: 150,
+            actualAmount: 120,
+            transactionDate: TestUtils.makeDate(2025, 7, 15)
         )
-        diningPlanned.expenseCategory = dining
+        julyUtilities.expenseCategory = utilities
 
         try context.save()
 
         let groceriesCategoryID = groceries.value(forKey: "id") as? UUID
-        let diningCategoryID = dining.value(forKey: "id") as? UUID
+        let travelCategoryID = travel.value(forKey: "id") as? UUID
+        let utilitiesCategoryID = utilities.value(forKey: "id") as? UUID
 
         _ = try unplannedExpenseService.create(
-            descriptionText: "Farmers Market",
-            amount: 45,
-            date: TestUtils.makeDate(2025, 7, 6),
-            cardID: cardID,
+            descriptionText: "Bridge Farmers Market",
+            amount: 30,
+            date: TestUtils.makeDate(2025, 6, 27),
+            cardID: bridgeCardID,
             categoryID: groceriesCategoryID
         )
         _ = try unplannedExpenseService.create(
-            descriptionText: "Late Night Snack",
-            amount: 55,
+            descriptionText: "Bridge Travel Snacks",
+            amount: 50,
+            date: TestUtils.makeDate(2025, 7, 4),
+            cardID: bridgeCardID,
+            categoryID: travelCategoryID
+        )
+        _ = try unplannedExpenseService.create(
+            descriptionText: "July Grocery Run",
+            amount: 60,
+            date: TestUtils.makeDate(2025, 7, 7),
+            cardID: julyCardID,
+            categoryID: groceriesCategoryID
+        )
+        _ = try unplannedExpenseService.create(
+            descriptionText: "July Utility Repair",
+            amount: 40,
             date: TestUtils.makeDate(2025, 7, 20),
-            cardID: cardID,
-            categoryID: diningCategoryID
+            cardID: julyCardID,
+            categoryID: utilitiesCategoryID
         )
 
         _ = try incomeService.createIncome(
-            source: "Salary",
-            amount: 2_000,
-            date: TestUtils.makeDate(2025, 7, 1),
+            source: "Bridge Planned",
+            amount: 800,
+            date: TestUtils.makeDate(2025, 6, 28),
             isPlanned: true
         )
         _ = try incomeService.createIncome(
-            source: "Freelance",
-            amount: 1_500,
-            date: TestUtils.makeDate(2025, 7, 15),
+            source: "Bridge Actual",
+            amount: 450,
+            date: TestUtils.makeDate(2025, 6, 29),
             isPlanned: false
+        )
+        _ = try incomeService.createIncome(
+            source: "July Planned",
+            amount: 2_500,
+            date: TestUtils.makeDate(2025, 7, 10),
+            isPlanned: true
+        )
+        _ = try incomeService.createIncome(
+            source: "July Actual",
+            amount: 1_800,
+            date: TestUtils.makeDate(2025, 7, 18),
+            isPlanned: false
+        )
+        _ = try incomeService.createIncome(
+            source: "Future Planned",
+            amount: 900,
+            date: TestUtils.makeDate(2025, 8, 10),
+            isPlanned: true
         )
 
         try context.save()
 
         let vm = HomeViewModel(context: context)
-        vm.selectedDate = TestUtils.makeDate(2025, 7, 10)
+        vm.selectedDate = TestUtils.makeDate(2025, 7, 15)
         await vm.refresh()
 
         guard case let .loaded(summaries) = vm.state else {
@@ -101,40 +185,148 @@ struct HomeViewModelTests {
             return
         }
 
-        #expect(summaries.count == 1)
-        guard let summary = summaries.first else {
-            #expect(false, "Expected a summary")
+        #expect(summaries.count == 2)
+
+        let summaryByName = Dictionary(uniqueKeysWithValues: summaries.map { ($0.budgetName, $0) })
+        let tolerance = 0.0001
+
+        guard let bridgeSummary = summaryByName["Bridge Budget"] else {
+            #expect(false, "Missing bridge budget summary")
             return
         }
 
-        let tolerance = 0.0001
-        #expect(abs(summary.plannedExpensesPlannedTotal - 800) < tolerance)
-        #expect(abs(summary.plannedExpensesActualTotal - 760) < tolerance)
-        #expect(abs(summary.variableExpensesTotal - 100) < tolerance)
-        #expect(abs(summary.potentialIncomeTotal - 2_000) < tolerance)
-        #expect(abs(summary.actualIncomeTotal - 1_500) < tolerance)
-        #expect(abs(summary.potentialSavingsTotal - 1_200) < tolerance)
-        #expect(abs(summary.actualSavingsTotal - 640) < tolerance)
+        #expect(abs(bridgeSummary.plannedExpensesPlannedTotal - 350) < tolerance)
+        #expect(abs(bridgeSummary.plannedExpensesActualTotal - 300) < tolerance)
+        #expect(abs(bridgeSummary.variableExpensesTotal - 80) < tolerance)
+        #expect(abs(bridgeSummary.potentialIncomeTotal - 800) < tolerance)
+        #expect(abs(bridgeSummary.actualIncomeTotal - 450) < tolerance)
+        #expect(abs(bridgeSummary.potentialSavingsTotal - 450) < tolerance)
+        #expect(abs(bridgeSummary.actualSavingsTotal - 70) < tolerance)
 
-        let plannedBreakdown = summary.plannedCategoryBreakdown.reduce(into: [String: (amount: Double, color: String?)]()) { dict, entry in
-            dict[entry.categoryName] = (entry.amount, entry.hexColor)
-        }
-        #expect(abs((plannedBreakdown["Groceries"]?.amount ?? 0) - 500) < tolerance)
-        #expect(abs((plannedBreakdown["Dining"]?.amount ?? 0) - 300) < tolerance)
-        #expect(plannedBreakdown["Groceries"]?.color == groceries.color)
-        #expect(plannedBreakdown["Dining"]?.color == dining.color)
+        let bridgePlannedBreakdown = Dictionary(uniqueKeysWithValues: bridgeSummary.plannedCategoryBreakdown.map { ($0.categoryName, ($0.amount, $0.hexColor)) })
+        #expect(abs((bridgePlannedBreakdown["Travel"]?.0 ?? -1) - 200) < tolerance)
+        #expect(abs((bridgePlannedBreakdown["Groceries"]?.0 ?? -1) - 150) < tolerance)
+        #expect(abs(bridgePlannedBreakdown["Utilities"]?.0 ?? 0) < tolerance)
+        #expect(bridgePlannedBreakdown["Travel"]?.1 == travel.color)
+        #expect(bridgePlannedBreakdown["Groceries"]?.1 == groceries.color)
 
-        let variableBreakdown = summary.variableCategoryBreakdown.reduce(into: [String: (amount: Double, color: String?)]()) { dict, entry in
-            dict[entry.categoryName] = (entry.amount, entry.hexColor)
-        }
-        #expect(abs((variableBreakdown["Groceries"]?.amount ?? 0) - 45) < tolerance)
-        #expect(abs((variableBreakdown["Dining"]?.amount ?? 0) - 55) < tolerance)
+        let bridgeVariableBreakdown = Dictionary(uniqueKeysWithValues: bridgeSummary.variableCategoryBreakdown.map { ($0.categoryName, ($0.amount, $0.hexColor)) })
+        #expect(abs((bridgeVariableBreakdown["Travel"]?.0 ?? -1) - 50) < tolerance)
+        #expect(abs((bridgeVariableBreakdown["Groceries"]?.0 ?? -1) - 30) < tolerance)
+        #expect(abs(bridgeVariableBreakdown["Utilities"]?.0 ?? 0) < tolerance)
 
-        let combinedBreakdown = summary.categoryBreakdown.reduce(into: [String: Double]()) { dict, entry in
-            dict[entry.categoryName] = entry.amount
+        let bridgeCombinedBreakdown = Dictionary(uniqueKeysWithValues: bridgeSummary.categoryBreakdown.map { ($0.categoryName, $0.amount) })
+        #expect(abs((bridgeCombinedBreakdown["Travel"] ?? -1) - 250) < tolerance)
+        #expect(abs((bridgeCombinedBreakdown["Groceries"] ?? -1) - 180) < tolerance)
+        #expect(abs(bridgeCombinedBreakdown["Utilities"] ?? 0) < tolerance)
+
+        guard let julySummary = summaryByName["Primary July"] else {
+            #expect(false, "Missing July budget summary")
+            return
         }
-        #expect(abs((combinedBreakdown["Groceries"] ?? 0) - 545) < tolerance)
-        #expect(abs((combinedBreakdown["Dining"] ?? 0) - 355) < tolerance)
+
+        #expect(abs(julySummary.plannedExpensesPlannedTotal - 550) < tolerance)
+        #expect(abs(julySummary.plannedExpensesActualTotal - 510) < tolerance)
+        #expect(abs(julySummary.variableExpensesTotal - 100) < tolerance)
+        #expect(abs(julySummary.potentialIncomeTotal - 2_500) < tolerance)
+        #expect(abs(julySummary.actualIncomeTotal - 1_800) < tolerance)
+        #expect(abs(julySummary.potentialSavingsTotal - 1_950) < tolerance)
+        #expect(abs(julySummary.actualSavingsTotal - 1_190) < tolerance)
+
+        let julyPlannedBreakdown = Dictionary(uniqueKeysWithValues: julySummary.plannedCategoryBreakdown.map { ($0.categoryName, ($0.amount, $0.hexColor)) })
+        #expect(abs((julyPlannedBreakdown["Groceries"]?.0 ?? -1) - 400) < tolerance)
+        #expect(abs((julyPlannedBreakdown["Utilities"]?.0 ?? -1) - 150) < tolerance)
+        #expect(julyPlannedBreakdown["Groceries"]?.1 == groceries.color)
+        #expect(julyPlannedBreakdown["Utilities"]?.1 == utilities.color)
+
+        let julyVariableBreakdown = Dictionary(uniqueKeysWithValues: julySummary.variableCategoryBreakdown.map { ($0.categoryName, ($0.amount, $0.hexColor)) })
+        #expect(abs((julyVariableBreakdown["Groceries"]?.0 ?? -1) - 60) < tolerance)
+        #expect(abs((julyVariableBreakdown["Utilities"]?.0 ?? -1) - 40) < tolerance)
+
+        let julyCombinedBreakdown = Dictionary(uniqueKeysWithValues: julySummary.categoryBreakdown.map { ($0.categoryName, $0.amount) })
+        #expect(abs((julyCombinedBreakdown["Groceries"] ?? -1) - 460) < tolerance)
+        #expect(abs((julyCombinedBreakdown["Utilities"] ?? -1) - 190) < tolerance)
+    }
+
+    @Test
+    func refresh_withoutOverlappingBudgets_setsEmptyState() async throws {
+        UserDefaults.standard.set(BudgetPeriod.monthly.rawValue, forKey: AppSettingsKeys.budgetPeriod.rawValue)
+
+        _ = try TestUtils.resetStore()
+        let context = CoreDataService.shared.viewContext
+        let budgetService = BudgetService()
+
+        _ = try budgetService.createBudget(
+            name: "Spring",
+            startDate: TestUtils.makeDate(2025, 3, 1),
+            endDate: TestUtils.makeDate(2025, 3, 31)
+        )
+        _ = try budgetService.createBudget(
+            name: "Autumn",
+            startDate: TestUtils.makeDate(2025, 9, 1),
+            endDate: TestUtils.makeDate(2025, 9, 30)
+        )
+
+        let vm = HomeViewModel(context: context)
+        vm.selectedDate = TestUtils.makeDate(2025, 7, 15)
+        await vm.refresh()
+
+        #expect(vm.state == .empty)
+    }
+
+    @Test
+    func refresh_includesBudgetsWithPartialOverlap() async throws {
+        UserDefaults.standard.set(BudgetPeriod.monthly.rawValue, forKey: AppSettingsKeys.budgetPeriod.rawValue)
+
+        _ = try TestUtils.resetStore()
+        let context = CoreDataService.shared.viewContext
+        let budgetService = BudgetService()
+
+        let leading = try budgetService.createBudget(
+            name: "Leading Edge",
+            startDate: TestUtils.makeDate(2025, 6, 20),
+            endDate: TestUtils.makeDate(2025, 7, 2)
+        )
+        let trailing = try budgetService.createBudget(
+            name: "Trailing Edge",
+            startDate: TestUtils.makeDate(2025, 7, 25),
+            endDate: TestUtils.makeDate(2025, 8, 5)
+        )
+        _ = try budgetService.createBudget(
+            name: "Non Overlap",
+            startDate: TestUtils.makeDate(2025, 8, 10),
+            endDate: TestUtils.makeDate(2025, 8, 20)
+        )
+
+        let vm = HomeViewModel(context: context)
+        vm.selectedDate = TestUtils.makeDate(2025, 7, 10)
+        await vm.refresh()
+
+        guard case let .loaded(summaries) = vm.state else {
+            #expect(false, "Expected loaded state for partial overlaps, found \(vm.state)")
+            return
+        }
+
+        #expect(summaries.count == 2)
+        let names = summaries.map { $0.budgetName }.sorted()
+        #expect(names == ["Leading Edge", "Trailing Edge"])
+
+        guard
+            let leadingSummary = summaries.first(where: { $0.budgetName == "Leading Edge" }),
+            let trailingSummary = summaries.first(where: { $0.budgetName == "Trailing Edge" }),
+            let leadingStart = leading.startDate,
+            let leadingEnd = leading.endDate,
+            let trailingStart = trailing.startDate,
+            let trailingEnd = trailing.endDate
+        else {
+            #expect(false, "Expected summaries and budget dates to be available")
+            return
+        }
+
+        #expect(leadingSummary.periodStart == leadingStart)
+        #expect(leadingSummary.periodEnd == leadingEnd)
+        #expect(trailingSummary.periodStart == trailingStart)
+        #expect(trailingSummary.periodEnd == trailingEnd)
     }
 
     @Test

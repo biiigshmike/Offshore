@@ -22,7 +22,6 @@ struct OffshoreBudgetingApp: App {
 
     // MARK: Init
     init() {
-        UITestResetHelper.resetIfNeeded()
         let cardPickerStore = CardPickerStore()
         _cardPickerStore = StateObject(wrappedValue: cardPickerStore)
         CoreDataService.shared.ensureLoaded()

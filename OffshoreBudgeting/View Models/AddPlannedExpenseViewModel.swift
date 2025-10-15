@@ -277,19 +277,30 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                     context.delete(expense)
                 }
 
+                let templateForChildPropagation: PlannedExpense?
+                if let templateID = existing.globalTemplateID,
+                   let fetchedTemplateOptional = try? PlannedExpenseService.shared.find(byID: templateID),
+                   let fetchedTemplate = fetchedTemplateOptional {
+                    templateForChildPropagation = (try? context.existingObject(with: fetchedTemplate.objectID) as? PlannedExpense)
+                        ?? fetchedTemplate
+                } else {
+                    templateForChildPropagation = nil
+                }
+
                 for budgetID in budgetsToAdd {
                     guard let budget = selectedBudgetMap[budgetID] else { continue }
-                    let item = PlannedExpense(context: context)
-                    item.id = item.id ?? UUID()
-                    item.descriptionText = trimmed
-                    item.plannedAmount = plannedAmt
-                    item.actualAmount = actualAmt
-                    item.transactionDate = transactionDate
-                    item.isGlobal = false
-                    item.globalTemplateID = existing.globalTemplateID
-                    item.budget = budget
-                    item.expenseCategory = category
-                    item.card = selectedCard
+                    let template = templateForChildPropagation ?? existing
+                    let child = PlannedExpenseService.shared.ensureChild(from: template,
+                                                                         attachedTo: budget,
+                                                                         in: context)
+                    child.descriptionText = trimmed
+                    child.plannedAmount = plannedAmt
+                    child.actualAmount = actualAmt
+                    child.isGlobal = false
+                    child.globalTemplateID = existing.globalTemplateID
+                    child.budget = budget
+                    child.expenseCategory = category
+                    child.card = selectedCard
                 }
 
                 if existing.globalTemplateID != nil {
@@ -328,15 +339,17 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                 parent.card = selectedCard
 
                 let budgetTargets = resolveSelectedBudgets()
+                let parentID = parent.id ?? UUID()
+                parent.id = parentID
                 for targetBudget in budgetTargets {
-                    let child = PlannedExpense(context: context)
-                    child.id = child.id ?? UUID()
+                    let child = PlannedExpenseService.shared.ensureChild(from: parent,
+                                                                         attachedTo: targetBudget,
+                                                                         in: context)
                     child.descriptionText = trimmed
                     child.plannedAmount = plannedAmt
                     child.actualAmount = actualAmt
-                    child.transactionDate = transactionDate
                     child.isGlobal = false
-                    child.globalTemplateID = parent.id
+                    child.globalTemplateID = parentID
                     child.budget = targetBudget
                     child.expenseCategory = category
                     child.card = selectedCard

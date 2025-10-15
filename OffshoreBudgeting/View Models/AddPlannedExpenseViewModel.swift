@@ -279,10 +279,10 @@ final class AddPlannedExpenseViewModel: ObservableObject {
 
                 let templateForChildPropagation: PlannedExpense?
                 if let templateID = existing.globalTemplateID,
-                   let fetchedTemplateOptional = try? PlannedExpenseService.shared.find(byID: templateID),
-                   let fetchedTemplate = fetchedTemplateOptional {
-                    templateForChildPropagation = (try? context.existingObject(with: fetchedTemplate.objectID) as? PlannedExpense)
-                        ?? fetchedTemplate
+                   let fetchedTemplate = try? PlannedExpenseService.shared.find(byID: templateID) {
+                    // Try to resolve into the current context for safety; fall back if needed.
+                    let resolved = try? context.existingObject(with: fetchedTemplate.objectID) as? PlannedExpense
+                    templateForChildPropagation = resolved ?? fetchedTemplate
                 } else {
                     templateForChildPropagation = nil
                 }
@@ -590,3 +590,4 @@ final class AddPlannedExpenseViewModel: ObservableObject {
         return nf.string(from: NSNumber(value: value)) ?? ""
     }
 }
+

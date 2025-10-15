@@ -98,4 +98,68 @@ struct PlannedExpenseServiceTests {
         let none = try ps.fetchForBudget(b2.id!)
         #expect(none.isEmpty)
     }
+
+    @Test
+    func global_template_instantiation_and_duplication_flow() throws {
+        let container = try TestUtils.resetStore()
+        let ctx = container.viewContext
+        let budgetService = BudgetService()
+        let categoryService = ExpenseCategoryService()
+        let cardService = CardService()
+        let plannedService = PlannedExpenseService()
+
+        let novStart = TestUtils.makeDate(2025, 11, 1)
+        let novEnd = TestUtils.makeDate(2025, 11, 30)
+        let decStart = TestUtils.makeDate(2025, 12, 1)
+        let decEnd = TestUtils.makeDate(2025, 12, 31)
+
+        let november = try budgetService.createBudget(name: "November", startDate: novStart, endDate: novEnd)
+        let december = try budgetService.createBudget(name: "December", startDate: decStart, endDate: decEnd)
+        let category = try categoryService.addCategory(name: "Insurance", color: "#0088FF")
+        let card = try cardService.createCard(name: "Rewards", ensureUniqueName: false)
+
+        let template = try plannedService.createGlobalTemplate(titleOrDescription: "Auto Insurance",
+                                                               plannedAmount: 180,
+                                                               actualAmount: 20,
+                                                               defaultTransactionDate: novStart)
+
+        #expect(template.isGlobal)
+        #expect(template.budget == nil)
+        #expect(template.globalTemplateID == nil)
+
+        let instanceDate = TestUtils.makeDate(2025, 11, 15)
+        let instance = try plannedService.instantiateTemplate(template,
+                                                              intoBudgetID: november.id!,
+                                                              on: instanceDate)
+
+        #expect(!instance.isGlobal)
+        #expect(instance.budget?.objectID == november.objectID)
+        #expect(instance.globalTemplateID == template.id)
+        #expect(template.isGlobal)
+
+        instance.card = card
+        instance.expenseCategory = category
+        try ctx.save()
+
+        let duplicateDate = TestUtils.makeDate(2025, 12, 5)
+        let duplicate = try plannedService.duplicate(instance,
+                                                     intoBudgetID: december.id!,
+                                                     on: duplicateDate)
+
+        #expect(!duplicate.isGlobal)
+        #expect(duplicate.budget?.objectID == december.objectID)
+        #expect(duplicate.card?.objectID == card.objectID)
+        #expect(duplicate.expenseCategory?.objectID == category.objectID)
+        #expect(duplicate.globalTemplateID == instance.globalTemplateID)
+
+        let novemberInterval = DateInterval(start: novStart, end: novEnd)
+        let novemberTotals = try plannedService.totalsForBudget(november.id!, in: novemberInterval)
+        #expect(abs(novemberTotals.planned - instance.plannedAmount) < 0.0001)
+        #expect(abs(novemberTotals.actual - instance.actualAmount) < 0.0001)
+
+        let decemberInterval = DateInterval(start: decStart, end: decEnd)
+        let decemberTotals = try plannedService.totalsForBudget(december.id!, in: decemberInterval)
+        #expect(abs(decemberTotals.planned - duplicate.plannedAmount) < 0.0001)
+        #expect(abs(decemberTotals.actual - duplicate.actualAmount) < 0.0001)
+    }
 }

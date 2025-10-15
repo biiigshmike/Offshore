@@ -45,6 +45,10 @@ final class IncomeService {
         self.repo = CoreDataRepository<Income>(stack: stack)
         self.calendar = calendar
     }
+
+    // Expose the calendar used by this service so view models can align
+    // day/month boundaries with persisted/grouped results.
+    var calendarUsed: Calendar { calendar }
     
     // MARK: - CRUD
     

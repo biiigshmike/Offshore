@@ -25,7 +25,7 @@ final class IncomeScreenViewModel: ObservableObject {
     
     // MARK: Private
     private let incomeService: IncomeService
-    private let calendar: Calendar = .current
+    private let calendar: Calendar
     private var cancellables: Set<AnyCancellable> = []
 
     /// Cache of month-start anchors → day/event mappings to avoid re-fetching
@@ -40,6 +40,7 @@ final class IncomeScreenViewModel: ObservableObject {
     // MARK: Init
     init(incomeService: IncomeService = IncomeService()) {
         self.incomeService = incomeService
+        self.calendar = .current
 
         NotificationCenter.default.publisher(for: .dataStoreDidChange)
             .receive(on: DispatchQueue.main)
@@ -143,8 +144,9 @@ final class IncomeScreenViewModel: ObservableObject {
             return
         }
 
-        if let monthEvents = try? incomeService.eventsByDay(inMonthContaining: date) {
-            cachedMonthlyEvents[monthAnchor] = monthEvents
+        if let rawMonthEvents = try? incomeService.eventsByDay(inMonthContaining: date) {
+            let remapped = remapEventsToDisplayCalendar(rawMonthEvents)
+            cachedMonthlyEvents[monthAnchor] = remapped
             trimCacheIfNeeded()
             rebuildEventsByDay()
         }
@@ -209,10 +211,11 @@ final class IncomeScreenViewModel: ObservableObject {
     private func ensureMonthCached(for date: Date) -> Bool {
         let monthAnchor = monthStart(for: date)
         guard cachedMonthlyEvents[monthAnchor] == nil else { return false }
-        guard let monthEvents = try? incomeService.eventsByDay(inMonthContaining: date) else {
+        guard let rawMonthEvents = try? incomeService.eventsByDay(inMonthContaining: date) else {
             return false
         }
-        cachedMonthlyEvents[monthAnchor] = monthEvents
+        let remapped = remapEventsToDisplayCalendar(rawMonthEvents)
+        cachedMonthlyEvents[monthAnchor] = remapped
         trimCacheIfNeeded()
         rebuildEventsByDay()
         return true
@@ -235,6 +238,19 @@ final class IncomeScreenViewModel: ObservableObject {
                 partial[day] = events
             }
         }
+    }
+
+    /// Converts service-grouped events (keyed by the service's calendar) into
+    /// a map keyed by this view model's display calendar.
+    private func remapEventsToDisplayCalendar(_ monthEvents: [Date: [IncomeService.IncomeEvent]]) -> [Date: [IncomeService.IncomeEvent]] {
+        var remapped: [Date: [IncomeService.IncomeEvent]] = [:]
+        for events in monthEvents.values {
+            for e in events {
+                let key = calendar.startOfDay(for: e.date)
+                remapped[key, default: []].append(e)
+            }
+        }
+        return remapped
     }
 
     /// Clears all cached month data and published summaries.

@@ -482,6 +482,7 @@ private struct CategoryChip: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 44)
+        .background(.clear)
 
         let button = Button(action: action) {
             label
@@ -498,6 +499,8 @@ private struct CategoryChip: View {
                 )
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)
+                .clipShape(Capsule())
+                .compositingGroup()
         } else {
             let neutralFill = DS.Colors.chipFill
             button

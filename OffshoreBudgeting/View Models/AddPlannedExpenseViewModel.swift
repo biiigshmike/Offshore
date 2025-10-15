@@ -105,11 +105,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
 
         if isEditing, let id = plannedExpenseID,
            let existing = try? context.existingObject(with: id) as? PlannedExpense {
-            if let budget = existing.budget {
-                selectedBudgetIDs = [budget.objectID]
-            } else {
-                selectedBudgetIDs = []
-            }
+            selectedBudgetIDs = gatherBudgetSelections(for: existing)
             selectedCategoryID = existing.expenseCategory?.objectID
             selectedCardID = existing.card?.objectID
             descriptionText = existing.descriptionText ?? ""
@@ -119,6 +115,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
             saveAsGlobalPreset = existing.isGlobal
             editingOriginalIsGlobal = existing.isGlobal
             editingOriginalTemplateLinkID = existing.globalTemplateID
+            pruneSelectedBudgets()
         } else {
             // If preselected not provided, default to most-recent budget by start date.
             // For preset creation where a budget is optional, we intentionally
@@ -423,6 +420,90 @@ final class AddPlannedExpenseViewModel: ObservableObject {
         if requiresBudgetSelection, selectedBudgetIDs.isEmpty, let first = allBudgets.first?.objectID {
             selectedBudgetIDs = [first]
         }
+    }
+
+    private func gatherBudgetSelections(for expense: PlannedExpense) -> Set<NSManagedObjectID> {
+        var ids: Set<NSManagedObjectID> = []
+        if let budget = expense.budget {
+            ids.insert(budget.objectID)
+        }
+
+        if let templateID = expense.globalTemplateID {
+            let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "isGlobal == NO"),
+                NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg)
+            ])
+            if let siblings = try? context.fetch(request) {
+                for sibling in siblings where sibling != expense {
+                    if let budget = sibling.budget {
+                        ids.insert(budget.objectID)
+                    }
+                }
+            }
+            return ids
+        }
+
+        let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
+        var predicates: [NSPredicate] = [
+            NSPredicate(format: "isGlobal == NO"),
+            NSPredicate(format: "globalTemplateID == nil"),
+            NSPredicate(format: "plannedAmount == %lf", expense.plannedAmount)
+        ]
+        if let date = expense.transactionDate {
+            predicates.append(NSPredicate(format: "transactionDate == %@", date as NSDate))
+        }
+        if let card = expense.card {
+            predicates.append(NSPredicate(format: "card == %@", card))
+        } else {
+            predicates.append(NSPredicate(format: "card == nil"))
+        }
+        if let category = expense.expenseCategory {
+            predicates.append(NSPredicate(format: "expenseCategory == %@", category))
+        } else {
+            predicates.append(NSPredicate(format: "expenseCategory == nil"))
+        }
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+
+        if let duplicates = try? context.fetch(request) {
+            for candidate in duplicates where candidate != expense {
+                guard let budget = candidate.budget else { continue }
+                if matchesDuplicate(candidate, of: expense) {
+                    ids.insert(budget.objectID)
+                }
+            }
+        }
+
+        return ids
+    }
+
+    private func matchesDuplicate(_ candidate: PlannedExpense, of reference: PlannedExpense) -> Bool {
+        if normalizedTitle(for: candidate).caseInsensitiveCompare(normalizedTitle(for: reference)) != .orderedSame {
+            return false
+        }
+        if candidate.plannedAmount != reference.plannedAmount {
+            return false
+        }
+        if candidate.card?.objectID != reference.card?.objectID {
+            return false
+        }
+        if candidate.expenseCategory?.objectID != reference.expenseCategory?.objectID {
+            return false
+        }
+        if candidate.transactionDate != reference.transactionDate {
+            return false
+        }
+        return true
+    }
+
+    private func normalizedTitle(for expense: PlannedExpense) -> String {
+        if let value = expense.descriptionText {
+            return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let value = expense.value(forKey: "title") as? String {
+            return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return ""
     }
 
     // MARK: Private fetch

@@ -604,8 +604,22 @@ struct HomeView: View {
             plannedRows = []; variableRows = []; return
         }
 
-        // Build date range for the selected period
-        let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
+        // Build date range based on the budget's actual period
+        var startCandidate: Date? = summary.periodStart
+        var endCandidate: Date? = summary.periodEnd
+
+        if startCandidate == nil { startCandidate = budget.startDate }
+        if endCandidate == nil { endCandidate = budget.endDate }
+
+        guard var start = startCandidate, var end = endCandidate else {
+            plannedRows = []
+            variableRows = []
+            return
+        }
+
+        if start > end {
+            swap(&start, &end)
+        }
 
         // Planned
         do {

@@ -154,11 +154,9 @@ private struct OnboardingButtonsRow2: View {
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
                 Text(title).font(.headline).frame(maxWidth: .infinity, minHeight: 44)
-                    .glassEffect(.regular.tint(.none).interactive(true))
+                    .glassEffect(.regular.tint(.none))
             }
                 .buttonStyle(.plain)
-                .padding(.vertical, 6)
-                .padding(.horizontal, 12)
                 .buttonBorderShape(.capsule)
                 .frame(minHeight: 44)
         } else {
@@ -186,11 +184,9 @@ private struct OnboardingButtonsRow2: View {
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
                 Text(title).font(.headline).frame(maxWidth: .infinity, minHeight: 44)
-                    .glassEffect(.regular.tint(.gray.opacity(0.5)).interactive(true))
+                    .glassEffect(.regular.tint(.gray.opacity(0.5)))
             }
                 .buttonStyle(.plain)
-                .padding(.vertical, 6)
-                .padding(.horizontal, 12)
                 .buttonBorderShape(.capsule)
                 .frame(minHeight: 44)
         } else {

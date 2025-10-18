@@ -29,7 +29,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		3F81335D2095449DBFE630B8 /* OnboardingFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowUITests.swift; sourceTree = "<group>"; };
 		4C73FEFC2EA01E2C003D4745 /* OffshoreBudgeting.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = OffshoreBudgeting.xctestplan; sourceTree = "<group>"; };
 		4CF220372E4A33BA00AD5F29 /* Offshore.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Offshore.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4CF220452E4A33BC00AD5F29 /* OffshoreBudgetingTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OffshoreBudgetingTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -93,14 +92,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		4CA8CA192E9FFDB800397E4D /* Recovered References */ = {
-			isa = PBXGroup;
-			children = (
-				3F81335D2095449DBFE630B8 /* OnboardingFlowUITests.swift */,
-			);
-			name = "Recovered References";
-			sourceTree = "<group>";
-		};
 		4CF2202E2E4A33B900AD5F29 = {
 			isa = PBXGroup;
 			children = (
@@ -109,7 +100,6 @@
 				4C73FEF62EA01DF8003D4745 /* OffshoreBudgetingTests */,
 				4CF220522E4A33BC00AD5F29 /* OffshoreBudgetingUITests */,
 				4CF220382E4A33BA00AD5F29 /* Products */,
-				4CA8CA192E9FFDB800397E4D /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};

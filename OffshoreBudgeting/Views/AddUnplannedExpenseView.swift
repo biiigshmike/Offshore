@@ -427,20 +427,20 @@ private struct AddCategoryPill: View {
             let label = Label("Add", systemImage: "plus")
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 12)
-                .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
+                .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 44, alignment: .center)
                 .glassEffect(.regular.tint(.none).interactive(true))
             Button(action: onTap) {
                 label
             }
             .buttonStyle(.plain)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 44, alignment: .center)
             .accessibilityLabel("Add Category")
         } else {
             Button(action: onTap) {
                 Label("Add", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 12)
-                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
+                    .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 33, alignment: .center)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(UIColor { traits in
@@ -452,7 +452,7 @@ private struct AddCategoryPill: View {
             }
             .buttonStyle(.plain)
             .controlSize(.regular)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 33, alignment: .center)
             .accessibilityLabel("Add Category")
         }
     }
@@ -481,8 +481,9 @@ private struct CategoryChip: View {
                 .foregroundStyle(.primary)
         }
         .padding(.horizontal, 12)
-        .frame(height: 44)
+        .frame(minHeight: 33, maxHeight: 44)
         .background(.clear)
+
 
         let button = Button(action: action) {
             label
@@ -492,6 +493,7 @@ private struct CategoryChip: View {
 
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             button
+                .frame(maxHeight: 44)
                 .glassEffect(
                     .regular
                         .tint(isSelected ? glassTintColor : .none)
@@ -504,6 +506,7 @@ private struct CategoryChip: View {
         } else {
             let neutralFill = DS.Colors.chipFill
             button
+                .frame(maxHeight: 33)
                 .buttonStyle(.plain)
                 .background(
                     legacyShape.fill(isSelected ? glassTintColor : neutralFill)

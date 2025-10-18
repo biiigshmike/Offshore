@@ -536,16 +536,18 @@ struct HomeView: View {
             Button(action: {}) {
                 chipLabel
                     .glassEffect(.regular.tint(.none).interactive(false))
+                    .frame(maxHeight: 33)
             }
             .buttonBorderShape(.capsule)
             .foregroundStyle(.primary)
             .allowsHitTesting(false)
             .disabled(true)
-            .frame(height: 44)
+            .frame(maxHeight: 44)
             .clipShape(Capsule())
             .compositingGroup()
         } else {
             chipLabel
+                .frame(maxHeight: 33)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(Color(UIColor { traits in
@@ -553,7 +555,7 @@ struct HomeView: View {
                         }))
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                .frame(height: 44)
+                .frame(maxHeight: 33)
         }
 
     }

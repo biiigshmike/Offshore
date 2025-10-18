@@ -122,7 +122,7 @@ final class IncomeService {
                                                    keyCandidates: ["secondPayDay", "secondBiMonthlyPayDay"],
                                                    value: secondBiMonthlyDay)
         }
-        try RecurrenceEngine.regenerateIncomeRecurrences(base: income, in: repo.context)
+        try RecurrenceEngine.regenerateIncomeRecurrences(base: income, in: repo.context, calendar: calendar)
         try repo.saveIfNeeded()
         return income
     }
@@ -168,7 +168,7 @@ final class IncomeService {
                          recurrence: recurrence,
                          recurrenceEndDate: recurrenceEndDate,
                          secondBiMonthlyDay: secondBiMonthlyDay)
-            try RecurrenceEngine.regenerateIncomeRecurrences(base: income, in: repo.context)
+            try RecurrenceEngine.regenerateIncomeRecurrences(base: income, in: repo.context, calendar: calendar)
             try repo.saveIfNeeded()
         case .all:
             let target: Income
@@ -186,7 +186,7 @@ final class IncomeService {
                          recurrence: recurrence,
                          recurrenceEndDate: recurrenceEndDate,
                          secondBiMonthlyDay: secondBiMonthlyDay)
-            try RecurrenceEngine.regenerateIncomeRecurrences(base: target, in: repo.context)
+            try RecurrenceEngine.regenerateIncomeRecurrences(base: target, in: repo.context, calendar: calendar)
             try repo.saveIfNeeded()
         }
     }
@@ -230,7 +230,7 @@ final class IncomeService {
                     newBase.parentID = nil
                     newBase.recurrence = income.recurrence
                     newBase.recurrenceEndDate = income.recurrenceEndDate
-                    try RecurrenceEngine.regenerateIncomeRecurrences(base: newBase, in: repo.context)
+                    try RecurrenceEngine.regenerateIncomeRecurrences(base: newBase, in: repo.context, calendar: calendar)
                     try repo.saveIfNeeded()
                 } else {
                     repo.delete(income)

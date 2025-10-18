@@ -35,7 +35,9 @@ struct RootTabView: View {
 
     // MARK: State
     /// Currently selected tab. Defaults to `.home` to match existing behavior.
+    @Environment(\.startTabIdentifier) private var startTabIdentifier
     @State private var selectedTab: Tab = .home
+    @State private var appliedStartTab: Bool = false
 
     var body: some View {
         tabViewBody
@@ -51,6 +53,7 @@ struct RootTabView: View {
             tabViewItem(for: .presets)
             tabViewItem(for: .settings)
         }
+        .onAppear { applyStartTabIfNeeded() }
     }
 
     @ViewBuilder
@@ -60,7 +63,10 @@ struct RootTabView: View {
         navigationContainer {
             decoratedTabContent(for: tab)
         }
-        .tabItem { Label(tab.title, systemImage: tab.systemImage) }
+        .tabItem {
+            Label(tab.title, systemImage: tab.systemImage)
+                .accessibilityIdentifier(tab.accessibilityID)
+        }
         .tag(tab)
     }
 
@@ -152,6 +158,39 @@ private extension RootTabView.Tab {
             return "list.bullet.rectangle"
         case .settings:
             return "gear"
+        }
+    }
+
+    /// Stable accessibility identifier for UI testing.
+    var accessibilityID: String {
+        switch self {
+        case .home: return "tab_home"
+        case .income: return "tab_income"
+        case .cards: return "tab_cards"
+        case .presets: return "tab_presets"
+        case .settings: return "tab_settings"
+        }
+    }
+}
+
+// MARK: - Start Tab Application
+private extension RootTabView {
+    func applyStartTabIfNeeded() {
+        guard !appliedStartTab, let key = startTabIdentifier else { return }
+        if let target = mapStartTab(key: key) {
+            selectedTab = target
+            appliedStartTab = true
+        }
+    }
+
+    func mapStartTab(key: String) -> Tab? {
+        switch key.lowercased() {
+        case "home": return .home
+        case "income": return .income
+        case "cards": return .cards
+        case "presets": return .presets
+        case "settings": return .settings
+        default: return nil
         }
     }
 }

@@ -12,6 +12,7 @@ struct IncomeView: View {
 
     // MARK: State & ViewModel
     @StateObject private var vm = IncomeScreenViewModel()
+    @Environment(\.uiTestingFlags) private var uiTest
 
     // Scroll-specific state for programmatic calendar scrolling
     @State private var calendarScrollDate: Date? = nil
@@ -113,6 +114,15 @@ struct IncomeView: View {
             // Clear, no-background toolbar icon per design
             Buttons.toolbarIcon("plus") { addIncome() }
                 .accessibilityLabel("Add Income")
+                .accessibilityIdentifier("btn_add_income")
+        }
+        if uiTest.showTestControls {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Buttons.toolbarIcon("trash") {
+                    if let first = vm.incomesForDay.first { vm.delete(income: first, scope: .all) }
+                }
+                .accessibilityIdentifier("btn_delete_first_income")
+            }
         }
     }
 
@@ -294,8 +304,19 @@ struct IncomeView: View {
                 Text(vm.currencyString(for: income.amount)).font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
+            if uiTest.showTestControls, let id = income.id?.uuidString {
+                Button("Delete") { vm.delete(income: income, scope: .all) }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("btn_delete_income_\(id)")
+            }
         }
         .padding(.vertical, 6)
+        .accessibilityIdentifier(rowAccessibilityID(for: income))
+    }
+
+    private func rowAccessibilityID(for income: Income) -> String {
+        if let id = income.id?.uuidString { return "row_income_\(id)" }
+        return "row_income"
     }
 
     private func totalsColumn(label: String, amount: Double, color: Color) -> some View {

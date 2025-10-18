@@ -33,9 +33,6 @@
             reference = "container:OffshoreBudgeting.xctestplan"
             default = "YES">
          </TestPlanReference>
-         <TestPlanReference
-            reference = "container:OffshoreBudgeting.xctestplan">
-         </TestPlanReference>
       </TestPlans>
       <Testables>
          <TestableReference

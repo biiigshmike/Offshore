@@ -152,25 +152,29 @@ private struct OnboardingButtonsRow2: View {
     private func primaryButton(title: String, action: @escaping () -> Void) -> some View {
         let tint = themeManager.selectedTheme.resolvedTint
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Button(title, action: action)
-                .buttonStyle(.glass)
+            Button(action: action) {
+                Text(title).font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+                    .glassEffect(.regular.tint(.none).interactive(true))
+            }
+                .buttonStyle(.plain)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
                 .buttonBorderShape(.capsule)
-                .tint(tint)
                 .frame(minHeight: 44)
         } else {
             Button(action: action) {
-                Text(title).font(.headline).frame(maxWidth: .infinity)
+                Text(title).font(.headline).frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.plain)
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
             .frame(minHeight: 44)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(tint.opacity(0.16))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .stroke(tint.opacity(0.35), lineWidth: 1)
             )
         }
@@ -180,25 +184,29 @@ private struct OnboardingButtonsRow2: View {
     private func secondaryButton(title: String, action: @escaping () -> Void) -> some View {
         let tint = themeManager.selectedTheme.resolvedTint
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Button(title, action: action)
-                .buttonStyle(.glass)
+            Button(action: action) {
+                Text(title).font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+                    .glassEffect(.regular.tint(.gray.opacity(0.5)).interactive(true))
+            }
+                .buttonStyle(.plain)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
                 .buttonBorderShape(.capsule)
-                .tint(tint)
                 .frame(minHeight: 44)
         } else {
             Button(action: action) {
-                Text(title).font(.headline).frame(maxWidth: .infinity)
+                Text(title).font(.headline).frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.plain)
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
             .frame(minHeight: 44)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(Color.clear)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .stroke(tint.opacity(0.35), lineWidth: 1)
             )
         }

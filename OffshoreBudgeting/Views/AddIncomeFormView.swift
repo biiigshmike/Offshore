@@ -40,6 +40,7 @@ struct AddIncomeFormView: View {
                         Button(viewModel.isEditing ? "Save Changes" : "Add Income") {
                             _ = saveTapped()
                         }
+                        .accessibilityIdentifier("btn_confirm")
                         .disabled(!viewModel.canSave)
                     }
                 }
@@ -149,6 +150,7 @@ struct AddIncomeFormView: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Income Source")
+                        .accessibilityIdentifier("txt_income_source")
                 } else {
                     TextField("Paycheck", text: $viewModel.source)
                         .autocorrectionDisabled(true)
@@ -156,6 +158,7 @@ struct AddIncomeFormView: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Income Source")
+                        .accessibilityIdentifier("txt_income_source")
                 }
                 Spacer(minLength: 0)
             }
@@ -177,12 +180,14 @@ struct AddIncomeFormView: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Income Amount")
+                        .accessibilityIdentifier("txt_income_amount")
                 } else {
                     TextField("1542.75", text: $viewModel.amountInput)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Income Amount")
+                        .accessibilityIdentifier("txt_income_amount")
                 }
                 Spacer(minLength: 0)
             }

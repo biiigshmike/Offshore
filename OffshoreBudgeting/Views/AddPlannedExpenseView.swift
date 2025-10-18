@@ -715,13 +715,13 @@ private struct CategoryChip: View {
                             .interactive(true)
                     )
                     .frame(maxHeight: 33)
-                    .clipShape(Capsule())
-                    .compositingGroup()
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
             .frame(maxHeight: 44)
             .buttonStyle(.plain)
+            .clipShape(Capsule())
+            .compositingGroup()
             .buttonBorderShape(.capsule)
         } else {
             let neutralFill = DS.Colors.chipFill

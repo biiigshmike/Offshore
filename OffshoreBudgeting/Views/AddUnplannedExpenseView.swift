@@ -495,6 +495,8 @@ private struct CategoryChip: View {
                             .interactive(true)
                     )
                     .frame(maxHeight: 33)
+                    .compositingGroup()
+                    .buttonBorderShape(.capsule)
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)

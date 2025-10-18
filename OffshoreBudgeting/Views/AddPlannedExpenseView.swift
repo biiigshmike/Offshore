@@ -704,33 +704,35 @@ private struct CategoryChip: View {
         .frame(minHeight: 33, maxHeight: 44)
         .background(.clear)
 
-
-        let button = Button(action: action) {
-            label
-        }
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .animation(.easeOut(duration: 0.15), value: isSelected)
-
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            button
-                .frame(maxHeight: 44)
-                .glassEffect(
-                    .regular
-                        .tint(isSelected ? glassTintColor : .none)
-                        .interactive(true)
-                )
-                .buttonStyle(.plain)
-                .buttonBorderShape(.capsule)
-                .clipShape(Capsule())
-                .compositingGroup()
+            Button(action: action) {
+                label
+                    .glassEffect(
+                        .regular
+                            .tint(isSelected ? glassTintColor : .none)
+                            .interactive(true)
+                    )
+                    .frame(maxHeight: 33)
+                    .clipShape(Capsule())
+                    .compositingGroup()
+            }
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .animation(.easeOut(duration: 0.15), value: isSelected)
+            .frame(maxHeight: 44)
+            .buttonStyle(.plain)
+            .buttonBorderShape(.capsule)
         } else {
             let neutralFill = DS.Colors.chipFill
-            button
-                .frame(maxHeight: 33)
-                .buttonStyle(.plain)
-                .background(
-                    legacyShape.fill(isSelected ? glassTintColor : neutralFill)
-                )
+            Button(action: action) {
+                label
+            }
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .animation(.easeOut(duration: 0.15), value: isSelected)
+            .frame(maxHeight: 33)
+            .buttonStyle(.plain)
+            .background(
+                legacyShape.fill(isSelected ? glassTintColor : neutralFill)
+            )
                 .overlay(
                     legacyShape
                         .stroke(neutralFill, lineWidth: 1)

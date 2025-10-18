@@ -485,29 +485,27 @@ private struct CategoryChip: View {
         .background(.clear)
 
 
+        let button = Button(action: action) {
+            label
+        }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .animation(.easeOut(duration: 0.15), value: isSelected)
+
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            Button(action: action) {
-                label
-                    .glassEffect(
-                        .regular
-                            .tint(isSelected ? glassTintColor : .none)
-                            .interactive(true)
-                    )
-                    .clipShape(Capsule())
-                    .compositingGroup()
-            }
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
-            .animation(.easeOut(duration: 0.15), value: isSelected)
+            button
                 .frame(maxHeight: 44)
+                .glassEffect(
+                    .regular
+                        .tint(isSelected ? glassTintColor : .none)
+                        .interactive(true)
+                )
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)
+                .clipShape(Capsule())
+                .compositingGroup()
         } else {
             let neutralFill = DS.Colors.chipFill
-            Button(action: action) {
-                label
-            }
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
-            .animation(.easeOut(duration: 0.15), value: isSelected)
+            button
                 .frame(maxHeight: 33)
                 .buttonStyle(.plain)
                 .background(

@@ -429,6 +429,8 @@ private struct AddCategoryPill: View {
                 .padding(.horizontal, 12)
                 .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 44, alignment: .center)
                 .glassEffect(.regular.tint(.none).interactive(true))
+                .clipShape(Capsule())
+                .compositingGroup()
             Button(action: onTap) {
                 label
             }

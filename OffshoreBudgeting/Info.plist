@@ -7,8 +7,6 @@
 		<string>com.mbrown.OffshoreBudgeting.refresh</string>
 		<string>com.mbrown.OffshoreBudgeting.processing</string>
 	</array>
-	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSServices</key>
 	<array>
 		<dict/>

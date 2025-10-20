@@ -205,6 +205,7 @@ struct ExpenseCategoryManagerView: View {
         new.id = UUID()
         new.name = name
         new.color = hex
+        WorkspaceService.shared.applyWorkspaceID(on: new)
         saveContext()
     }
     

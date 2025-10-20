@@ -14,6 +14,7 @@ import CoreData
 #if canImport(UIKit)
 import UIKit
 #endif
+import Combine
 
 // MARK: - BudgetLoadState
 /// Represents the loading state for budgets to prevent UI flickering
@@ -54,11 +55,16 @@ struct BudgetSummary: Identifiable, Equatable, Sendable {
 
     // MARK: Variable Spend (Unplanned) by Category
     struct CategorySpending: Identifiable, Equatable, Sendable {
+        // Keep existing UUID identity for ForEach stability
         let id = UUID()
+        // Stable identity for category-specific actions; URL is Sendable
+        let categoryURI: URL
         let categoryName: String
         let hexColor: String?
         let amount: Double
     }
+
+    // Back-compat convenience initializer is defined below at file scope.
     // Combined (legacy) – kept for backwards compatibility
     let categoryBreakdown: [CategorySpending]
     // New: per‑segment breakdowns so UI can respect the selected segment
@@ -89,6 +95,17 @@ struct BudgetSummary: Identifiable, Equatable, Sendable {
         let f = DateFormatter()
         f.dateFormat = "MMM d, yyyy"
         return "\(f.string(from: periodStart)) through \(f.string(from: periodEnd))"
+    }
+}
+
+// MARK: - BudgetSummary.CategorySpending Back-Compat Init
+extension BudgetSummary.CategorySpending {
+    /// Convenience initializer for call sites that don't have a Core Data category object ID.
+    /// Generates a stable local URI using the category name for identity.
+    init(categoryName: String, hexColor: String?, amount: Double) {
+        let encoded = categoryName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? UUID().uuidString
+        let uri = URL(string: "offshore-local://category/\(encoded)") ?? URL(string: "offshore-local://category/unknown")!
+        self.init(categoryURI: uri, categoryName: categoryName, hexColor: hexColor, amount: amount)
     }
 }
 
@@ -154,6 +171,7 @@ final class HomeViewModel: ObservableObject {
     private let context: NSManagedObjectContext
     private let budgetService = BudgetService()
     private var dataStoreObserver: NSObjectProtocol?
+    private var cancellables: Set<AnyCancellable> = []
     private var hasStarted = false
     private var isRefreshing = false
     private var needsAnotherRefresh = false
@@ -174,14 +192,16 @@ final class HomeViewModel: ObservableObject {
         hasStarted = true
 
         if dataStoreObserver == nil {
-            dataStoreObserver = NotificationCenter.default.addObserver(
-                forName: .dataStoreDidChange,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                guard let self else { return }
-                Task { await self.refresh() }
-            }
+            // Coalesce bursts of Core Data/CloudKit changes.
+            // Use a dynamic debounce: longer while importing, shorter otherwise.
+            let ms = DataChangeDebounce.milliseconds()
+            NotificationCenter.default.publisher(for: .dataStoreDidChange)
+                .debounce(for: .milliseconds(ms), scheduler: RunLoop.main)
+                .sink { [weak self] _ in
+                    guard let self else { return }
+                    Task { await self.refresh() }
+                }
+                .store(in: &cancellables)
         }
 
         // After a 200ms delay, if we are still in the `initial` state,
@@ -263,9 +283,8 @@ final class HomeViewModel: ObservableObject {
     }
 
     deinit {
-        if let observer = dataStoreObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
+        if let observer = dataStoreObserver { NotificationCenter.default.removeObserver(observer) }
+        cancellables.forEach { $0.cancel() }
     }
 
     private func loadSummaries(period: BudgetPeriod, dateRange: ClosedRange<Date>) async -> [BudgetSummary] {
@@ -388,15 +407,19 @@ final class HomeViewModel: ObservableObject {
         let actualIncomeTotal    = incomes.filter { !$0.isPlanned }.reduce(0.0) { $0 + $1.amount }
 
         // MARK: Expense Categories – separate maps (exclude Uncategorized) and include zero-amount categories
-        var plannedCatMap: [String: (hex: String?, total: Double)] = [:]
-        var variableCatMap: [String: (hex: String?, total: Double)] = [:]
+        // Key by NSManagedObjectID to avoid ambiguity when names are not unique
+        var plannedCatMap: [NSManagedObjectID: (name: String, hex: String?, total: Double)] = [:]
+        var variableCatMap: [NSManagedObjectID: (name: String, hex: String?, total: Double)] = [:]
 
         for e in plannedExpenses {
             let amt = e.plannedAmount
-            guard let name = (e.expenseCategory?.name?.trimmingCharacters(in: .whitespacesAndNewlines)), !name.isEmpty else { continue }
-            let hex = e.expenseCategory?.color
-            let existing = plannedCatMap[name] ?? (hex: hex, total: 0)
-            plannedCatMap[name] = (hex: hex ?? existing.hex, total: existing.total + amt)
+            guard let cat = e.expenseCategory else { continue }
+            let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let hex = cat.color
+            let existing = plannedCatMap[cat.objectID] ?? (name: name, hex: hex, total: 0)
+            plannedCatMap[cat.objectID] = (name: existing.name.isEmpty ? name : existing.name,
+                                           hex: hex ?? existing.hex,
+                                           total: existing.total + amt)
         }
 
         let cards = (budget.cards as? Set<Card>) ?? []
@@ -412,10 +435,13 @@ final class HomeViewModel: ObservableObject {
                 let amt = e.amount
                 variableTotal += amt
 
-                guard let catName = (e.expenseCategory?.name?.trimmingCharacters(in: .whitespacesAndNewlines)), !catName.isEmpty else { continue }
-                let hex = e.expenseCategory?.color
-                let existing = variableCatMap[catName] ?? (hex: hex, total: 0)
-                variableCatMap[catName] = (hex: hex ?? existing.hex, total: existing.total + amt)
+                guard let cat = e.expenseCategory else { continue }
+                let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let hex = cat.color
+                let existing = variableCatMap[cat.objectID] ?? (name: name, hex: hex, total: 0)
+                variableCatMap[cat.objectID] = (name: existing.name.isEmpty ? name : existing.name,
+                                                hex: hex ?? existing.hex,
+                                                total: existing.total + amt)
             }
         }
 
@@ -425,21 +451,20 @@ final class HomeViewModel: ObservableObject {
         let allCategories: [ExpenseCategory] = (try? context.fetch(allCategoriesFetch)) ?? []
         for cat in allCategories {
             let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else { continue }
-            if plannedCatMap[name] == nil { plannedCatMap[name] = (hex: cat.color, total: 0) }
-            if variableCatMap[name] == nil { variableCatMap[name] = (hex: cat.color, total: 0) }
+            if plannedCatMap[cat.objectID] == nil { plannedCatMap[cat.objectID] = (name: name, hex: cat.color, total: 0) }
+            if variableCatMap[cat.objectID] == nil { variableCatMap[cat.objectID] = (name: name, hex: cat.color, total: 0) }
         }
 
         // Build breakdowns, sort by amount desc, then name A–Z for stable tie-breaks
         let plannedBreakdown: [BudgetSummary.CategorySpending] = plannedCatMap
-            .map { BudgetSummary.CategorySpending(categoryName: $0.key, hexColor: $0.value.hex, amount: $0.value.total) }
+            .map { BudgetSummary.CategorySpending(categoryURI: $0.key.uriRepresentation(), categoryName: $0.value.name, hexColor: $0.value.hex, amount: $0.value.total) }
             .sorted { lhs, rhs in
                 if lhs.amount == rhs.amount { return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending }
                 return lhs.amount > rhs.amount
             }
 
         let variableBreakdown: [BudgetSummary.CategorySpending] = variableCatMap
-            .map { BudgetSummary.CategorySpending(categoryName: $0.key, hexColor: $0.value.hex, amount: $0.value.total) }
+            .map { BudgetSummary.CategorySpending(categoryURI: $0.key.uriRepresentation(), categoryName: $0.value.name, hexColor: $0.value.hex, amount: $0.value.total) }
             .sorted { lhs, rhs in
                 if lhs.amount == rhs.amount { return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending }
                 return lhs.amount > rhs.amount
@@ -447,13 +472,21 @@ final class HomeViewModel: ObservableObject {
 
         // Combined (legacy)
         let categoryBreakdown: [BudgetSummary.CategorySpending] = (plannedBreakdown + variableBreakdown)
-            .reduce(into: [String: BudgetSummary.CategorySpending]()) { dict, item in
-                let existing = dict[item.categoryName]
+            .reduce(into: [URL: BudgetSummary.CategorySpending]()) { dict, item in
+                let existing = dict[item.categoryURI]
                 let sum = (existing?.amount ?? 0) + item.amount
-                dict[item.categoryName] = BudgetSummary.CategorySpending(categoryName: item.categoryName, hexColor: existing?.hexColor ?? item.hexColor, amount: sum)
+                dict[item.categoryURI] = BudgetSummary.CategorySpending(
+                    categoryURI: item.categoryURI,
+                    categoryName: existing?.categoryName ?? item.categoryName,
+                    hexColor: existing?.hexColor ?? item.hexColor,
+                    amount: sum
+                )
             }
             .values
-            .sorted { $0.amount > $1.amount }
+            .sorted { lhs, rhs in
+                if lhs.amount == rhs.amount { return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending }
+                return lhs.amount > rhs.amount
+            }
 
         return BudgetSummary(
             id: budget.objectID,

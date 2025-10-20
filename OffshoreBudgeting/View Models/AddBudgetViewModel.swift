@@ -146,6 +146,7 @@ final class AddBudgetViewModel: ObservableObject {
         newBudget.name = budgetName.trimmingCharacters(in: .whitespacesAndNewlines)
         newBudget.startDate = startDate
         newBudget.endDate = endDate
+        WorkspaceService.shared.applyWorkspaceID(on: newBudget)
 
         // Attach selected Cards
         let cardsToAttach = allCards.filter { selectedCardObjectIDs.contains($0.objectID) }

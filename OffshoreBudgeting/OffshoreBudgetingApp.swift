@@ -7,14 +7,23 @@
 
 import SwiftUI
 import UIKit
+import Combine
 
 @main
 struct OffshoreBudgetingApp: App {
+    // UIApplicationDelegate bridge for remote notifications
+    @UIApplicationDelegateAdaptor(OffshoreAppDelegate.self) private var appDelegate
     // MARK: Dependencies
     @StateObject private var themeManager = ThemeManager()
-    @StateObject private var cardPickerStore: CardPickerStore
+    @State private var cardPickerStore: CardPickerStore?
+    @State private var coreDataReady = false
+    @State private var dataReady = false
+    @State private var isSyncing = false
+    @State private var dataRevision: Int = 0
+    @State private var dataChangeObserver: NSObjectProtocol?
     private let platformCapabilities = PlatformCapabilities.current
     @Environment(\.colorScheme) private var systemColorScheme
+    @Environment(\.scenePhase) private var scenePhase
 
     // MARK: Onboarding State
     /// Persisted flag indicating whether the intro flow has been completed.
@@ -22,17 +31,9 @@ struct OffshoreBudgetingApp: App {
 
     // MARK: Init
     init() {
-        let cardPickerStore = CardPickerStore()
-        _cardPickerStore = StateObject(wrappedValue: cardPickerStore)
-        CoreDataService.shared.ensureLoaded()
+        // Defer Core Data store loading and CardPickerStore creation to onAppear
         configureForUITestingIfNeeded()
-        // Removed test seeding hook (UITestDataSeeder) to avoid requiring
-        // UI test-only code in the main app target.
-        cardPickerStore.start()
         logPlatformCapabilities()
-        // No macOS-specific setup required at the moment.
-        // Reduce the chance of text truncation across the app by allowing
-        // UILabel-backed Text views to shrink when space is constrained.
         let labelAppearance = UILabel.appearance()
         labelAppearance.adjustsFontSizeToFitWidth = true
         labelAppearance.minimumScaleFactor = 0.75
@@ -43,13 +44,26 @@ struct OffshoreBudgetingApp: App {
         WindowGroup {
             configuredScene {
                 ResponsiveLayoutReader { _ in
-                    Group {
-                        if didCompleteOnboarding {
-                            RootTabView()
-                        } else {
-                            OnboardingView()
+                    ZStack {
+                        // Base content (only when Core Data + stores are ready)
+                        if coreDataReady, cardPickerStore != nil {
+                            if didCompleteOnboarding {
+                                RootTabView()
+                                    .environment(\.dataRevision, dataRevision)
+                                    .transition(.opacity)
+                            } else {
+                                CloudSyncGateView()
+                                    .transition(.opacity)
+                            }
+                        }
+                        // Glass setup overlay while preparing/syncing
+                        if !dataReady || !coreDataReady || cardPickerStore == nil {
+                            WorkspaceSetupView(isSyncing: isSyncing)
+                                .transition(.opacity)
                         }
                     }
+                    .animation(.easeInOut(duration: 0.25), value: dataReady)
+                    .animation(.easeInOut(duration: 0.25), value: coreDataReady)
                 }
             }
         }
@@ -75,15 +89,15 @@ struct OffshoreBudgetingApp: App {
     }
 
     // MARK: Scene Wiring
-    @ViewBuilder
     private func configuredScene<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         let overrides = testUIOverridesIfAny()
         let testFlags = uiTestingFlagsIfAny()
         let startTab = ProcessInfo.processInfo.environment["UITEST_START_TAB"]
-        content()
-            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+        let base = content()
             .environmentObject(themeManager)
-            .environmentObject(cardPickerStore)
+            .ifLet(cardPickerStore) { view, store in
+                view.environmentObject(store)
+            }
             .environment(\.platformCapabilities, platformCapabilities)
             .environment(\.uiTestingFlags, testFlags)
             .environment(\.startTabIdentifier, startTab)
@@ -101,6 +115,38 @@ struct OffshoreBudgetingApp: App {
                     colorScheme: systemColorScheme,
                     platformCapabilities: platformCapabilities
                 )
+                // Register for remote notifications so CloudKit can push changes.
+                UIApplication.shared.registerForRemoteNotifications()
+                Task { @MainActor in
+                    // Ensure stores are loaded in the background
+                    CoreDataService.shared.ensureLoaded()
+                    await CoreDataService.shared.waitUntilStoresLoaded()
+                    // Re-apply cloud preference if needed and initialize workspace
+                    if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue) {
+                        await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
+                        if CloudDataProbe().hasAnyData() { UbiquitousFlags.setHasCloudDataTrue() }
+                    }
+                    await WorkspaceService.shared.initializeOnLaunch()
+                    // Ensure KVS-based sync services reflect current settings
+                    CardAppearanceStore.shared.applySettingsChanged()
+                    BudgetPreferenceSync.shared.applySettingsChanged()
+                    // Create the CardPickerStore now that Core Data is ready
+                    if cardPickerStore == nil {
+                        let store = CardPickerStore()
+                        cardPickerStore = store
+                        store.start()
+                    }
+                    coreDataReady = true
+                    startDataReadinessFlow()
+                    startObservingDataChanges()
+                    // Nudge CloudKit while foreground to accelerate initial sync visibility.
+                    CloudSyncAccelerator.shared.nudgeOnForeground()
+                }
+            }
+            .onChange(of: scenePhase) { newPhase in
+                if newPhase == .active {
+                    CloudSyncAccelerator.shared.nudgeOnForeground()
+                }
             }
             .onChange(of: systemColorScheme) { newScheme in
                 themeManager.refreshSystemAppearance(newScheme)
@@ -119,6 +165,64 @@ struct OffshoreBudgetingApp: App {
             }
             // Apply test-only UI overrides (color scheme, content size, locale)
             .modifier(TestUIOverridesModifier(overrides: overrides))
+            // Inject the managedObjectContext only after stores are ready to avoid main-thread I/O warning.
+            .if(coreDataReady) { view in
+                view.environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            }
+        return base
+    }
+
+    private var syncPlaceholderText: String {
+        let cloudOn = UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        return cloudOn ? (isSyncing ? "Syncing from iCloud…" : "Loading…") : "Loading…"
+    }
+
+    @MainActor
+    private func startDataReadinessFlow() {
+        let cloudOn = UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        if !cloudOn {
+            dataReady = true
+            return
+        }
+        dataReady = false
+        isSyncing = true
+        Task { @MainActor in
+            // If remote likely empty, don’t wait long.
+            let remoteHas = await CloudDataRemoteProbe().hasAnyRemoteData(timeout: 4.0)
+            if !remoteHas {
+                // No remote data expected; proceed immediately.
+                dataReady = true
+                isSyncing = false
+                return
+            }
+            // Wait for either import to complete or any data to appear locally.
+            async let importDone: Bool = CloudSyncMonitor.shared.awaitInitialImport(timeout: 10.0)
+            async let localData: Bool = CloudDataProbe().scanForExistingData(timeout: 8.0, pollInterval: 0.25)
+            let a = await importDone
+            let b = await localData
+            let ok = a || b
+            dataReady = ok
+            isSyncing = false
+            if ok { dataRevision &+= 1 }
+            // After initial import is satisfied, issue one more gentle nudge so
+            // any straggling pushes land while the main UI is up.
+            if ok { CloudSyncAccelerator.shared.nudgeOnForeground() }
+        }
+    }
+
+    @MainActor
+    private func startObservingDataChanges() {
+        if dataChangeObserver != nil { return }
+        dataChangeObserver = NotificationCenter.default.addObserver(
+            forName: .dataStoreDidChange,
+            object: nil,
+            queue: .main
+        ) { _ in
+            // Only force a one-time refresh while the setup overlay is still visible.
+            if !dataReady {
+                dataRevision &+= 1
+            }
+        }
     }
 
     // MARK: UI Testing Helpers
@@ -290,6 +394,7 @@ private extension OffshoreBudgetingApp {
             inc.amount = 42.0
             inc.isPlanned = true
             inc.date = Date()
+            WorkspaceService.shared.applyWorkspaceID(on: inc)
             try? ctx.save()
         default:
             return

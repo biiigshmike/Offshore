@@ -35,7 +35,8 @@ struct PresetRowView: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-                    .layoutPriority(1)
+                    .minimumScaleFactor(0.85)
+                    .allowsTightening(true)
 
                 Spacer(minLength: 12)
 
@@ -49,6 +50,7 @@ struct PresetRowView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .layoutPriority(2)
                 .accessibilityLabel("Assigned Budgets: \(item.assignedCount)")
             }
 
@@ -108,6 +110,9 @@ private struct AssignedBudgetsBadge: View {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(titleColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .allowsTightening(true)
 
             ZStack {
                 Circle()
@@ -121,6 +126,7 @@ private struct AssignedBudgetsBadge: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private var titleColor: Color {

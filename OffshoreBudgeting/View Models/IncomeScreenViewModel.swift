@@ -42,8 +42,9 @@ final class IncomeScreenViewModel: ObservableObject {
         self.incomeService = incomeService
         self.calendar = .current
 
+        let ms = DataChangeDebounce.milliseconds()
         NotificationCenter.default.publisher(for: .dataStoreDidChange)
-            .receive(on: DispatchQueue.main)
+            .debounce(for: .milliseconds(ms), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self else { return }
                 self.clearEventCaches()

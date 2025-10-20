@@ -50,8 +50,9 @@ struct ManageBudgetPresetsSheet: View {
             }
             .onAppear(perform: loadAssignments)
             .onReceive(
-                NotificationCenter.default.publisher(for: .dataStoreDidChange)
-                    .receive(on: RunLoop.main)
+                NotificationCenter.default
+                    .publisher(for: .dataStoreDidChange)
+                    .debounce(for: .milliseconds(DataChangeDebounce.milliseconds()), scheduler: RunLoop.main)
             ) { _ in
                 loadAssignments()
             }

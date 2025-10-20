@@ -1,0 +1,749 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -scheme OffshoreBudgeting -project Offshore.xcodeproj -destination "generic/platform=iOS Simulator" -configuration Debug build
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  MijickCalendarView: https://github.com/Mijick/CalendarView.git @ 1.0.0
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (3 targets)
+    Target 'OffshoreBudgeting' in project 'Offshore'
+        ➜ Explicit dependency on target 'MijickCalendarView' in project 'MijickCalendarView'
+    Target 'MijickCalendarView' in project 'MijickCalendarView'
+        ➜ Explicit dependency on target 'MijickCalendarView' in project 'MijickCalendarView'
+    Target 'MijickCalendarView' in project 'MijickCalendarView' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/momc --dry-run --action generate --swift-version 5.0 --sdkroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk --iphonesimulator-deployment-target 16.6 --module Offshore /Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/OffshoreBudgetingModel.xcdatamodeld /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/AppIcon.icon /Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: 9ad8a7bcfbdd4be9063701ed38821a33
+Build description path: /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/XCBuildData/9ad8a7bcfbdd4be9063701ed38821a33.xcbuilddata
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk /Users/Michael/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache
+    cd /Users/Michael/Xcode\ iOS/Offshore/Offshore.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -o /Users/Michael/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache
+
+SwiftDriver OffshoreBudgeting normal arm64 com.apple.xcode.tools.swift.compiler (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Offshore -Onone -enforce-exclusivity\=checked @/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/arm64/Offshore.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target arm64-apple-ios16.6-simulator -g -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -F /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/arm64 -c -j16 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/arm64/OffshoreBudgeting-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/arm64/Offshore.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/arm64/OffshoreBudgeting_const_extract_protocols.json -Xcc -iquote -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-generated-files.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-own-target-headers.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/Offshore-18b78ca503141e196a11e3deb683abb3-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-project-headers.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources-normal/arm64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/arm64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/arm64/Offshore-Swift.h -working-directory /Users/Michael/Xcode\ iOS/Offshore -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver OffshoreBudgeting normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Offshore -Onone -enforce-exclusivity\=checked @/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target x86_64-apple-ios16.6-simulator -g -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -F /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64 -c -j16 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/OffshoreBudgeting-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/OffshoreBudgeting_const_extract_protocols.json -Xcc -iquote -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-generated-files.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-own-target-headers.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/Offshore-18b78ca503141e196a11e3deb683abb3-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-project-headers.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources-normal/x86_64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/x86_64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore-Swift.h -working-directory /Users/Michael/Xcode\ iOS/Offshore -experimental-emit-module-separately -disable-cmo
+
+CompileAssetCatalogVariant thinned /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/AppIcon.icon /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Assets.xcassets (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/AppIcon.icon /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Assets.xcassets --compile /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --enable-icon-stack-fallback-generation\=disabled --export-dependency-info /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --include-all-app-icons --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 16.6 --platform iphonesimulator
+objc[11469]: Class _NoAnimationDelegate is implemented in both /Library/Developer/CoreSimulator/Volumes/iOS_23A343/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.0.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUICore.framework/SwiftUICore (0x143ddb190) and /Library/Developer/CoreSimulator/Volumes/iOS_23A343/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.0.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore (0x149576f10). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.
+/* com.apple.actool.document.warnings */
+:(null): warning: Failed to generate flattened icon stack for icon named 'AppIcon'.
+/* com.apple.actool.compilation-results */
+/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_generated_info.plist_thinned
+/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_output/thinned/Assets.car
+
+
+SwiftDriver MijickCalendarView normal arm64 com.apple.xcode.tools.swift.compiler (in target 'MijickCalendarView' from project 'MijickCalendarView')
+    cd /Users/Michael/Xcode\ iOS/Offshore/Offshore.xcodeproj
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name MijickCalendarView -Onone -enforce-exclusivity\=checked @/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -DXcode -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target arm64-apple-ios14.0-simulator -g -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -suppress-warnings -index-store-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk/Developer/Library/Frameworks -c -j16 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView_const_extract_protocols.json -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/DerivedSources-normal/arm64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/DerivedSources/arm64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView-Swift.h -working-directory /Users/Michael/Xcode\ iOS/Offshore/Offshore.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver\ Compilation MijickCalendarView normal arm64 com.apple.xcode.tools.swift.compiler (in target 'MijickCalendarView' from project 'MijickCalendarView')
+    cd /Users/Michael/Xcode\ iOS/Offshore/Offshore.xcodeproj
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name MijickCalendarView -Onone -enforce-exclusivity\=checked @/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -DXcode -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target arm64-apple-ios14.0-simulator -g -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -suppress-warnings -index-store-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk/Developer/Library/Frameworks -c -j16 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView_const_extract_protocols.json -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/DerivedSources-normal/arm64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/DerivedSources/arm64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView-Swift.h -working-directory /Users/Michael/Xcode\ iOS/Offshore/Offshore.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/Binary/MijickCalendarView.o normal arm64 (in target 'MijickCalendarView' from project 'MijickCalendarView')
+    cd /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/SourcePackages/checkouts/CalendarView
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios14.0-simulator -r -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -O0 -w -L/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -L/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk/Developer/Library/Frameworks -filelist /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView.LinkFileList -nostdlib -Xlinker -object_path_lto -Xlinker /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -Xlinker -dependency_info -Xlinker /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView.swiftmodule @/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView-linker-args.resp -o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/Binary/MijickCalendarView.o
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_intrinsics-BTNGFBK0YDTE5PKLKL0453FI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_DarwinFoundation3-BBQ16UNRNL2G3FX7TYRUE5JQM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_stdatomic-EBTBRGONUDRDYFBU3RERC9YGL.pcm
+
+CreateUniversalBinary /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/MijickCalendarView.o normal arm64\ x86_64 (in target 'MijickCalendarView' from project 'MijickCalendarView')
+    cd /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/SourcePackages/checkouts/CalendarView
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo -create /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/Binary/MijickCalendarView.o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Binary/MijickCalendarView.o -output /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/MijickCalendarView.o
+
+SwiftCompile normal x86_64 Compiling\ IncomeService.swift,\ PlannedExpenseService.swift,\ PlannedExpenseUpdateScope.swift,\ RecurrenceEngine.swift,\ UnplannedExpenseService.swift,\ Logging.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/IncomeService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/PlannedExpenseService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/PlannedExpenseUpdateScope.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/RecurrenceEngine.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/UnplannedExpenseService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Support/Logging.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/IncomeService.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/PlannedExpenseService.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/PlannedExpenseUpdateScope.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/RecurrenceEngine.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/UnplannedExpenseService.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Support/Logging.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ AppSettings.swift,\ AppTheme.swift,\ CardAppearanceStore.swift,\ CardPickerStore.swift,\ CardTheme.swift,\ Compatibility.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/AppSettings.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/AppTheme.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardAppearanceStore.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardPickerStore.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardTheme.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/Compatibility.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/AppSettings.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/AppTheme.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardAppearanceStore.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardPickerStore.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardTheme.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/Compatibility.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ CoreDataRepository.swift,\ BudgetService.swift,\ CardService.swift,\ CloudAccountStatusProvider.swift,\ CoreDataService.swift,\ ExpenseCategoryService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/Repository/CoreDataRepository.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/BudgetService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CardService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CloudAccountStatusProvider.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CoreDataService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/ExpenseCategoryService.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/Repository/CoreDataRepository.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/BudgetService.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CardService.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CloudAccountStatusProvider.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CoreDataService.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/ExpenseCategoryService.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ DesignSystem.swift,\ DesignSystem+Motion.swift,\ IncomeCalendarPalette.swift,\ MetallicTextStyles.swift,\ MotionSupport.swift,\ OnboardingEnvironment.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/DesignSystem.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/DesignSystem+Motion.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/IncomeCalendarPalette.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/MetallicTextStyles.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/MotionSupport.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/OnboardingEnvironment.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/DesignSystem.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/DesignSystem+Motion.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/IncomeCalendarPalette.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/MetallicTextStyles.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/MotionSupport.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/OnboardingEnvironment.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ PlatformCapabilities.swift,\ ResponsiveLayoutContext.swift,\ RootTabView.swift,\ SafeAreaInsetsCompatibility.swift,\ SystemTheme.swift,\ UITestingEnvironment.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/PlatformCapabilities.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/ResponsiveLayoutContext.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/RootTabView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/SafeAreaInsetsCompatibility.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/SystemTheme.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/UITestingEnvironment.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/PlatformCapabilities.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/ResponsiveLayoutContext.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/RootTabView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/SafeAreaInsetsCompatibility.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/SystemTheme.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/UITestingEnvironment.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ HolographicMetallicText.swift,\ NotificationName+Extensions.swift,\ PlannedExpenseService+Templates.swift,\ RecurrenceRule.swift,\ SaveError.swift,\ UnifiedSwipeActions.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/HolographicMetallicText.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/NotificationName+Extensions.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/PlannedExpenseService+Templates.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/RecurrenceRule.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/SaveError.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/UnifiedSwipeActions.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/HolographicMetallicText.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/NotificationName+Extensions.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/PlannedExpenseService+Templates.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/RecurrenceRule.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/SaveError.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/UnifiedSwipeActions.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ BudgetPeriod.swift,\ CardItem.swift,\ BudgetIncomeCalculator.swift,\ CardItem+CoreDataBridge.swift,\ CoreDataEntityChangeMonitor.swift,\ CoreDataListObserver.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Models/BudgetPeriod.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Models/CardItem.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/BudgetIncomeCalculator.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CardItem+CoreDataBridge.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CoreDataEntityChangeMonitor.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CoreDataListObserver.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Models/BudgetPeriod.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Models/CardItem.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/BudgetIncomeCalculator.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CardItem+CoreDataBridge.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CoreDataEntityChangeMonitor.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CoreDataListObserver.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ CardDetailView.swift,\ CardPickerItemTile.swift,\ CardPickerRow.swift,\ CardsView.swift,\ CardTileView.swift,\ CategoryChipStyle.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardDetailView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardPickerItemTile.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardPickerRow.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardsView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardTileView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CategoryChipStyle.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardDetailView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardPickerItemTile.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardPickerRow.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardsView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardTileView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CategoryChipStyle.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ ManageBudgetCardsSheet.swift,\ ManageBudgetPresetsSheet.swift,\ OnboardingView.swift,\ PresetBudgetAssignmentSheet.swift,\ PresetRowView.swift,\ PresetsView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ManageBudgetCardsSheet.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ManageBudgetPresetsSheet.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/OnboardingView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetBudgetAssignmentSheet.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetRowView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetsView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ManageBudgetCardsSheet.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ManageBudgetPresetsSheet.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/OnboardingView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetBudgetAssignmentSheet.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetRowView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetsView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ Buttons.swift,\ CalendarNavigationButtonStyle.swift,\ CategoryChipPill.swift,\ GlassCTAButton.swift,\ PillSegmentedControl.swift,\ SheetDetentsCompat.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/Buttons.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/CalendarNavigationButtonStyle.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/CategoryChipPill.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/GlassCTAButton.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/PillSegmentedControl.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/SheetDetentsCompat.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/Buttons.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/CalendarNavigationButtonStyle.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/CategoryChipPill.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/GlassCTAButton.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/PillSegmentedControl.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/SheetDetentsCompat.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ CardDetailViewModel.swift,\ CardsViewModel.swift,\ HomeViewModel.swift,\ IncomeScreenViewModel.swift,\ PresetsViewModel.swift,\ SettingsViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/CardDetailViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/CardsViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/HomeViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/IncomeScreenViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/PresetsViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/SettingsViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/CardDetailViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/CardsViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/HomeViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/IncomeScreenViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/PresetsViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/SettingsViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftEmitModule normal x86_64 Emitting\ module\ for\ Offshore (in target 'OffshoreBudgeting' from project 'Offshore')
+
+EmitSwiftModule normal x86_64 (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ OffshoreBudgetingApp.swift,\ Budget+CoreDataClass.swift,\ Budget+CoreDataProperties.swift,\ Card+CoreDataClass.swift,\ Card+CoreDataProperties.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/OffshoreBudgetingApp.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Budget+CoreDataClass.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Budget+CoreDataProperties.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Card+CoreDataClass.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Card+CoreDataProperties.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/OffshoreBudgetingApp.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Budget+CoreDataClass.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Budget+CoreDataProperties.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Card+CoreDataClass.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Card+CoreDataProperties.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_inttypes-44PL6KH7Z8QQ0NK9MOKCJPNIW.pcm
+
+SwiftCompile normal x86_64 Compiling\ RecurrencePickerView.swift,\ RenameCardSheet.swift,\ SettingsView.swift,\ SidebarViewController.swift,\ UBEmptyState.swift,\ ContentView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/RecurrencePickerView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/RenameCardSheet.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/SettingsView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/SidebarViewController.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/UBEmptyState.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/ContentView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/RecurrencePickerView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/RenameCardSheet.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/SettingsView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/SidebarViewController.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/UBEmptyState.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/ContentView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Darwin-9M5TEM8B8WZAJM66F8GQI3OZ3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/simd-11QS6R2OLIW2CGH1FKBG9DCA8.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling BudgetPeriod.swift, CardItem.swift, BudgetIncomeCalculator.swift, CardItem+CoreDataBridge.swift, CoreDataEntityChangeMonitor.swift, CoreDataListObserver.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 Compiling\ TranslucentButtonStyle.swift,\ AddBudgetView.swift,\ AddCardFormView.swift,\ AddIncomeFormView.swift,\ AddPlannedExpenseView.swift,\ AddUnplannedExpenseView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/TranslucentButtonStyle.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddBudgetView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddCardFormView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddIncomeFormView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddPlannedExpenseView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddUnplannedExpenseView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/TranslucentButtonStyle.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddBudgetView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddCardFormView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddIncomeFormView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddPlannedExpenseView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddUnplannedExpenseView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/MachO-257SMFZP6U88OADE6R2MYG0W.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling Buttons.swift, CalendarNavigationButtonStyle.swift, CategoryChipPill.swift, GlassCTAButton.swift, PillSegmentedControl.swift, SheetDetentsCompat.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/ObjectiveC-DHDYQCOJY4ONX52EVOYO3I4UJ.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling DesignSystem.swift, DesignSystem+Motion.swift, IncomeCalendarPalette.swift, MetallicTextStyles.swift, MotionSupport.swift, OnboardingEnvironment.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 Compiling\ GeneratedAssetSymbols.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 Compiling\ CustomRecurrenceEditorView.swift,\ ExpenseCategoryManagerView.swift,\ HelpView.swift,\ HomeView.swift,\ IncomeEditorView.swift,\ IncomeView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CustomRecurrenceEditorView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/HelpView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/HomeView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/IncomeEditorView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/IncomeView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CustomRecurrenceEditorView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/HelpView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/HomeView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/IncomeEditorView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/IncomeView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftDriverJobDiscovery normal x86_64 Compiling CoreDataRepository.swift, BudgetService.swift, CardService.swift, CloudAccountStatusProvider.swift, CoreDataService.swift, ExpenseCategoryService.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 Compiling\ AddBudgetViewModel.swift,\ AddIncomeFormViewModel.swift,\ AddPlannedExpenseViewModel.swift,\ AddUnplannedExpenseViewModel.swift,\ BudgetDetailsViewModel.swift,\ BudgetDetailsViewModelStore.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddBudgetViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddIncomeFormViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddPlannedExpenseViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddUnplannedExpenseViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/BudgetDetailsViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/BudgetDetailsViewModelStore.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Models/BudgetPeriod.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Models/CardItem.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/BudgetIncomeCalculator.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CardItem+CoreDataBridge.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CoreDataEntityChangeMonitor.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CoreDataListObserver.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/HolographicMetallicText.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/NotificationName+Extensions.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/PlannedExpenseService+Templates.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/RecurrenceRule.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/SaveError.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/UnifiedSwipeActions.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/Repository/CoreDataRepository.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/BudgetService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CardService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CloudAccountStatusProvider.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CoreDataService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/ExpenseCategoryService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/IncomeService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/PlannedExpenseService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/PlannedExpenseUpdateScope.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/RecurrenceEngine.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/UnplannedExpenseService.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Support/Logging.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/AppSettings.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/AppTheme.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardAppearanceStore.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardPickerStore.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardTheme.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/Compatibility.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/DesignSystem.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/DesignSystem+Motion.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/IncomeCalendarPalette.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/MetallicTextStyles.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/MotionSupport.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/OnboardingEnvironment.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/PlatformCapabilities.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/ResponsiveLayoutContext.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/RootTabView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/SafeAreaInsetsCompatibility.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/SystemTheme.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/UITestingEnvironment.swift -primary-file /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddBudgetViewModel.swift -primary-file /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddIncomeFormViewModel.swift -primary-file /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddPlannedExpenseViewModel.swift -primary-file /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddUnplannedExpenseViewModel.swift -primary-file /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/BudgetDetailsViewModel.swift -primary-file /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/BudgetDetailsViewModelStore.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/CardDetailViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/CardsViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/HomeViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/IncomeScreenViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/PresetsViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/SettingsViewModel.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/Buttons.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/CalendarNavigationButtonStyle.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/CategoryChipPill.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/GlassCTAButton.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/PillSegmentedControl.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/SheetDetentsCompat.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/TranslucentButtonStyle.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddBudgetView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddCardFormView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddIncomeFormView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddPlannedExpenseView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddUnplannedExpenseView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardDetailView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardPickerItemTile.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardPickerRow.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardsView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardTileView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CategoryChipStyle.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CustomRecurrenceEditorView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/HelpView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/HomeView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/IncomeEditorView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/IncomeView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ManageBudgetCardsSheet.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ManageBudgetPresetsSheet.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/OnboardingView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetBudgetAssignmentSheet.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetRowView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetsView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/RecurrencePickerView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/RenameCardSheet.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/SettingsView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/SidebarViewController.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/UBEmptyState.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/ContentView.swift /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/OffshoreBudgetingApp.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Budget+CoreDataClass.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Budget+CoreDataProperties.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Card+CoreDataClass.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Card+CoreDataProperties.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/CategorySpendingCap+CoreDataClass.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/CategorySpendingCap+CoreDataProperties.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/ExpenseCategory+CoreDataClass.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/ExpenseCategory+CoreDataProperties.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Income+CoreDataClass.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Income+CoreDataProperties.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/PlannedExpense+CoreDataClass.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/PlannedExpense+CoreDataProperties.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/UnplannedExpense+CoreDataClass.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/UnplannedExpense+CoreDataProperties.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/OffshoreBudgetingModel+CoreDataModel.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/GeneratedAssetSymbols.swift -supplementary-output-file-map /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/supplementaryOutputs-24 -emit-localized-strings -emit-localized-strings-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64 -target x86_64-apple-ios16.6-simulator -module-can-import-version DeveloperToolsSupport 23.0.4 23.0.4 -module-can-import-version SwiftUI 7.0.84.1 7.0.84 -module-can-import-version UIKit 9088.1.113 9088.1.113 -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore-dependencies-2.json -enable-objc-interop -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -I /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -F /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=4 -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -profile-generate -profile-coverage-mapping -swift-version 5 -enforce-exclusivity\=checked -Onone -D DEBUG -serialize-debugging-options -const-gather-protocols-file /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/OffshoreBudgeting_const_extract_protocols.json -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/Michael/Xcode\ iOS/Offshore -enable-anonymous-context-mangled-names -file-compilation-dir /Users/Michael/Xcode\ iOS/Offshore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/swift-overrides.hmap -Xcc -iquote -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-generated-files.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-own-target-headers.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/Offshore-18b78ca503141e196a11e3deb683abb3-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-project-headers.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources-normal/x86_64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/x86_64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name Offshore -frontend-parseable-output -disable-clang-spi -target-sdk-version 26.0 -target-sdk-name iphonesimulator26.0 -clang-target x86_64-apple-ios26.0-simulator -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddBudgetViewModel.o -o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddIncomeFormViewModel.o -o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddPlannedExpenseViewModel.o -o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddUnplannedExpenseViewModel.o -o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetDetailsViewModel.o -o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetDetailsViewModelStore.o -index-unit-output-path /Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddBudgetViewModel.o -index-unit-output-path /Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddIncomeFormViewModel.o -index-unit-output-path /Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddPlannedExpenseViewModel.o -index-unit-output-path /Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddUnplannedExpenseViewModel.o -index-unit-output-path /Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetDetailsViewModel.o -index-unit-output-path /Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetDetailsViewModelStore.o -index-store-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Index.noindex/DataStore -index-system-modules
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddBudgetViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddIncomeFormViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddPlannedExpenseViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddUnplannedExpenseViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/BudgetDetailsViewModel.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/View Models/BudgetDetailsViewModel.swift:127:51: error: missing argument for parameter 'categoryURI' in call
+            .map { BudgetSummary.CategorySpending(categoryName: $0.key, hexColor: $0.value.hex, amount: $0.value.total) }
+                                                  ^
+                                                  categoryURI: <#URL#>, 
+/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/View Models/HomeViewModel.swift:56:12: note: 'init(categoryURI:categoryName:hexColor:amount:)' declared here
+    struct CategorySpending: Identifiable, Equatable, Sendable {
+           ^
+/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/View Models/BudgetDetailsViewModel.swift:134:51: error: missing argument for parameter 'categoryURI' in call
+            .map { BudgetSummary.CategorySpending(categoryName: $0.key, hexColor: $0.value.hex, amount: $0.value.total) }
+                                                  ^
+                                                  categoryURI: <#URL#>, 
+/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/View Models/HomeViewModel.swift:56:12: note: 'init(categoryURI:categoryName:hexColor:amount:)' declared here
+    struct CategorySpending: Identifiable, Equatable, Sendable {
+           ^
+/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/View Models/BudgetDetailsViewModel.swift:143:42: error: value of type 'String.Element' (aka 'Character') has no member 'categoryName'
+                let existing = dict[item.categoryName]
+                                    ~~~~ ^~~~~~~~~~~~
+
+SwiftCompile normal x86_64 /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/BudgetDetailsViewModelStore.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/os_object-9M91V3CKATEEWBY2H41IUGJPX.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling OffshoreBudgetingApp.swift, Budget+CoreDataClass.swift, Budget+CoreDataProperties.swift, Card+CoreDataClass.swift, Card+CoreDataProperties.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 Compiling\ UnplannedExpense+CoreDataProperties.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/UnplannedExpense+CoreDataProperties.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/UnplannedExpense+CoreDataProperties.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/os_workgroup-8NTGOZZGZHOUN0Y5CCYF46D1S.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling IncomeService.swift, PlannedExpenseService.swift, PlannedExpenseUpdateScope.swift, RecurrenceEngine.swift, UnplannedExpenseService.swift, Logging.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 Compiling\ PlannedExpense+CoreDataProperties.swift /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/PlannedExpense+CoreDataProperties.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftCompile normal x86_64 /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/PlannedExpense+CoreDataProperties.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    
+
+SwiftDriverJobDiscovery normal x86_64 Compiling PlatformCapabilities.swift, ResponsiveLayoutContext.swift, RootTabView.swift, SafeAreaInsetsCompatibility.swift, SystemTheme.swift, UITestingEnvironment.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Dispatch-4L3XP8WSKO06JIWDJUFE65R2L.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling GeneratedAssetSymbols.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+ExtractAppIntentsMetadata (in target 'MijickCalendarView' from project 'MijickCalendarView')
+    cd /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/SourcePackages/checkouts/CalendarView
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name MijickCalendarView --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk --xcode-version 17A400 --platform-family iOS --deployment-target 14.0 --bundle-identifier calendarview.MijickCalendarView --output /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/MijickCalendarView.appintents --target-triple arm64-apple-ios14.0-simulator --target-triple x86_64-apple-ios14.0-simulator --binary-file /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/MijickCalendarView.o --dependency-file /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView_dependency_info.dat --dependency-file /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MijickCalendarView_dependency_info.dat --stringsdata-file /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --stringsdata-file /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView.SwiftFileList --source-file-list /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MijickCalendarView.SwiftFileList --metadata-file-list /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/MijickCalendarView.DependencyMetadataFileList --static-metadata-file-list /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/MijickCalendarView.DependencyStaticMetadataFileList --swift-const-vals-list /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/arm64/MijickCalendarView.SwiftConstValuesFileList --swift-const-vals-list /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MijickCalendarView.SwiftConstValuesFileList --force --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2025-10-18 16:03:24.582 appintentsmetadataprocessor[11511:125776] Starting appintentsmetadataprocessor export
+2025-10-18 16:03:25.012 appintentsmetadataprocessor[11511:125776] Extracted no relevant App Intents symbols, skipping writing output
+
+SwiftDriverJobDiscovery normal x86_64 Compiling UnplannedExpense+CoreDataProperties.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/XPC-1UVDX1ZKOYHKF07114FOZDJ9G.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/CoreFoundation-BPPB6IM7D41UUG67QL8TCKX9N.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling PlannedExpense+CoreDataProperties.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Spatial-Y93C2ML2H4N4JPCC8Y54EJH0.pcm
+
+LinkAssetCatalog /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/AppIcon.icon /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Assets.xcassets (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-linkAssetCatalog --thinned /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_output/thinned --thinned-dependencies /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_generated_info.plist_thinned --unthinned /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_output/unthinned --unthinned-dependencies /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_generated_info.plist_unthinned --output /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app --plist-output /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_generated_info.plist
+note: Emplaced /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/Assets.car (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling HolographicMetallicText.swift, NotificationName+Extensions.swift, PlannedExpenseService+Templates.swift, RecurrenceRule.swift, SaveError.swift, UnifiedSwipeActions.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/os-8UVL3UVNRGU7QC8IGU4YS4MR.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Security-2ITRKG9ICB6XZ7P1A85GZTEIM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/CFNetwork-14K1IB8DB6JFUCXTJF4VHOKKM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/CoreGraphics-9YZLU7S06CTVXL1AG4SS9WOA9.pcm
+
+RegisterExecutionPolicyException /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/MijickCalendarView.o (in target 'MijickCalendarView' from project 'MijickCalendarView')
+    cd /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/SourcePackages/checkouts/CalendarView
+    builtin-RegisterExecutionPolicyException /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/MijickCalendarView.o
+
+ProcessInfoPlistFile /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/Info.plist /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Info.plist (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-infoPlistUtility /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/assetcatalog_generated_info.plist -o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/Info.plist
+removing entry for "NSServices" - only supported on macOS
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/structure.txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/structure.txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/structure.txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/TipsTricksExamplesofLiquidGlass.txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/TipsTricksExamplesofLiquidGlass.txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/TipsTricksExamplesofLiquidGlass.txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+Ld /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Binary/__preview.dylib normal x86_64 (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target x86_64-apple-ios16.6-simulator -dynamiclib -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -O0 -L/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -F/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -install_name @rpath/Offshore.debug.dylib -dead_strip -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -Xlinker -dependency_info -Xlinker /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore_dependency_info.dat -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore.app-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore.app-Simulated.xcent.der -Xlinker -no_adhoc_codesign -o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Binary/__preview.dylib
+
+Ld /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/arm64/Binary/__preview.dylib normal arm64 (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios16.6-simulator -dynamiclib -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -O0 -L/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -F/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -install_name @rpath/Offshore.debug.dylib -dead_strip -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -Xlinker -dependency_info -Xlinker /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/arm64/Offshore_dependency_info.dat -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore.app-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore.app-Simulated.xcent.der -Xlinker -no_adhoc_codesign -o /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/arm64/Binary/__preview.dylib
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/SwiftUI\ App\ Structure\ &\ Data\ Flow\ (Apple’s\ Baseline).txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/SwiftUI\ App\ Structure\ &\ Data\ Flow\ (Apple’s\ Baseline).txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/SwiftUI\ App\ Structure\ \&\ Data\ Flow\ \(Apple’s\ Baseline\).txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+SwiftDriverJobDiscovery normal x86_64 Emitting module for Offshore (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftDriver\ Compilation\ Requirements OffshoreBudgeting normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Offshore -Onone -enforce-exclusivity\=checked @/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target x86_64-apple-ios16.6-simulator -g -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -F /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64 -c -j16 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/OffshoreBudgeting-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/OffshoreBudgeting_const_extract_protocols.json -Xcc -iquote -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-generated-files.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-own-target-headers.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/Offshore-18b78ca503141e196a11e3deb683abb3-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Offshore-project-headers.hmap -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources-normal/x86_64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources/x86_64 -Xcc -I/Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore-Swift.h -working-directory /Users/Michael/Xcode\ iOS/Offshore -experimental-emit-module-separately -disable-cmo
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/OffshoreBudgeting.xctestplan /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting.xctestplan (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting.xctestplan /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+Copy /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.swiftmodule/x86_64-apple-ios-simulator.swiftmodule /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.swiftmodule (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.swiftmodule /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.swiftmodule/x86_64-apple-ios-simulator.swiftmodule
+
+Copy /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.swiftmodule/x86_64-apple-ios-simulator.swiftdoc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.swiftdoc (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.swiftdoc /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.swiftmodule/x86_64-apple-ios-simulator.swiftdoc
+
+Copy /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.swiftmodule/x86_64-apple-ios-simulator.abi.json /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.abi.json (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.abi.json /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.swiftmodule/x86_64-apple-ios-simulator.abi.json
+
+Copy /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.swiftsourceinfo (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Offshore.swiftsourceinfo /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/LiquidGlassStyling.txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/LiquidGlassStyling.txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/LiquidGlassStyling.txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/LiquidGlassMethods.txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/LiquidGlassMethods.txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/LiquidGlassMethods.txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/Liquid\ Glass\ in\ Practice\ (Summary).txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Liquid\ Glass\ in\ Practice\ (Summary).txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Liquid\ Glass\ in\ Practice\ \(Summary\).txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/Gauge.txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Gauge.txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Gauge.txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/Cross-platform\ SwiftUI\ design,\ the\ Apple\ way.txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Cross-platform\ SwiftUI\ design,\ the\ Apple\ way.txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Cross-platform\ SwiftUI\ design,\ the\ Apple\ way.txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/Building\ and\ customizing\ the\ menu\ bar\ with\ SwiftUI.txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Building\ and\ customizing\ the\ menu\ bar\ with\ SwiftUI.txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Building\ and\ customizing\ the\ menu\ bar\ with\ SwiftUI.txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/Applying\ Liquid\ Glass\ to\ custom\ views.txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Applying\ Liquid\ Glass\ to\ custom\ views.txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Applying\ Liquid\ Glass\ to\ custom\ views.txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/Apple\ Design\ System\ Conventions.txt /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Apple\ Design\ System\ Conventions.txt (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Apple\ Documentation/Apple\ Design\ System\ Conventions.txt /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+CpResource /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/AGENTS.md /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/AGENTS.md (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/AGENTS.md /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app
+
+CopyPNGFile /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/PresetsView.png /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Screenshots/PresetsView.png (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    /Applications/Xcode.app/Contents/Developer/usr/bin/copypng -compress -strip-PNG-text /Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Screenshots/PresetsView.png /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/PresetsView.png
+libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+
+CreateUniversalBinary /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/__preview.dylib normal arm64\ x86_64 (in target 'OffshoreBudgeting' from project 'Offshore')
+    cd /Users/Michael/Xcode\ iOS/Offshore
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo -create /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/arm64/Binary/__preview.dylib /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Binary/__preview.dylib -output /Users/Michael/Library/Developer/Xcode/DerivedData/Offshore-dzckiklseaojwietsvvieqpkcqwy/Build/Products/Debug-iphonesimulator/Offshore.app/__preview.dylib
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Foundation-9HS70QX5QLRBD9JAVKW228S01.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/ImageIO-XU2RXDOYS4ULYPITERQC890U.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/CoreText-CHTJWZS5S50UMFCNCUJB3653.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling RecurrencePickerView.swift, RenameCardSheet.swift, SettingsView.swift, SidebarViewController.swift, UBEmptyState.swift, ContentView.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling AppSettings.swift, AppTheme.swift, CardAppearanceStore.swift, CardPickerStore.swift, CardTheme.swift, Compatibility.swift (in target 'OffshoreBudgeting' from project 'Offshore')
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/UniformTypeIdentifiers-3BGVXQMGKUDVF253J8QBSVWC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/CoreTransferable-8NYIR2NOYLLMG35WAT6TEFKO1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_LocationEssentials-1VXNNYUVG3IJVD32DAQ176R6X.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/IOSurface-6E6J9R2B44D7O3XARD16KHWRZ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Symbols-D4ZYF0RM2GA6LLTUD0RQV4Z99.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/DataDetection-3I3GIXC9YZW3XB6H38VH0VAMS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Accessibility-3DE0G6JADOBH1IHSOOOSWJQEV.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/UIUtilities-BH7O9BMHNW8KTL8HJEMGR06X2.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/UserNotifications-923KDEG8I1P0AV5AD8DMV9QXI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/OSLog-9NO2U3AAXHMEQNCE03GU837XU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/CoreData-439LFND8YTGOW0NTJZAZR6GRE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/OpenGLES-9G3KPXFFE2ML0IZIGFGQUYQDV.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/FileProvider-7WQ9K2BSPC88CRMTYTREK6ARK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/CoreLocation-8R3WXIN619B2U57I4SL41O3CV.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Metal-5MQKNQBMNN15N84TBD7Z7D5M0.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/Michael/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/CoreMotion-DE11DC9LRKB25DZH8ZFY2NVUF.pcm
+

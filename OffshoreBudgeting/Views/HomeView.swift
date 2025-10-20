@@ -43,6 +43,12 @@ struct HomeView: View {
     @State private var plannedRows: [PlannedExpense] = []
     @State private var variableRows: [UnplannedExpense] = []
 
+    // Shared width so the left column of the right-side pairs (Max/Min)
+    // aligns vertically across rows.
+    @State private var rightPairLeftColumnWidth: CGFloat = 0
+    // Shared width for the right column of the right-side pairs (Projected/Actual Planned)
+    @State private var rightPairRightColumnWidth: CGFloat = 0
+
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
 
@@ -245,29 +251,86 @@ struct HomeView: View {
     private var metricsGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .lastTextBaseline) {
-                metricColumn(title: "POTENTIAL INCOME", value: potentialIncome, color: .orange, trailing: false)
+                // Left: keep Potential Income
+                metricColumn(title: "POTENTIAL INCOME", value: potentialIncome, color: .orange, trailing: false, fillHorizontally: false)
                 Spacer(minLength: 0)
-                metricColumn(title: "POTENTIAL SAVINGS", value: potentialSavings, color: .green, trailing: true)
+                // Right: show Max and Projected Savings side‑by‑side; Projected aligns with Actual below.
+                HStack(spacing: 8) {
+                    metricColumn(title: "MAX SAVINGS", value: maxSavings, color: savingsColor(maxSavings), trailing: false, fillHorizontally: false, valueLeading: true)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .background(GeometryReader { proxy in
+                            Color.clear.preference(key: RightPairLeftWidthKey.self, value: proxy.size.width)
+                        })
+                        .frame(width: rightPairLeftColumnWidth == 0 ? nil : rightPairLeftColumnWidth, alignment: .leading)
+                    metricColumn(title: "PROJECTED SAVINGS", value: projectedSavings, color: savingsColor(projectedSavings), trailing: true, fillHorizontally: false)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .background(GeometryReader { proxy in
+                            Color.clear.preference(key: RightPairRightWidthKey.self, value: proxy.size.width)
+                        })
+                        .frame(width: rightPairRightColumnWidth == 0 ? nil : rightPairRightColumnWidth, alignment: .trailing)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
             HStack(alignment: .lastTextBaseline) {
                 metricColumn(title: "ACTUAL INCOME", value: actualIncome, color: .blue, trailing: false)
                 Spacer(minLength: 0)
-                metricColumn(title: "ACTUAL SAVINGS", value: actualSavings, color: .green, trailing: true)
+                metricColumn(title: "ACTUAL SAVINGS", value: actualSavings, color: savingsColor(actualSavings), trailing: true)
             }
             HStack(alignment: .lastTextBaseline) {
                 Text(segment == .planned ? "PLANNED EXPENSES" : "VARIABLE EXPENSES")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
-                Text(formatCurrency(segment == .planned ? plannedTotal : variableTotal))
-                    .font(.title3.weight(.semibold))
+                if segment == .planned {
+                    // Show Minimum Planned and Actual Planned side‑by‑side
+                    HStack(spacing: 8) {
+                        metricColumn(title: "MIN PLANNED", value: plannedTotal, color: .primary, trailing: false, fillHorizontally: false, valueLeading: true)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .background(GeometryReader { proxy in
+                                Color.clear.preference(key: RightPairLeftWidthKey.self, value: proxy.size.width)
+                            })
+                            .frame(width: rightPairLeftColumnWidth == 0 ? nil : rightPairLeftColumnWidth, alignment: .leading)
+                        metricColumn(title: "ACTUAL PLANNED", value: plannedActualTotal, color: .primary, trailing: true, fillHorizontally: false)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .background(GeometryReader { proxy in
+                                Color.clear.preference(key: RightPairRightWidthKey.self, value: proxy.size.width)
+                            })
+                            .frame(width: rightPairRightColumnWidth == 0 ? nil : rightPairRightColumnWidth, alignment: .trailing)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                } else {
+                    Text(formatCurrency(variableTotal))
+                        .font(.title3.weight(.semibold))
+                }
             }
+        }
+        .onPreferenceChange(RightPairLeftWidthKey.self) { width in
+            // Keep the maximum width seen so both rows align.
+            if width > rightPairLeftColumnWidth { rightPairLeftColumnWidth = width }
+        }
+        .onPreferenceChange(RightPairRightWidthKey.self) { width in
+            if width > rightPairRightColumnWidth { rightPairRightColumnWidth = width }
         }
     }
 
     // MARK: Category Chips
     private var categoryChips: some View {
-        let categories = (segment == .planned ? summary?.plannedCategoryBreakdown : summary?.variableCategoryBreakdown) ?? []
+        // Prefer the computed breakdown when a budget summary exists; otherwise
+        // show all categories with zero amounts so chips are always visible.
+        let categories: [BudgetSummary.CategorySpending] = {
+            if let s = summary {
+                return (segment == .planned ? s.plannedCategoryBreakdown : s.variableCategoryBreakdown)
+            } else {
+                let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+                req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+                let items: [ExpenseCategory] = (try? moc.fetch(req)) ?? []
+                return items.map { cat in
+                    let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                    return BudgetSummary.CategorySpending(categoryURI: cat.objectID.uriRepresentation(), categoryName: name, hexColor: cat.color, amount: 0)
+                }
+            }
+        }()
+
         return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(categories) { cat in
@@ -470,15 +533,25 @@ struct HomeView: View {
     }
 
     private var potentialIncome: Double { summary?.potentialIncomeTotal ?? 0 }
-    private var potentialSavings: Double { summary?.potentialSavingsTotal ?? 0 }
+    private var maxSavings: Double { summary?.potentialSavingsTotal ?? 0 }
+    private var projectedSavings: Double {
+        let s = summary
+        return (s?.potentialIncomeTotal ?? 0) - (s?.plannedExpensesPlannedTotal ?? 0) - (s?.variableExpensesTotal ?? 0)
+    }
     private var actualIncome: Double { summary?.actualIncomeTotal ?? 0 }
     private var actualSavings: Double { summary?.actualSavingsTotal ?? 0 }
-    private var plannedTotal: Double { summary?.plannedExpensesActualTotal ?? 0 }
+    // For the Planned segment, show the planned (budgeted) amount, not the
+    // amount actually paid so far. The per‑row cells already display both.
+    private var plannedTotal: Double { summary?.plannedExpensesPlannedTotal ?? 0 }
+    private var plannedActualTotal: Double { summary?.plannedExpensesActualTotal ?? 0 }
     private var variableTotal: Double { summary?.variableExpensesTotal ?? 0 }
 
     private var horizontalPadding: CGFloat { 20 }
 
     // MARK: Helpers
+    /// Returns green for positive/zero savings and red for negative.
+    private func savingsColor(_ amount: Double) -> Color { amount >= 0 ? .green : .red }
+
     /// Forwards the budget period change to the view model so it can
     /// persist the preference and refresh derived state.
     private func updateBudgetPeriod(to newValue: BudgetPeriod) {
@@ -486,19 +559,29 @@ struct HomeView: View {
     }
 
     /// Renders a metric label/value pair for a given amount.
-    private func metricColumn(title: String, value: Double, color: Color, trailing: Bool) -> some View {
-        VStack(alignment: trailing ? .trailing : .leading, spacing: 6) {
-            Text(title)
+    private func metricColumn(title: String, value: Double, color: Color, trailing: Bool, fillHorizontally: Bool = true, valueLeading: Bool = false) -> some View {
+        let align: Alignment = trailing ? .trailing : .leading
+        let valueAlign: Alignment = valueLeading ? .leading : align
+        return VStack(alignment: trailing ? .trailing : .leading, spacing: 6) {
+            let titleView = Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
-                .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)
-            Text(formatCurrency(value))
+            if fillHorizontally {
+                titleView.frame(maxWidth: .infinity, alignment: align)
+            } else {
+                titleView.frame(alignment: align)
+            }
+            let valueView = Text(formatCurrency(value))
                 .font(.body.weight(.semibold))
                 .foregroundStyle(color)
-                .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)
+            if fillHorizontally {
+                valueView.frame(maxWidth: .infinity, alignment: valueAlign)
+            } else {
+                valueView.frame(alignment: valueAlign)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)
+        .frame(maxWidth: fillHorizontally ? .infinity : nil, alignment: align)
     }
 
     /// Currency formatting that adapts to the device locale.
@@ -536,18 +619,18 @@ struct HomeView: View {
             Button(action: {}) {
                 chipLabel
                     .glassEffect(.regular.tint(.none).interactive(false))
-                    .frame(maxHeight: 33)
+                    .frame(minHeight: 44, maxHeight: 44)
             }
             .buttonBorderShape(.capsule)
             .foregroundStyle(.primary)
             .allowsHitTesting(false)
             .disabled(true)
-            .frame(maxHeight: 44)
+            .frame(minHeight: 44, maxHeight: 44)
             .clipShape(Capsule())
             .compositingGroup()
         } else {
             chipLabel
-                .frame(maxHeight: 33)
+                .frame(minHeight: 44, maxHeight: 44)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(Color(UIColor { traits in
@@ -555,10 +638,11 @@ struct HomeView: View {
                         }))
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                .frame(maxHeight: 33)
+                .frame(minHeight: 44, maxHeight: 44)
         }
 
     }
+
 
     // MARK: Rows + Data
     private func plannedRow(_ exp: PlannedExpense) -> some View {
@@ -706,3 +790,345 @@ fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
     let b = Double((intVal & 0xFF)) / 255.0
     return Color(red: r, green: g, blue: b)
 }
+
+// Local preference key to align the left column width across right-side pairs
+private struct RightPairLeftWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct RightPairRightWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+// Disable previously added overlay implementation
+#if false
+// MARK: - HomeView (Category Cap Overlay)
+private extension HomeView {
+    // Backdrop behind the bottom overlay
+    @ViewBuilder
+    var capDimmingBackdrop: some View {
+        if isShowingCapOverlay {
+            Color.black.opacity(0.25)
+                .ignoresSafeArea()
+                .transition(.opacity)
+                .onTapGesture { dismissCapOverlay() }
+        }
+    }
+
+    // Bottom-anchored overlay hosting Gauge/Edit
+    @ViewBuilder
+    var capOverlay: some View {
+        if isShowingCapOverlay, let oc = overlayCategory {
+            VStack(spacing: 12) {
+                HStack {
+                    Button(action: { capMode == .gauge ? dismissCapOverlay() : withAnimation(.spring()) { capMode = .gauge } }) {
+                        Text(capMode == .gauge ? "Done" : "Back")
+                            .font(.headline)
+                    }
+                    Spacer()
+                    Text(oc.name)
+                        .font(.headline)
+                    Spacer()
+                    if capMode == .gauge {
+                        Button(action: { withAnimation(.spring()) { enterEditMode() } }) {
+                            Text("Edit").font(.headline)
+                        }
+                    } else {
+                        Button(action: { saveCaps() }) {
+                            Text("Save").font(.headline)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+
+                if capMode == .gauge {
+                    gaugeContent(categoryColor: oc.color, current: oc.currentAmount)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else {
+                    editContent(categoryColor: oc.color)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .modifier(OverlayGlassOrLegacyBackground())
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+            .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 4)
+            .onChange(of: vm.selectedDate) { _ in reloadCapsForSelectionChange() }
+            .onChange(of: budgetPeriodRawValue) { _ in reloadCapsForSelectionChange() }
+            .onChange(of: segment) { _ in reloadCapsForSelectionChange(resetAmount: true) }
+            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: capMode)
+        } else {
+            EmptyView()
+        }
+    }
+
+    private struct OverlayGlassOrLegacyBackground: ViewModifier {
+        func body(content: Content) -> some View {
+            if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+                content
+                    .glassEffect(.regular.tint(.none).interactive(true))
+            } else {
+                content
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color(UIColor { traits in
+                                traits.userInterfaceStyle == .dark ? UIColor(white: 0.16, alpha: 1) : UIColor(white: 0.97, alpha: 1)
+                            }))
+                    )
+            }
+        }
+    }
+
+    // MARK: Content Builders
+    private func gaugeContent(categoryColor: Color, current: Double) -> some View {
+        VStack(spacing: 12) {
+            Gauge(value: clamp(current, min: capMin, max: capMax), in: capMin...max(capMax, capMin)) {
+                Text("Budget Cap")
+            } currentValueLabel: {
+                Text(formatCurrency(current))
+            } minimumValueLabel: {
+                Text(formatCurrency(capMin))
+            } maximumValueLabel: {
+                Text(formatCurrency(capMax))
+            }
+            .tint(categoryColor)
+
+            HStack {
+                Text("Current: \(formatCurrency(current))").foregroundStyle(.secondary)
+                Spacer()
+                Text("Range: \(formatCurrency(capMin)) – \(formatCurrency(capMax))").foregroundStyle(.secondary)
+            }
+            .font(.footnote)
+        }
+    }
+
+    private func editContent(categoryColor: Color) -> some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Minimum")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    TextField("0.00", text: $editMinInput)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Maximum")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    TextField("0.00", text: $editMaxInput)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+            .tint(categoryColor)
+        }
+    }
+
+    // MARK: Overlay Actions
+    private func presentCapOverlay(for cat: BudgetSummary.CategorySpending) {
+        let color = UBColorFromHex(cat.hexColor) ?? .secondary
+        if let id = objectID(from: cat.categoryURI) {
+            overlayCategory = OverlayCategory(
+                id: id,
+                name: cat.categoryName,
+                color: color,
+                segment: segment,
+                currentAmount: cat.amount
+            )
+        } else {
+            return
+        }
+        loadCaps()
+        capMode = .gauge
+        isShowingCapOverlay = true
+        #if canImport(UIKit)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
+    }
+
+    private func dismissCapOverlay() {
+        withAnimation(.spring()) {
+            isShowingCapOverlay = false
+            capMode = .gauge
+        }
+    }
+
+    private func enterEditMode() {
+        editMinInput = plainDecimalString(capMin)
+        editMaxInput = plainDecimalString(capMax)
+        capMode = .edit
+    }
+
+    private func reloadCapsForSelectionChange(resetAmount: Bool = false) {
+        guard isShowingCapOverlay, overlayCategory != nil else { return }
+        if resetAmount {
+            // If segment changed, the chip amount changes source – update currentAmount from summary
+            if let oc = overlayCategory {
+                let categories = (segment == .planned ? summary?.plannedCategoryBreakdown : summary?.variableCategoryBreakdown) ?? []
+                let targetURI = oc.id.uriRepresentation()
+                if let fresh = categories.first(where: { $0.categoryURI == targetURI }) {
+                    overlayCategory = OverlayCategory(id: oc.id, name: oc.name, color: oc.color, segment: segment, currentAmount: fresh.amount)
+                } else {
+                    // Category missing in this segment – keep amount at 0
+                    overlayCategory = OverlayCategory(id: oc.id, name: oc.name, color: oc.color, segment: segment, currentAmount: 0)
+                }
+            }
+        }
+        loadCaps()
+    }
+
+    private func objectID(from uri: URL) -> NSManagedObjectID? {
+        CoreDataService.shared.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: uri)
+    }
+
+    // MARK: Persistence
+    private func loadCaps() {
+        guard let oc = overlayCategory else { return }
+        let key = periodKey(for: budgetPeriod, date: vm.selectedDate, segment: oc.segment)
+        guard let category = try? moc.existingObject(with: oc.id) as? ExpenseCategory else {
+            let current = overlayCategory?.currentAmount ?? 0
+            capMin = 0
+            capMax = max(current, 1)
+            return
+        }
+        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+        fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "category == %@", category),
+            NSPredicate(format: "period == %@", key),
+            NSPredicate(format: "expenseType IN %@", ["min", "max"])
+        ])
+        do {
+            let results = try moc.fetch(fetch)
+            var minVal: Double? = nil
+            var maxVal: Double? = nil
+            for r in results {
+                if (r.value(forKey: "expenseType") as? String)?.lowercased() == "min" {
+                    minVal = r.value(forKey: "amount") as? Double
+                } else if (r.value(forKey: "expenseType") as? String)?.lowercased() == "max" {
+                    maxVal = r.value(forKey: "amount") as? Double
+                }
+            }
+            let current = overlayCategory?.currentAmount ?? 0
+            capMin = minVal ?? 0
+            capMax = maxVal ?? max(current, 1)
+        } catch {
+            let current = overlayCategory?.currentAmount ?? 0
+            capMin = 0
+            capMax = max(current, 1)
+        }
+    }
+
+    private func saveCaps() {
+        guard let oc = overlayCategory else { return }
+        let key = periodKey(for: budgetPeriod, date: vm.selectedDate, segment: oc.segment)
+        guard let category = try? moc.existingObject(with: oc.id) as? ExpenseCategory else { return }
+
+        guard let newMin = parseDecimal(editMinInput), let newMax = parseDecimal(editMaxInput) else {
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+            return
+        }
+        guard newMin <= newMax else {
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+            return
+        }
+
+        // Upsert two records (min and max)
+        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+        fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "category == %@", category),
+            NSPredicate(format: "period == %@", key),
+            NSPredicate(format: "expenseType IN %@", ["min", "max"])
+        ])
+
+        do {
+            let results = try moc.fetch(fetch)
+            var minObj = results.first(where: { ($0.value(forKey: "expenseType") as? String)?.lowercased() == "min" })
+            var maxObj = results.first(where: { ($0.value(forKey: "expenseType") as? String)?.lowercased() == "max" })
+
+            if minObj == nil {
+                minObj = NSEntityDescription.insertNewObject(forEntityName: "CategorySpendingCap", into: moc) as? CategorySpendingCap
+                minObj?.setValue(UUID(), forKey: "id")
+                minObj?.setValue("min", forKey: "expenseType")
+                minObj?.setValue(category, forKey: "category")
+                minObj?.setValue(key, forKey: "period")
+            }
+            if maxObj == nil {
+                maxObj = NSEntityDescription.insertNewObject(forEntityName: "CategorySpendingCap", into: moc) as? CategorySpendingCap
+                maxObj?.setValue(UUID(), forKey: "id")
+                maxObj?.setValue("max", forKey: "expenseType")
+                maxObj?.setValue(category, forKey: "category")
+                maxObj?.setValue(key, forKey: "period")
+            }
+
+            minObj?.setValue(newMin, forKey: "amount")
+            maxObj?.setValue(newMax, forKey: "amount")
+
+            try moc.save()
+            capMin = newMin
+            capMax = newMax
+            withAnimation(.spring()) { capMode = .gauge }
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            #endif
+        } catch {
+            AppLog.ui.error("Failed to save caps: \(error.localizedDescription)")
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+        }
+    }
+
+    // MARK: Keys & Formatting
+    private func periodKey(for period: BudgetPeriod, date: Date, segment: Segment) -> String {
+        let (start, end) = period.range(containing: date)
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(secondsFromGMT: 0)
+        f.dateFormat = "yyyy-MM-dd"
+        let s = f.string(from: start)
+        let e = f.string(from: end)
+        return "\(period.rawValue)|\(s)|\(e)|\(segment.rawValue)"
+    }
+
+    private func clamp(_ value: Double, min: Double, max: Double) -> Double {
+        Swift.max(min, Swift.min(value, max))
+    }
+
+    private func plainDecimalString(_ value: Double) -> String {
+        let nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        nf.maximumFractionDigits = 2
+        nf.minimumFractionDigits = 0
+        return nf.string(from: value as NSNumber) ?? String(format: "%.2f", value)
+    }
+
+    private func parseDecimal(_ text: String) -> Double? {
+        let nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        nf.maximumFractionDigits = 2
+        nf.minimumFractionDigits = 0
+        if let n = nf.number(from: text.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            return n.doubleValue
+        }
+        // Fallback: replace commas and attempt Double init
+        let sanitized = text.replacingOccurrences(of: ",", with: ".").replacingOccurrences(of: " ", with: "")
+        return Double(sanitized)
+    }
+}
+#endif

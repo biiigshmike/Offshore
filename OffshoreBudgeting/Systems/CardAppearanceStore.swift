@@ -242,4 +242,16 @@ final class CardAppearanceStore {
             AppLog.iCloud.info("CardAppearanceStore fell back to UserDefaults after iCloud synchronize() failed")
         }
     }
+
+    // MARK: Settings change hook
+    /// Call when related settings (`enableCloudSync`, `syncCardThemes`) change
+    /// so the store starts/stops observing iCloud and reloads cache accordingly.
+    func applySettingsChanged() {
+        if shouldUseICloud {
+            startObservingUbiquitousStoreIfNeeded()
+            load()
+        } else {
+            stopObservingUbiquitousStore()
+        }
+    }
 }

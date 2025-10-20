@@ -21,6 +21,7 @@ struct RootTabView: View {
     // Active theme and glass configuration provided by the app. This controls
     // background/chrome appearance via compatibility modifiers.
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.dataRevision) private var dataRevision
 
     // MARK: Tabs
     /// Logical destinations in the root tab bar. The order here matches the
@@ -102,12 +103,16 @@ struct RootTabView: View {
         switch tab {
         case .home:
             HomeView()
+                .id(dataRevision)
         case .income:
             IncomeView()
+                .id(dataRevision)
         case .cards:
             CardsView()
+                .id(dataRevision)
         case .presets:
             PresetsView()
+                .id(dataRevision)
         case .settings:
             SettingsView()
         }

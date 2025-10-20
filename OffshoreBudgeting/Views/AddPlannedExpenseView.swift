@@ -108,7 +108,7 @@ struct AddPlannedExpenseView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         GlassCTAButton(
                             maxWidth: .infinity,
-                            height: 33,
+                            height: 44,
                             fillHorizontally: true,
                             fallbackAppearance: .neutral,
                             action: { isPresentingAddCard = true }
@@ -519,7 +519,6 @@ private struct CategoryChipsRow: View {
     @State private var isPresentingNewCategory = false
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
-    private let chipRowClipShape = Rectangle()
 
     var body: some View {
         HStack(alignment: .center, spacing: DS.Spacing.s) {
@@ -530,6 +529,7 @@ private struct CategoryChipsRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .listRowInsets(rowInsets)
         .listRowSeparator(.hidden)
+        .ub_preOS26ListRowBackground(.clear)
         .sheet(isPresented: $isPresentingNewCategory) {
             ExpenseCategoryEditorSheet(
                 initialName: "",
@@ -539,6 +539,7 @@ private struct CategoryChipsRow: View {
                 category.id = UUID()
                 category.name = name
                 category.color = hex
+                WorkspaceService.shared.applyWorkspaceID(on: category)
                 do {
                     try viewContext.obtainPermanentIDs(for: [category])
                     try viewContext.save()
@@ -571,15 +572,10 @@ private struct CategoryChipsRow: View {
 private extension CategoryChipsRow {
     @ViewBuilder
     private func chipsScrollContainer() -> some View {
-        if capabilities.supportsOS26Translucency, #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            GlassEffectContainer(spacing: DS.Spacing.s) {
-                chipRowLayout()
-            }
-            .clipShape(chipRowClipShape)
-        } else {
-            chipRowLayout()
-                .clipShape(chipRowClipShape)
-        }
+        // Removed GlassEffectContainer to prevent a row-sized glass background
+        // from appearing behind the chips inside Form rows. We retain the
+        // horizontal ScrollView and per-chip glass for appearance parity with HomeView.
+        chipRowLayout()
     }
 
     private func chipRowLayout() -> some View {
@@ -648,7 +644,7 @@ private struct AddCategoryPill: View {
             let label = Label("Add", systemImage: "plus")
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 12)
-                .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 44, alignment: .center)
+                .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 44, alignment: .center)
                 .glassEffect(.regular.tint(.none).interactive(true))
             Button(action: onTap) {
                 label
@@ -663,7 +659,7 @@ private struct AddCategoryPill: View {
                 Label("Add", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 12)
-                    .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 33, alignment: .center)
+                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 33, alignment: .center)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(UIColor { traits in
@@ -675,7 +671,7 @@ private struct AddCategoryPill: View {
             }
             .buttonStyle(.plain)
             .controlSize(.regular)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 33, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 44, alignment: .center)
             .accessibilityLabel("Add Category")
         }
     }
@@ -703,8 +699,7 @@ private struct CategoryChip: View {
                 .foregroundStyle(.primary)
         }
         .padding(.horizontal, 12)
-        .frame(minHeight: 33, maxHeight: 44)
-        .background(.clear)
+        .frame(minHeight: 44, maxHeight: 44)
 
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             Button(action: action) {
@@ -714,17 +709,14 @@ private struct CategoryChip: View {
                             .tint(isSelected ? glassTintColor : .none)
                             .interactive(true)
                     )
-                    .frame(maxHeight: 33)
+                    .frame(minHeight: 44, maxHeight: 44)
+                    .clipShape(Capsule())
                     .compositingGroup()
-                    .buttonBorderShape(.capsule)
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
             .frame(maxHeight: 44)
             .buttonStyle(.plain)
-            .clipShape(Capsule())
-            .compositingGroup()
-            .buttonBorderShape(.capsule)
         } else {
             let neutralFill = DS.Colors.chipFill
             Button(action: action) {

@@ -267,6 +267,11 @@ struct RecurrenceEngine {
             copy.isPlanned = income.isPlanned
             copy.date = d
             copy.parentID = baseID
+            // Propagate workspace if present (avoid main-actor cross-calls here)
+            if income.entity.attributesByName.keys.contains("workspaceID"),
+               let ws = income.value(forKey: "workspaceID") as? UUID {
+                copy.setValue(ws, forKey: "workspaceID")
+            }
         }
     }
 }

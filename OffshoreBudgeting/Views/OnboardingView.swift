@@ -45,9 +45,13 @@ struct OnboardingView: View {
         .transition(.opacity)
         .onboardingPresentation() // mark hierarchy for onboarding-specific styling
         .onChange(of: enableCloudSync) { newValue in
-            guard newValue else { return }
-            if !syncCardThemes { syncCardThemes = true }
-            if !syncBudgetPeriod { syncBudgetPeriod = true }
+            if newValue {
+                if !syncCardThemes { syncCardThemes = true }
+                if !syncBudgetPeriod { syncBudgetPeriod = true }
+            }
+            Task { @MainActor in
+                await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: newValue)
+            }
         }
     }
 }

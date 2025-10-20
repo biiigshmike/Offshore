@@ -337,6 +337,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                 parent.budget = nil
                 parent.expenseCategory = category
                 parent.card = selectedCard
+                WorkspaceService.shared.applyWorkspaceID(on: parent)
 
                 let budgetTargets = resolveSelectedBudgets()
                 let parentID = parent.id ?? UUID()
@@ -371,6 +372,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                     item.budget = targetBudget
                     item.expenseCategory = category
                     item.card = selectedCard
+                    WorkspaceService.shared.applyWorkspaceID(on: item)
                 }
             }
         }
@@ -590,4 +592,3 @@ final class AddPlannedExpenseViewModel: ObservableObject {
         return nf.string(from: NSNumber(value: value)) ?? ""
     }
 }
-

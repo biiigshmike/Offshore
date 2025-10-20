@@ -173,7 +173,7 @@ struct CardDetailView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .padding()
-        case .loaded(let total, _, _):
+        case .loaded(let total, _, _, _):
             let cardMaxWidth = resolvedCardMaxWidth(in: layoutContext)
             detailsList(cardMaxWidth: cardMaxWidth, total: total)
     }
@@ -267,6 +267,31 @@ struct CardDetailView: View {
                 }
             } header: {
                 Text("EXPENSES")
+                    .font(.subheadline.weight(.semibold))
+                    .textCase(nil)
+            }
+
+            // UPCOMING planned/template items (do not count toward totals)
+            Section {
+                let upcoming = viewModel.filteredUpcoming
+                if upcoming.isEmpty {
+                    Text(viewModel.searchText.isEmpty ? "No upcoming planned expenses." : "No results for “\(viewModel.searchText)”")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, DesignSystem.Spacing.l)
+                } else {
+                    ForEach(upcoming) { expense in
+                        ExpenseRow(expense: expense, currencyCode: currencyCode)
+                            .unifiedSwipeActions(
+                                UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
+                                onEdit: { editingExpense = expense },
+                                onDelete: { requestDelete(expense) }
+                            )
+                    }
+                }
+            } header: {
+                Text("UPCOMING")
                     .font(.subheadline.weight(.semibold))
                     .textCase(nil)
             }
@@ -442,8 +467,26 @@ private struct ExpenseRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(expense.description)
                     .font(.body.weight(.medium))
-                if let date = expense.date {
-                    Text(df.string(from: date)).font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    let catColor = UBColorFromHex(expense.category?.color) ?? .secondary
+                    let catName: String = {
+                        let raw = expense.category?.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        return raw.isEmpty ? "Uncategorized" : raw
+                    }()
+                    Circle()
+                        .fill(catColor)
+                        .frame(width: 8, height: 8)
+                    Text(catName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if let date = expense.date {
+                        Text("·")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(df.string(from: date))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             Spacer()
@@ -490,3 +533,14 @@ private struct DeletionError: Identifiable {
 // MARK: - Helpers
 // Back-deploy listSectionSpacing(…) only on iOS 17+/macCatalyst 17+.
 //
+
+// Local Hex -> Color helper for category dots in ExpenseRow
+fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
+    guard var value = hex?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+    if value.hasPrefix("#") { value.removeFirst() }
+    guard value.count == 6, let intVal = Int(value, radix: 16) else { return nil }
+    let r = Double((intVal >> 16) & 0xFF) / 255.0
+    let g = Double((intVal >> 8) & 0xFF) / 255.0
+    let b = Double(intVal & 0xFF) / 255.0
+    return Color(red: r, green: g, blue: b)
+}

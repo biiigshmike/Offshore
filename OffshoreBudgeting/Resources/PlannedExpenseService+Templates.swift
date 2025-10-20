@@ -154,6 +154,11 @@ extension PlannedExpenseService {
         child.budget = budget
         child.card = template.card
         child.expenseCategory = template.expenseCategory
+        // Propagate workspace from template or budget if available
+        if let ws = (template.value(forKey: "workspaceID") as? UUID)
+            ?? (budget.value(forKey: "workspaceID") as? UUID) {
+            child.setValue(ws, forKey: "workspaceID")
+        }
 
         return child
     }

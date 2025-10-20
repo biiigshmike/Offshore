@@ -19,15 +19,18 @@ final class CardPickerStore: ObservableObject {
     @Published private(set) var isReady = false
 
     // MARK: Dependencies
-    private let context: NSManagedObjectContext
+    private var contextProvider: (() -> NSManagedObjectContext)?
+    private var context: NSManagedObjectContext?
 
     // MARK: Observation
     private var observer: CoreDataListObserver<Card>?
     private var hasStarted = false
 
     // MARK: Init
-    init(context: NSManagedObjectContext = CoreDataService.shared.viewContext) {
-        self.context = context
+    /// Defer resolving the Core Data context until `start()` to avoid
+    /// performing main-thread I/O during app initialization.
+    init(contextProvider: @escaping () -> NSManagedObjectContext = { CoreDataService.shared.viewContext }) {
+        self.contextProvider = contextProvider
     }
 
     // MARK: start()
@@ -37,6 +40,10 @@ final class CardPickerStore: ObservableObject {
 
         Task { @MainActor [weak self] in
             guard let self else { return }
+            if self.context == nil {
+                self.context = self.contextProvider?()
+                self.contextProvider = nil
+            }
             await CoreDataService.shared.waitUntilStoresLoaded()
             configureObserverIfNeeded()
             observer?.start()
@@ -46,6 +53,7 @@ final class CardPickerStore: ObservableObject {
     // MARK: Private Helpers
     private func configureObserverIfNeeded() {
         guard observer == nil else { return }
+        guard let context else { return }
 
         let request = makeFetchRequest()
         observer = CoreDataListObserver(request: request, context: context) { [weak self] cards in
@@ -71,4 +79,3 @@ final class CardPickerStore: ObservableObject {
         observer?.stop()
     }
 }
-

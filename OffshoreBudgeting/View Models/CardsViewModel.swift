@@ -60,6 +60,8 @@ final class CardsViewModel: ObservableObject {
     private let appearanceStore: CardAppearanceStore
     private var observer: CoreDataListObserver<Card>?
     private var hasStarted = false
+    private var pendingApply: DispatchWorkItem?
+    private var latestSnapshot: [CardItem] = []
 
     // MARK: Combine
     /// Holds reactive subscriptions (e.g., for theme refresh).
@@ -164,17 +166,27 @@ final class CardsViewModel: ObservableObject {
                 )
             }
 
-            if mappedItems.isEmpty {
-                self.state = .empty
-                if AppLog.isVerbose {
-                    AppLog.viewModel.info("CardsViewModel -> state = empty")
-                }
-            } else {
-                self.state = .loaded(mappedItems)
-                if AppLog.isVerbose {
-                    AppLog.viewModel.info("CardsViewModel -> state = loaded (\(mappedItems.count))")
+            // Debounce UI application to coalesce bursts during imports
+            self.latestSnapshot = mappedItems
+            self.pendingApply?.cancel()
+            let delayMS = DataChangeDebounce.milliseconds()
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                let items = self.latestSnapshot
+                if items.isEmpty {
+                    self.state = .empty
+                    if AppLog.isVerbose {
+                        AppLog.viewModel.info("CardsViewModel -> state = empty")
+                    }
+                } else {
+                    self.state = .loaded(items)
+                    if AppLog.isVerbose {
+                        AppLog.viewModel.info("CardsViewModel -> state = loaded (\(items.count))")
+                    }
                 }
             }
+            self.pendingApply = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delayMS), execute: work)
         }
 
         observer?.start()

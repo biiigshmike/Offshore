@@ -169,6 +169,7 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
         } else {
             item = UnplannedExpense(context: context)
             item.id = item.id ?? UUID()
+            WorkspaceService.shared.applyWorkspaceID(on: item)
         }
 
         item.descriptionText = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)

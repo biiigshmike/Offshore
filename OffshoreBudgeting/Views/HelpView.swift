@@ -62,7 +62,37 @@ struct HelpView: View {
     private var intro: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Welcome to Offshore Budgeting, the budgeting app where all data is processed on your device and where you will never be asked to enter bank account information to budget and track expenses. This guide highlights the app's major areas so you can quickly build budgets, track income, and log expenses across platforms.")
+                Text("Welcome to Offshore Budgeting — a privacy‑first budgeting app. All data is processed on your device, and you’ll never be asked to connect a bank account. This guide introduces key concepts so you can quickly build budgets, track income, and log expenses across platforms.\n")
+
+                Text("Planned Expenses")
+                    .font(.title3).bold()
+                Divider()
+                Text("Recurring or expected costs for a budget period (e.g., rent, subscriptions). You can create them once and optionally save as a Preset to reuse in future budgets. A planned expense does not have to be a preset, but saving it makes setup faster.\n")
+
+                Text("Variable Expenses")
+                    .font(.title3).bold()
+                Divider()
+                Text("Unpredictable or one‑off costs during a budget period (e.g., fuel, dining). Log them as they happen and categorize them for later review.\n")
+
+                Text("Planned Income")
+                    .font(.title3).bold()
+                Divider()
+                Text("Income you expect to receive (e.g., salary). The app allocates planned income to each budget period and estimates your planned savings.\n")
+
+                Text("Actual Income")
+                    .font(.title3).bold()
+                Divider()
+                Text("Income you actually receive. The app totals actual income per budget period and shows your actual savings.\n")
+
+                Text("Budgets & Periods")
+                    .font(.title3).bold()
+                Divider()
+                Text("Budgets are organized by a period you choose in Settings (e.g., weekly, bi‑weekly, semi‑monthly, or monthly). Navigate periods on Home using the chevrons or the calendar button. If no budget exists for a period, create one from the ellipsis menu.\n")
+
+                Text("Potential vs. Actual Savings")
+                    .font(.title3).bold()
+                Divider()
+                Text("Potential savings = planned income − planned expenses for the period. Actual savings = actual income − actual expenses. Differences help you see whether you’re ahead or behind plan.\n")
             }
             .padding()
             .navigationTitle("Introduction")
@@ -72,13 +102,14 @@ struct HelpView: View {
     private var onboarding: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("When launching the app for the first time, a five-step onboarding flow sets up your workspace:")
-                Text("• Welcome screen")
+                Text("Quick setup on first launch:")
+                    .font(.title3).bold()
+                Text("• Welcome")
                 Text("• Create initial expense categories")
-                Text("• Add cards used for spending")
-                Text("• Add preset planned expenses")
-                Text("• Final loading step that unlocks the main interface")
-                Text("You can replay this flow from Settings → Onboarding.")
+                Text("• Add cards you’ll use for spending")
+                Text("• Add preset planned expenses (optional)")
+                Text("• Finish setup and open the app")
+                Text("You can replay this flow anytime from Settings → Onboarding.")
             }
             .padding()
             .navigationTitle("Onboarding")
@@ -88,12 +119,13 @@ struct HelpView: View {
     private var home: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("The Home tab shows your budgets, expenses, categories, income, potential & actual savings, as well as potential and actual income:")
-                Text("• Use the left and right chevron buttons to navigate between budgets, whether active or inactive, based upon your default or selected budget period.")
-                Text("• If no budget exists for the selected period, then there will be not plus button in the top right, only an ellipsis and a calendar button. To create and activate a budget, press the ellipsis and a menu will display an option to Create a Budget.")
-                Text("• Once a budget has been created, the ellipsis button will display more options to Manage Cards, Manage Presets, Edit Budget, or Delete Budget.")
-                Text("• The calendar button allows you to change the period and create budgets for the selected period.")
-                Text("• Use the plus button to add either Planned Expenses or Variable Expenses.")
+                Text("Overview and navigation:")
+                    .font(.title3).bold()
+                Text("• Use the left and right chevrons to move between budget periods. The current period is selected by default.")
+                Text("• If no budget exists for the selected period, the top‑right shows only the ellipsis and calendar buttons. Tap the ellipsis to Create Budget.")
+                Text("• After a budget exists, the ellipsis menu includes Manage Cards, Manage Presets, Edit Budget, and Delete Budget.")
+                Text("• Use the calendar button to jump to a specific period and create budgets for it.")
+                Text("• Tap + to add expenses: Planned Expenses for recurring items, or Variable Expenses for one‑off purchases.")
 
 
             }
@@ -105,11 +137,12 @@ struct HelpView: View {
     private var income: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Track paychecks and other revenue on a calendar:")
-                Text("• Weeks start on Sunday and today's date is always highlighted/selected first.")
-                Text("• Tap a day to show its Selected Day's Income beneath the calendar.")
-                Text("• Use the plus button to add income with optional recurrence rules.")
-                Text("• Swipe an entry in the Selected Day's Income to edit or delete an Income entry.")
+                Text("Calendar‑based income tracking:")
+                    .font(.title3).bold()
+                Text("• Weeks start on Sunday; today’s date is selected first.")
+                Text("• Tap a day to view its income entries below the calendar.")
+                Text("• Tap + to add income and optionally set it to repeat.")
+                Text("• Swipe an entry to edit or delete it.")
                 Text("• A weekly summary bar totals income for the visible week.")
             }
             .padding()
@@ -120,10 +153,11 @@ struct HelpView: View {
     private var cards: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Manage cards and expenses:")
-                Text("• Tap a card to select it and reveal detailed spending; tap Done to close the detailed view.")
-                Text("• The toolbar's plus icon adds a new card, or an expense if a card is selected from the detailed view of your card.")
-                Text("• Long press a card from the Cards screen to edit or delete it.")
+                Text("Cards and spending:")
+                    .font(.title3).bold()
+                Text("• Tap a card to open details; tap Done to close.")
+                Text("• Tap + to add a new card. When a card’s details are open, + adds an expense to that card.")
+                Text("• Long‑press a card to edit or delete it.")
             }
             .padding()
             .navigationTitle("Cards")
@@ -133,10 +167,11 @@ struct HelpView: View {
     private var presets: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Presets are reusable planned expense templates that can be used in future budgets:")
+                Text("Reusable planned expense templates:")
+                    .font(.title3).bold()
                 Text("• Each row shows planned/actual amounts, how many budgets use it, and the next upcoming date.")
-                Text("• The plus button creates a template with \"Save as Global Preset\" enabled by default.")
-                Text("• Swipe to edit or delete on the expense to edit or delete it.")
+                Text("• Tap + to create a template with \"Save as Global Preset\" enabled by default.")
+                Text("• Swipe a preset to edit or delete it.")
                 Text("• The list updates automatically when templates change.")
             }
             .padding()
@@ -147,13 +182,13 @@ struct HelpView: View {
     private var settings: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Customize app behavior and manage data:")
+                Text("Customize and manage your data:")
+                    .font(.title3).bold()
                 Text("• General: confirm before deleting items and choose the default budget period.")
                 Text("• iCloud Services: sync your data, card themes, app theme, and budget period across devices.")
-                Text("• Presets: control whether new planned expenses default to future budgets.")
-                Text("• Expense Categories: open a manager to create or edit categories for variable expenses.")
+                Text("• Expense Categories: create or edit categories for variable expenses.")
                 Text("• Onboarding: replay the initial setup flow at any time.")
-                Text("• Reset: erase all stored budgets, cards, incomes, and expenses. This action cannot be undone and will erase all data across all devices if iCloud Sync is enabled.")
+                Text("• Reset: permanently erase all budgets, cards, incomes, and expenses. If iCloud Sync is enabled, this removal applies to all devices. This action cannot be undone.")
             }
             .padding()
             .navigationTitle("Settings")

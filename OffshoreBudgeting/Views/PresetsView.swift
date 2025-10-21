@@ -33,13 +33,15 @@ struct PresetsView: View {
                 .frame(maxWidth: .infinity, alignment: .top)
             } else {
                 List {
+                    let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
+
                     ForEach(vm.items) { item in
                         PresetRowView(item: item) { template in
                             sheetTemplateToAssign = template
                         }
                         .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
                         .unifiedSwipeActions(
-                            UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
+                            swipeConfig,
                             onEdit: { editingTemplate = item.template },
                             onDelete: {
                                 if confirmBeforeDelete {

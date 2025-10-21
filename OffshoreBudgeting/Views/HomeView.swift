@@ -42,6 +42,8 @@ struct HomeView: View {
     // Backing data for list rows
     @State private var plannedRows: [PlannedExpense] = []
     @State private var variableRows: [UnplannedExpense] = []
+    @State private var currentSummaryID: NSManagedObjectID? = nil
+    @State private var lastNonNilSummary: BudgetSummary? = nil
 
     // Shared width so the left column of the right-side pairs (Max/Min)
     // aligns vertically across rows.
@@ -80,17 +82,34 @@ struct HomeView: View {
         .toolbar { toolbarContent }
         .task {
             vm.startIfNeeded()
-            isAddMenuVisible = summary != nil
+            isAddMenuVisible = activeSummary != nil
             reloadRows()
         }
         .onChange(of: segment) { _ in reloadRows() }
         .onChange(of: sort) { _ in reloadRows() }
-        .onChange(of: vm.state) { _ in
-            reloadRows()
-            let shouldShowAddMenu = (summary != nil)
-            guard shouldShowAddMenu != isAddMenuVisible else { return }
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isAddMenuVisible = shouldShowAddMenu
+        .onChange(of: vm.state) { newState in
+            // Only react to stable states to reduce flicker. Keep rows visible
+            // during transient .initial/.loading.
+            switch newState {
+            case .loaded:
+                let newID = activeSummary?.id
+                // Update rows; do not clear if the summary is unchanged.
+                currentSummaryID = newID
+                reloadRows()
+                if let s = summary { lastNonNilSummary = s }
+            case .empty:
+                currentSummaryID = nil
+                plannedRows = []
+                variableRows = []
+                lastNonNilSummary = nil
+            default:
+                break
+            }
+            let shouldShowAddMenu = (activeSummary != nil)
+            if shouldShowAddMenu != isAddMenuVisible {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isAddMenuVisible = shouldShowAddMenu
+                }
             }
         }
         .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
@@ -170,7 +189,7 @@ struct HomeView: View {
 
     private var ellipsisMenu: some View {
         Menu {
-            if let summary {
+            if let summary = activeSummary {
                 Button("Manage Cards") { isPresentingManageCards = true }
                 Button("Manage Presets") { isPresentingManagePresets = true }
                 Button("Edit Budget") { editingBudget = summary }
@@ -318,7 +337,7 @@ struct HomeView: View {
         // Prefer the computed breakdown when a budget summary exists; otherwise
         // show all categories with zero amounts so chips are always visible.
         let categories: [BudgetSummary.CategorySpending] = {
-            if let s = summary {
+            if let s = activeSummary {
                 return (segment == .planned ? s.plannedCategoryBreakdown : s.variableCategoryBreakdown)
             } else {
                 let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
@@ -405,7 +424,7 @@ struct HomeView: View {
     // MARK: Sheets
     private var addPlannedSheet: some View {
         AddPlannedExpenseView(
-            preselectedBudgetID: summary?.id,
+            preselectedBudgetID: activeSummary?.id,
             defaultSaveAsGlobalPreset: false,
             showAssignBudgetToggle: true,
             onSaved: { Task { await vm.refresh() } }
@@ -425,7 +444,7 @@ struct HomeView: View {
     // MARK: Manage Sheets
     private var manageCardsSheet: some View {
         Group {
-            if let id = summary?.id,
+            if let id = activeSummary?.id,
                let budget = try? CoreDataService.shared.viewContext.existingObject(with: id) as? Budget {
                 ManageBudgetCardsSheet(budget: budget) { Task { await vm.refresh(); reloadRows() } }
             } else {
@@ -437,7 +456,7 @@ struct HomeView: View {
 
     private var managePresetsSheet: some View {
         Group {
-            if let id = summary?.id,
+            if let id = activeSummary?.id,
                let budget = try? CoreDataService.shared.viewContext.existingObject(with: id) as? Budget {
                 ManageBudgetPresetsSheet(budget: budget) { Task { await vm.refresh(); reloadRows() } }
             } else {
@@ -532,19 +551,21 @@ struct HomeView: View {
         }
     }
 
-    private var potentialIncome: Double { summary?.potentialIncomeTotal ?? 0 }
-    private var maxSavings: Double { summary?.potentialSavingsTotal ?? 0 }
+    private var activeSummary: BudgetSummary? { summary ?? lastNonNilSummary }
+
+    private var potentialIncome: Double { activeSummary?.potentialIncomeTotal ?? 0 }
+    private var maxSavings: Double { activeSummary?.potentialSavingsTotal ?? 0 }
     private var projectedSavings: Double {
-        let s = summary
+        let s = activeSummary
         return (s?.potentialIncomeTotal ?? 0) - (s?.plannedExpensesPlannedTotal ?? 0) - (s?.variableExpensesTotal ?? 0)
     }
-    private var actualIncome: Double { summary?.actualIncomeTotal ?? 0 }
-    private var actualSavings: Double { summary?.actualSavingsTotal ?? 0 }
+    private var actualIncome: Double { activeSummary?.actualIncomeTotal ?? 0 }
+    private var actualSavings: Double { activeSummary?.actualSavingsTotal ?? 0 }
     // For the Planned segment, show the planned (budgeted) amount, not the
     // amount actually paid so far. The per‑row cells already display both.
-    private var plannedTotal: Double { summary?.plannedExpensesPlannedTotal ?? 0 }
-    private var plannedActualTotal: Double { summary?.plannedExpensesActualTotal ?? 0 }
-    private var variableTotal: Double { summary?.variableExpensesTotal ?? 0 }
+    private var plannedTotal: Double { activeSummary?.plannedExpensesPlannedTotal ?? 0 }
+    private var plannedActualTotal: Double { activeSummary?.plannedExpensesActualTotal ?? 0 }
+    private var variableTotal: Double { activeSummary?.variableExpensesTotal ?? 0 }
 
     private var horizontalPadding: CGFloat { 20 }
 
@@ -618,7 +639,7 @@ struct HomeView: View {
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: {}) {
                 chipLabel
-                    .glassEffect(.regular.tint(.none).interactive(false))
+                    .glassEffect(.regular.tint(.clear).interactive(false))
                     .frame(minHeight: 44, maxHeight: 44)
             }
             .buttonBorderShape(.capsule)
@@ -684,10 +705,13 @@ struct HomeView: View {
     }
 
     private func reloadRows() {
-        guard let summary else { plannedRows = []; variableRows = []; return }
+        // If we don't have a summary yet (e.g., while loading), keep the
+        // existing rows to avoid blinking.
+        guard let summary = activeSummary else { return }
         let context = CoreDataService.shared.viewContext
         guard let budget = try? context.existingObject(with: summary.id) as? Budget else {
-            plannedRows = []; variableRows = []; return
+            // If the budget isn't resolvable yet, keep current rows.
+            return
         }
 
         // Build date range based on the budget's actual period
@@ -875,7 +899,7 @@ private extension HomeView {
         func body(content: Content) -> some View {
             if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
                 content
-                    .glassEffect(.regular.tint(.none).interactive(true))
+                    .glassEffect(.regular.tint(.clear).interactive(true))
             } else {
                 content
                     .background(
@@ -975,7 +999,7 @@ private extension HomeView {
         if resetAmount {
             // If segment changed, the chip amount changes source – update currentAmount from summary
             if let oc = overlayCategory {
-                let categories = (segment == .planned ? summary?.plannedCategoryBreakdown : summary?.variableCategoryBreakdown) ?? []
+                let categories = (segment == .planned ? activeSummary?.plannedCategoryBreakdown : activeSummary?.variableCategoryBreakdown) ?? []
                 let targetURI = oc.id.uriRepresentation()
                 if let fresh = categories.first(where: { $0.categoryURI == targetURI }) {
                     overlayCategory = OverlayCategory(id: oc.id, name: oc.name, color: oc.color, segment: segment, currentAmount: fresh.amount)

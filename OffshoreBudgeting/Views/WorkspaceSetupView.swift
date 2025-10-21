@@ -19,7 +19,7 @@ struct WorkspaceSetupView: View {
                     // scaled to the device and clipped to safe area.
                     Rectangle()
                         .fill(Color.clear)
-                        .glassEffect(.regular.tint(.none), in: RoundedRectangle(cornerRadius: corner, style: .continuous))
+                        .glassEffect(.regular.tint(.clear), in: RoundedRectangle(cornerRadius: corner, style: .continuous))
                         .opacity(0.92)
                         .ignoresSafeArea()
                 }

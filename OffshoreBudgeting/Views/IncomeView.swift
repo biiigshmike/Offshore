@@ -150,7 +150,7 @@ struct IncomeView: View {
                 Image(systemName: systemName)
                     .font(.system(size: 16, weight: .semibold))
                     .frame(width: 44, height: 44)
-                    .glassEffect(.regular.tint(.none).interactive(true))
+                    .glassEffect(.regular.tint(.clear).interactive(true))
             }
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
@@ -168,7 +168,7 @@ struct IncomeView: View {
                 Text(title)
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .frame(minWidth: 64, minHeight: 44)
-                    .glassEffect(.regular.tint(.none).interactive(true))
+                    .glassEffect(.regular.tint(.clear).interactive(true))
             }
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)

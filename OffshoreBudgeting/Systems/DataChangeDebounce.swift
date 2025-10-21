@@ -14,5 +14,16 @@ enum DataChangeDebounce {
             return 100
         }
     }
-}
 
+    /// Slightly longer debounce for emitting full UI state changes (e.g., Home summaries)
+    /// to avoid visible flicker during CloudKit imports.
+    @MainActor
+    static func outputMilliseconds() -> Int {
+        let cloudOn = UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        if cloudOn, CloudSyncMonitor.shared.isImporting {
+            return 300
+        } else {
+            return 140
+        }
+    }
+}

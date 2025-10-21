@@ -645,7 +645,7 @@ private struct AddCategoryPill: View {
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 12)
                 .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 44, alignment: .center)
-                .glassEffect(.regular.tint(.none).interactive(true))
+                .glassEffect(.regular.tint(.clear).interactive(true))
             Button(action: onTap) {
                 label
             }

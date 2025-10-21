@@ -158,7 +158,7 @@ private struct OnboardingButtonsRow2: View {
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
                 Text(title).font(.headline).frame(maxWidth: .infinity, minHeight: 44)
-                    .glassEffect(.regular.tint(.none))
+                    .glassEffect(.regular.tint(.clear))
             }
                 .buttonStyle(.plain)
                 .buttonBorderShape(.capsule)

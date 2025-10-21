@@ -55,8 +55,9 @@ struct BudgetSummary: Identifiable, Equatable, Sendable {
 
     // MARK: Variable Spend (Unplanned) by Category
     struct CategorySpending: Identifiable, Equatable, Sendable {
-        // Keep existing UUID identity for ForEach stability
-        let id = UUID()
+        // Use the stable category URI as identity so refreshes with identical
+        // data don't appear as different items (prevents flicker and state churn).
+        var id: URL { categoryURI }
         // Stable identity for category-specific actions; URL is Sendable
         let categoryURI: URL
         let categoryName: String
@@ -175,6 +176,7 @@ final class HomeViewModel: ObservableObject {
     private var hasStarted = false
     private var isRefreshing = false
     private var needsAnotherRefresh = false
+    private var pendingApply: DispatchWorkItem?
 
     // MARK: init()
     /// - Parameter context: The Core Data context to use (defaults to main viewContext).
@@ -253,14 +255,7 @@ final class HomeViewModel: ObservableObject {
             AppLog.viewModel.debug("HomeViewModel.refresh() discarding fetched summaries – selection changed during fetch")
         } else {
             let newState: BudgetLoadState = summaries.isEmpty ? .empty : .loaded(summaries)
-            if self.state != newState {
-                self.state = newState
-                if summaries.isEmpty {
-                    AppLog.viewModel.debug("HomeViewModel.refresh() transitioning to .empty state")
-                } else {
-                    AppLog.viewModel.debug("HomeViewModel.refresh() transitioning to .loaded state")
-                }
-            }
+            emitStateDebounced(newState)
         }
 
         isRefreshing = false
@@ -280,6 +275,33 @@ final class HomeViewModel: ObservableObject {
                 await self?.refresh()
             }
         }
+    }
+
+    // MARK: - Debounced state emission
+    /// Apply state changes with a short debounce to coalesce CloudKit bursts
+    /// and avoid visible flicker on Home.
+    private func emitStateDebounced(_ newState: BudgetLoadState) {
+        // If the target equals current, skip.
+        if self.state == newState { return }
+
+        pendingApply?.cancel()
+        let delayMS = DataChangeDebounce.outputMilliseconds()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            if self.state != newState {
+                self.state = newState
+                switch newState {
+                case .empty:
+                    AppLog.viewModel.debug("HomeViewModel.refresh() transitioning to .empty state")
+                case .loaded:
+                    AppLog.viewModel.debug("HomeViewModel.refresh() transitioning to .loaded state")
+                default:
+                    break
+                }
+            }
+        }
+        pendingApply = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delayMS), execute: work)
     }
 
     deinit {

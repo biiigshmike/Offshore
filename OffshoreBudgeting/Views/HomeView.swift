@@ -20,6 +20,8 @@ struct HomeView: View {
     @StateObject private var vm = HomeViewModel()
     @AppStorage(AppSettingsKeys.budgetPeriod.rawValue)
     private var budgetPeriodRawValue: String = BudgetPeriod.monthly.rawValue
+    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
+    private var confirmBeforeDelete: Bool = true
 
     // MARK: Local UI State
     enum Segment: String, CaseIterable, Identifiable { case planned, variable; var id: String { rawValue } }
@@ -42,6 +44,8 @@ struct HomeView: View {
     private struct ObjectIDBox: Identifiable { let id: NSManagedObjectID }
     @State private var editingPlannedBox: ObjectIDBox?
     @State private var editingUnplannedBox: ObjectIDBox?
+    @State private var plannedDeletionBox: ObjectIDBox?
+    @State private var unplannedDeletionBox: ObjectIDBox?
 
     // Backing data for list rows
     @State private var plannedRows: [PlannedExpense] = []
@@ -167,6 +171,26 @@ struct HomeView: View {
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
         .alert(item: $vm.alert, content: alert(for:))
+        .confirmationDialog(
+            plannedDeletionDialogTitle(),
+            isPresented: plannedDeletionDialogBinding,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) { confirmPlannedDeletion() }
+            Button("Cancel", role: .cancel) { plannedDeletionBox = nil }
+        } message: {
+            Text(plannedDeletionDialogMessage())
+        }
+        .confirmationDialog(
+            unplannedDeletionDialogTitle(),
+            isPresented: unplannedDeletionDialogBinding,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) { confirmUnplannedDeletion() }
+            Button("Cancel", role: .cancel) { unplannedDeletionBox = nil }
+        } message: {
+            Text(unplannedDeletionDialogMessage())
+        }
         // Step 1: Anchored custom menu near long-pressed chip
         .overlayPreferenceValue(ChipFramePreferenceKey.self) { anchors in
             chipMenuOverlay(anchors)
@@ -472,16 +496,20 @@ struct HomeView: View {
         } else if segment == .planned {
             ForEach(plannedRows, id: \.objectID) { exp in
                 plannedRow(exp)
-                    .unifiedSwipeActions(.standard,
+                    .unifiedSwipeActions(
+                        UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
                         onEdit: { editingPlannedBox = ObjectIDBox(id: exp.objectID) },
-                        onDelete: { delete(planned: exp) })
+                        onDelete: { requestDelete(planned: exp) }
+                    )
             }
         } else {
             ForEach(variableRows, id: \.objectID) { exp in
                 variableRow(exp)
-                    .unifiedSwipeActions(.standard,
+                    .unifiedSwipeActions(
+                        UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
                         onEdit: { editingUnplannedBox = ObjectIDBox(id: exp.objectID) },
-                        onDelete: { delete(unplanned: exp) })
+                        onDelete: { requestDelete(unplanned: exp) }
+                    )
             }
         }
     }
@@ -869,6 +897,105 @@ struct HomeView: View {
         case .amountHighLow: return [NSSortDescriptor(key: "amount", ascending: false)]
         case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
         case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
+        }
+    }
+
+    // MARK: Delete Confirmation
+    private var plannedDeletionDialogBinding: Binding<Bool> {
+        Binding(
+            get: { plannedDeletionBox != nil },
+            set: { if !$0 { plannedDeletionBox = nil } }
+        )
+    }
+
+    private var unplannedDeletionDialogBinding: Binding<Bool> {
+        Binding(
+            get: { unplannedDeletionBox != nil },
+            set: { if !$0 { unplannedDeletionBox = nil } }
+        )
+    }
+
+    private func plannedDeletionDialogTitle() -> String {
+        if let name = plannedDeletionDisplayName() {
+            return "Delete \"\(name)\"?"
+        }
+        return "Delete Planned Expense?"
+    }
+
+    private func plannedDeletionDialogMessage() -> String {
+        if let name = plannedDeletionDisplayName() {
+            return "This will remove \"\(name)\" from planned expenses."
+        }
+        return "This will remove this planned expense from the budget."
+    }
+
+    private func unplannedDeletionDialogTitle() -> String {
+        if let name = unplannedDeletionDisplayName() {
+            return "Delete \"\(name)\"?"
+        }
+        return "Delete Variable Expense?"
+    }
+
+    private func unplannedDeletionDialogMessage() -> String {
+        if let name = unplannedDeletionDisplayName() {
+            return "This will remove \"\(name)\" from variable expenses."
+        }
+        return "This will remove this variable expense from the budget."
+    }
+
+    private func plannedDeletionDisplayName() -> String? {
+        guard let box = plannedDeletionBox else { return nil }
+        let ctx = CoreDataService.shared.viewContext
+        guard let object = try? ctx.existingObject(with: box.id) as? PlannedExpense else { return nil }
+        return sanitizedExpenseName(readPlannedDescription(object))
+    }
+
+    private func unplannedDeletionDisplayName() -> String? {
+        guard let box = unplannedDeletionBox else { return nil }
+        let ctx = CoreDataService.shared.viewContext
+        guard let object = try? ctx.existingObject(with: box.id) as? UnplannedExpense else { return nil }
+        return sanitizedExpenseName(readUnplannedDescription(object))
+    }
+
+    private func sanitizedExpenseName(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func requestDelete(planned exp: PlannedExpense) {
+        if confirmBeforeDelete {
+            plannedDeletionBox = ObjectIDBox(id: exp.objectID)
+            unplannedDeletionBox = nil
+        } else {
+            delete(planned: exp)
+        }
+    }
+
+    private func requestDelete(unplanned exp: UnplannedExpense) {
+        if confirmBeforeDelete {
+            unplannedDeletionBox = ObjectIDBox(id: exp.objectID)
+            plannedDeletionBox = nil
+        } else {
+            delete(unplanned: exp)
+        }
+    }
+
+    private func confirmPlannedDeletion() {
+        guard let box = plannedDeletionBox else { return }
+        plannedDeletionBox = nil
+        let ctx = CoreDataService.shared.viewContext
+        if let resolved = try? ctx.existingObject(with: box.id) as? PlannedExpense {
+            delete(planned: resolved)
+        }
+    }
+
+    private func confirmUnplannedDeletion() {
+        guard let box = unplannedDeletionBox else { return }
+        unplannedDeletionBox = nil
+        let ctx = CoreDataService.shared.viewContext
+        if let resolved = try? ctx.existingObject(with: box.id) as? UnplannedExpense {
+            delete(unplanned: resolved)
         }
     }
 

@@ -24,6 +24,11 @@ struct IncomeView: View {
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
     @Environment(\.responsiveLayoutContext) private var layoutContext
+    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
+    private var confirmBeforeDelete: Bool = true
+
+    @State private var incomePendingDeletion: Income?
+    @State private var isConfirmingDelete: Bool = false
 
     // MARK: Body
     var body: some View {
@@ -46,17 +51,11 @@ struct IncomeView: View {
                 } else {
                     ForEach(vm.incomesForDay, id: \.objectID) { income in
                         incomeRow(income)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    vm.delete(income: income, scope: .all)
-                                } label: { Label("Delete", systemImage: "trash") }
-                                .tint(.red)
-
-                                Button {
-                                    editingIncome = income
-                                } label: { Label("Edit", systemImage: "pencil") }
-                                .tint(.gray)
-                            }
+                            .unifiedSwipeActions(
+                                UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
+                                onEdit: { editingIncome = income },
+                                onDelete: { requestDelete(income: income) }
+                            )
                     }
                 }
             } header: {
@@ -105,6 +104,15 @@ struct IncomeView: View {
         .sheet(item: $editingIncome) { income in
             AddIncomeFormView(incomeObjectID: income.objectID, budgetObjectID: nil, initialDate: nil)
         }
+        .alert("Delete Income?", isPresented: $isConfirmingDelete) {
+            Button("Delete", role: .destructive) { confirmDeleteIfNeeded() }
+            Button("Cancel", role: .cancel) {
+                incomePendingDeletion = nil
+                isConfirmingDelete = false
+            }
+        } message: {
+            Text("This will remove the income entry.")
+        }
     }
 
     // MARK: Toolbar
@@ -119,7 +127,7 @@ struct IncomeView: View {
         if uiTest.showTestControls {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Buttons.toolbarIcon("trash") {
-                    if let first = vm.incomesForDay.first { vm.delete(income: first, scope: .all) }
+                    if let first = vm.incomesForDay.first { requestDelete(income: first) }
                 }
                 .accessibilityIdentifier("btn_delete_first_income")
             }
@@ -271,9 +279,11 @@ struct IncomeView: View {
                 LazyVStack(alignment: .leading, spacing: 12) {
                     ForEach(vm.incomesForDay, id: \.objectID) { income in
                         incomeRow(income)
-                            .unifiedSwipeActions(.standard,
+                            .unifiedSwipeActions(
+                                UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
                                 onEdit: { editingIncome = income },
-                                onDelete: { vm.delete(income: income, scope: .all) })
+                                onDelete: { requestDelete(income: income) }
+                            )
                     }
                 }
             }
@@ -305,7 +315,7 @@ struct IncomeView: View {
             }
             Spacer()
             if uiTest.showTestControls, let id = income.id?.uuidString {
-                Button("Delete") { vm.delete(income: income, scope: .all) }
+                Button("Delete") { requestDelete(income: income) }
                     .buttonStyle(.borderedProminent)
                     .accessibilityIdentifier("btn_delete_income_\(id)")
             }
@@ -348,6 +358,30 @@ struct IncomeView: View {
            let next = cal.date(byAdding: .month, value: delta, to: startOfCurrent) {
             vm.selectedDate = normalize(next); calendarScrollDate = vm.selectedDate
         }
+    }
+
+    private func requestDelete(income: Income) {
+        if confirmBeforeDelete {
+            incomePendingDeletion = income
+            isConfirmingDelete = true
+        } else {
+            delete(income: income)
+        }
+    }
+
+    private func confirmDeleteIfNeeded() {
+        guard let pending = incomePendingDeletion else {
+            isConfirmingDelete = false
+            return
+        }
+        isConfirmingDelete = false
+        delete(income: pending)
+    }
+
+    private func delete(income: Income) {
+        vm.delete(income: income, scope: .all)
+        isConfirmingDelete = false
+        incomePendingDeletion = nil
     }
 
     // MARK: Helpers

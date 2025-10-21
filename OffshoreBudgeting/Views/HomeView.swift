@@ -1,5 +1,9 @@
 import SwiftUI
 import CoreData
+import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - HomeView2
 /// A simplified, self‑contained rebuild of the Home screen that follows
@@ -51,6 +55,21 @@ struct HomeView: View {
     // Shared width for the right column of the right-side pairs (Projected/Actual Planned)
     @State private var rightPairRightColumnWidth: CGFloat = 0
 
+    // MARK: Category Chip Menu (Step 1)
+    @State private var chipMenuSelected: BudgetSummary.CategorySpending? = nil
+    @State private var chipMenuVisible: Bool = false
+    @State private var chipMenuSize: CGSize = .zero
+    @State private var chipCapMin: Double = 0
+    @State private var chipCapMax: Double = 1
+    @State private var chipEditMinInput: String = ""
+    @State private var chipEditMaxInput: String = ""
+    @State private var chipHasExplicitMinCap: Bool = false
+    @State private var chipHasExplicitMaxCap: Bool = false
+    @State private var chipValidationError: String? = nil
+    // Inline menu mode (preview vs. edit) to keep UX minimal inside the popover
+    private enum ChipMenuMode { case preview, edit }
+    @State private var chipMenuMode: ChipMenuMode = .preview
+
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
 
@@ -87,6 +106,21 @@ struct HomeView: View {
         }
         .onChange(of: segment) { _ in reloadRows() }
         .onChange(of: sort) { _ in reloadRows() }
+        // If the selected budget period changes (via calendar menu or Settings),
+        // clear any cached summary from a previous period so UI doesn't show
+        // stale data for periods without an exact match.
+        .onChange(of: budgetPeriodRawValue) { _ in
+            lastNonNilSummary = nil
+            // Immediately reflect active/inactive state in toolbar visibility
+            // so the + glyph responds to period changes without waiting on a refresh.
+            let shouldShowAddMenu = (activeSummary != nil)
+            if shouldShowAddMenu != isAddMenuVisible {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isAddMenuVisible = shouldShowAddMenu
+                }
+            }
+            reloadRows()
+        }
         .onChange(of: vm.state) { newState in
             // Only react to stable states to reduce flicker. Keep rows visible
             // during transient .initial/.loading.
@@ -133,6 +167,15 @@ struct HomeView: View {
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
         .alert(item: $vm.alert, content: alert(for:))
+        // Step 1: Anchored custom menu near long-pressed chip
+        .overlayPreferenceValue(ChipFramePreferenceKey.self) { anchors in
+            chipMenuOverlay(anchors)
+        }
+        // Proactively clear rows when the data store is wiped or significantly changed
+        .onReceive(NotificationCenter.default.publisher(for: .dataStoreDidChange)) { _ in
+            plannedRows = []
+            variableRows = []
+        }
     }
 
     // MARK: Toolbar
@@ -354,6 +397,19 @@ struct HomeView: View {
             HStack(spacing: 10) {
                 ForEach(categories) { cat in
                     chipView(title: cat.categoryName, amount: cat.amount, hex: cat.hexColor)
+                        // Ensure a clear hit area for gestures
+                        .contentShape(Rectangle())
+                        // Capture the chip's bounds for anchored menu placement
+                        .anchorPreference(key: ChipFramePreferenceKey.self, value: .bounds) { anchor in
+                            [cat.categoryURI: anchor]
+                        }
+                        // High-priority long press so it wins over horizontal scroll gestures
+                        .highPriorityGesture(
+                            LongPressGesture(minimumDuration: 0.35)
+                                .onEnded { _ in
+                                    presentChipMenu(for: cat)
+                                }
+                        )
                 }
                 if categories.isEmpty {
                     Text("No categories yet")
@@ -390,8 +446,10 @@ struct HomeView: View {
     // MARK: Expense List / Empty State
     @ViewBuilder
     private var listRows: some View {
-        if segment == .variable, variableRows.isEmpty {
-            Text("No variable expenses in this period.\nPress + to add a planned expense.")
+        // If no budget exactly matches the selected period, show a clear
+        // "Budget inactive" message instead of generic empty list text.
+        if activeSummary == nil {
+            Text("No budget is active for this period.\nCreate a budget to add planned or variable expenses.")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
@@ -399,6 +457,13 @@ struct HomeView: View {
                 .listRowSeparator(.hidden)
         } else if segment == .planned, plannedRows.isEmpty {
             Text("No planned expenses in this period.\nPress the + to add a planned expense.")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 8)
+                .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
+                .listRowSeparator(.hidden)
+        } else if segment == .variable, variableRows.isEmpty {
+            Text("No variable expenses in this period.\nTrack purchases as they happen.")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
@@ -551,7 +616,17 @@ struct HomeView: View {
         }
     }
 
-    private var activeSummary: BudgetSummary? { summary ?? lastNonNilSummary }
+    // Only use the cached lastNonNilSummary during non-loaded states to
+    // avoid cross-period bleed. When the state is loaded, require an exact
+    // period match (i.e., `summary`).
+    private var activeSummary: BudgetSummary? {
+        switch vm.state {
+        case .loaded:
+            return summary
+        default:
+            return lastNonNilSummary
+        }
+    }
 
     private var potentialIncome: Double { activeSummary?.potentialIncomeTotal ?? 0 }
     private var maxSavings: Double { activeSummary?.potentialSavingsTotal ?? 0 }
@@ -639,13 +714,13 @@ struct HomeView: View {
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: {}) {
                 chipLabel
-                    .glassEffect(.regular.tint(.clear).interactive(false))
+                    .glassEffect(.regular.tint(.clear).interactive(true))
                     .frame(minHeight: 44, maxHeight: 44)
             }
             .buttonBorderShape(.capsule)
             .foregroundStyle(.primary)
-            .allowsHitTesting(false)
-            .disabled(true)
+            .allowsHitTesting(true)
+            .disabled(false)
             .frame(minHeight: 44, maxHeight: 44)
             .clipShape(Capsule())
             .compositingGroup()
@@ -666,48 +741,71 @@ struct HomeView: View {
 
 
     // MARK: Rows + Data
+    @ViewBuilder
     private func plannedRow(_ exp: PlannedExpense) -> some View {
-        let title = (exp.value(forKey: "descriptionText") as? String) ?? (exp.value(forKey: "title") as? String) ?? "Expense"
-        let dateStr: String = {
-            let f = DateFormatter(); f.dateStyle = .medium
-            if let d = exp.transactionDate { return f.string(from: d) }
-            return ""
-        }()
-        return HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline)
-                Text(dateStr).font(.subheadline).foregroundStyle(.secondary)
+        // Re-resolve the object from the current context to avoid crashes if the
+        // original instance became invalidated (e.g., after a full data wipe).
+        let ctx = CoreDataService.shared.viewContext
+        if let managed = try? ctx.existingObject(with: exp.objectID) as? PlannedExpense, !managed.isDeleted {
+            let title = readPlannedDescription(managed) ?? "Expense"
+            let dateStr: String = {
+                let f = DateFormatter(); f.dateStyle = .medium
+                if let d = managed.transactionDate { return f.string(from: d) }
+                return ""
+            }()
+
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.headline)
+                    Text(dateStr).font(.subheadline).foregroundStyle(.secondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("Planned: \(formatCurrency(managed.plannedAmount))")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Actual: \(formatCurrency(managed.actualAmount))")
+                        .font(.subheadline)
+                }
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("Planned: \(formatCurrency(exp.plannedAmount))")
-                    .font(.subheadline.weight(.semibold))
-                Text("Actual: \(formatCurrency(exp.actualAmount))")
-                    .font(.subheadline)
-            }
+            .frame(maxWidth: .infinity)
+        } else {
+            EmptyView()
         }
-        .frame(maxWidth: .infinity)
     }
 
+    @ViewBuilder
     private func variableRow(_ exp: UnplannedExpense) -> some View {
-        let title = readUnplannedDescription(exp) ?? "Expense"
-        let f = DateFormatter(); f.dateStyle = .medium
-        let dateStr: String = { let f = DateFormatter(); f.dateStyle = .medium; if let d = exp.transactionDate { return f.string(from: d) }; return "" }()
-        return HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline)
-                Text(dateStr).font(.subheadline).foregroundStyle(.secondary)
+        let ctx = CoreDataService.shared.viewContext
+        if let managed = try? ctx.existingObject(with: exp.objectID) as? UnplannedExpense, !managed.isDeleted {
+            let title = readUnplannedDescription(managed) ?? "Expense"
+            let dateStr: String = {
+                let f = DateFormatter(); f.dateStyle = .medium
+                if let d = managed.transactionDate { return f.string(from: d) }
+                return ""
+            }()
+
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.headline)
+                    Text(dateStr).font(.subheadline).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(formatCurrency(managed.amount)).font(.headline)
             }
-            Spacer()
-            Text(formatCurrency(exp.amount)).font(.headline)
+            .frame(maxWidth: .infinity)
+        } else {
+            EmptyView()
         }
-        .frame(maxWidth: .infinity)
     }
 
     private func reloadRows() {
-        // If we don't have a summary yet (e.g., while loading), keep the
-        // existing rows to avoid blinking.
-        guard let summary = activeSummary else { return }
+        // If no budget is active for the selected period, ensure rows are
+        // cleared so presets/expenses from other periods don't appear.
+        guard let summary = activeSummary else {
+            plannedRows = []
+            variableRows = []
+            return
+        }
         let context = CoreDataService.shared.viewContext
         guard let budget = try? context.existingObject(with: summary.id) as? Budget else {
             // If the budget isn't resolvable yet, keep current rows.
@@ -775,23 +873,42 @@ struct HomeView: View {
     }
 
     private func delete(planned: PlannedExpense) {
-        do {
-            try PlannedExpenseService().delete(planned)
-            reloadRows()
-            Task { await vm.refresh() }
-        } catch { /* swallow for now */ }
+        let ctx = CoreDataService.shared.viewContext
+        let id = planned.objectID
+        if let obj = try? ctx.existingObject(with: id) as? PlannedExpense, !obj.isDeleted {
+            do {
+                try PlannedExpenseService().delete(obj)
+                reloadRows()
+                Task { await vm.refresh() }
+            } catch { /* swallow for now */ }
+        }
     }
 
     private func delete(unplanned: UnplannedExpense) {
-        do {
-            try UnplannedExpenseService().delete(unplanned)
-            reloadRows()
-            Task { await vm.refresh() }
-        } catch { /* swallow for now */ }
+        let ctx = CoreDataService.shared.viewContext
+        let id = unplanned.objectID
+        if let obj = try? ctx.existingObject(with: id) as? UnplannedExpense, !obj.isDeleted {
+            do {
+                try UnplannedExpenseService().delete(obj)
+                reloadRows()
+                Task { await vm.refresh() }
+            } catch { /* swallow for now */ }
+        }
     }
 
     /// Reads `descriptionText` or `title` from an `UnplannedExpense`, matching the service's behavior.
     private func readUnplannedDescription(_ object: NSManagedObject) -> String? {
+        let keys = object.entity.attributesByName.keys
+        if keys.contains("descriptionText") {
+            return object.value(forKey: "descriptionText") as? String
+        } else if keys.contains("title") {
+            return object.value(forKey: "title") as? String
+        }
+        return nil
+    }
+
+    /// Reads `descriptionText` or `title` from a `PlannedExpense`, matching the service's behavior.
+    private func readPlannedDescription(_ object: NSManagedObject) -> String? {
         let keys = object.entity.attributesByName.keys
         if keys.contains("descriptionText") {
             return object.value(forKey: "descriptionText") as? String
@@ -813,6 +930,542 @@ fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
     let g = Double((intVal >> 8) & 0xFF) / 255.0
     let b = Double((intVal & 0xFF)) / 255.0
     return Color(red: r, green: g, blue: b)
+}
+
+// MARK: - Chip Menu Overlay Builder (extracted for type-check performance)
+private extension HomeView {
+    func currentAmountForChip(_ cat: BudgetSummary.CategorySpending) -> Double {
+        if segment == .variable {
+            return cat.amount
+        }
+        // Planned: use Actual Amount sum for this category within the selected period and budget
+        guard
+            let summary = activeSummary,
+            let budget = try? moc.existingObject(with: summary.id) as? Budget,
+            let categoryID = CoreDataService.shared.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
+            let category = try? moc.existingObject(with: categoryID) as? ExpenseCategory
+        else { return cat.amount }
+
+        let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
+        let req = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+        req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "budget == %@", budget),
+            NSPredicate(format: "expenseCategory == %@", category),
+            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate)
+        ])
+        do {
+            let items = try moc.fetch(req)
+            return items.reduce(0.0) { $0 + $1.actualAmount }
+        } catch {
+            return cat.amount
+        }
+    }
+    @ViewBuilder
+    func chipMenuOverlay(_ anchors: [URL: Anchor<CGRect>]) -> some View {
+        GeometryReader { proxy in
+            ZStack {
+                if chipMenuVisible, let cat = chipMenuSelected {
+                    let containerSize = proxy.size
+                    let insets: EdgeInsets = {
+                        if #available(iOS 15.0, macCatalyst 15.0, *) {
+                            return proxy.safeAreaInsets
+                        } else {
+                            return EdgeInsets()
+                        }
+                    }()
+                    let anchor = anchors[cat.categoryURI]
+                    let rect = anchor.map { proxy[$0] }
+                    let edgePad: CGFloat = 16
+                    let visualOutset: CGFloat = 10
+                    let verticalOffset: CGFloat = 8
+                    let menuW = max(chipMenuSize.width, 220)
+                    let menuH = max(chipMenuSize.height, 72)
+                    let proposedX = rect?.midX ?? containerSize.width/2
+                    let minCenterX = insets.leading + edgePad + (menuW/2) + visualOutset
+                    let maxCenterX = containerSize.width - insets.trailing - edgePad - (menuW/2) - visualOutset
+                    let centerX = min(max(proposedX, minCenterX), maxCenterX)
+                    let belowCenterY = (rect?.maxY ?? (insets.top + 44)) + verticalOffset + menuH/2
+                    let aboveCenterY = (rect?.minY ?? (insets.top + 44)) - verticalOffset - menuH/2
+                    let minCenterY = insets.top + edgePad + (menuH/2)
+                    let maxCenterY = containerSize.height - insets.bottom - edgePad - (menuH/2)
+                    let fitsBelow = belowCenterY + menuH/2 <= maxCenterY
+                    let rawCenterY = fitsBelow ? belowCenterY : aboveCenterY
+                    let centerY = min(max(rawCenterY, minCenterY), maxCenterY)
+
+                    // Tap-outside to dismiss
+                    Color.black.opacity(0.001)
+                        .ignoresSafeArea()
+                        .contentShape(Rectangle())
+                        .onTapGesture { dismissChipMenu() }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Inline nav controls (glass on iOS 26, plain text on legacy)
+                        HStack(spacing: 10) {
+                            menuHeaderButton(title: chipMenuMode == .edit ? "Cancel" : "Close") {
+                                if chipMenuMode == .edit { chipMenuMode = .preview } else { dismissChipMenu() }
+                            }
+                            Spacer(minLength: 10)
+                            if chipMenuMode == .edit {
+                                let saveDisabled = {
+                                    let minVal = chipParseDecimal(chipEditMinInput)
+                                    let maxVal = chipParseDecimal(chipEditMaxInput)
+                                    guard let a = minVal, let b = maxVal else { return true }
+                                    return a > b
+                                }()
+                                menuHeaderButton(title: "Save", disabled: saveDisabled) { saveChipMenuCaps(for: cat) }
+                                menuHeaderDestructiveButton(title: "Clear") { clearChipMenuCaps(for: cat) }
+                            } else {
+                                menuHeaderButton(title: "Edit") {
+                                    chipEditMinInput = chipPlainDecimalString(chipCapMin)
+                                    chipEditMaxInput = chipPlainDecimalString(chipCapMax)
+                                    chipMenuMode = .edit
+                                }
+                            }
+                        }
+
+                        if chipMenuMode == .edit {
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Minimum")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                    menuGlassTextField(text: $chipEditMinInput, placeholder: "0.00")
+                                }
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Maximum")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                    menuGlassTextField(text: $chipEditMaxInput, placeholder: "0.00")
+                                }
+                            }
+                            Group {
+                                if let error = chipValidationError {
+                                    Text(error)
+                                        .font(.footnote)
+                                        .foregroundColor(.red)
+                                }
+                            }
+                            .onChange(of: chipEditMinInput) { _ in chipValidationError = nil }
+                            .onChange(of: chipEditMaxInput) { _ in chipValidationError = nil }
+                        } else {
+                            // Gauge preview
+                            let current = currentAmountForChip(cat)
+                            let lower = min(chipCapMin, chipCapMax)
+                            let upper = max(max(chipCapMin, chipCapMax), max(current, 1))
+                            let maxUnset = (segment == .variable) && !chipHasExplicitMaxCap
+                            let exceeded = (!maxUnset) && (current > chipCapMax)
+                            let maxLabelString = maxUnset ? "—" : formatCurrency(upper)
+                            Gauge(value: min(max(current, lower), upper), in: lower...upper) {
+                            } currentValueLabel: {
+                                EmptyView()
+                            } minimumValueLabel: {
+                                Text(formatCurrency(lower)).foregroundStyle(Color.secondary)
+                            } maximumValueLabel: {
+                                Text(maxLabelString).foregroundStyle(exceeded ? Color.red : Color.secondary)
+                            }
+                            .tint(
+                                LinearGradient(
+                                    colors: [
+                                        (UBColorFromHex(cat.hexColor) ?? .accentColor).opacity(0.35),
+                                        (UBColorFromHex(cat.hexColor) ?? .accentColor)
+                                    ],
+                                    startPoint: .leading, endPoint: .trailing
+                                )
+                            )
+
+                            HStack {
+                                Text("Current: \(formatCurrency(current))")
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text("Range: \(formatCurrency(lower)) – \(maxLabelString)")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.footnote)
+                            if maxUnset {
+                                Text("No max set")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .padding(14)
+                    .background(
+                        GeometryReader { g in
+                            Color.clear
+                                .onAppear { chipMenuSize = g.size }
+                                .onChange(of: g.size) { newSize in
+                                    if abs((chipMenuSize.width - newSize.width)) > 0.5 || abs((chipMenuSize.height - newSize.height)) > 0.5 {
+                                        chipMenuSize = newSize
+                                    }
+                                }
+                        }
+                    )
+                    .frame(
+                        minWidth: 220,
+                        maxWidth: max(220, containerSize.width - (insets.leading + insets.trailing) - 2*edgePad - 2*visualOutset)
+                    )
+                    .modifier(MenuGlassOrLegacyBackground(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 4)
+                    .position(x: centerX, y: centerY)
+                    .transition(.scale.combined(with: .opacity))
+                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: chipMenuVisible)
+                    .onAppear { reloadChipMenuCaps(for: cat) }
+                    .onChange(of: budgetPeriodRawValue) { _ in reloadChipMenuCaps(for: cat) }
+                    .onChange(of: vm.selectedDate) { _ in reloadChipMenuCaps(for: cat) }
+                    .onChange(of: segment) { _ in reloadChipMenuCaps(for: cat, resetAmount: true) }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Inline Menu Controls (Glass buttons + glass fields)
+private extension HomeView {
+    @ViewBuilder
+    func menuHeaderButton(title: String, disabled: Bool = false, action: @escaping () -> Void) -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(action: action) {
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .padding(.horizontal, 14)
+                    .frame(height: 33)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .glassEffect(.regular.tint(.clear).interactive(true), in: .capsule)
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .opacity(disabled ? 0.5 : 1)
+            .disabled(disabled)
+        } else {
+            Button(title, action: action)
+                .buttonStyle(.plain)
+                .font(.footnote.weight(.semibold))
+                .padding(.horizontal, 14)
+                .frame(height: 33)
+                .fixedSize(horizontal: true, vertical: false)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(UIColor { traits in
+                            traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
+                        }))
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 16))
+                .opacity(disabled ? 0.5 : 1)
+                .disabled(disabled)
+        }
+    }
+
+    @ViewBuilder
+    func menuGlassTextField(text: Binding<String>, placeholder: String) -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            TextField(placeholder, text: text)
+                .textFieldStyle(.plain)
+                .keyboardType(.decimalPad)
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.clear)
+                        .glassEffect(.regular.tint(.clear).interactive(true), in: .rect(cornerRadius: 8))
+                )
+        } else {
+            TextField(placeholder, text: text)
+                .keyboardType(.decimalPad)
+                .textFieldStyle(.roundedBorder)
+        }
+    }
+
+    @ViewBuilder
+    func menuHeaderDestructiveButton(title: String, action: @escaping () -> Void) -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(action: action) {
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 14)
+                    .frame(height: 33)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .glassEffect(.regular.tint(.clear).interactive(true), in: .capsule)
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        } else {
+            Button(action: action) {
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(.red)
+                    .padding(.horizontal, 14)
+                    .frame(height: 33)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color(UIColor { traits in
+                                traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
+                            }))
+                    )
+                    .contentShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+// MARK: - Chip Anchor Preference
+private struct ChipFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [URL: Anchor<CGRect>] = [:]
+    static func reduce(value: inout [URL: Anchor<CGRect>], nextValue: () -> [URL: Anchor<CGRect>]) {
+        value.merge(nextValue()) { _, rhs in rhs }
+    }
+}
+
+// MARK: - Menu Background (Glass on iOS26; fallback legacy)
+private struct MenuGlassOrLegacyBackground: ViewModifier {
+    var cornerRadius: CGFloat = 12
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            content
+                .glassEffect(.regular.tint(.clear).interactive(true), in: .rect(cornerRadius: cornerRadius))
+        } else {
+            content
+                .background(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(Color(UIColor { traits in
+                            traits.userInterfaceStyle == .dark ? UIColor(white: 0.16, alpha: 1) : UIColor(white: 0.97, alpha: 1)
+                        }))
+                )
+        }
+    }
+}
+
+// MARK: - Chip Menu Helpers
+private extension HomeView {
+    func presentChipMenu(for cat: BudgetSummary.CategorySpending) {
+        chipMenuSelected = cat
+        chipMenuMode = .preview
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            chipMenuVisible = true
+        }
+        #if canImport(UIKit)
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        #endif
+    }
+
+    func dismissChipMenu() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            chipMenuVisible = false
+        }
+        // Slight delay to avoid race with overlayPreference remove
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            if !chipMenuVisible { chipMenuSelected = nil }
+        }
+    }
+}
+
+// MARK: - Caps Loading for Inline Menu (Step 3)
+private extension HomeView {
+    func reloadChipMenuCaps(for cat: BudgetSummary.CategorySpending, resetAmount: Bool = false) {
+        // Optionally refresh the displayed amount if the segment changed
+        if resetAmount {
+            let fresh = (segment == .planned ? activeSummary?.plannedCategoryBreakdown : activeSummary?.variableCategoryBreakdown)?.first { $0.categoryURI == cat.categoryURI }
+            if let fresh { chipMenuSelected = fresh }
+        }
+
+        // Resolve category object ID
+        guard let objectID = CoreDataService.shared.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
+              let category = try? moc.existingObject(with: objectID) as? ExpenseCategory else {
+            // Fallback: set caps to a sensible default around the current value
+            let current = (segment == .planned ? currentAmountForChip(cat) : (chipMenuSelected?.amount ?? cat.amount))
+            chipCapMin = 0
+            chipCapMax = max(current + 1, 1)
+            chipHasExplicitMinCap = false
+            chipHasExplicitMaxCap = false
+            return
+        }
+
+        let key = periodKey(for: budgetPeriod, date: vm.selectedDate, segment: segment)
+        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+        fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "category == %@", category),
+            NSPredicate(format: "period == %@", key),
+            NSPredicate(format: "expenseType IN %@", ["min", "max"])
+        ])
+        do {
+            let results = try moc.fetch(fetch)
+            var minVal: Double? = nil
+            var maxVal: Double? = nil
+            for r in results {
+                let type = (r.value(forKey: "expenseType") as? String)?.lowercased()
+                if type == "min" { minVal = r.value(forKey: "amount") as? Double }
+                if type == "max" { maxVal = r.value(forKey: "amount") as? Double }
+            }
+            let current = (segment == .planned ? currentAmountForChip(cat) : (chipMenuSelected?.amount ?? cat.amount))
+            chipCapMin = minVal ?? 0
+            // If no explicit max and we're on Variable segment, do not assume cap equals current.
+            // Provide a neutral headroom for gauge display but mark as unset.
+            if let m = maxVal {
+                chipCapMax = m
+                chipHasExplicitMaxCap = true
+            } else {
+                chipCapMax = max(current + 1, 1)
+                chipHasExplicitMaxCap = false
+            }
+            chipHasExplicitMinCap = (minVal != nil)
+        } catch {
+            let current = (segment == .planned ? currentAmountForChip(cat) : (chipMenuSelected?.amount ?? cat.amount))
+            chipCapMin = 0
+            chipCapMax = max(current + 1, 1)
+            chipHasExplicitMinCap = false
+            chipHasExplicitMaxCap = false
+        }
+    }
+
+    func periodKey(for period: BudgetPeriod, date: Date, segment: Segment) -> String {
+        let (start, end) = period.range(containing: date)
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(secondsFromGMT: 0)
+        f.dateFormat = "yyyy-MM-dd"
+        let s = f.string(from: start)
+        let e = f.string(from: end)
+        return "\(period.rawValue)|\(s)|\(e)|\(segment.rawValue)"
+    }
+}
+
+// MARK: - Save Caps for Inline Menu (Step 4)
+private extension HomeView {
+    func saveChipMenuCaps(for cat: BudgetSummary.CategorySpending) {
+        guard let newMin = chipParseDecimal(chipEditMinInput), let newMax = chipParseDecimal(chipEditMaxInput) else {
+            chipValidationError = "Enter valid numbers for Min and Max."
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+            return
+        }
+        guard newMin <= newMax else {
+            chipValidationError = "Minimum must be less than or equal to Maximum."
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+            return
+        }
+
+        guard let objectID = CoreDataService.shared.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
+              let category = try? moc.existingObject(with: objectID) as? ExpenseCategory else {
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+            return
+        }
+
+        let key = periodKey(for: budgetPeriod, date: vm.selectedDate, segment: segment)
+        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+        fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "category == %@", category),
+            NSPredicate(format: "period == %@", key),
+            NSPredicate(format: "expenseType IN %@", ["min", "max"])
+        ])
+
+        do {
+            let results = try moc.fetch(fetch)
+            var minObj = results.first(where: { ($0.value(forKey: "expenseType") as? String)?.lowercased() == "min" })
+            var maxObj = results.first(where: { ($0.value(forKey: "expenseType") as? String)?.lowercased() == "max" })
+
+            if minObj == nil {
+                minObj = NSEntityDescription.insertNewObject(forEntityName: "CategorySpendingCap", into: moc) as? CategorySpendingCap
+                minObj?.setValue(UUID(), forKey: "id")
+                minObj?.setValue("min", forKey: "expenseType")
+                minObj?.setValue(category, forKey: "category")
+                minObj?.setValue(key, forKey: "period")
+            }
+            if maxObj == nil {
+                maxObj = NSEntityDescription.insertNewObject(forEntityName: "CategorySpendingCap", into: moc) as? CategorySpendingCap
+                maxObj?.setValue(UUID(), forKey: "id")
+                maxObj?.setValue("max", forKey: "expenseType")
+                maxObj?.setValue(category, forKey: "category")
+                maxObj?.setValue(key, forKey: "period")
+            }
+
+            minObj?.setValue(newMin, forKey: "amount")
+            maxObj?.setValue(newMax, forKey: "amount")
+
+            try moc.save()
+            chipCapMin = newMin
+            chipCapMax = newMax
+            chipMenuMode = .preview
+            chipHasExplicitMinCap = true
+            chipHasExplicitMaxCap = true
+            chipValidationError = nil
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            #endif
+        } catch {
+            AppLog.ui.error("Failed to save caps: \(error.localizedDescription)")
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+        }
+    }
+
+    func clearChipMenuCaps(for cat: BudgetSummary.CategorySpending) {
+        guard let objectID = CoreDataService.shared.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
+              let category = try? moc.existingObject(with: objectID) as? ExpenseCategory else {
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+            return
+        }
+
+        let key = periodKey(for: budgetPeriod, date: vm.selectedDate, segment: segment)
+        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+        fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "category == %@", category),
+            NSPredicate(format: "period == %@", key),
+            NSPredicate(format: "expenseType IN %@", ["min", "max"])
+        ])
+        do {
+            let results = try moc.fetch(fetch)
+            for r in results { moc.delete(r) }
+            try moc.save()
+
+            let current = chipMenuSelected?.amount ?? cat.amount
+            chipCapMin = 0
+            chipCapMax = max(current + 1, 1)
+            chipHasExplicitMinCap = false
+            chipHasExplicitMaxCap = false
+            chipMenuMode = .preview
+            chipValidationError = nil
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            #endif
+        } catch {
+            AppLog.ui.error("Failed to clear caps: \(error.localizedDescription)")
+            #if canImport(UIKit)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            #endif
+        }
+    }
+
+    func chipPlainDecimalString(_ value: Double) -> String {
+        let nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        nf.maximumFractionDigits = 2
+        nf.minimumFractionDigits = 0
+        return nf.string(from: value as NSNumber) ?? String(format: "%.2f", value)
+    }
+
+    func chipParseDecimal(_ text: String) -> Double? {
+        let nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        nf.maximumFractionDigits = 2
+        nf.minimumFractionDigits = 0
+        if let n = nf.number(from: text.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            return n.doubleValue
+        }
+        let sanitized = text.replacingOccurrences(of: ",", with: ".").replacingOccurrences(of: " ", with: "")
+        return Double(sanitized)
+    }
 }
 
 // Local preference key to align the left column width across right-side pairs

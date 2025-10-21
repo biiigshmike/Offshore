@@ -47,11 +47,15 @@ final class IncomeScreenViewModel: ObservableObject {
             .debounce(for: .milliseconds(ms), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self else { return }
-                self.clearEventCaches()
-                if self.selectedDate == nil {
-                    self.selectedDate = Date()
+                // Defer mutations to avoid publishing during view updates
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    self.clearEventCaches()
+                    if self.selectedDate == nil {
+                        self.selectedDate = Date()
+                    }
+                    self.reloadForSelectedDay(forceMonthReload: true)
                 }
-                self.reloadForSelectedDay(forceMonthReload: true)
             }
             .store(in: &cancellables)
     }
@@ -72,8 +76,11 @@ final class IncomeScreenViewModel: ObservableObject {
     
     // MARK: Loading
     func reloadForSelectedDay(forceMonthReload: Bool = false) {
-        guard let d = selectedDate else { return }
-        load(day: d, forceMonthReload: forceMonthReload)
+        // Defer to next run loop tick to ensure we don't publish during view updates
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let d = self.selectedDate else { return }
+            self.load(day: d, forceMonthReload: forceMonthReload)
+        }
     }
 
     func load(day: Date, forceMonthReload: Bool = false) {
@@ -109,10 +116,14 @@ final class IncomeScreenViewModel: ObservableObject {
         do {
             try incomeService.deleteIncome(income, scope: scope)
             let day = selectedDate ?? income.date ?? Date()
-            if scope == .future || scope == .all {
-                clearEventCaches()
+            // Defer cache clearing and reload to avoid publishing during view updates
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                if scope == .future || scope == .all {
+                    self.clearEventCaches()
+                }
+                self.load(day: day, forceMonthReload: true)
             }
-            load(day: day, forceMonthReload: true)
         } catch {
             AppLog.viewModel.error("Income delete error: \(String(describing: error))")
         }

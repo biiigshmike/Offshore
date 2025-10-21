@@ -59,8 +59,7 @@ enum CardDetailLoadState: Equatable {
     case initial
     case loading
     // expenses: actual-only (counts toward totals)
-    // upcoming: planned/templates with no actual yet (for display only)
-    case loaded(total: Double, categories: [CardCategoryTotal], expenses: [CardExpense], upcoming: [CardExpense])
+    case loaded(total: Double, categories: [CardCategoryTotal], expenses: [CardExpense])
     case empty
     case error(String)
 }
@@ -101,7 +100,7 @@ final class CardDetailViewModel: ObservableObject {
 
     // Filtered view of expenses
     var filteredExpenses: [CardExpense] {
-        guard case .loaded(_, _, let expenses, _) = state else { return [] }
+        guard case .loaded(_, _, let expenses) = state else { return [] }
         guard !searchText.isEmpty else { return expenses }
 
         let q = searchText.lowercased()
@@ -116,22 +115,7 @@ final class CardDetailViewModel: ObservableObject {
         }
     }
 
-    /// Upcoming items (planned/templates with no actual yet), filtered by search text
-    var filteredUpcoming: [CardExpense] {
-        guard case .loaded(_, _, _, let upcoming) = state else { return [] }
-        guard !searchText.isEmpty else { return upcoming }
-
-        let q = searchText.lowercased()
-        let df = DateFormatter()
-        df.dateStyle = .medium
-
-        return upcoming.filter { exp in
-            if exp.description.lowercased().contains(q) { return true }
-            if let date = exp.date, df.string(from: date).lowercased().contains(q) { return true }
-            if let name = exp.category?.name?.lowercased(), name.contains(q) { return true }
-            return false
-        }
-    }
+    // Upcoming section removed; no filteredUpcoming
 
     /// Category totals derived from the currently filtered expenses
     var filteredCategories: [CardCategoryTotal] {
@@ -218,53 +202,7 @@ final class CardDetailViewModel: ObservableObject {
                                    isPreset: false)
             }
 
-            let plannedUpcoming: [CardExpense] = planned.compactMap { exp in
-                guard exp.actualAmount == 0 else { return nil }
-                let desc = (exp.value(forKey: "descriptionText") as? String)
-                    ?? (exp.value(forKey: "title") as? String) ?? ""
-                let uuid = exp.value(forKey: "id") as? UUID
-                let cat = exp.expenseCategory
-                return CardExpense(objectID: exp.objectID,
-                                   uuid: uuid,
-                                   description: desc,
-                                   amount: exp.plannedAmount,
-                                   date: exp.transactionDate,
-                                   category: cat,
-                                   isPlanned: true,
-                                   isPreset: false)
-            }
-
-            // Global templates (presets) that belong to this card
-            let templates: [PlannedExpense]
-            if let interval = allowedInterval {
-                templates = try plannedService.fetchTemplatesForCard(uuid, in: interval, sortedByDateAscending: false)
-            } else {
-                templates = try plannedService.fetchTemplatesForCard(uuid, sortedByDateAscending: false)
-            }
-
-            // Avoid showing a template if it's already instantiated for this period
-            let instantiatedTemplateIDs = Set(planned.compactMap { $0.globalTemplateID })
-            let filteredTemplates = templates.filter { exp in
-                guard let templateID = exp.value(forKey: "id") as? UUID else { return true }
-                return !instantiatedTemplateIDs.contains(templateID)
-            }
-
-            // Templates are always considered upcoming-only in card details
-            let mappedTemplatesUpcoming: [CardExpense] = filteredTemplates.map { exp in
-                let desc = (exp.value(forKey: "descriptionText") as? String)
-                    ?? (exp.value(forKey: "title") as? String) ?? ""
-                let uuid = exp.value(forKey: "id") as? UUID
-                let cat = exp.expenseCategory
-                let plannedAmount = exp.plannedAmount
-                return CardExpense(objectID: exp.objectID,
-                                   uuid: uuid,
-                                   description: desc,
-                                   amount: plannedAmount,
-                                   date: exp.transactionDate,
-                                   category: cat,
-                                   isPlanned: true,
-                                   isPreset: true)
-            }
+            // Remove upcoming/planned-only and template mapping from card details
 
             // Build final collections
             let actualCombined = (mappedUnplanned + plannedActuals).sorted { (a, b) in
@@ -272,20 +210,14 @@ final class CardDetailViewModel: ObservableObject {
                 let bd = b.date ?? .distantPast
                 return ad > bd
             }
-            let upcomingCombined = (plannedUpcoming + mappedTemplatesUpcoming).sorted { (a, b) in
-                let ad = a.date ?? .distantFuture
-                let bd = b.date ?? .distantFuture
-                return ad < bd
-            }
-
-            if actualCombined.isEmpty && upcomingCombined.isEmpty {
+            if actualCombined.isEmpty {
                 state = .empty
                 return
             }
 
             let total = actualCombined.reduce(0) { $0 + $1.amount }
             let categories = buildCategories(from: actualCombined)
-            state = .loaded(total: total, categories: categories, expenses: actualCombined, upcoming: upcomingCombined)
+            state = .loaded(total: total, categories: categories, expenses: actualCombined)
         } catch {
             state = .error(error.localizedDescription)
         }
@@ -324,20 +256,18 @@ final class CardDetailViewModel: ObservableObject {
                 try viewContext.save()
             }
 
-            if case .loaded(_, _, var expenses, var upcoming) = state {
+            if case .loaded(_, _, var expenses) = state {
                 if let idx = expenses.firstIndex(of: expense) {
                     expenses.remove(at: idx)
-                } else if let uidx = upcoming.firstIndex(of: expense) {
-                    upcoming.remove(at: uidx)
                 }
 
-                if expenses.isEmpty && upcoming.isEmpty {
+                if expenses.isEmpty {
                     withAnimation { state = .empty }
                 } else {
                     let total = expenses.reduce(0) { $0 + $1.amount }
                     let categories = buildCategories(from: expenses)
                     withAnimation {
-                        state = .loaded(total: total, categories: categories, expenses: expenses, upcoming: upcoming)
+                        state = .loaded(total: total, categories: categories, expenses: expenses)
                     }
                 }
             } else {

@@ -173,7 +173,7 @@ struct CardDetailView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .padding()
-        case .loaded(let total, _, _, _):
+        case .loaded(let total, _, _):
             let cardMaxWidth = resolvedCardMaxWidth(in: layoutContext)
             detailsList(cardMaxWidth: cardMaxWidth, total: total)
     }
@@ -271,30 +271,7 @@ struct CardDetailView: View {
                     .textCase(nil)
             }
 
-            // UPCOMING planned/template items (do not count toward totals)
-            Section {
-                let upcoming = viewModel.filteredUpcoming
-                if upcoming.isEmpty {
-                    Text(viewModel.searchText.isEmpty ? "No upcoming planned expenses." : "No results for “\(viewModel.searchText)”")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, DesignSystem.Spacing.l)
-                } else {
-                    ForEach(upcoming) { expense in
-                        ExpenseRow(expense: expense, currencyCode: currencyCode)
-                            .unifiedSwipeActions(
-                                UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
-                                onEdit: { editingExpense = expense },
-                                onDelete: { requestDelete(expense) }
-                            )
-                    }
-                }
-            } header: {
-                Text("UPCOMING")
-                    .font(.subheadline.weight(.semibold))
-                    .textCase(nil)
-            }
+            // UPCOMING section removed per request
         }
         .listStyle(.insetGrouped)
     }

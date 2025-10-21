@@ -234,6 +234,7 @@ struct CardDetailView: View {
 
             Section {
                 let expenses = viewModel.filteredExpenses
+                let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
                 if expenses.isEmpty {
                     Text(viewModel.searchText.isEmpty ? "No expenses found." : "No results for “\(viewModel.searchText)”")
                         .font(.callout)
@@ -258,7 +259,7 @@ struct CardDetailView: View {
 //                                .tint(.gray)
 //                            }
                             .unifiedSwipeActions(
-                                UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
+                                swipeConfig,
                                 onEdit: { editingExpense = expense },
                                 onDelete: { requestDelete(expense) }
                             )

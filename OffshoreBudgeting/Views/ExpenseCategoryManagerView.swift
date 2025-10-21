@@ -124,8 +124,10 @@ struct ExpenseCategoryManagerView: View {
                         .foregroundStyle(.secondary)
                     
                     Section(header: Text("All Categories")) {
+                        let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
+
                         ForEach(categories, id: \.objectID) { category in
-                            categoryRow(for: category)
+                            categoryRow(for: category, swipeConfig: swipeConfig)
                         }
                         .onDelete { offsets in
                             let targets = offsets.map { categories[$0] }
@@ -156,9 +158,9 @@ struct ExpenseCategoryManagerView: View {
     
     // MARK: - Row Builders
     @ViewBuilder
-    private func categoryRow(for category: ExpenseCategory) -> some View {
+    private func categoryRow(for category: ExpenseCategory, swipeConfig: UnifiedSwipeConfig) -> some View {
         CategoryRowView(
-            config: UnifiedSwipeConfig(allowsFullSwipeToDelete: false),
+            config: swipeConfig,
             label: { rowLabel(for: category) },
             onTap: { categoryToEdit = category },
             onEdit: { categoryToEdit = category },

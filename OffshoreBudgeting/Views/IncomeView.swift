@@ -1,6 +1,9 @@
 import SwiftUI
 import CoreData
 import MijickCalendarView
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - IncomeView2
 /// Simplified Income screen built with plain SwiftUI primitives.
@@ -22,11 +25,48 @@ struct IncomeView: View {
     @State private var editingIncome: Income? = nil
 
     // MARK: Environment
+    @EnvironmentObject private var tour: GuidedTourState
     @Environment(\.managedObjectContext) private var moc
     @Environment(\.responsiveLayoutContext) private var layoutContext
+    @Environment(\.guidedTourScreen) private var guidedTourScreen
+
+    // MARK: Guided Tour State
+    @State private var showTourOverlay = false
+    @State private var activeHints: Set<IncomeHint> = []
+    @State private var calendarReady = false
+
+    private enum IncomeHint: String, CaseIterable, Hashable {
+        case calendar
+        case add
+
+        var anchorID: String { "income.hint.\(rawValue)" }
+
+        var icon: String {
+            switch self {
+            case .calendar: return "calendar"
+            case .add: return "plus"
+            }
+        }
+
+        var text: String {
+            switch self {
+            case .calendar:
+                return "Use the arrow buttons to move between days or months."
+            case .add:
+                return "Tap the plus button to log planned or actual income."
+            }
+        }
+
+        var arrowDirection: GuidedHintBubble.ArrowDirection {
+            switch self {
+            case .calendar: return .down
+            case .add: return .down
+            }
+        }
+    }
 
     // MARK: Body
-    var body: some View {
+    private var incomeContent: some View {
         List {
             // Calendar section as a single row
             VStack(alignment: .leading, spacing: 12) {
@@ -95,9 +135,20 @@ struct IncomeView: View {
             vm.reloadForSelectedDay(forceMonthReload: true)
             // Anchor the calendar to today on first appearance
             calendarScrollDate = normalize(Date())
+            calendarReady = true
+            evaluateIncomeTourState()
         }
         .onChange(of: vm.selectedDate) { _ in
             vm.reloadForSelectedDay(forceMonthReload: false)
+        }
+        .onChange(of: vm.incomesForDay) { _ in
+            presentIncomeHintsIfNeeded()
+        }
+        .onChange(of: vm.eventsByDay) { _ in
+            if !calendarReady {
+                calendarReady = true
+            }
+            evaluateIncomeTourState()
         }
         .sheet(item: Binding(get: { addIncomeSheetDate.map { SheetDateBox(value: $0) } }, set: { addIncomeSheetDate = $0?.value })) {
             AddIncomeFormView(incomeObjectID: nil, budgetObjectID: nil, initialDate: $0.value)
@@ -105,6 +156,155 @@ struct IncomeView: View {
         .sheet(item: $editingIncome) { income in
             AddIncomeFormView(incomeObjectID: income.objectID, budgetObjectID: nil, initialDate: nil)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .guidedTourDidReset)) { _ in
+            handleIncomeTourReset()
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            incomeContent
+                .guidedHintOverlay { geometry, anchors in
+                    incomeHintsOverlay(geometry: geometry, anchors: anchors)
+                }
+
+            if showTourOverlay {
+                GuidedTourOverlay(
+                    title: "Track your income",
+                    message: incomeOverlayMessage,
+                    bullets: incomeOverlayBullets,
+                    onClose: handleIncomeOverlayDismiss
+                )
+                .transition(.opacity)
+                .zIndex(1)
+            }
+        }
+    }
+
+    // MARK: Guided Tour
+    private func evaluateIncomeTourState() {
+        guard isIncomeViewActive, calendarReady else { return }
+
+        if tour.needsOverlay(.income) {
+            if !showTourOverlay {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    showTourOverlay = true
+                }
+                AppLog.ui.info("GuidedTour overlayShown screen=income")
+            }
+            activeHints.removeAll()
+            return
+        }
+
+        if showTourOverlay {
+            showTourOverlay = false
+        }
+
+        presentIncomeHintsIfNeeded()
+    }
+
+    private func presentIncomeHintsIfNeeded() {
+        guard isIncomeViewActive, calendarReady, !showTourOverlay else { return }
+
+        guard tour.needsHints(.income) else {
+            activeHints.removeAll()
+            return
+        }
+
+        let hints = IncomeHint.allCases
+        let desired = Set(hints)
+        if desired != activeHints {
+            activeHints = desired
+            AppLog.ui.info("GuidedTour hintsShown screen=income count=\(desired.count)")
+        }
+    }
+
+    private func handleIncomeOverlayDismiss() {
+        tour.markOverlaySeen(.income)
+        withAnimation(.easeInOut(duration: 0.25)) {
+            showTourOverlay = false
+        }
+        AppLog.ui.info("GuidedTour overlayDismissed screen=income")
+        presentIncomeHintsIfNeeded()
+    }
+
+    private func dismissIncomeHint(_ hint: IncomeHint) {
+        activeHints.remove(hint)
+        if activeHints.isEmpty {
+            tour.markHintsDismissed(.income)
+            AppLog.ui.info("GuidedTour hintsCompleted screen=income")
+        }
+    }
+
+    private func handleIncomeTourReset() {
+        showTourOverlay = false
+        activeHints.removeAll()
+        evaluateIncomeTourState()
+    }
+
+    private var isIncomeViewActive: Bool {
+        guidedTourScreen == nil || guidedTourScreen == .income
+    }
+
+    private var incomeOverlayMessage: String {
+        "Compare what you expected to receive with what actually arrived, and keep weekly totals in view."
+    }
+
+    private var incomeOverlayBullets: [String] {
+        [
+            "Use the calendar arrows to move between days or jump months.",
+            "Selected Day lists every income entry for quick edits.",
+            "The weekly summary shows planned versus actual totals."
+        ]
+    }
+
+    @ViewBuilder
+    private func incomeHintsOverlay(geometry: GeometryProxy, anchors: [String: Anchor<CGRect>]) -> some View {
+        let orderedHints = IncomeHint.allCases.filter { activeHints.contains($0) }
+        ForEach(orderedHints, id: \.self) { hint in
+            if let frame = geometry.frame(forHint: hint.anchorID, anchors: anchors) {
+                incomeHintBubble(for: hint, frame: frame, geometry: geometry)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func incomeHintBubble(for hint: IncomeHint, frame: CGRect, geometry: GeometryProxy) -> some View {
+        let bubble = GuidedHintBubble(
+            icon: hint.icon,
+            text: hint.text,
+            arrowDirection: hint.arrowDirection
+        ) { dismissIncomeHint(hint) }
+
+        let position = incomeHintPosition(for: hint, frame: frame, geometry: geometry)
+
+        bubble
+            .position(x: position.x, y: position.y)
+            .transition(.opacity.combined(with: .scale))
+            .zIndex(1)
+    }
+
+    private func incomeHintPosition(for hint: IncomeHint, frame: CGRect, geometry: GeometryProxy) -> CGPoint {
+        let width = geometry.size.width.isFinite ? geometry.size.width : UIScreen.main.bounds.width
+        let minX: CGFloat = 120
+        let maxX: CGFloat = max(minX, width - 120)
+        let x = clamp(frame.midX, min: minX, max: maxX)
+
+        switch hint {
+        case .calendar:
+            let y = max(frame.minY - 60, 60)
+            return CGPoint(x: x, y: y)
+        case .add:
+            let y = max(frame.minY - 60, 60)
+            return CGPoint(x: x, y: y)
+        }
+    }
+
+    private func clamp(_ value: CGFloat, min: CGFloat, max: CGFloat) -> CGFloat {
+        guard min < max else { return value }
+        if value < min { return min }
+        if value > max { return max }
+        return value
     }
 
     // MARK: Toolbar
@@ -115,6 +315,7 @@ struct IncomeView: View {
             Buttons.toolbarIcon("plus") { addIncome() }
                 .accessibilityLabel("Add Income")
                 .accessibilityIdentifier("btn_add_income")
+                .guidedHintAnchor(IncomeHint.add.anchorID)
         }
         if uiTest.showTestControls {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -141,6 +342,7 @@ struct IncomeView: View {
             navIcon("chevron.forward.2") { goToNextMonth() }
         }
         .frame(maxWidth: .infinity)
+        .guidedHintAnchor(IncomeHint.calendar.anchorID)
     }
 
     @ViewBuilder

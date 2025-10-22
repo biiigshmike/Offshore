@@ -75,7 +75,9 @@ struct RootTabView: View {
     /// Applies theme-aware navigation background and chrome to the tab content.
     /// - Parameter tab: Logical tab identifier.
     private func decoratedTabContent(for tab: Tab) -> some View {
+        let screen = tab.guidedTourScreen
         let base = tabContent(for: tab)
+            .environment(\.guidedTourScreen, screen)
             .ub_navigationBackground(
                 theme: themeManager.selectedTheme,
                 configuration: themeManager.glassConfiguration
@@ -174,6 +176,16 @@ private extension RootTabView.Tab {
         case .cards: return "tab_cards"
         case .presets: return "tab_presets"
         case .settings: return "tab_settings"
+        }
+    }
+
+    var guidedTourScreen: GuidedTourScreen {
+        switch self {
+        case .home: return .home
+        case .income: return .income
+        case .cards: return .cards
+        case .presets: return .presets
+        case .settings: return .settings
         }
     }
 }

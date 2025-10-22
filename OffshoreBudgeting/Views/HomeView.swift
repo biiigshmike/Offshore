@@ -71,10 +71,51 @@ struct HomeView: View {
     @State private var chipMenuMode: ChipMenuMode = .preview
 
     // MARK: Environment
+    @EnvironmentObject private var tour: GuidedTourState
     @Environment(\.managedObjectContext) private var moc
+    @Environment(\.guidedTourScreen) private var guidedTourScreen
+
+    // MARK: Guided Tour State
+    @State private var showTourOverlay = false
+    @State private var activeHints: Set<HomeHint> = []
+
+    private enum HomeHint: String, CaseIterable, Hashable {
+        case calendar
+        case add
+        case ellipsis
+
+        var anchorID: String { "home.hint.\(rawValue)" }
+
+        var icon: String {
+            switch self {
+            case .calendar: return "calendar"
+            case .add: return "plus"
+            case .ellipsis: return "ellipsis"
+            }
+        }
+
+        var text: String {
+            switch self {
+            case .calendar:
+                return "Use the calendar to switch between budget periods."
+            case .add:
+                return "Add planned or variable expenses from here whenever a budget is active."
+            case .ellipsis:
+                return "Open the ellipsis menu to manage budgets, cards, and presets."
+            }
+        }
+
+        var arrowDirection: GuidedHintBubble.ArrowDirection {
+            switch self {
+            case .calendar: return .down
+            case .add: return .down
+            case .ellipsis: return .up
+            }
+        }
+    }
 
     // MARK: Body
-    var body: some View {
+    private var homeList: some View {
         List {
             // Header + controls grouped as one vertical block so List owns scrolling
             Section {
@@ -103,6 +144,7 @@ struct HomeView: View {
             vm.startIfNeeded()
             isAddMenuVisible = activeSummary != nil
             reloadRows()
+            evaluateHomeTourState()
         }
         .onChange(of: segment) { _ in reloadRows() }
         .onChange(of: sort) { _ in reloadRows() }
@@ -145,6 +187,10 @@ struct HomeView: View {
                     isAddMenuVisible = shouldShowAddMenu
                 }
             }
+            evaluateHomeTourState()
+        }
+        .onChange(of: isAddMenuVisible) { _ in
+            presentHomeHintsIfNeeded()
         }
         .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
         .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
@@ -176,6 +222,189 @@ struct HomeView: View {
             plannedRows = []
             variableRows = []
         }
+        .onReceive(NotificationCenter.default.publisher(for: .guidedTourDidReset)) { _ in
+            handleGuidedTourReset()
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            homeList
+                .guidedHintOverlay { geometry, anchors in
+                    homeHintsOverlay(geometry: geometry, anchors: anchors)
+                }
+
+            if showTourOverlay {
+                GuidedTourOverlay(
+                    title: "Welcome to Home",
+                    message: homeOverlayMessage,
+                    bullets: homeOverlayBullets,
+                    onClose: handleHomeOverlayDismiss
+                )
+                .transition(.opacity)
+                .zIndex(1)
+            }
+        }
+    }
+
+    // MARK: Guided Tour
+    private func evaluateHomeTourState() {
+        guard isHomeViewActive, isHomeDataReady else { return }
+
+        if tour.needsOverlay(.home) {
+            if !showTourOverlay {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    showTourOverlay = true
+                }
+                AppLog.ui.info("GuidedTour overlayShown screen=home")
+            }
+            activeHints.removeAll()
+            return
+        }
+
+        if showTourOverlay {
+            showTourOverlay = false
+        }
+
+        presentHomeHintsIfNeeded()
+    }
+
+    private func presentHomeHintsIfNeeded() {
+        guard isHomeViewActive, !showTourOverlay else { return }
+
+        guard tour.needsHints(.home) else {
+            activeHints.removeAll()
+            return
+        }
+
+        let desired = resolvedHomeHints()
+        if desired.isEmpty {
+            activeHints.removeAll()
+            tour.markHintsDismissed(.home)
+            return
+        }
+
+        let targetSet = Set(desired)
+        if targetSet != activeHints {
+            activeHints = targetSet
+            AppLog.ui.info("GuidedTour hintsShown screen=home count=\(targetSet.count)")
+        }
+    }
+
+    private func resolvedHomeHints() -> [HomeHint] {
+        var hints: [HomeHint] = [.calendar]
+        if isAddMenuVisible { hints.append(.add) }
+        hints.append(.ellipsis)
+        return hints
+    }
+
+    private func handleHomeOverlayDismiss() {
+        tour.markOverlaySeen(.home)
+        withAnimation(.easeInOut(duration: 0.25)) {
+            showTourOverlay = false
+        }
+        AppLog.ui.info("GuidedTour overlayDismissed screen=home")
+        presentHomeHintsIfNeeded()
+    }
+
+    private func dismissHomeHint(_ hint: HomeHint) {
+        activeHints.remove(hint)
+        if activeHints.isEmpty {
+            tour.markHintsDismissed(.home)
+            AppLog.ui.info("GuidedTour hintsCompleted screen=home")
+        }
+    }
+
+    private func handleGuidedTourReset() {
+        showTourOverlay = false
+        activeHints.removeAll()
+        evaluateHomeTourState()
+    }
+
+    private var isHomeDataReady: Bool {
+        switch vm.state {
+        case .loaded, .empty:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var isHomeViewActive: Bool {
+        guidedTourScreen == nil || guidedTourScreen == .home
+    }
+
+    private var homeOverlayMessage: String {
+        if case .empty = vm.state {
+            return "Create your first budget to start tracking income and spending."
+        }
+        return "Review planned versus actual spending and keep variable purchases in check."
+    }
+
+    private var homeOverlayBullets: [String] {
+        var bullets: [String] = [
+            "Use the calendar button to jump between budget periods.",
+            "The ellipsis menu manages budgets, cards, and presets."
+        ]
+
+        if isAddMenuVisible {
+            bullets.append("Add planned or variable expenses with the plus menu.")
+        } else {
+            bullets.append("Create a budget from the ellipsis menu to unlock the add menu.")
+        }
+
+        return bullets
+    }
+
+    @ViewBuilder
+    private func homeHintsOverlay(geometry: GeometryProxy, anchors: [String: Anchor<CGRect>]) -> some View {
+        let orderedHints = HomeHint.allCases.filter { activeHints.contains($0) }
+        ForEach(orderedHints, id: \.self) { hint in
+            if let frame = geometry.frame(forHint: hint.anchorID, anchors: anchors) {
+                homeHintBubble(for: hint, frame: frame, geometry: geometry)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func homeHintBubble(for hint: HomeHint, frame: CGRect, geometry: GeometryProxy) -> some View {
+        let bubble = GuidedHintBubble(
+            icon: hint.icon,
+            text: hint.text,
+            arrowDirection: hint.arrowDirection
+        ) { dismissHomeHint(hint) }
+
+        let position = homeHintPosition(for: hint, frame: frame, geometry: geometry)
+
+        bubble
+            .position(x: position.x, y: position.y)
+            .transition(.opacity.combined(with: .scale))
+            .zIndex(1)
+    }
+
+    private func homeHintPosition(for hint: HomeHint, frame: CGRect, geometry: GeometryProxy) -> CGPoint {
+        let width = geometry.size.width.isFinite ? geometry.size.width : UIScreen.main.bounds.width
+        let height = geometry.size.height.isFinite ? geometry.size.height : UIScreen.main.bounds.height
+        let minX: CGFloat = 120
+        let maxX: CGFloat = max(minX, width - 120)
+
+        let x = clamp(frame.midX, min: minX, max: maxX)
+
+        switch hint {
+        case .calendar, .add:
+            let y = max(frame.minY - 70, 70)
+            return CGPoint(x: x, y: y)
+        case .ellipsis:
+            let y = min(frame.maxY + 70, height - 70)
+            return CGPoint(x: x, y: y)
+        }
+    }
+
+    private func clamp(_ value: CGFloat, min: CGFloat, max: CGFloat) -> CGFloat {
+        guard min < max else { return value }
+        if value < min { return min }
+        if value > max { return max }
+        return value
     }
 
     // MARK: Toolbar
@@ -219,6 +448,7 @@ struct HomeView: View {
         } label: {
             glassToolbarLabel("calendar")
         }
+        .guidedHintAnchor(HomeHint.calendar.anchorID)
     }
 
     private var addExpenseMenu: some View {
@@ -228,6 +458,7 @@ struct HomeView: View {
         } label: {
             glassToolbarLabel("plus")
         }
+        .guidedHintAnchor(HomeHint.add.anchorID)
     }
 
     private var ellipsisMenu: some View {
@@ -243,6 +474,7 @@ struct HomeView: View {
         } label: {
             glassToolbarLabel("ellipsis")
         }
+        .guidedHintAnchor(HomeHint.ellipsis.anchorID)
     }
 
     @ViewBuilder

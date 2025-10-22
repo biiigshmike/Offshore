@@ -1,5 +1,8 @@
 import SwiftUI
 import CoreData
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - SettingsView
 /// Simplified Settings screen using plain SwiftUI containers.
@@ -7,6 +10,8 @@ import CoreData
 struct SettingsView: View {
     // MARK: Env
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var tour: GuidedTourState
+    @Environment(\.guidedTourScreen) private var guidedTourScreen
 
     // MARK: State
     @StateObject private var vm = SettingsViewModel()
@@ -18,7 +23,41 @@ struct SettingsView: View {
     @State private var showDisableCloudOptions = false
     @State private var isReconfiguringStores = false
 
+    // MARK: Guided Tour State
+    @State private var showTourOverlay = false
+    @State private var showSettingsHint = false
+
+    private enum SettingsHint: String {
+        case repeatOnboarding
+
+        var anchorID: String { "settings.hint.\(rawValue)" }
+
+        var text: String {
+            "Replay onboarding to revisit the guided walkthrough."
+        }
+    }
+
     var body: some View {
+        ZStack {
+            settingsContent
+                .guidedHintOverlay { geometry, anchors in
+                    settingsHintOverlay(geometry: geometry, anchors: anchors)
+                }
+
+            if showTourOverlay {
+                GuidedTourOverlay(
+                    title: "Fine-tune Offshore",
+                    message: settingsOverlayMessage,
+                    bullets: settingsOverlayBullets,
+                    onClose: handleSettingsOverlayDismiss
+                )
+                .transition(.opacity)
+                .zIndex(1)
+            }
+        }
+    }
+
+    private var settingsContent: some View {
         ScrollView {
             VStack(spacing: 16) {
                 // General
@@ -149,10 +188,32 @@ struct SettingsView: View {
                     subtitle: "Replay the initial setup flow."
                 ) {
                     VStack(spacing: 0) {
-                        Button(action: { didCompleteOnboarding = false }) {
+                        Button {
+                            GuidedTourState.shared.resetAll()
+                            didCompleteOnboarding = false
+                        } label: {
                             SettingsRow(title: "Repeat Onboarding Process", showsTopDivider: false) { EmptyView() }
                         }
                         .buttonStyle(.plain)
+                        .guidedHintAnchor(SettingsHint.repeatOnboarding.anchorID)
+
+                        Button {
+                            GuidedTourState.shared.resetAll()
+                            evaluateSettingsTourState()
+                        } label: {
+                            SettingsRow(title: "Reset Guided Walkthrough", detail: "Reset") { EmptyView() }
+                        }
+                        .buttonStyle(.plain)
+#if DEBUG
+                        Button {
+                            QAOverrides.scheduleGuidedTourRefresh()
+                            GuidedTourState.shared.forceAllOverlaysOnce()
+                            evaluateSettingsTourState()
+                        } label: {
+                            SettingsRow(title: "Force Guided Tour Overlays", detail: "Debug") { EmptyView() }
+                        }
+                        .buttonStyle(.plain)
+#endif
                     }
                 }
 
@@ -217,6 +278,115 @@ struct SettingsView: View {
                 }
             }
         }
+        .onAppear { evaluateSettingsTourState() }
+        .onReceive(NotificationCenter.default.publisher(for: .guidedTourDidReset)) { _ in
+            handleSettingsTourReset()
+        }
+    }
+
+    // MARK: Guided Tour
+    private func evaluateSettingsTourState() {
+        guard isSettingsViewActive, !isMerging else { return }
+
+        if tour.needsOverlay(.settings) {
+            if !showTourOverlay {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    showTourOverlay = true
+                }
+                AppLog.ui.info("GuidedTour overlayShown screen=settings")
+            }
+            showSettingsHint = false
+            return
+        }
+
+        if showTourOverlay {
+            showTourOverlay = false
+        }
+
+        presentSettingsHintIfNeeded()
+    }
+
+    private func presentSettingsHintIfNeeded() {
+        guard isSettingsViewActive, !showTourOverlay else { return }
+        let needsHint = tour.needsHints(.settings)
+        if needsHint != showSettingsHint {
+            showSettingsHint = needsHint
+            if needsHint {
+                AppLog.ui.info("GuidedTour hintShown screen=settings")
+            }
+        }
+        if !needsHint {
+            showSettingsHint = false
+        }
+    }
+
+    private func handleSettingsOverlayDismiss() {
+        tour.markOverlaySeen(.settings)
+        withAnimation(.easeInOut(duration: 0.25)) {
+            showTourOverlay = false
+        }
+        AppLog.ui.info("GuidedTour overlayDismissed screen=settings")
+        presentSettingsHintIfNeeded()
+    }
+
+    private func dismissSettingsHint() {
+        showSettingsHint = false
+        tour.markHintsDismissed(.settings)
+        AppLog.ui.info("GuidedTour hintsCompleted screen=settings")
+    }
+
+    private func handleSettingsTourReset() {
+        showTourOverlay = false
+        showSettingsHint = false
+        evaluateSettingsTourState()
+    }
+
+    private var isSettingsViewActive: Bool {
+        guidedTourScreen == nil || guidedTourScreen == .settings
+    }
+
+    private var settingsOverlayMessage: String {
+        "Adjust defaults, sync options, and access support from one place."
+    }
+
+    private var settingsOverlayBullets: [String] {
+        [
+            "Customize confirmations, periods, and other defaults.",
+            "Manage iCloud sync or merge data across devices.",
+            "Replay onboarding whenever you want a guided tour."
+        ]
+    }
+
+    @ViewBuilder
+    private func settingsHintOverlay(geometry: GeometryProxy, anchors: [String: Anchor<CGRect>]) -> some View {
+        if showSettingsHint,
+           let frame = geometry.frame(forHint: SettingsHint.repeatOnboarding.anchorID, anchors: anchors) {
+            let position = settingsHintPosition(frame: frame, geometry: geometry)
+            GuidedHintBubble(
+                icon: "questionmark.circle",
+                text: SettingsHint.repeatOnboarding.text,
+                arrowDirection: .down
+            ) { dismissSettingsHint() }
+            .position(x: position.x, y: position.y)
+            .transition(.opacity.combined(with: .scale))
+            .zIndex(1)
+        }
+    }
+
+    private func settingsHintPosition(frame: CGRect, geometry: GeometryProxy) -> CGPoint {
+        let width = geometry.size.width.isFinite ? geometry.size.width : UIScreen.main.bounds.width
+        let minX: CGFloat = 140
+        let maxX: CGFloat = max(minX, width - 140)
+        let x = clamp(frame.midX, min: minX, max: maxX)
+        let y = max(frame.minY - 60, 120)
+        return CGPoint(x: x, y: y)
+    }
+
+    private func clamp(_ value: CGFloat, min: CGFloat, max: CGFloat) -> CGFloat {
+        guard min < max else { return value }
+        if value < min { return min }
+        if value > max { return max }
+        return value
     }
 
     // MARK: Data wipe

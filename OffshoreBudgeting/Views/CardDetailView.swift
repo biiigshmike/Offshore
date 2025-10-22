@@ -8,6 +8,9 @@
 
 import SwiftUI
 import CoreData
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - CardDetailView
 struct CardDetailView: View {
@@ -22,6 +25,7 @@ struct CardDetailView: View {
     @StateObject private var viewModel: CardDetailViewModel
     @Environment(\.responsiveLayoutContext) private var layoutContext
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var tour: GuidedTourState
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
@@ -33,6 +37,41 @@ struct CardDetailView: View {
     @State private var isConfirmingDelete: Bool = false
     @State private var deletionError: DeletionError?
     @State private var editingExpense: CardExpense?
+
+    @Environment(\.guidedTourScreen) private var guidedTourScreen
+
+    // MARK: Guided Tour State
+    @State private var showTourOverlay = false
+    @State private var activeHints: Set<CardDetailHint> = []
+
+    private enum CardDetailHint: String, CaseIterable, Hashable {
+        case search
+        case edit
+        case add
+
+        var anchorID: String { "cardDetail.hint.\(rawValue)" }
+
+        var icon: String {
+            switch self {
+            case .search: return "magnifyingglass"
+            case .edit: return "pencil"
+            case .add: return "plus"
+            }
+        }
+
+        var text: String {
+            switch self {
+            case .search:
+                return "Find expenses on this card without leaving the detail view."
+            case .edit:
+                return "Edit the card name or theme from here."
+            case .add:
+                return "Add planned or variable expenses directly to this card."
+            }
+        }
+
+        var arrowDirection: GuidedHintBubble.ArrowDirection { .up }
+    }
 
     // No longer tracking header offset via state; the header is rendered
     // outside of the scroll view and does not need to drive layout of the
@@ -54,6 +93,25 @@ struct CardDetailView: View {
     
     // MARK: Body
     var body: some View {
+        cardDetailContent
+            .guidedHintOverlay { geometry, anchors in
+                cardDetailHintsOverlay(geometry: geometry, anchors: anchors)
+            }
+            .overlay {
+                if showTourOverlay {
+                    GuidedTourOverlay(
+                        title: "Work with card activity",
+                        message: cardDetailOverlayMessage,
+                        bullets: cardDetailOverlayBullets,
+                        onClose: handleCardDetailOverlayDismiss
+                    )
+                    .transition(.opacity)
+                    .zIndex(1)
+                }
+            }
+    }
+
+    private var cardDetailContent: some View {
         navigationContent
         .ub_navigationBackground(
             theme: themeManager.selectedTheme,
@@ -142,7 +200,138 @@ struct CardDetailView: View {
             configuration: themeManager.glassConfiguration,
             ignoringSafeArea: .all
         )
-        
+        .onAppear {
+            evaluateCardDetailTourState()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .guidedTourDidReset)) { _ in
+            handleCardDetailTourReset()
+        }
+
+    }
+
+    // MARK: Guided Tour
+    private func evaluateCardDetailTourState() {
+        guard isCardDetailViewActive else { return }
+
+        switch viewModel.state {
+        case .loaded, .empty:
+            break
+        default:
+            return
+        }
+
+        if tour.needsOverlay(.cardDetail) {
+            if !showTourOverlay {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    showTourOverlay = true
+                }
+                AppLog.ui.info("GuidedTour overlayShown screen=cardDetail")
+            }
+            activeHints.removeAll()
+            return
+        }
+
+        if showTourOverlay {
+            showTourOverlay = false
+        }
+
+        presentCardDetailHintsIfNeeded()
+    }
+
+    private func presentCardDetailHintsIfNeeded() {
+        guard isCardDetailViewActive, !showTourOverlay else { return }
+
+        guard tour.needsHints(.cardDetail) else {
+            activeHints.removeAll()
+            return
+        }
+
+        let desired = Set(CardDetailHint.allCases)
+        if desired != activeHints {
+            activeHints = desired
+            AppLog.ui.info("GuidedTour hintsShown screen=cardDetail count=\(desired.count)")
+        }
+    }
+
+    private func handleCardDetailOverlayDismiss() {
+        tour.markOverlaySeen(.cardDetail)
+        withAnimation(.easeInOut(duration: 0.25)) {
+            showTourOverlay = false
+        }
+        AppLog.ui.info("GuidedTour overlayDismissed screen=cardDetail")
+        presentCardDetailHintsIfNeeded()
+    }
+
+    private func dismissCardDetailHint(_ hint: CardDetailHint) {
+        activeHints.remove(hint)
+        if activeHints.isEmpty {
+            tour.markHintsDismissed(.cardDetail)
+            AppLog.ui.info("GuidedTour hintsCompleted screen=cardDetail")
+        }
+    }
+
+    private func handleCardDetailTourReset() {
+        showTourOverlay = false
+        activeHints.removeAll()
+        evaluateCardDetailTourState()
+    }
+
+    private var isCardDetailViewActive: Bool {
+        guidedTourScreen == nil || guidedTourScreen == .cardDetail
+    }
+
+    private var cardDetailOverlayMessage: String {
+        "Manage everything about this card in one place, from quick filters to adding new expenses."
+    }
+
+    private var cardDetailOverlayBullets: [String] {
+        [
+            "Use the search control to filter past transactions instantly.",
+            "Edit the card to update its name or style.",
+            "Add planned or variable expenses directly from the plus menu."
+        ]
+    }
+
+    @ViewBuilder
+    private func cardDetailHintsOverlay(geometry: GeometryProxy, anchors: [String: Anchor<CGRect>]) -> some View {
+        let ordered = CardDetailHint.allCases.filter { activeHints.contains($0) }
+        ForEach(ordered, id: \.self) { hint in
+            if let frame = geometry.frame(forHint: hint.anchorID, anchors: anchors) {
+                cardDetailHintBubble(for: hint, frame: frame, geometry: geometry)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func cardDetailHintBubble(for hint: CardDetailHint, frame: CGRect, geometry: GeometryProxy) -> some View {
+        let bubble = GuidedHintBubble(
+            icon: hint.icon,
+            text: hint.text,
+            arrowDirection: hint.arrowDirection
+        ) { dismissCardDetailHint(hint) }
+
+        let position = cardDetailHintPosition(for: hint, frame: frame, geometry: geometry)
+
+        bubble
+            .position(x: position.x, y: position.y)
+            .transition(.opacity.combined(with: .scale))
+            .zIndex(1)
+    }
+
+    private func cardDetailHintPosition(for hint: CardDetailHint, frame: CGRect, geometry: GeometryProxy) -> CGPoint {
+        let width = geometry.size.width.isFinite ? geometry.size.width : UIScreen.main.bounds.width
+        let minX: CGFloat = 140
+        let maxX: CGFloat = max(minX, width - 140)
+        let x = clamp(frame.midX, min: minX, max: maxX)
+        let y = min(frame.maxY + 70, geometry.size.height.isFinite ? geometry.size.height - 70 : UIScreen.main.bounds.height - 70)
+        return CGPoint(x: x, y: y)
+    }
+
+    private func clamp(_ value: CGFloat, min: CGFloat, max: CGFloat) -> CGFloat {
+        guard min < max else { return value }
+        if value < min { return min }
+        if value > max { return max }
+        return value
     }
 
     // MARK: content
@@ -383,9 +572,11 @@ struct CardDetailView: View {
                             withAnimation { isSearchActive = true }
                             isSearchFieldFocused = true
                         }
+                        .guidedHintAnchor(CardDetailHint.search.anchorID)
                         IconOnlyButton(systemName: "pencil") {
                             isPresentingEditCard = true
                         }
+                        .guidedHintAnchor(CardDetailHint.edit.anchorID)
                         // Add Expense menu (Planned or Variable) — rightmost control
                         Menu {
                             Button("Add Planned Expense") { isPresentingAddPlanned = true }
@@ -396,6 +587,7 @@ struct CardDetailView: View {
                                 .symbolRenderingMode(.monochrome)
                         }
                         .accessibilityLabel("Add Expense")
+                        .guidedHintAnchor(CardDetailHint.add.anchorID)
                     }
                 }
             }

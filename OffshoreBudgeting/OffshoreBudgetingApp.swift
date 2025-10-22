@@ -15,6 +15,7 @@ struct OffshoreBudgetingApp: App {
     @UIApplicationDelegateAdaptor(OffshoreAppDelegate.self) private var appDelegate
     // MARK: Dependencies
     @StateObject private var themeManager = ThemeManager()
+    @StateObject private var guidedTour = GuidedTourState.shared
     @State private var cardPickerStore: CardPickerStore?
     @State private var coreDataReady = false
     @State private var dataReady = false
@@ -33,6 +34,9 @@ struct OffshoreBudgetingApp: App {
     init() {
         // Defer Core Data store loading and CardPickerStore creation to onAppear
         configureForUITestingIfNeeded()
+#if DEBUG
+        QAOverrides.applyOnLaunch()
+#endif
         logPlatformCapabilities()
         let labelAppearance = UILabel.appearance()
         labelAppearance.adjustsFontSizeToFitWidth = true
@@ -101,6 +105,7 @@ struct OffshoreBudgetingApp: App {
             .environment(\.platformCapabilities, platformCapabilities)
             .environment(\.uiTestingFlags, testFlags)
             .environment(\.startTabIdentifier, startTab)
+            .environmentObject(guidedTour)
             // Apply the selected theme's accent color to all controls.
             // `tint` covers most modern SwiftUI controls, while `accentColor`
             // is still required for some AppKit-backed macOS components
@@ -162,6 +167,11 @@ struct OffshoreBudgetingApp: App {
                     colorScheme: systemColorScheme,
                     platformCapabilities: platformCapabilities
                 )
+            }
+            .onChange(of: didCompleteOnboarding) { completed in
+                if completed {
+                    GuidedTourState.shared.prepareForNewUser()
+                }
             }
             // Apply test-only UI overrides (color scheme, content size, locale)
             .modifier(TestUIOverridesModifier(overrides: overrides))

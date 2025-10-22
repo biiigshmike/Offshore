@@ -171,26 +171,8 @@ struct HomeView: View {
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
         .alert(item: $vm.alert, content: alert(for:))
-        .confirmationDialog(
-            plannedDeletionDialogTitle(),
-            isPresented: plannedDeletionDialogBinding,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) { confirmPlannedDeletion() }
-            Button("Cancel", role: .cancel) { plannedDeletionBox = nil }
-        } message: {
-            Text(plannedDeletionDialogMessage())
-        }
-        .confirmationDialog(
-            unplannedDeletionDialogTitle(),
-            isPresented: unplannedDeletionDialogBinding,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) { confirmUnplannedDeletion() }
-            Button("Cancel", role: .cancel) { unplannedDeletionBox = nil }
-        } message: {
-            Text(unplannedDeletionDialogMessage())
-        }
+        .alert(item: $plannedDeletionBox, content: plannedDeletionAlert(for:))
+        .alert(item: $unplannedDeletionBox, content: unplannedDeletionAlert(for:))
         // Step 1: Anchored custom menu near long-pressed chip
         .overlayPreferenceValue(ChipFramePreferenceKey.self) { anchors in
             chipMenuOverlay(anchors)
@@ -901,57 +883,59 @@ struct HomeView: View {
     }
 
     // MARK: Delete Confirmation
-    private var plannedDeletionDialogBinding: Binding<Bool> {
-        Binding(
-            get: { plannedDeletionBox != nil },
-            set: { if !$0 { plannedDeletionBox = nil } }
+    private func plannedDeletionAlert(for box: ObjectIDBox) -> Alert {
+        let title: String
+        let message: String
+        if let name = plannedDeletionDisplayName(for: box) {
+            title = "Delete \"\(name)\"?"
+            message = "This will remove \"\(name)\" from planned expenses."
+        } else {
+            title = "Delete Planned Expense?"
+            message = "This will remove this planned expense from the budget."
+        }
+
+        return Alert(
+            title: Text(title),
+            message: Text(message),
+            primaryButton: .destructive(Text("Delete")) {
+                confirmPlannedDeletion(for: box)
+            },
+            secondaryButton: .cancel {
+                plannedDeletionBox = nil
+            }
         )
     }
 
-    private var unplannedDeletionDialogBinding: Binding<Bool> {
-        Binding(
-            get: { unplannedDeletionBox != nil },
-            set: { if !$0 { unplannedDeletionBox = nil } }
+    private func unplannedDeletionAlert(for box: ObjectIDBox) -> Alert {
+        let title: String
+        let message: String
+        if let name = unplannedDeletionDisplayName(for: box) {
+            title = "Delete \"\(name)\"?"
+            message = "This will remove \"\(name)\" from variable expenses."
+        } else {
+            title = "Delete Variable Expense?"
+            message = "This will remove this variable expense from the budget."
+        }
+
+        return Alert(
+            title: Text(title),
+            message: Text(message),
+            primaryButton: .destructive(Text("Delete")) {
+                confirmUnplannedDeletion(for: box)
+            },
+            secondaryButton: .cancel {
+                unplannedDeletionBox = nil
+            }
         )
     }
 
-    private func plannedDeletionDialogTitle() -> String {
-        if let name = plannedDeletionDisplayName() {
-            return "Delete \"\(name)\"?"
-        }
-        return "Delete Planned Expense?"
-    }
-
-    private func plannedDeletionDialogMessage() -> String {
-        if let name = plannedDeletionDisplayName() {
-            return "This will remove \"\(name)\" from planned expenses."
-        }
-        return "This will remove this planned expense from the budget."
-    }
-
-    private func unplannedDeletionDialogTitle() -> String {
-        if let name = unplannedDeletionDisplayName() {
-            return "Delete \"\(name)\"?"
-        }
-        return "Delete Variable Expense?"
-    }
-
-    private func unplannedDeletionDialogMessage() -> String {
-        if let name = unplannedDeletionDisplayName() {
-            return "This will remove \"\(name)\" from variable expenses."
-        }
-        return "This will remove this variable expense from the budget."
-    }
-
-    private func plannedDeletionDisplayName() -> String? {
-        guard let box = plannedDeletionBox else { return nil }
+    private func plannedDeletionDisplayName(for box: ObjectIDBox) -> String? {
         let ctx = CoreDataService.shared.viewContext
         guard let object = try? ctx.existingObject(with: box.id) as? PlannedExpense else { return nil }
         return sanitizedExpenseName(readPlannedDescription(object))
     }
 
-    private func unplannedDeletionDisplayName() -> String? {
-        guard let box = unplannedDeletionBox else { return nil }
+    private func unplannedDeletionDisplayName(for box: ObjectIDBox) -> String? {
         let ctx = CoreDataService.shared.viewContext
         guard let object = try? ctx.existingObject(with: box.id) as? UnplannedExpense else { return nil }
         return sanitizedExpenseName(readUnplannedDescription(object))
@@ -981,8 +965,7 @@ struct HomeView: View {
         }
     }
 
-    private func confirmPlannedDeletion() {
-        guard let box = plannedDeletionBox else { return }
+    private func confirmPlannedDeletion(for box: ObjectIDBox) {
         plannedDeletionBox = nil
         let ctx = CoreDataService.shared.viewContext
         if let resolved = try? ctx.existingObject(with: box.id) as? PlannedExpense {
@@ -990,8 +973,7 @@ struct HomeView: View {
         }
     }
 
-    private func confirmUnplannedDeletion() {
-        guard let box = unplannedDeletionBox else { return }
+    private func confirmUnplannedDeletion(for box: ObjectIDBox) {
         unplannedDeletionBox = nil
         let ctx = CoreDataService.shared.viewContext
         if let resolved = try? ctx.existingObject(with: box.id) as? UnplannedExpense {

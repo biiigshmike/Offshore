@@ -27,6 +27,7 @@ final class IncomeScreenViewModel: ObservableObject {
     private let incomeService: IncomeService
     private let calendar: Calendar
     private var cancellables: Set<AnyCancellable> = []
+    private var changeMonitor: CoreDataEntityChangeMonitor?
 
     /// Cache of month-start anchors → day/event mappings to avoid re-fetching
     /// the entire multi-year range on every selection change. Each entry holds
@@ -42,22 +43,20 @@ final class IncomeScreenViewModel: ObservableObject {
         self.incomeService = incomeService
         self.calendar = .current
 
-        let ms = DataChangeDebounce.milliseconds()
-        NotificationCenter.default.publisher(for: .dataStoreDidChange)
-            .debounce(for: .milliseconds(ms), scheduler: RunLoop.main)
-            .sink { [weak self] _ in
+        // Refresh only when Income changes; avoid waking up on unrelated saves.
+        changeMonitor = CoreDataEntityChangeMonitor(
+            entityNames: ["Income"],
+            debounceMilliseconds: DataChangeDebounce.milliseconds()
+        ) { [weak self] in
+            guard let self else { return }
+            // Defer mutations to avoid publishing during view updates
+            DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
-                // Defer mutations to avoid publishing during view updates
-                DispatchQueue.main.async { [weak self] in
-                    guard let self else { return }
-                    self.clearEventCaches()
-                    if self.selectedDate == nil {
-                        self.selectedDate = Date()
-                    }
-                    self.reloadForSelectedDay(forceMonthReload: true)
-                }
+                self.clearEventCaches()
+                if self.selectedDate == nil { self.selectedDate = Date() }
+                self.reloadForSelectedDay(forceMonthReload: true)
             }
-            .store(in: &cancellables)
+        }
     }
 
     deinit {

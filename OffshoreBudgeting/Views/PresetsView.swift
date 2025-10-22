@@ -66,14 +66,7 @@ struct PresetsView: View {
         }
         .navigationTitle("Presets")
         .toolbar { toolbarContent }
-        .onAppear { vm.loadTemplates(using: viewContext) }
-        .onReceive(
-            NotificationCenter.default
-                .publisher(for: .dataStoreDidChange)
-                .debounce(for: .milliseconds(DataChangeDebounce.milliseconds()), scheduler: RunLoop.main)
-        ) { _ in
-            vm.loadTemplates(using: viewContext)
-        }
+        .onAppear { vm.startIfNeeded(using: viewContext) }
         .refreshable { vm.loadTemplates(using: viewContext) }
         // Add preset
         .sheet(isPresented: $isPresentingAdd) {

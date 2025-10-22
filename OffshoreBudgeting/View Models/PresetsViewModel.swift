@@ -50,6 +50,22 @@ struct PresetListItem: Identifiable, Equatable {
 @MainActor
 final class PresetsViewModel: ObservableObject {
     @Published private(set) var items: [PresetListItem] = []
+    private var changeMonitor: CoreDataEntityChangeMonitor?
+    private var pendingApply: DispatchWorkItem?
+    private var lastLoadedAt: Date? = nil
+
+    // MARK: Start monitoring once
+    func startIfNeeded(using context: NSManagedObjectContext) {
+        guard changeMonitor == nil else { return }
+        changeMonitor = CoreDataEntityChangeMonitor(
+            entityNames: ["PlannedExpense"],
+            debounceMilliseconds: DataChangeDebounce.milliseconds()
+        ) { [weak self] in
+            guard let self else { return }
+            self.loadTemplates(using: context)
+        }
+        loadTemplates(using: context)
+    }
 
     /// Fetches global templates, deriving assignment counts and next dates.
     func loadTemplates(using context: NSManagedObjectContext) {
@@ -88,9 +104,34 @@ final class PresetsViewModel: ObservableObject {
                         built.append(PresetListItem(template: template, plannedAmount: o.planned, actualAmount: o.actual, assignedCount: o.assignedCount, nextDate: o.nextDate))
                     }
                 }
-                self.items = built.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                let sorted = built.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                self.applyItemsDebounced(sorted)
             }
         }
+    }
+
+    // MARK: - Debounced apply (prevent flicker during CloudKit bursts)
+    private func applyItemsDebounced(_ newItems: [PresetListItem]) {
+        pendingApply?.cancel()
+        var delayMS = DataChangeDebounce.milliseconds()
+        if newItems.isEmpty {
+            let now = Date()
+            if let last = lastLoadedAt, now.timeIntervalSince(last) < 1.2 {
+                delayMS = max(delayMS, 900)
+            }
+            #if canImport(UIKit)
+            if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue), CloudSyncMonitor.shared.isImporting {
+                delayMS = max(delayMS, 1100)
+            }
+            #endif
+        }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.items = newItems
+            if !newItems.isEmpty { self.lastLoadedAt = Date() }
+        }
+        pendingApply = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delayMS), execute: work)
     }
 }
 
@@ -108,4 +149,3 @@ final class DateFormatterCache {
     private init() { let m = DateFormatter(); m.dateStyle = .medium; m.timeStyle = .none; medium = m }
     func mediumDate(_ date: Date) -> String { medium.string(from: date) }
 }
-

@@ -62,6 +62,8 @@ final class CardsViewModel: ObservableObject {
     private var hasStarted = false
     private var pendingApply: DispatchWorkItem?
     private var latestSnapshot: [CardItem] = []
+    private var lastLoadedAt: Date? = nil
+    private var pendingThemeCleanup = Set<UUID>()
 
     // MARK: Combine
     /// Holds reactive subscriptions (e.g., for theme refresh).
@@ -169,10 +171,33 @@ final class CardsViewModel: ObservableObject {
             // Debounce UI application to coalesce bursts during imports
             self.latestSnapshot = mappedItems
             self.pendingApply?.cancel()
-            let delayMS = DataChangeDebounce.milliseconds()
+            var delayMS = DataChangeDebounce.milliseconds()
+            // If we're about to emit an empty state shortly after a loaded state,
+            // hold the transition a bit longer to avoid visible flapping during
+            // CloudKit imports or batched merges. Any subsequent non-empty will
+            // cancel the pending apply.
+            if mappedItems.isEmpty {
+                let now = Date()
+                if let last = self.lastLoadedAt, now.timeIntervalSince(last) < 1.2 {
+                    delayMS = max(delayMS, 900)
+                }
+                #if canImport(UIKit)
+                if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue), CloudSyncMonitor.shared.isImporting {
+                    delayMS = max(delayMS, 1100)
+                }
+                #endif
+            }
             let work = DispatchWorkItem { [weak self] in
                 guard let self else { return }
                 let items = self.latestSnapshot
+                // If any theme deletions are pending for cards that are no longer present,
+                // clean them up now to avoid triggering a defaults change while the row exists.
+                let presentUUIDs = Set(items.compactMap { $0.uuid })
+                let readyToRemove = self.pendingThemeCleanup.subtracting(presentUUIDs)
+                if !readyToRemove.isEmpty {
+                    for uuid in readyToRemove { self.appearanceStore.removeTheme(for: uuid) }
+                    self.pendingThemeCleanup.subtract(readyToRemove)
+                }
                 if items.isEmpty {
                     self.state = .empty
                     if AppLog.isVerbose {
@@ -180,6 +205,7 @@ final class CardsViewModel: ObservableObject {
                     }
                 } else {
                     self.state = .loaded(items)
+                    self.lastLoadedAt = Date()
                     if AppLog.isVerbose {
                         AppLog.viewModel.info("CardsViewModel -> state = loaded (\(items.count))")
                     }
@@ -207,8 +233,12 @@ final class CardsViewModel: ObservableObject {
         do {
             let created = try cardService.createCard(name: trimmed, ensureUniqueName: true)
             if let newUUID = created.value(forKey: "id") as? UUID {
+                // Persist theme first so the next FRC snapshot uses it instead of default .rose
                 appearanceStore.setTheme(theme, for: newUUID)
-                reapplyThemes() // reflect immediately
+                // Force a refresh to ensure the newly-inserted row picks up the stored theme
+                await refresh()
+                // Also re-apply on existing snapshot in case we're already loaded
+                reapplyThemes()
             }
         } catch {
             self.alert = CardsViewAlert(kind: .error(message: error.localizedDescription))
@@ -258,11 +288,9 @@ final class CardsViewModel: ObservableObject {
             } else if let oid = card.objectID, let managed = try? CoreDataService.shared.viewContext.existingObject(with: oid) as? Card {
                 try cardService.deleteCard(managed)
             }
-            if let uuid = card.uuid {
-                appearanceStore.removeTheme(for: uuid)
-                // Theme change -> reflect immediately
-                reapplyThemes()
-            }
+            // Defer theme cleanup until after the row disappears from the grid to avoid
+            // a UserDefaults change reapplying a default `.rose` before removal.
+            if let uuid = card.uuid { pendingThemeCleanup.insert(uuid) }
         } catch {
             self.alert = CardsViewAlert(kind: .error(message: error.localizedDescription))
         }

@@ -44,12 +44,12 @@ struct HomeView: View {
     private struct ObjectIDBox: Identifiable { let id: NSManagedObjectID }
     @State private var editingPlannedBox: ObjectIDBox?
     @State private var editingUnplannedBox: ObjectIDBox?
-    @State private var plannedDeletionBox: ObjectIDBox?
-    @State private var unplannedDeletionBox: ObjectIDBox?
+    // Unified delete confirmation (matches IncomeView pattern)
+    private enum DeletionTarget { case planned(ObjectIDBox), unplanned(ObjectIDBox) }
+    @State private var pendingDeletion: DeletionTarget? = nil
+    @State private var isConfirmingDelete: Bool = false
 
-    // Backing data for list rows
-    @State private var plannedRows: [PlannedExpense] = []
-    @State private var variableRows: [UnplannedExpense] = []
+    // Cached summary identity to help with toolbar visibility and per‑row sheets
     @State private var currentSummaryID: NSManagedObjectID? = nil
     @State private var lastNonNilSummary: BudgetSummary? = nil
 
@@ -105,11 +105,8 @@ struct HomeView: View {
         .toolbar { toolbarContent }
         .task {
             vm.startIfNeeded()
-            isAddMenuVisible = activeSummary != nil
-            reloadRows()
+            isAddMenuVisible = (summary != nil)
         }
-        .onChange(of: segment) { _ in reloadRows() }
-        .onChange(of: sort) { _ in reloadRows() }
         // If the selected budget period changes (via calendar menu or Settings),
         // clear any cached summary from a previous period so UI doesn't show
         // stale data for periods without an exact match.
@@ -117,33 +114,42 @@ struct HomeView: View {
             lastNonNilSummary = nil
             // Immediately reflect active/inactive state in toolbar visibility
             // so the + glyph responds to period changes without waiting on a refresh.
-            let shouldShowAddMenu = (activeSummary != nil)
+            let shouldShowAddMenu = (summary != nil)
             if shouldShowAddMenu != isAddMenuVisible {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isAddMenuVisible = shouldShowAddMenu
                 }
             }
-            reloadRows()
+            // Rows are fetch-driven; no manual reload needed
+        }
+        // Also respond to date changes within the current period immediately
+        .onChange(of: vm.selectedDate) { _ in
+            let shouldShowAddMenu = (summary != nil)
+            if shouldShowAddMenu != isAddMenuVisible {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isAddMenuVisible = shouldShowAddMenu
+                }
+            }
         }
         .onChange(of: vm.state) { newState in
             // Only react to stable states to reduce flicker. Keep rows visible
             // during transient .initial/.loading.
             switch newState {
             case .loaded:
-                let newID = activeSummary?.id
+                let newID = summary?.id
                 // Update rows; do not clear if the summary is unchanged.
                 currentSummaryID = newID
-                reloadRows()
                 if let s = summary { lastNonNilSummary = s }
             case .empty:
-                currentSummaryID = nil
-                plannedRows = []
-                variableRows = []
-                lastNonNilSummary = nil
+                // Soft-empty: keep the last good snapshot during transient
+                // CloudKit/import flaps to prevent visible blinking.
+                // Rows and lastNonNilSummary are preserved until a stable
+                // empty settles or the user changes period.
+                break
             default:
                 break
             }
-            let shouldShowAddMenu = (activeSummary != nil)
+            let shouldShowAddMenu = (summary != nil)
             if shouldShowAddMenu != isAddMenuVisible {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isAddMenuVisible = shouldShowAddMenu
@@ -159,29 +165,29 @@ struct HomeView: View {
         .sheet(item: $editingPlannedBox) { box in
             AddPlannedExpenseView(
                 plannedExpenseID: box.id,
-                onSaved: { Task { await vm.refresh(); reloadRows() } }
+                onSaved: { Task { await vm.refresh() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
         .sheet(item: $editingUnplannedBox) { box in
             AddUnplannedExpenseView(
                 unplannedExpenseID: box.id,
-                onSaved: { Task { await vm.refresh(); reloadRows() } }
+                onSaved: { Task { await vm.refresh() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
         .alert(item: $vm.alert, content: alert(for:))
-        .alert(item: $plannedDeletionBox, content: plannedDeletionAlert(for:))
-        .alert(item: $unplannedDeletionBox, content: unplannedDeletionAlert(for:))
+        .alert(deleteAlertTitle, isPresented: $isConfirmingDelete) {
+            Button("Delete", role: .destructive) { confirmDeleteIfNeeded() }
+            Button("Cancel", role: .cancel) { cancelDeleteIfNeeded() }
+        } message: {
+            Text(deleteAlertMessage)
+        }
         // Step 1: Anchored custom menu near long-pressed chip
         .overlayPreferenceValue(ChipFramePreferenceKey.self) { anchors in
             chipMenuOverlay(anchors)
         }
-        // Proactively clear rows when the data store is wiped or significantly changed
-        .onReceive(NotificationCenter.default.publisher(for: .dataStoreDidChange)) { _ in
-            plannedRows = []
-            variableRows = []
-        }
+        // Rows are fetch-driven; no manual clearing needed on store change
     }
 
     // MARK: Toolbar
@@ -238,7 +244,7 @@ struct HomeView: View {
 
     private var ellipsisMenu: some View {
         Menu {
-            if let summary = activeSummary {
+            if let summary = summary {
                 Button("Manage Cards") { isPresentingManageCards = true }
                 Button("Manage Presets") { isPresentingManagePresets = true }
                 Button("Edit Budget") { editingBudget = summary }
@@ -386,7 +392,7 @@ struct HomeView: View {
         // Prefer the computed breakdown when a budget summary exists; otherwise
         // show all categories with zero amounts so chips are always visible.
         let categories: [BudgetSummary.CategorySpending] = {
-            if let s = activeSummary {
+            if let s = summary {
                 return (segment == .planned ? s.plannedCategoryBreakdown : s.variableCategoryBreakdown)
             } else {
                 let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
@@ -454,52 +460,46 @@ struct HomeView: View {
     private var listRows: some View {
         // If no budget exactly matches the selected period, show a clear
         // "Budget inactive" message instead of generic empty list text.
-        if activeSummary == nil {
+        if let s = summary,
+           let budget = try? CoreDataService.shared.viewContext.existingObject(with: s.id) as? Budget {
+            let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
+            if segment == .planned {
+                PlannedRowsList(
+                    budget: budget,
+                    start: start,
+                    end: end,
+                    sort: sort,
+                    horizontalPadding: horizontalPadding,
+                    confirmBeforeDelete: confirmBeforeDelete,
+                    onEdit: { id in editingPlannedBox = ObjectIDBox(id: id) },
+                    onDelete: { exp in requestDelete(planned: exp) }
+                )
+            } else {
+                VariableRowsList(
+                    budget: budget,
+                    start: start,
+                    end: end,
+                    sort: sort,
+                    horizontalPadding: horizontalPadding,
+                    confirmBeforeDelete: confirmBeforeDelete,
+                    onEdit: { id in editingUnplannedBox = ObjectIDBox(id: id) },
+                    onDelete: { exp in requestDelete(unplanned: exp) }
+                )
+            }
+        } else {
             Text("No budget is active for this period.\nCreate a budget to add planned or variable expenses.")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
                 .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
                 .listRowSeparator(.hidden)
-        } else if segment == .planned, plannedRows.isEmpty {
-            Text("No planned expenses in this period.\nPress the + to add a planned expense.")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 8)
-                .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
-                .listRowSeparator(.hidden)
-        } else if segment == .variable, variableRows.isEmpty {
-            Text("No variable expenses in this period.\nTrack purchases as they happen.")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 8)
-                .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
-                .listRowSeparator(.hidden)
-        } else if segment == .planned {
-            ForEach(plannedRows, id: \.objectID) { exp in
-                plannedRow(exp)
-                    .unifiedSwipeActions(
-                        UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
-                        onEdit: { editingPlannedBox = ObjectIDBox(id: exp.objectID) },
-                        onDelete: { requestDelete(planned: exp) }
-                    )
-            }
-        } else {
-            ForEach(variableRows, id: \.objectID) { exp in
-                variableRow(exp)
-                    .unifiedSwipeActions(
-                        UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
-                        onEdit: { editingUnplannedBox = ObjectIDBox(id: exp.objectID) },
-                        onDelete: { requestDelete(unplanned: exp) }
-                    )
-            }
         }
     }
 
     // MARK: Sheets
     private var addPlannedSheet: some View {
         AddPlannedExpenseView(
-            preselectedBudgetID: activeSummary?.id,
+            preselectedBudgetID: summary?.id,
             defaultSaveAsGlobalPreset: false,
             showAssignBudgetToggle: true,
             onSaved: { Task { await vm.refresh() } }
@@ -519,9 +519,9 @@ struct HomeView: View {
     // MARK: Manage Sheets
     private var manageCardsSheet: some View {
         Group {
-            if let id = activeSummary?.id,
+            if let id = summary?.id,
                let budget = try? CoreDataService.shared.viewContext.existingObject(with: id) as? Budget {
-                ManageBudgetCardsSheet(budget: budget) { Task { await vm.refresh(); reloadRows() } }
+                ManageBudgetCardsSheet(budget: budget) { Task { await vm.refresh() } }
             } else {
                 Text("No budget selected")
             }
@@ -531,9 +531,9 @@ struct HomeView: View {
 
     private var managePresetsSheet: some View {
         Group {
-            if let id = activeSummary?.id,
+            if let id = summary?.id,
                let budget = try? CoreDataService.shared.viewContext.existingObject(with: id) as? Budget {
-                ManageBudgetPresetsSheet(budget: budget) { Task { await vm.refresh(); reloadRows() } }
+                ManageBudgetPresetsSheet(budget: budget) { Task { await vm.refresh() } }
             } else {
                 Text("No budget selected")
             }
@@ -549,7 +549,7 @@ struct HomeView: View {
             AddBudgetView(
                 initialStartDate: start,
                 initialEndDate: end,
-                onSaved: { Task { await vm.refresh(); reloadRows() } }
+                onSaved: { Task { await vm.refresh() } }
             )
             .presentationDetents([.large, .medium])
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
@@ -557,7 +557,7 @@ struct HomeView: View {
             AddBudgetView(
                 initialStartDate: start,
                 initialEndDate: end,
-                onSaved: { Task { await vm.refresh(); reloadRows() } }
+                onSaved: { Task { await vm.refresh() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
@@ -570,7 +570,7 @@ struct HomeView: View {
                 editingBudgetObjectID: summary.id,
                 fallbackStartDate: summary.periodStart,
                 fallbackEndDate: summary.periodEnd,
-                onSaved: { Task { await vm.refresh(); reloadRows() } }
+                onSaved: { Task { await vm.refresh() } }
             )
             .presentationDetents([.large, .medium])
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
@@ -579,7 +579,7 @@ struct HomeView: View {
                 editingBudgetObjectID: summary.id,
                 fallbackStartDate: summary.periodStart,
                 fallbackEndDate: summary.periodEnd,
-                onSaved: { Task { await vm.refresh(); reloadRows() } }
+                onSaved: { Task { await vm.refresh() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
@@ -638,19 +638,19 @@ struct HomeView: View {
         }
     }
 
-    private var potentialIncome: Double { activeSummary?.potentialIncomeTotal ?? 0 }
-    private var maxSavings: Double { activeSummary?.potentialSavingsTotal ?? 0 }
+    private var potentialIncome: Double { summary?.potentialIncomeTotal ?? 0 }
+    private var maxSavings: Double { summary?.potentialSavingsTotal ?? 0 }
     private var projectedSavings: Double {
-        let s = activeSummary
+        let s = summary
         return (s?.potentialIncomeTotal ?? 0) - (s?.plannedExpensesPlannedTotal ?? 0) - (s?.variableExpensesTotal ?? 0)
     }
-    private var actualIncome: Double { activeSummary?.actualIncomeTotal ?? 0 }
-    private var actualSavings: Double { activeSummary?.actualSavingsTotal ?? 0 }
+    private var actualIncome: Double { summary?.actualIncomeTotal ?? 0 }
+    private var actualSavings: Double { summary?.actualSavingsTotal ?? 0 }
     // For the Planned segment, show the planned (budgeted) amount, not the
     // amount actually paid so far. The per‑row cells already display both.
-    private var plannedTotal: Double { activeSummary?.plannedExpensesPlannedTotal ?? 0 }
-    private var plannedActualTotal: Double { activeSummary?.plannedExpensesActualTotal ?? 0 }
-    private var variableTotal: Double { activeSummary?.variableExpensesTotal ?? 0 }
+    private var plannedTotal: Double { summary?.plannedExpensesPlannedTotal ?? 0 }
+    private var plannedActualTotal: Double { summary?.plannedExpensesActualTotal ?? 0 }
+    private var variableTotal: Double { summary?.variableExpensesTotal ?? 0 }
 
     private var horizontalPadding: CGFloat { 20 }
 
@@ -808,125 +808,57 @@ struct HomeView: View {
         }
     }
 
-    private func reloadRows() {
-        // If no budget is active for the selected period, ensure rows are
-        // cleared so presets/expenses from other periods don't appear.
-        guard let summary = activeSummary else {
-            plannedRows = []
-            variableRows = []
-            return
+    // fetch-driven rows — no manual reloads/sort descriptors needed here
+
+    // MARK: Delete Confirmation (Unified like IncomeView)
+    private var deleteAlertTitle: String {
+        guard let pendingDeletion else { return "Delete" }
+        switch pendingDeletion {
+        case .planned(let box):
+            if let name = plannedDeletionDisplayName(for: box) { return "Delete \"\(name)\"?" }
+            return "Delete Planned Expense?"
+        case .unplanned(let box):
+            if let name = unplannedDeletionDisplayName(for: box) { return "Delete \"\(name)\"?" }
+            return "Delete Variable Expense?"
         }
-        let context = CoreDataService.shared.viewContext
-        guard let budget = try? context.existingObject(with: summary.id) as? Budget else {
-            // If the budget isn't resolvable yet, keep current rows.
-            return
-        }
+    }
 
-        // Build date range based on the budget's actual period
-        var startCandidate: Date? = summary.periodStart
-        var endCandidate: Date? = summary.periodEnd
-
-        if startCandidate == nil { startCandidate = budget.startDate }
-        if endCandidate == nil { endCandidate = budget.endDate }
-
-        guard var start = startCandidate, var end = endCandidate else {
-            plannedRows = []
-            variableRows = []
-            return
-        }
-
-        if start > end {
-            swap(&start, &end)
-        }
-
-        // Planned
-        do {
-            let req = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-            req.predicate = NSPredicate(format: "budget == %@ AND transactionDate >= %@ AND transactionDate <= %@",
-                                        budget, start as NSDate, end as NSDate)
-            req.sortDescriptors = plannedSortDescriptors
-            plannedRows = try context.fetch(req)
-        } catch { plannedRows = [] }
-
-        // Variable (Unplanned) via card relation
-        do {
-            let req = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
-            if let cards = budget.cards as? Set<Card>, !cards.isEmpty {
-                req.predicate = NSPredicate(format: "card IN %@ AND transactionDate >= %@ AND transactionDate <= %@",
-                                            cards as NSSet, start as NSDate, end as NSDate)
+    private var deleteAlertMessage: String {
+        guard let pendingDeletion else { return "" }
+        switch pendingDeletion {
+        case .planned(let box):
+            if let name = plannedDeletionDisplayName(for: box) {
+                return "This will remove \"\(name)\" from planned expenses."
             } else {
-                req.predicate = NSPredicate(value: false)
+                return "This will remove this planned expense from the budget."
             }
-            req.sortDescriptors = variableSortDescriptors
-            variableRows = try context.fetch(req)
-        } catch { variableRows = [] }
-    }
-
-    private var plannedSortDescriptors: [NSSortDescriptor] {
-        switch sort {
-        case .titleAZ: return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
-        case .amountLowHigh: return [NSSortDescriptor(key: "actualAmount", ascending: true)]
-        case .amountHighLow: return [NSSortDescriptor(key: "actualAmount", ascending: false)]
-        case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
-        case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
-        }
-    }
-
-    private var variableSortDescriptors: [NSSortDescriptor] {
-        switch sort {
-        case .titleAZ: return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
-        case .amountLowHigh: return [NSSortDescriptor(key: "amount", ascending: true)]
-        case .amountHighLow: return [NSSortDescriptor(key: "amount", ascending: false)]
-        case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
-        case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
-        }
-    }
-
-    // MARK: Delete Confirmation
-    private func plannedDeletionAlert(for box: ObjectIDBox) -> Alert {
-        let title: String
-        let message: String
-        if let name = plannedDeletionDisplayName(for: box) {
-            title = "Delete \"\(name)\"?"
-            message = "This will remove \"\(name)\" from planned expenses."
-        } else {
-            title = "Delete Planned Expense?"
-            message = "This will remove this planned expense from the budget."
-        }
-
-        return Alert(
-            title: Text(title),
-            message: Text(message),
-            primaryButton: .destructive(Text("Delete")) {
-                confirmPlannedDeletion(for: box)
-            },
-            secondaryButton: .cancel {
-                plannedDeletionBox = nil
+        case .unplanned(let box):
+            if let name = unplannedDeletionDisplayName(for: box) {
+                return "This will remove \"\(name)\" from variable expenses."
+            } else {
+                return "This will remove this variable expense from the budget."
             }
-        )
+        }
     }
 
-    private func unplannedDeletionAlert(for box: ObjectIDBox) -> Alert {
-        let title: String
-        let message: String
-        if let name = unplannedDeletionDisplayName(for: box) {
-            title = "Delete \"\(name)\"?"
-            message = "This will remove \"\(name)\" from variable expenses."
-        } else {
-            title = "Delete Variable Expense?"
-            message = "This will remove this variable expense from the budget."
+    private func confirmDeleteIfNeeded() {
+        guard let target = pendingDeletion else {
+            isConfirmingDelete = false
+            return
         }
+        switch target {
+        case .planned(let box):
+            confirmPlannedDeletion(for: box)
+        case .unplanned(let box):
+            confirmUnplannedDeletion(for: box)
+        }
+        isConfirmingDelete = false
+        pendingDeletion = nil
+    }
 
-        return Alert(
-            title: Text(title),
-            message: Text(message),
-            primaryButton: .destructive(Text("Delete")) {
-                confirmUnplannedDeletion(for: box)
-            },
-            secondaryButton: .cancel {
-                unplannedDeletionBox = nil
-            }
-        )
+    private func cancelDeleteIfNeeded() {
+        isConfirmingDelete = false
+        pendingDeletion = nil
     }
 
     private func plannedDeletionDisplayName(for box: ObjectIDBox) -> String? {
@@ -949,8 +881,8 @@ struct HomeView: View {
 
     private func requestDelete(planned exp: PlannedExpense) {
         if confirmBeforeDelete {
-            plannedDeletionBox = ObjectIDBox(id: exp.objectID)
-            unplannedDeletionBox = nil
+            pendingDeletion = .planned(ObjectIDBox(id: exp.objectID))
+            isConfirmingDelete = true
         } else {
             delete(planned: exp)
         }
@@ -958,15 +890,14 @@ struct HomeView: View {
 
     private func requestDelete(unplanned exp: UnplannedExpense) {
         if confirmBeforeDelete {
-            unplannedDeletionBox = ObjectIDBox(id: exp.objectID)
-            plannedDeletionBox = nil
+            pendingDeletion = .unplanned(ObjectIDBox(id: exp.objectID))
+            isConfirmingDelete = true
         } else {
             delete(unplanned: exp)
         }
     }
 
     private func confirmPlannedDeletion(for box: ObjectIDBox) {
-        plannedDeletionBox = nil
         let ctx = CoreDataService.shared.viewContext
         if let resolved = try? ctx.existingObject(with: box.id) as? PlannedExpense {
             delete(planned: resolved)
@@ -974,7 +905,6 @@ struct HomeView: View {
     }
 
     private func confirmUnplannedDeletion(for box: ObjectIDBox) {
-        unplannedDeletionBox = nil
         let ctx = CoreDataService.shared.viewContext
         if let resolved = try? ctx.existingObject(with: box.id) as? UnplannedExpense {
             delete(unplanned: resolved)
@@ -987,7 +917,6 @@ struct HomeView: View {
         if let obj = try? ctx.existingObject(with: id) as? PlannedExpense, !obj.isDeleted {
             do {
                 try PlannedExpenseService().delete(obj)
-                reloadRows()
                 Task { await vm.refresh() }
             } catch { /* swallow for now */ }
         }
@@ -999,7 +928,6 @@ struct HomeView: View {
         if let obj = try? ctx.existingObject(with: id) as? UnplannedExpense, !obj.isDeleted {
             do {
                 try UnplannedExpenseService().delete(obj)
-                reloadRows()
                 Task { await vm.refresh() }
             } catch { /* swallow for now */ }
         }
@@ -1030,6 +958,214 @@ struct HomeView: View {
 
 //
 
+// MARK: - FetchedResults-backed sublists for Home
+private struct PlannedRowsList: View {
+    @FetchRequest var rows: FetchedResults<PlannedExpense>
+    let horizontalPadding: CGFloat
+    let confirmBeforeDelete: Bool
+    let onEdit: (NSManagedObjectID) -> Void
+    let onDelete: (PlannedExpense) -> Void
+
+    init(
+        budget: Budget,
+        start: Date,
+        end: Date,
+        sort: HomeView.Sort,
+        horizontalPadding: CGFloat,
+        confirmBeforeDelete: Bool,
+        onEdit: @escaping (NSManagedObjectID) -> Void,
+        onDelete: @escaping (PlannedExpense) -> Void
+    ) {
+        let req = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+        req.predicate = NSPredicate(format: "budget == %@ AND transactionDate >= %@ AND transactionDate <= %@", budget, start as NSDate, end as NSDate)
+        req.sortDescriptors = PlannedRowsList.sortDescriptors(for: sort)
+        _rows = FetchRequest(fetchRequest: req)
+        self.horizontalPadding = horizontalPadding
+        self.confirmBeforeDelete = confirmBeforeDelete
+        self.onEdit = onEdit
+        self.onDelete = onDelete
+    }
+
+    var body: some View {
+        if rows.isEmpty {
+            Text("No planned expenses in this period.\nPress the + to add a planned expense.")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 8)
+                .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
+                .listRowSeparator(.hidden)
+        } else {
+            ForEach(rows, id: \.objectID) { exp in
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(Self.readPlannedDescription(exp) ?? "Expense").font(.headline)
+                        Text(Self.dateString(exp.transactionDate)).font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Planned: \(Self.formatCurrency(exp.plannedAmount))")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Actual: \(Self.formatCurrency(exp.actualAmount))")
+                            .font(.subheadline)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .unifiedSwipeActions(
+                    UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
+                    onEdit: { onEdit(exp.objectID) },
+                    onDelete: { onDelete(exp) }
+                )
+            }
+        }
+    }
+
+    private static func sortDescriptors(for sort: HomeView.Sort) -> [NSSortDescriptor] {
+        switch sort {
+        case .titleAZ: return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+        case .amountLowHigh: return [NSSortDescriptor(key: "actualAmount", ascending: true)]
+        case .amountHighLow: return [NSSortDescriptor(key: "actualAmount", ascending: false)]
+        case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
+        case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
+        }
+    }
+
+    private static func dateString(_ date: Date?) -> String {
+        guard let d = date else { return "" }
+        let f = DateFormatter(); f.dateStyle = .medium
+        return f.string(from: d)
+    }
+
+    private static func readPlannedDescription(_ object: NSManagedObject) -> String? {
+        let keys = object.entity.attributesByName.keys
+        if keys.contains("descriptionText") {
+            return object.value(forKey: "descriptionText") as? String
+        } else if keys.contains("title") {
+            return object.value(forKey: "title") as? String
+        }
+        return nil
+    }
+
+    private static func formatCurrency(_ amount: Double) -> String {
+        if #available(iOS 15.0, macCatalyst 15.0, *) {
+            let currencyCode: String
+            if #available(iOS 16.0, macCatalyst 16.0, *) {
+                currencyCode = Locale.current.currency?.identifier ?? "USD"
+            } else {
+                currencyCode = Locale.current.currencyCode ?? "USD"
+            }
+            return amount.formatted(.currency(code: currencyCode))
+        } else {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .currency
+            formatter.currencyCode = Locale.current.currencyCode ?? "USD"
+            return formatter.string(from: amount as NSNumber) ?? String(format: "%.2f", amount)
+        }
+    }
+}
+
+private struct VariableRowsList: View {
+    @FetchRequest var rows: FetchedResults<UnplannedExpense>
+    let horizontalPadding: CGFloat
+    let confirmBeforeDelete: Bool
+    let onEdit: (NSManagedObjectID) -> Void
+    let onDelete: (UnplannedExpense) -> Void
+
+    init(
+        budget: Budget,
+        start: Date,
+        end: Date,
+        sort: HomeView.Sort,
+        horizontalPadding: CGFloat,
+        confirmBeforeDelete: Bool,
+        onEdit: @escaping (NSManagedObjectID) -> Void,
+        onDelete: @escaping (UnplannedExpense) -> Void
+    ) {
+        let req = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
+        if let cards = budget.cards as? Set<Card>, !cards.isEmpty {
+            req.predicate = NSPredicate(format: "card IN %@ AND transactionDate >= %@ AND transactionDate <= %@", cards as NSSet, start as NSDate, end as NSDate)
+        } else {
+            req.predicate = NSPredicate(value: false)
+        }
+        req.sortDescriptors = VariableRowsList.sortDescriptors(for: sort)
+        _rows = FetchRequest(fetchRequest: req)
+        self.horizontalPadding = horizontalPadding
+        self.confirmBeforeDelete = confirmBeforeDelete
+        self.onEdit = onEdit
+        self.onDelete = onDelete
+    }
+
+    var body: some View {
+        if rows.isEmpty {
+            Text("No variable expenses in this period.\nTrack purchases as they happen.")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 8)
+                .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
+                .listRowSeparator(.hidden)
+        } else {
+            ForEach(rows, id: \.objectID) { exp in
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(Self.readUnplannedDescription(exp) ?? "Expense").font(.headline)
+                        Text(Self.dateString(exp.transactionDate)).font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Text(Self.formatCurrency(exp.amount)).font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .unifiedSwipeActions(
+                    UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
+                    onEdit: { onEdit(exp.objectID) },
+                    onDelete: { onDelete(exp) }
+                )
+            }
+        }
+    }
+
+    private static func sortDescriptors(for sort: HomeView.Sort) -> [NSSortDescriptor] {
+        switch sort {
+        case .titleAZ: return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+        case .amountLowHigh: return [NSSortDescriptor(key: "amount", ascending: true)]
+        case .amountHighLow: return [NSSortDescriptor(key: "amount", ascending: false)]
+        case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
+        case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
+        }
+    }
+
+    private static func readUnplannedDescription(_ object: NSManagedObject) -> String? {
+        let keys = object.entity.attributesByName.keys
+        if keys.contains("descriptionText") {
+            return object.value(forKey: "descriptionText") as? String
+        } else if keys.contains("title") {
+            return object.value(forKey: "title") as? String
+        }
+        return nil
+    }
+
+    private static func dateString(_ date: Date?) -> String {
+        guard let d = date else { return "" }
+        let f = DateFormatter(); f.dateStyle = .medium
+        return f.string(from: d)
+    }
+
+    private static func formatCurrency(_ amount: Double) -> String {
+        if #available(iOS 15.0, macCatalyst 15.0, *) {
+            let currencyCode: String
+            if #available(iOS 16.0, macCatalyst 16.0, *) {
+                currencyCode = Locale.current.currency?.identifier ?? "USD"
+            } else {
+                currencyCode = Locale.current.currencyCode ?? "USD"
+            }
+            return amount.formatted(.currency(code: currencyCode))
+        } else {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .currency
+            formatter.currencyCode = Locale.current.currencyCode ?? "USD"
+            return formatter.string(from: amount as NSNumber) ?? String(format: "%.2f", amount)
+        }
+    }
+}
+
 // MARK: - Hex Color Helper (local)
 fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
     guard var value = hex?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
@@ -1049,8 +1185,8 @@ private extension HomeView {
         }
         // Planned: use Actual Amount sum for this category within the selected period and budget
         guard
-            let summary = activeSummary,
-            let budget = try? moc.existingObject(with: summary.id) as? Budget,
+            let s = self.summary,
+            let budget = try? moc.existingObject(with: s.id) as? Budget,
             let categoryID = CoreDataService.shared.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
             let category = try? moc.existingObject(with: categoryID) as? ExpenseCategory
         else { return cat.amount }
@@ -1376,7 +1512,7 @@ private extension HomeView {
     func reloadChipMenuCaps(for cat: BudgetSummary.CategorySpending, resetAmount: Bool = false) {
         // Optionally refresh the displayed amount if the segment changed
         if resetAmount {
-            let fresh = (segment == .planned ? activeSummary?.plannedCategoryBreakdown : activeSummary?.variableCategoryBreakdown)?.first { $0.categoryURI == cat.categoryURI }
+            let fresh = (segment == .planned ? summary?.plannedCategoryBreakdown : summary?.variableCategoryBreakdown)?.first { $0.categoryURI == cat.categoryURI }
             if let fresh { chipMenuSelected = fresh }
         }
 
@@ -1761,7 +1897,7 @@ private extension HomeView {
         if resetAmount {
             // If segment changed, the chip amount changes source – update currentAmount from summary
             if let oc = overlayCategory {
-                let categories = (segment == .planned ? activeSummary?.plannedCategoryBreakdown : activeSummary?.variableCategoryBreakdown) ?? []
+                let categories = (segment == .planned ? summary?.plannedCategoryBreakdown : summary?.variableCategoryBreakdown) ?? []
                 let targetURI = oc.id.uriRepresentation()
                 if let fresh = categories.first(where: { $0.categoryURI == targetURI }) {
                     overlayCategory = OverlayCategory(id: oc.id, name: oc.name, color: oc.color, segment: segment, currentAmount: fresh.amount)

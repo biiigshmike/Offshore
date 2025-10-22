@@ -172,11 +172,13 @@ final class HomeViewModel: ObservableObject {
     private let context: NSManagedObjectContext
     private let budgetService = BudgetService()
     private var dataStoreObserver: NSObjectProtocol?
+    private var entityChangeMonitor: CoreDataEntityChangeMonitor?
     private var cancellables: Set<AnyCancellable> = []
     private var hasStarted = false
     private var isRefreshing = false
     private var needsAnotherRefresh = false
     private var pendingApply: DispatchWorkItem?
+    private var lastLoadedAt: Date? = nil
 
     // MARK: init()
     /// - Parameter context: The Core Data context to use (defaults to main viewContext).
@@ -193,17 +195,15 @@ final class HomeViewModel: ObservableObject {
         guard !hasStarted else { return }
         hasStarted = true
 
-        if dataStoreObserver == nil {
-            // Coalesce bursts of Core Data/CloudKit changes.
-            // Use a dynamic debounce: longer while importing, shorter otherwise.
-            let ms = DataChangeDebounce.milliseconds()
-            NotificationCenter.default.publisher(for: .dataStoreDidChange)
-                .debounce(for: .milliseconds(ms), scheduler: RunLoop.main)
-                .sink { [weak self] _ in
-                    guard let self else { return }
-                    Task { await self.refresh() }
-                }
-                .store(in: &cancellables)
+        if entityChangeMonitor == nil {
+            // Refresh only on relevant entity changes to reduce churn and flicker.
+            // Budget + expenses + income + categories + card membership affect summaries.
+            entityChangeMonitor = CoreDataEntityChangeMonitor(
+                entityNames: ["Budget", "PlannedExpense", "UnplannedExpense", "Income", "ExpenseCategory", "Card"],
+                debounceMilliseconds: DataChangeDebounce.milliseconds()
+            ) { [weak self] in
+                Task { await self?.refresh() }
+            }
         }
 
         // After a 200ms delay, if we are still in the `initial` state,
@@ -285,7 +285,27 @@ final class HomeViewModel: ObservableObject {
         if self.state == newState { return }
 
         pendingApply?.cancel()
-        let delayMS = DataChangeDebounce.outputMilliseconds()
+        // Base delay tuned for general change bursts
+        var delayMS = DataChangeDebounce.outputMilliseconds()
+
+        // If we're about to emit an .empty state shortly after a .loaded state,
+        // hold the transition a bit longer to avoid visible flapping during
+        // CloudKit imports or batched Core Data merges. Any subsequent .loaded
+        // will cancel this pending apply automatically.
+        if case .empty = newState {
+            let now = Date()
+            if let last = lastLoadedAt {
+                let secondsSinceLoaded = now.timeIntervalSince(last)
+                if secondsSinceLoaded < 1.2 { // recent successful load
+                    delayMS = max(delayMS, 900)
+                }
+            }
+            #if canImport(UIKit)
+            if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue), CloudSyncMonitor.shared.isImporting {
+                delayMS = max(delayMS, 1100)
+            }
+            #endif
+        }
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             if self.state != newState {
@@ -295,6 +315,7 @@ final class HomeViewModel: ObservableObject {
                     AppLog.viewModel.debug("HomeViewModel.refresh() transitioning to .empty state")
                 case .loaded:
                     AppLog.viewModel.debug("HomeViewModel.refresh() transitioning to .loaded state")
+                    self.lastLoadedAt = Date()
                 default:
                     break
                 }

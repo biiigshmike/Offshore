@@ -76,9 +76,36 @@ struct HomeView: View {
 
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
+    @EnvironmentObject private var guidedWalkthrough: GuidedWalkthroughManager
+
+    // MARK: Guided Walkthrough State
+    @State private var showGuidedOverlay: Bool = false
+    @State private var requestedGuidedWalkthrough: Bool = false
+    @State private var visibleGuidedHints: Set<GuidedWalkthroughManager.Hint> = []
+    @State private var guidedHintWorkItems: [GuidedWalkthroughManager.Hint: DispatchWorkItem] = [:]
 
     // MARK: Body
     var body: some View {
+        ZStack {
+            homeContent
+            if showGuidedOverlay, let overlay = guidedWalkthrough.overlay(for: .home) {
+                GuidedOverlayView(
+                    overlay: overlay,
+                    onDismiss: {
+                        showGuidedOverlay = false
+                        guidedWalkthrough.markOverlaySeen(for: .home)
+                    },
+                    nextAction: presentHomeHints
+                )
+                .transition(.opacity)
+            }
+        }
+        .onAppear { requestGuidedWalkthroughIfNeeded() }
+        .onDisappear { cancelGuidedHintWork() }
+    }
+
+    @ViewBuilder
+    private var homeContent: some View {
         List {
             // Header + controls grouped as one vertical block so List owns scrolling
             Section {
@@ -190,6 +217,72 @@ struct HomeView: View {
         // Rows are fetch-driven; no manual clearing needed on store change
     }
 
+    // MARK: Guided Walkthrough Helpers
+    private var homeHintLookup: [GuidedWalkthroughManager.Hint: HintBubble] {
+        Dictionary(uniqueKeysWithValues: guidedWalkthrough.hints(for: .home).map { ($0.id, $0) })
+    }
+
+    private func requestGuidedWalkthroughIfNeeded() {
+        guard !requestedGuidedWalkthrough else { return }
+        requestedGuidedWalkthrough = true
+        if guidedWalkthrough.shouldShowOverlay(for: .home) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showGuidedOverlay = true
+            }
+        } else {
+            presentHomeHints()
+        }
+    }
+
+    private func presentHomeHints() {
+        for bubble in guidedWalkthrough.hints(for: .home) where guidedWalkthrough.shouldShowHint(bubble.id) {
+            displayHomeHint(bubble.id)
+        }
+    }
+
+    private func displayHomeHint(_ hint: GuidedWalkthroughManager.Hint) {
+        guard guidedWalkthrough.shouldShowHint(hint) else { return }
+        guard !visibleGuidedHints.contains(hint) else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            visibleGuidedHints.insert(hint)
+        }
+        scheduleAutoHide(for: hint)
+    }
+
+    private func scheduleAutoHide(for hint: GuidedWalkthroughManager.Hint) {
+        guidedHintWorkItems[hint]?.cancel()
+        let work = DispatchWorkItem {
+            if visibleGuidedHints.contains(hint) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    visibleGuidedHints.remove(hint)
+                }
+            }
+            guidedWalkthrough.markHintSeen(hint)
+            guidedHintWorkItems[hint] = nil
+        }
+        guidedHintWorkItems[hint] = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0, execute: work)
+    }
+
+    private func hideHomeHint(_ hint: GuidedWalkthroughManager.Hint) {
+        if let work = guidedHintWorkItems.removeValue(forKey: hint) {
+            work.cancel()
+        }
+        if visibleGuidedHints.contains(hint) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                visibleGuidedHints.remove(hint)
+            }
+        }
+        guidedWalkthrough.markHintSeen(hint)
+    }
+
+    private func cancelGuidedHintWork() {
+        for (_, work) in guidedHintWorkItems { work.cancel() }
+        guidedHintWorkItems.removeAll()
+        visibleGuidedHints.removeAll()
+        showGuidedOverlay = false
+    }
+
     // MARK: Toolbar
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
@@ -226,35 +319,83 @@ struct HomeView: View {
         Menu {
             // Calendar period picker
             ForEach(BudgetPeriod.selectableCases) { p in
-                Button(p.displayName) { updateBudgetPeriod(to: p) }
+                Button(p.displayName) {
+                    hideHomeHint(.homeCalendar)
+                    updateBudgetPeriod(to: p)
+                }
             }
         } label: {
             glassToolbarLabel("calendar")
+                .overlay(alignment: .top) {
+                    if visibleGuidedHints.contains(.homeCalendar),
+                       let bubble = homeHintLookup[.homeCalendar] {
+                        HintBubbleView(hint: bubble)
+                            .offset(y: -54)
+                    }
+                }
         }
+        .simultaneousGesture(TapGesture().onEnded { hideHomeHint(.homeCalendar) })
     }
 
     private var addExpenseMenu: some View {
         Menu {
-            Button("Add Planned Expense") { isPresentingAddPlanned = true }
-            Button("Add Variable Expense") { isPresentingAddVariable = true }
+            Button("Add Planned Expense") {
+                hideHomeHint(.homeAddExpense)
+                isPresentingAddPlanned = true
+            }
+            Button("Add Variable Expense") {
+                hideHomeHint(.homeAddExpense)
+                isPresentingAddVariable = true
+            }
         } label: {
             glassToolbarLabel("plus")
+                .overlay(alignment: .top) {
+                    if visibleGuidedHints.contains(.homeAddExpense),
+                       let bubble = homeHintLookup[.homeAddExpense] {
+                        HintBubbleView(hint: bubble)
+                            .offset(y: -54)
+                    }
+                }
         }
+        .simultaneousGesture(TapGesture().onEnded { hideHomeHint(.homeAddExpense) })
     }
 
     private var ellipsisMenu: some View {
         Menu {
             if let summary = summary {
-                Button("Manage Cards") { isPresentingManageCards = true }
-                Button("Manage Presets") { isPresentingManagePresets = true }
-                Button("Edit Budget") { editingBudget = summary }
-                Button(role: .destructive) { vm.requestDelete(budgetID: summary.id) } label: { Text("Delete Budget") }
+                Button("Manage Cards") {
+                    hideHomeHint(.homeThreeDots)
+                    isPresentingManageCards = true
+                }
+                Button("Manage Presets") {
+                    hideHomeHint(.homeThreeDots)
+                    isPresentingManagePresets = true
+                }
+                Button("Edit Budget") {
+                    hideHomeHint(.homeThreeDots)
+                    editingBudget = summary
+                }
+                Button(role: .destructive) {
+                    hideHomeHint(.homeThreeDots)
+                    vm.requestDelete(budgetID: summary.id)
+                } label: { Text("Delete Budget") }
             } else {
-                Button("Create Budget") { isPresentingAddBudget = true }
+                Button("Create Budget") {
+                    hideHomeHint(.homeThreeDots)
+                    isPresentingAddBudget = true
+                }
             }
         } label: {
             glassToolbarLabel("ellipsis")
+                .overlay(alignment: .top) {
+                    if visibleGuidedHints.contains(.homeThreeDots),
+                       let bubble = homeHintLookup[.homeThreeDots] {
+                        HintBubbleView(hint: bubble)
+                            .offset(y: -54)
+                    }
+                }
         }
+        .simultaneousGesture(TapGesture().onEnded { hideHomeHint(.homeThreeDots) })
     }
 
     @ViewBuilder

@@ -15,11 +15,39 @@ struct CardsView: View {
     @State private var detailCard: CardItem? = nil
     @State private var editingCard: CardItem? = nil
 
+    @EnvironmentObject private var guidedWalkthrough: GuidedWalkthroughManager
+
+    // MARK: Guided Walkthrough State
+    @State private var showGuidedOverlay: Bool = false
+    @State private var requestedGuidedWalkthrough: Bool = false
+    @State private var visibleGuidedHints: Set<GuidedWalkthroughManager.Hint> = []
+    @State private var guidedHintWorkItems: [GuidedWalkthroughManager.Hint: DispatchWorkItem] = [:]
+
     // MARK: Grid
     private let columns = [GridItem(.adaptive(minimum: 260, maximum: 260), spacing: 16)]
     private let cardHeight: CGFloat = 160
 
     var body: some View {
+        ZStack {
+            cardsContent
+            if showGuidedOverlay, let overlay = guidedWalkthrough.overlay(for: .cards) {
+                GuidedOverlayView(
+                    overlay: overlay,
+                    onDismiss: {
+                        showGuidedOverlay = false
+                        guidedWalkthrough.markOverlaySeen(for: .cards)
+                    },
+                    nextAction: presentCardsHints
+                )
+                .transition(.opacity)
+            }
+        }
+        .onAppear { requestCardsGuidedIfNeeded() }
+        .onDisappear { cancelCardsHintWork() }
+    }
+
+    @ViewBuilder
+    private var cardsContent: some View {
         navigationContainer {
             ScrollView {
                 Group {
@@ -53,7 +81,6 @@ struct CardsView: View {
                     case .loaded(let cards):
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(cards) { card in
-                                // Modern value-based navigation link
                                 NavigationLink(value: card) {
                                     CardTileView(
                                         card: card,
@@ -64,7 +91,17 @@ struct CardsView: View {
                                         showsBaseShadow: false
                                     )
                                     .frame(height: cardHeight)
+                                    .overlay(alignment: .topLeading) {
+                                        if visibleGuidedHints.contains(.cardsTile),
+                                           let bubble = cardsHintLookup[.cardsTile],
+                                           card == cards.first {
+                                            HintBubbleView(hint: bubble)
+                                                .padding(.top, 8)
+                                                .padding(.leading, 8)
+                                        }
+                                    }
                                 }
+                                .simultaneousGesture(TapGesture().onEnded { hideCardsHint(.cardsTile) })
                                 .contextMenu {
                                     Button("Edit", systemImage: "pencil") { editingCard = card }
                                     Button("Delete", systemImage: "trash", role: .destructive) {
@@ -82,7 +119,6 @@ struct CardsView: View {
             .navigationTitle("Cards")
             .toolbar { toolbarContent }
             .onAppear { vm.startIfNeeded() }
-            // Add Card
             .sheet(isPresented: $isPresentingAddCard) {
                 AddCardFormView { newName, theme in
                     Task { await vm.addCard(name: newName, theme: theme) }
@@ -108,7 +144,6 @@ struct CardsView: View {
                     return Alert(title: Text("Rename Card"), message: Text("Use Edit instead."), dismissButton: .default(Text("OK")))
                 }
             }
-            // Destination for value-based navigation
             .navigationDestination(for: CardItem.self) { card in
                 CardDetailView(
                     card: card,
@@ -116,7 +151,6 @@ struct CardsView: View {
                     onDone: { detailCard = nil }
                 )
             }
-            // Edit sheet
             .sheet(item: $editingCard) { card in
                 AddCardFormView(mode: .edit, editingCard: card) { name, theme in
                     Task { await vm.edit(card: card, name: name, theme: theme) }
@@ -135,9 +169,19 @@ struct CardsView: View {
 
     @ViewBuilder
     private var addButton: some View {
-        // Clear, no-background toolbar icon (matches IncomeView2)
-        Buttons.toolbarIcon("plus") { isPresentingAddCard = true }
-            .accessibilityLabel("Add Card")
+        Buttons.toolbarIcon("plus") {
+            hideCardsHint(.cardsAdd)
+            isPresentingAddCard = true
+        }
+        .accessibilityLabel("Add Card")
+        .overlay(alignment: .topTrailing) {
+            if visibleGuidedHints.contains(.cardsAdd),
+               let bubble = cardsHintLookup[.cardsAdd] {
+                HintBubbleView(hint: bubble)
+                    .offset(x: 16, y: -50)
+            }
+        }
+        .simultaneousGesture(TapGesture().onEnded { hideCardsHint(.cardsAdd) })
     }
 
     // MARK: Navigation container
@@ -152,5 +196,71 @@ struct CardsView: View {
                 content()
             }
         }
+    }
+
+    // MARK: Guided Walkthrough Helpers
+    private var cardsHintLookup: [GuidedWalkthroughManager.Hint: HintBubble] {
+        Dictionary(uniqueKeysWithValues: guidedWalkthrough.hints(for: .cards).map { ($0.id, $0) })
+    }
+
+    private func requestCardsGuidedIfNeeded() {
+        guard !requestedGuidedWalkthrough else { return }
+        requestedGuidedWalkthrough = true
+        if guidedWalkthrough.shouldShowOverlay(for: .cards) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showGuidedOverlay = true
+            }
+        } else {
+            presentCardsHints()
+        }
+    }
+
+    private func presentCardsHints() {
+        for bubble in guidedWalkthrough.hints(for: .cards) where guidedWalkthrough.shouldShowHint(bubble.id) {
+            displayCardsHint(bubble.id)
+        }
+    }
+
+    private func displayCardsHint(_ hint: GuidedWalkthroughManager.Hint) {
+        guard guidedWalkthrough.shouldShowHint(hint) else { return }
+        guard !visibleGuidedHints.contains(hint) else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            visibleGuidedHints.insert(hint)
+        }
+        scheduleCardsHintAutoHide(for: hint)
+    }
+
+    private func scheduleCardsHintAutoHide(for hint: GuidedWalkthroughManager.Hint) {
+        guidedHintWorkItems[hint]?.cancel()
+        let work = DispatchWorkItem {
+            if visibleGuidedHints.contains(hint) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    visibleGuidedHints.remove(hint)
+                }
+            }
+            guidedWalkthrough.markHintSeen(hint)
+            guidedHintWorkItems[hint] = nil
+        }
+        guidedHintWorkItems[hint] = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0, execute: work)
+    }
+
+    private func hideCardsHint(_ hint: GuidedWalkthroughManager.Hint) {
+        if let work = guidedHintWorkItems.removeValue(forKey: hint) {
+            work.cancel()
+        }
+        if visibleGuidedHints.contains(hint) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                visibleGuidedHints.remove(hint)
+            }
+        }
+        guidedWalkthrough.markHintSeen(hint)
+    }
+
+    private func cancelCardsHintWork() {
+        for (_, work) in guidedHintWorkItems { work.cancel() }
+        guidedHintWorkItems.removeAll()
+        visibleGuidedHints.removeAll()
+        showGuidedOverlay = false
     }
 }

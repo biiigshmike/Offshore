@@ -7,6 +7,7 @@ import CoreData
 struct SettingsView: View {
     // MARK: Env
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var guidedWalkthrough: GuidedWalkthroughManager
 
     // MARK: State
     @StateObject private var vm = SettingsViewModel()
@@ -18,7 +19,33 @@ struct SettingsView: View {
     @State private var showDisableCloudOptions = false
     @State private var isReconfiguringStores = false
 
+    // MARK: Guided Walkthrough State
+    @State private var showGuidedOverlay: Bool = false
+    @State private var requestedGuidedWalkthrough: Bool = false
+    @State private var visibleGuidedHints: Set<GuidedWalkthroughManager.Hint> = []
+    @State private var guidedHintWorkItems: [GuidedWalkthroughManager.Hint: DispatchWorkItem] = [:]
+
     var body: some View {
+        ZStack {
+            settingsContent
+            if showGuidedOverlay, let overlay = guidedWalkthrough.overlay(for: .settings) {
+                GuidedOverlayView(
+                    overlay: overlay,
+                    onDismiss: {
+                        showGuidedOverlay = false
+                        guidedWalkthrough.markOverlaySeen(for: .settings)
+                    },
+                    nextAction: presentSettingsHints
+                )
+                .transition(.opacity)
+            }
+        }
+        .onAppear { requestSettingsGuidedIfNeeded() }
+        .onDisappear { cancelSettingsHintWork() }
+    }
+
+    @ViewBuilder
+    private var settingsContent: some View {
         ScrollView {
             VStack(spacing: 16) {
                 // General
@@ -37,6 +64,13 @@ struct SettingsView: View {
                             }
                             .labelsHidden()
                         }
+                    }
+                }
+                .overlay(alignment: .topLeading) {
+                    if visibleGuidedHints.contains(.settingsGeneral),
+                       let bubble = settingsHintLookup[.settingsGeneral] {
+                        HintBubbleView(hint: bubble)
+                            .offset(x: 16, y: -20)
                     }
                 }
 
@@ -58,6 +92,13 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                     }
                 }
+                .overlay(alignment: .topLeading) {
+                    if visibleGuidedHints.contains(.settingsCategories),
+                       let bubble = settingsHintLookup[.settingsCategories] {
+                        HintBubbleView(hint: bubble)
+                            .offset(x: 16, y: -20)
+                    }
+                }
 
                 // iCloud Sync
                 SettingsCard(
@@ -70,19 +111,15 @@ struct SettingsView: View {
                             Toggle("", isOn: Binding(
                                 get: { vm.enableCloudSync },
                                 set: { newValue in
-                                    // Intercept disabling to ask user what to do with data.
                                     if vm.enableCloudSync && newValue == false {
-                                        // Do not flip the toggle yet; present options.
                                         showDisableCloudOptions = true
                                         return
                                     }
-                                    // Enabling: apply immediately with progress overlay.
                                     if !vm.enableCloudSync && newValue == true {
                                         isReconfiguringStores = true
                                         vm.enableCloudSync = true
                                         if vm.syncCardThemes == false { vm.syncCardThemes = true }
                                         Task { @MainActor in
-                                            // Give the UI a moment to render the overlay before heavy work.
                                             try? await Task.sleep(nanoseconds: 80_000_000)
                                             await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
                                             _ = WorkspaceService.shared.ensureActiveWorkspaceID()
@@ -123,6 +160,13 @@ struct SettingsView: View {
                             }
                         }
                         .buttonStyle(.plain)
+                    }
+                }
+                .overlay(alignment: .topLeading) {
+                    if visibleGuidedHints.contains(.settingsData),
+                       let bubble = settingsHintLookup[.settingsData] {
+                        HintBubbleView(hint: bubble)
+                            .offset(x: 16, y: -20)
                     }
                 }
 
@@ -172,33 +216,28 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
-            .padding(.bottom, 24) // comfortable tail space below Reset card
+            .padding(.bottom, 24)
         }
         .navigationTitle("Settings")
-        // Turn off iCloud options
         .confirmationDialog("Turn Off iCloud Sync?", isPresented: $showDisableCloudOptions, titleVisibility: .visible) {
             Button("Switch to Local (Keep Data)", role: .destructive) { disableCloud(eraseLocal: false) }
             Button("Remove from This Device", role: .destructive) { disableCloud(eraseLocal: true) }
-            Button("Cancel", role: .cancel) { /* leave toggle ON */ }
+            Button("Cancel", role: .cancel) { }
         } message: {
             Text("Choose what to do with your data on this device.")
         }
-        
-        // Erase confirmation
         .alert("Erase All Data?", isPresented: $showResetAlert) {
             Button("Erase", role: .destructive) { performDataWipe() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will remove all budgets, cards, incomes, and expenses. This action cannot be undone.")
         }
-        // Merge confirmation
         .alert("Merge Local Data into iCloud?", isPresented: $showMergeConfirm) {
             Button("Merge", role: .none) { runMerge() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will look for duplicate items across devices and collapse them to avoid duplicates. Your data remains in iCloud; this action cannot be undone.")
         }
-        // Merge result
         .alert("Merge Complete", isPresented: $showMergeDone) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -238,7 +277,6 @@ struct SettingsView: View {
                 showMergeDone = true
             } catch {
                 isMerging = false
-                // Surface a simple message via the existing alert.
                 showMergeDone = true
             }
         }
@@ -246,21 +284,72 @@ struct SettingsView: View {
 
     private func disableCloud(eraseLocal: Bool) {
         isReconfiguringStores = true
-        // Keep the toggle ON visually until we complete switching to avoid UI flicker.
         Task { @MainActor in
-            // Allow overlay to render first
             try? await Task.sleep(nanoseconds: 80_000_000)
             await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: false)
-            // Switch the toggle value only after stores have reconfigured
             vm.enableCloudSync = false
             _ = WorkspaceService.shared.ensureActiveWorkspaceID()
             await WorkspaceService.shared.assignWorkspaceIDIfMissing()
             if eraseLocal {
-                do { try CoreDataService.shared.wipeAllData() } catch { /* ignore */ }
+                do { try CoreDataService.shared.wipeAllData() } catch { }
                 UbiquitousFlags.clearHasCloudData()
             }
             isReconfiguringStores = false
         }
+    }
+
+    // MARK: Guided Walkthrough Helpers
+    private var settingsHintLookup: [GuidedWalkthroughManager.Hint: HintBubble] {
+        Dictionary(uniqueKeysWithValues: guidedWalkthrough.hints(for: .settings).map { ($0.id, $0) })
+    }
+
+    private func requestSettingsGuidedIfNeeded() {
+        guard !requestedGuidedWalkthrough else { return }
+        requestedGuidedWalkthrough = true
+        if guidedWalkthrough.shouldShowOverlay(for: .settings) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showGuidedOverlay = true
+            }
+        } else {
+            presentSettingsHints()
+        }
+    }
+
+    private func presentSettingsHints() {
+        for bubble in guidedWalkthrough.hints(for: .settings) where guidedWalkthrough.shouldShowHint(bubble.id) {
+            displaySettingsHint(bubble.id)
+        }
+    }
+
+    private func displaySettingsHint(_ hint: GuidedWalkthroughManager.Hint) {
+        guard guidedWalkthrough.shouldShowHint(hint) else { return }
+        guard !visibleGuidedHints.contains(hint) else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            visibleGuidedHints.insert(hint)
+        }
+        scheduleSettingsHintAutoHide(for: hint)
+    }
+
+    private func scheduleSettingsHintAutoHide(for hint: GuidedWalkthroughManager.Hint) {
+        guidedHintWorkItems[hint]?.cancel()
+        let work = DispatchWorkItem {
+            if visibleGuidedHints.contains(hint) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    visibleGuidedHints.remove(hint)
+                }
+            }
+            guidedWalkthrough.markHintSeen(hint)
+            guidedHintWorkItems[hint] = nil
+        }
+        guidedHintWorkItems[hint] = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0, execute: work)
+    }
+
+    private func cancelSettingsHintWork() {
+        for (_, work) in guidedHintWorkItems { work.cancel() }
+        guidedHintWorkItems.removeAll()
+        visibleGuidedHints.removeAll()
+        showGuidedOverlay = false
     }
 }
 
@@ -269,34 +358,59 @@ private struct CloudStatusControls: View {
     @StateObject private var cloud = CloudAccountStatusProvider()
 
     var body: some View {
-        VStack(spacing: 0) {
-            SettingsRow(title: "Cloud Status", detail: statusText) { statusDot }
-            Button(action: { cloud.requestAccountStatusCheck(force: true) }) {
-                SettingsRow(title: "Sync Now", detail: "Check") {
-                    Image(systemName: "arrow.clockwise").foregroundStyle(.secondary)
+        VStack(spacing: 10) {
+            SettingsRow(title: "Account Status", showsTopDivider: false) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(cloud.statusColor)
+                        .frame(width: 10, height: 10)
+                    Text(cloud.statusDescription)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .buttonStyle(.plain)
-        }
-        .onAppear { cloud.requestAccountStatusCheck(force: false) }
-    }
 
-    private var statusText: String {
-        switch cloud.isCloudAccountAvailable {
-        case nil: return "Checking…"
-        case .some(true): return "Available"
-        case .some(false): return "Unavailable"
-        }
-    }
-
-    @ViewBuilder private var statusDot: some View {
-        let color: Color = {
-            switch cloud.isCloudAccountAvailable {
-            case nil: return .orange
-            case .some(true): return .green
-            case .some(false): return .red
+            SettingsRow(title: "Last Synced") {
+                Text(cloud.lastSyncDescription)
+                    .foregroundStyle(.secondary)
             }
-        }()
-        Circle().fill(color).frame(width: 10, height: 10)
+        }
+        .task { cloud.start() }
+    }
+}
+
+// MARK: - SettingsRow Wrapper
+struct SettingsRow<Content: View>: View {
+    let title: String
+    var detail: String? = nil
+    var showsTopDivider: Bool = true
+    @ViewBuilder var trailing: Content
+
+    init(title: String, detail: String? = nil, showsTopDivider: Bool = true, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.detail = detail
+        self.showsTopDivider = showsTopDivider
+        self.trailing = content()
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if showsTopDivider {
+                Divider()
+            }
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.body.weight(.semibold))
+                    if let detail = detail {
+                        Text(detail)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                trailing
+            }
+            .padding(.vertical, 12)
+        }
     }
 }

@@ -253,7 +253,7 @@ final class GuidedWalkthroughManager: ObservableObject {
     }
 
     func shouldShowHint(_ hint: Hint) -> Bool {
-        guard hint(for: hint) != nil else { return false }
+        guard self.hint(for: hint) != nil else { return false }
         return !hintSeen(hint)
     }
 
@@ -418,11 +418,11 @@ struct GuidedOverlayView: View {
     private var background: some View {
         if capabilities.supportsOS26Translucency,
            #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(Color.clear)
                 .glassEffect(.regular.tint(.clear).interactive(true))
         } else {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
                 .shadow(color: Color.black.opacity(0.25), radius: 18, x: 0, y: 10)
         }
@@ -450,7 +450,7 @@ struct HintBubbleView: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 14)
         .background(bubbleBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .shadow(color: Color.black.opacity(0.18), radius: 8, x: 0, y: 4)
         .allowsHitTesting(false)
         .transition(.opacity)
@@ -460,11 +460,11 @@ struct HintBubbleView: View {
     private var bubbleBackground: some View {
         if capabilities.supportsOS26Translucency,
            #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(Color.clear)
                 .glassEffect(.regular.tint(.clear).interactive(true))
         } else {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(Color.black.opacity(0.75))
         }
     }

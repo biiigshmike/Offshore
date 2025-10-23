@@ -328,7 +328,7 @@ struct SettingsView: View {
         guard guidedWalkthrough.shouldShowHint(hint) else { return }
         guard !visibleGuidedHints.contains(hint) else { return }
         withAnimation(.easeInOut(duration: 0.25)) {
-            visibleGuidedHints.insert(hint)
+            _ = visibleGuidedHints.insert(hint)
         }
         scheduleSettingsHintAutoHide(for: hint)
     }
@@ -338,7 +338,7 @@ struct SettingsView: View {
         let work = DispatchWorkItem {
             if visibleGuidedHints.contains(hint) {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    visibleGuidedHints.remove(hint)
+                    _ = visibleGuidedHints.remove(hint)
                 }
             }
             guidedWalkthrough.markHintSeen(hint)
@@ -365,55 +365,38 @@ private struct CloudStatusControls: View {
             SettingsRow(title: "Account Status", showsTopDivider: false) {
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(cloud.statusColor)
+                        .fill(statusColor)
                         .frame(width: 10, height: 10)
-                    Text(cloud.statusDescription)
+                    Text(statusDescription)
                         .foregroundStyle(.secondary)
                 }
             }
 
             SettingsRow(title: "Last Synced") {
-                Text(cloud.lastSyncDescription)
+                Text("—")
                     .foregroundStyle(.secondary)
             }
         }
-        .task { cloud.start() }
+        .onAppear { cloud.requestAccountStatusCheck(force: true) }
     }
 }
 
-// MARK: - SettingsRow Wrapper
-struct SettingsRow<Content: View>: View {
-    let title: String
-    var detail: String? = nil
-    var showsTopDivider: Bool = true
-    @ViewBuilder var trailing: Content
-
-    init(title: String, detail: String? = nil, showsTopDivider: Bool = true, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.detail = detail
-        self.showsTopDivider = showsTopDivider
-        self.trailing = content()
+private extension CloudStatusControls {
+    var statusColor: Color {
+        switch cloud.availability {
+        case .available: return .green
+        case .unavailable: return .red
+        case .unknown: return .yellow
+        }
     }
 
-    var body: some View {
-        VStack(spacing: 0) {
-            if showsTopDivider {
-                Divider()
-            }
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.body.weight(.semibold))
-                    if let detail = detail {
-                        Text(detail)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer()
-                trailing
-            }
-            .padding(.vertical, 12)
+    var statusDescription: String {
+        switch cloud.availability {
+        case .available: return "Available"
+        case .unavailable: return "Unavailable"
+        case .unknown: return "Checking…"
         }
     }
 }
+
+// Intentionally empty: SettingsRow is defined in SettingsViewModel.swift

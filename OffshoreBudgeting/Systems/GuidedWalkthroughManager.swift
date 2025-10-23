@@ -97,9 +97,6 @@ final class GuidedWalkthroughManager: ObservableObject {
     @AppStorage("guided.hint.settings.data")
     private var settingsDataSeen: Bool = false { willSet { objectWillChange.send() } }
 
-    @AppStorage("didCompleteOnboarding")
-    private var didCompleteOnboarding: Bool = false { willSet { objectWillChange.send() } }
-
     // MARK: Content Catalog
     private let overlaysByScreen: [Screen: Overlay]
     private let hintsByScreen: [Screen: [HintBubble]]
@@ -261,18 +258,6 @@ final class GuidedWalkthroughManager: ObservableObject {
         if !hintSeen(hint) {
             setHint(hint, seen: true)
         }
-    }
-
-    func resetAll() {
-        Screen.allCases.forEach { screen in
-            setOverlay(seen: false, for: screen)
-        }
-
-        Hint.allCases.forEach { hint in
-            setHint(hint, seen: false)
-        }
-
-        didCompleteOnboarding = false
     }
 
     // MARK: Overlay Persistence helpers

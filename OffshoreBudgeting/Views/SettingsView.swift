@@ -193,10 +193,7 @@ struct SettingsView: View {
                     subtitle: "Replay the initial setup flow."
                 ) {
                     VStack(spacing: 0) {
-                        Button(action: {
-                            guidedWalkthrough.resetAll()
-                            didCompleteOnboarding = false
-                        }) {
+                        Button(action: { didCompleteOnboarding = false }) {
                             SettingsRow(title: "Repeat Onboarding Process", showsTopDivider: false) { EmptyView() }
                         }
                         .buttonStyle(.plain)

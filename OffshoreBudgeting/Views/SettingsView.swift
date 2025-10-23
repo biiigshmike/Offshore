@@ -328,7 +328,7 @@ struct SettingsView: View {
         guard guidedWalkthrough.shouldShowHint(hint) else { return }
         guard !visibleGuidedHints.contains(hint) else { return }
         withAnimation(.easeInOut(duration: 0.25)) {
-            _ = visibleGuidedHints.insert(hint)
+            visibleGuidedHints.insert(hint)
         }
         scheduleSettingsHintAutoHide(for: hint)
     }
@@ -338,7 +338,7 @@ struct SettingsView: View {
         let work = DispatchWorkItem {
             if visibleGuidedHints.contains(hint) {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    _ = visibleGuidedHints.remove(hint)
+                    visibleGuidedHints.remove(hint)
                 }
             }
             guidedWalkthrough.markHintSeen(hint)

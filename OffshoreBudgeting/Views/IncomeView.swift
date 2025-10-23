@@ -178,7 +178,7 @@ struct IncomeView: View {
         guard guidedWalkthrough.shouldShowHint(hint) else { return }
         guard !visibleGuidedHints.contains(hint) else { return }
         withAnimation(.easeInOut(duration: 0.25)) {
-            _ = visibleGuidedHints.insert(hint)
+            visibleGuidedHints.insert(hint)
         }
         scheduleIncomeHintAutoHide(for: hint)
     }
@@ -188,7 +188,7 @@ struct IncomeView: View {
         let work = DispatchWorkItem {
             if visibleGuidedHints.contains(hint) {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    _ = visibleGuidedHints.remove(hint)
+                    visibleGuidedHints.remove(hint)
                 }
             }
             guidedWalkthrough.markHintSeen(hint)
@@ -204,7 +204,7 @@ struct IncomeView: View {
         }
         if visibleGuidedHints.contains(hint) {
             withAnimation(.easeInOut(duration: 0.2)) {
-                _ = visibleGuidedHints.remove(hint)
+                visibleGuidedHints.remove(hint)
             }
         }
         guidedWalkthrough.markHintSeen(hint)

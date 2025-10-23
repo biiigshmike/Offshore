@@ -190,7 +190,7 @@ struct PresetsView: View {
         guard guidedWalkthrough.shouldShowHint(hint) else { return }
         guard !visibleGuidedHints.contains(hint) else { return }
         withAnimation(.easeInOut(duration: 0.25)) {
-            _ = visibleGuidedHints.insert(hint)
+            visibleGuidedHints.insert(hint)
         }
         schedulePresetsHintAutoHide(for: hint)
     }
@@ -200,7 +200,7 @@ struct PresetsView: View {
         let work = DispatchWorkItem {
             if visibleGuidedHints.contains(hint) {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    _ = visibleGuidedHints.remove(hint)
+                    visibleGuidedHints.remove(hint)
                 }
             }
             guidedWalkthrough.markHintSeen(hint)
@@ -216,7 +216,7 @@ struct PresetsView: View {
         }
         if visibleGuidedHints.contains(hint) {
             withAnimation(.easeInOut(duration: 0.2)) {
-                _ = visibleGuidedHints.remove(hint)
+                visibleGuidedHints.remove(hint)
             }
         }
         guidedWalkthrough.markHintSeen(hint)

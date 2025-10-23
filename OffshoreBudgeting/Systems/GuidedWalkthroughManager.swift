@@ -253,7 +253,7 @@ final class GuidedWalkthroughManager: ObservableObject {
     }
 
     func shouldShowHint(_ hint: Hint) -> Bool {
-        guard self.hint(for: hint) != nil else { return false }
+        guard hint(for: hint) != nil else { return false }
         return !hintSeen(hint)
     }
 

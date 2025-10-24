@@ -27,39 +27,19 @@ struct IncomeView: View {
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
     private var confirmBeforeDelete: Bool = true
 
-    @EnvironmentObject private var guidedWalkthrough: GuidedWalkthroughManager
-
-    // MARK: Guided Walkthrough State
-    @State private var showGuidedOverlay: Bool = false
-    @State private var requestedGuidedWalkthrough: Bool = false
-    @State private var visibleGuidedHints: Set<GuidedWalkthroughManager.Hint> = []
-    @State private var guidedHintWorkItems: [GuidedWalkthroughManager.Hint: DispatchWorkItem] = [:]
+    // Guided walkthrough removed
 
     @State private var incomePendingDeletion: Income?
     @State private var isConfirmingDelete: Bool = false
 
     // MARK: Body
     var body: some View {
-        ZStack {
-            incomeContent
-            if showGuidedOverlay, let overlay = guidedWalkthrough.overlay(for: .income) {
-                GuidedOverlayView(
-                    overlay: overlay,
-                    onDismiss: {
-                        showGuidedOverlay = false
-                        guidedWalkthrough.markOverlaySeen(for: .income)
-                    },
-                    nextAction: presentIncomeHints
-                )
-                .transition(.opacity)
-            }
-        }
+        incomeContent
         .onAppear {
-            requestIncomeGuidedIfNeeded()
             vm.reloadForSelectedDay(forceMonthReload: true)
             calendarScrollDate = normalize(Date())
         }
-        .onDisappear { cancelIncomeHintWork() }
+        
     }
 
     @ViewBuilder
@@ -140,102 +120,20 @@ struct IncomeView: View {
         } message: {
             Text("This will remove the income entry.")
         }
-        .overlay(alignment: .topTrailing) {
-            if visibleGuidedHints.contains(.incomeEdit),
-               let bubble = incomeHintLookup[.incomeEdit],
-               !vm.incomesForDay.isEmpty {
-                HintBubbleView(hint: bubble)
-                    .padding(.top, 130)
-                    .padding(.trailing, 20)
-            }
-        }
+        
     }
 
-    // MARK: Guided Walkthrough Helpers
-    private var incomeHintLookup: [GuidedWalkthroughManager.Hint: HintBubble] {
-        Dictionary(uniqueKeysWithValues: guidedWalkthrough.hints(for: .income).map { ($0.id, $0) })
-    }
-
-    private func requestIncomeGuidedIfNeeded() {
-        guard !requestedGuidedWalkthrough else { return }
-        requestedGuidedWalkthrough = true
-        if guidedWalkthrough.shouldShowOverlay(for: .income) {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                showGuidedOverlay = true
-            }
-        } else {
-            presentIncomeHints()
-        }
-    }
-
-    private func presentIncomeHints() {
-        for bubble in guidedWalkthrough.hints(for: .income) where guidedWalkthrough.shouldShowHint(bubble.id) {
-            displayIncomeHint(bubble.id)
-        }
-    }
-
-    private func displayIncomeHint(_ hint: GuidedWalkthroughManager.Hint) {
-        guard guidedWalkthrough.shouldShowHint(hint) else { return }
-        guard !visibleGuidedHints.contains(hint) else { return }
-        withAnimation(.easeInOut(duration: 0.25)) {
-            visibleGuidedHints.insert(hint)
-        }
-        scheduleIncomeHintAutoHide(for: hint)
-    }
-
-    private func scheduleIncomeHintAutoHide(for hint: GuidedWalkthroughManager.Hint) {
-        guidedHintWorkItems[hint]?.cancel()
-        let work = DispatchWorkItem {
-            if visibleGuidedHints.contains(hint) {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    visibleGuidedHints.remove(hint)
-                }
-            }
-            guidedWalkthrough.markHintSeen(hint)
-            guidedHintWorkItems[hint] = nil
-        }
-        guidedHintWorkItems[hint] = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0, execute: work)
-    }
-
-    private func hideIncomeHint(_ hint: GuidedWalkthroughManager.Hint) {
-        if let work = guidedHintWorkItems.removeValue(forKey: hint) {
-            work.cancel()
-        }
-        if visibleGuidedHints.contains(hint) {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                visibleGuidedHints.remove(hint)
-            }
-        }
-        guidedWalkthrough.markHintSeen(hint)
-    }
-
-    private func cancelIncomeHintWork() {
-        for (_, work) in guidedHintWorkItems { work.cancel() }
-        guidedHintWorkItems.removeAll()
-        visibleGuidedHints.removeAll()
-        showGuidedOverlay = false
-    }
+    // Guided walkthrough removed
 
     // MARK: Toolbar
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             // Clear, no-background toolbar icon per design
-            Buttons.toolbarIcon("plus") {
-                hideIncomeHint(.incomeAdd)
-                addIncome()
-            }
+            Buttons.toolbarIcon("plus") { addIncome() }
             .accessibilityLabel("Add Income")
             .accessibilityIdentifier("btn_add_income")
-            .overlay(alignment: .topTrailing) {
-                if visibleGuidedHints.contains(.incomeAdd),
-                   let bubble = incomeHintLookup[.incomeAdd] {
-                    HintBubbleView(hint: bubble)
-                        .offset(x: 16, y: -50)
-                }
-            }
-            .simultaneousGesture(TapGesture().onEnded { hideIncomeHint(.incomeAdd) })
+            
         }
         if uiTest.showTestControls {
             ToolbarItem(placement: .navigationBarTrailing) {

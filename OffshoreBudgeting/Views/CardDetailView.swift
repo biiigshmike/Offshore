@@ -24,8 +24,8 @@ struct CardDetailView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var guidedWalkthrough: GuidedWalkthroughManager
-    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
+    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
+    private var confirmBeforeDelete: Bool = true
     @State private var isSearchActive: Bool = false
     @FocusState private var isSearchFieldFocused: Bool
     // Add flows
@@ -35,11 +35,7 @@ struct CardDetailView: View {
     @State private var deletionError: DeletionError?
     @State private var editingExpense: CardExpense?
 
-    // MARK: Guided Walkthrough State
-    @State private var requestedGuidedHints: Bool = false
-    @State private var visibleGuidedHints: Set<GuidedWalkthroughManager.Hint> = []
-    @State private var guidedHintWorkItems: [GuidedWalkthroughManager.Hint: DispatchWorkItem] = [:]
-
+    // Guided walkthrough state removed
     // No longer tracking header offset via state; the header is rendered
     // outside of the scroll view and does not need to drive layout of the
     // underlying content.
@@ -148,8 +144,7 @@ struct CardDetailView: View {
             configuration: themeManager.glassConfiguration,
             ignoringSafeArea: .all
         )
-        .onAppear { requestCardDetailHintsIfNeeded() }
-        .onDisappear { cancelCardDetailHintWork() }
+        
 
     }
 
@@ -388,56 +383,29 @@ struct CardDetailView: View {
                             }
                         }
                     } else {
-                        ZStack(alignment: .topTrailing) {
-                            IconOnlyButton(systemName: "magnifyingglass") {
-                                hideCardDetailHint(.cardDetailSearch)
-                                withAnimation { isSearchActive = true }
-                                isSearchFieldFocused = true
-                            }
-                            if visibleGuidedHints.contains(.cardDetailSearch),
-                               let bubble = cardDetailHintLookup[.cardDetailSearch] {
-                                HintBubbleView(hint: bubble)
-                                    .offset(x: 12, y: -44)
-                            }
+                        IconOnlyButton(systemName: "magnifyingglass") {
+                            withAnimation { isSearchActive = true }
+                            isSearchFieldFocused = true
                         }
-                        .simultaneousGesture(TapGesture().onEnded { hideCardDetailHint(.cardDetailSearch) })
 
-                        ZStack(alignment: .topTrailing) {
-                            IconOnlyButton(systemName: "pencil") {
-                                hideCardDetailHint(.cardDetailEdit)
-                                isPresentingEditCard = true
-                            }
-                            if visibleGuidedHints.contains(.cardDetailEdit),
-                               let bubble = cardDetailHintLookup[.cardDetailEdit] {
-                                HintBubbleView(hint: bubble)
-                                    .offset(x: 12, y: -44)
-                            }
+                        IconOnlyButton(systemName: "pencil") {
+                            isPresentingEditCard = true
                         }
-                        .simultaneousGesture(TapGesture().onEnded { hideCardDetailHint(.cardDetailEdit) })
                         // Add Expense menu (Planned or Variable) — rightmost control
                         Menu {
                             Button("Add Planned Expense") {
-                                hideCardDetailHint(.cardDetailAddExpense)
                                 isPresentingAddPlanned = true
                             }
                             Button("Add Variable Expense") {
-                                hideCardDetailHint(.cardDetailAddExpense)
                                 isPresentingAddExpense = true
                             }
                         } label: {
                             Image(systemName: "plus")
                                 .font(.system(size: 18, weight: .semibold))
                                 .symbolRenderingMode(.monochrome)
-                                .overlay(alignment: .topTrailing) {
-                                    if visibleGuidedHints.contains(.cardDetailAddExpense),
-                                       let bubble = cardDetailHintLookup[.cardDetailAddExpense] {
-                                        HintBubbleView(hint: bubble)
-                                            .offset(x: 12, y: -44)
-                                    }
-                                }
                         }
                         .accessibilityLabel("Add Expense")
-                        .simultaneousGesture(TapGesture().onEnded { hideCardDetailHint(.cardDetailAddExpense) })
+                        
                     }
                 }
             }
@@ -468,63 +436,7 @@ struct CardDetailView: View {
     }
 
     // MARK: Guided Walkthrough Helpers
-    private var cardDetailHintLookup: [GuidedWalkthroughManager.Hint: HintBubble] {
-        Dictionary(uniqueKeysWithValues: guidedWalkthrough.hints(for: .cardDetail).map { ($0.id, $0) })
-    }
-
-    private func requestCardDetailHintsIfNeeded() {
-        guard !requestedGuidedHints else { return }
-        requestedGuidedHints = true
-        presentCardDetailHints()
-    }
-
-    private func presentCardDetailHints() {
-        for bubble in guidedWalkthrough.hints(for: .cardDetail) where guidedWalkthrough.shouldShowHint(bubble.id) {
-            displayCardDetailHint(bubble.id)
-        }
-    }
-
-    private func displayCardDetailHint(_ hint: GuidedWalkthroughManager.Hint) {
-        guard guidedWalkthrough.shouldShowHint(hint) else { return }
-        guard !visibleGuidedHints.contains(hint) else { return }
-        withAnimation(.easeInOut(duration: 0.25)) {
-            visibleGuidedHints.insert(hint)
-        }
-        scheduleCardDetailHintAutoHide(for: hint)
-    }
-
-    private func scheduleCardDetailHintAutoHide(for hint: GuidedWalkthroughManager.Hint) {
-        guidedHintWorkItems[hint]?.cancel()
-        let work = DispatchWorkItem {
-            if visibleGuidedHints.contains(hint) {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    visibleGuidedHints.remove(hint)
-                }
-            }
-            guidedWalkthrough.markHintSeen(hint)
-            guidedHintWorkItems[hint] = nil
-        }
-        guidedHintWorkItems[hint] = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0, execute: work)
-    }
-
-    private func hideCardDetailHint(_ hint: GuidedWalkthroughManager.Hint) {
-        if let work = guidedHintWorkItems.removeValue(forKey: hint) {
-            work.cancel()
-        }
-        if visibleGuidedHints.contains(hint) {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                visibleGuidedHints.remove(hint)
-            }
-        }
-        guidedWalkthrough.markHintSeen(hint)
-    }
-
-    private func cancelCardDetailHintWork() {
-        for (_, work) in guidedHintWorkItems { work.cancel() }
-        guidedHintWorkItems.removeAll()
-        visibleGuidedHints.removeAll()
-    }
+    // Guided walkthrough removed
 
     // The sectionOffset helper and associated preference key were removed
     // because the card header is no longer rendered in this view, eliminating

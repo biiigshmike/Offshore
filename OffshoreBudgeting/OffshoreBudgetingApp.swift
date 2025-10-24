@@ -16,7 +16,6 @@ struct OffshoreBudgetingApp: App {
     // MARK: Dependencies
     @StateObject private var themeManager = ThemeManager()
     @State private var cardPickerStore: CardPickerStore?
-    @StateObject private var guidedWalkthroughManager = GuidedWalkthroughManager()
     @State private var coreDataReady = false
     @State private var dataReady = false
     @State private var isSyncing = false
@@ -96,7 +95,6 @@ struct OffshoreBudgetingApp: App {
         let startTab = ProcessInfo.processInfo.environment["UITEST_START_TAB"]
         let base = content()
             .environmentObject(themeManager)
-            .environmentObject(guidedWalkthroughManager)
             .ifLet(cardPickerStore) { view, store in
                 view.environmentObject(store)
             }

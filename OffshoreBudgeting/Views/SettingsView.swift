@@ -7,8 +7,7 @@ import CoreData
 struct SettingsView: View {
     // MARK: Env
     @Environment(\.managedObjectContext) private var viewContext
-    @EnvironmentObject private var guidedWalkthrough: GuidedWalkthroughManager
-
+    
     // MARK: State
     @StateObject private var vm = SettingsViewModel()
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
@@ -19,30 +18,9 @@ struct SettingsView: View {
     @State private var showDisableCloudOptions = false
     @State private var isReconfiguringStores = false
 
-    // MARK: Guided Walkthrough State
-    @State private var showGuidedOverlay: Bool = false
-    @State private var requestedGuidedWalkthrough: Bool = false
-    @State private var visibleGuidedHints: Set<GuidedWalkthroughManager.Hint> = []
-    @State private var guidedHintWorkItems: [GuidedWalkthroughManager.Hint: DispatchWorkItem] = [:]
+    // Guided walkthrough removed
 
-    var body: some View {
-        ZStack {
-            settingsContent
-            if showGuidedOverlay, let overlay = guidedWalkthrough.overlay(for: .settings) {
-                GuidedOverlayView(
-                    overlay: overlay,
-                    onDismiss: {
-                        showGuidedOverlay = false
-                        guidedWalkthrough.markOverlaySeen(for: .settings)
-                    },
-                    nextAction: presentSettingsHints
-                )
-                .transition(.opacity)
-            }
-        }
-        .onAppear { requestSettingsGuidedIfNeeded() }
-        .onDisappear { cancelSettingsHintWork() }
-    }
+    var body: some View { settingsContent }
 
     @ViewBuilder
     private var settingsContent: some View {
@@ -66,13 +44,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                .overlay(alignment: .topLeading) {
-                    if visibleGuidedHints.contains(.settingsGeneral),
-                       let bubble = settingsHintLookup[.settingsGeneral] {
-                        HintBubbleView(hint: bubble)
-                            .offset(x: 16, y: -20)
-                    }
-                }
+                
 
                 // Expense Categories
                 SettingsCard(
@@ -92,13 +64,7 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .overlay(alignment: .topLeading) {
-                    if visibleGuidedHints.contains(.settingsCategories),
-                       let bubble = settingsHintLookup[.settingsCategories] {
-                        HintBubbleView(hint: bubble)
-                            .offset(x: 16, y: -20)
-                    }
-                }
+                
 
                 // iCloud Sync
                 SettingsCard(
@@ -133,7 +99,6 @@ struct SettingsView: View {
                             ))
                             .labelsHidden()
                         }
-                        CloudStatusControls()
                         SettingsRow(title: "Sync Card Themes") {
                             Toggle("", isOn: $vm.syncCardThemes)
                                 .labelsHidden()
@@ -162,13 +127,7 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .overlay(alignment: .topLeading) {
-                    if visibleGuidedHints.contains(.settingsData),
-                       let bubble = settingsHintLookup[.settingsData] {
-                        HintBubbleView(hint: bubble)
-                            .offset(x: 16, y: -20)
-                    }
-                }
+                
 
                 // Help
                 SettingsCard(
@@ -298,102 +257,7 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Guided Walkthrough Helpers
-    private var settingsHintLookup: [GuidedWalkthroughManager.Hint: HintBubble] {
-        Dictionary(uniqueKeysWithValues: guidedWalkthrough.hints(for: .settings).map { ($0.id, $0) })
-    }
-
-    private func requestSettingsGuidedIfNeeded() {
-        guard !requestedGuidedWalkthrough else { return }
-        requestedGuidedWalkthrough = true
-        if guidedWalkthrough.shouldShowOverlay(for: .settings) {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                showGuidedOverlay = true
-            }
-        } else {
-            presentSettingsHints()
-        }
-    }
-
-    private func presentSettingsHints() {
-        for bubble in guidedWalkthrough.hints(for: .settings) where guidedWalkthrough.shouldShowHint(bubble.id) {
-            displaySettingsHint(bubble.id)
-        }
-    }
-
-    private func displaySettingsHint(_ hint: GuidedWalkthroughManager.Hint) {
-        guard guidedWalkthrough.shouldShowHint(hint) else { return }
-        guard !visibleGuidedHints.contains(hint) else { return }
-        withAnimation(.easeInOut(duration: 0.25)) {
-            visibleGuidedHints.insert(hint)
-        }
-        scheduleSettingsHintAutoHide(for: hint)
-    }
-
-    private func scheduleSettingsHintAutoHide(for hint: GuidedWalkthroughManager.Hint) {
-        guidedHintWorkItems[hint]?.cancel()
-        let work = DispatchWorkItem {
-            if visibleGuidedHints.contains(hint) {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    visibleGuidedHints.remove(hint)
-                }
-            }
-            guidedWalkthrough.markHintSeen(hint)
-            guidedHintWorkItems[hint] = nil
-        }
-        guidedHintWorkItems[hint] = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0, execute: work)
-    }
-
-    private func cancelSettingsHintWork() {
-        for (_, work) in guidedHintWorkItems { work.cancel() }
-        guidedHintWorkItems.removeAll()
-        visibleGuidedHints.removeAll()
-        showGuidedOverlay = false
-    }
-}
-
-// MARK: - Cloud Status Row
-private struct CloudStatusControls: View {
-    @StateObject private var cloud = CloudAccountStatusProvider()
-
-    var body: some View {
-        VStack(spacing: 10) {
-            SettingsRow(title: "Account Status", showsTopDivider: false) {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(statusColor)
-                        .frame(width: 10, height: 10)
-                    Text(statusDescription)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            SettingsRow(title: "Last Synced") {
-                Text("—")
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .onAppear { cloud.requestAccountStatusCheck(force: true) }
-    }
-}
-
-private extension CloudStatusControls {
-    var statusColor: Color {
-        switch cloud.availability {
-        case .available: return .green
-        case .unavailable: return .red
-        case .unknown: return .yellow
-        }
-    }
-
-    var statusDescription: String {
-        switch cloud.availability {
-        case .available: return "Available"
-        case .unavailable: return "Unavailable"
-        case .unknown: return "Checking…"
-        }
-    }
+    // Guided walkthrough removed
 }
 
 // Intentionally empty: SettingsRow is defined in SettingsViewModel.swift

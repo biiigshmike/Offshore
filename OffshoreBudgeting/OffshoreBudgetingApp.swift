@@ -127,6 +127,27 @@ struct OffshoreBudgetingApp: App {
                         if CloudDataProbe().hasAnyData() { UbiquitousFlags.setHasCloudDataTrue() }
                     }
                     await WorkspaceService.shared.initializeOnLaunch()
+#if DEBUG
+                    #if targetEnvironment(simulator) || targetEnvironment(macCatalyst)
+                    if DemoSeedConfiguration.shouldSeedOnLaunch() {
+                        let shouldReset = DemoSeedConfiguration.shouldResetBeforeSeed()
+                        var resetFailed = false
+                        if shouldReset {
+                            do {
+                                try CoreDataService.shared.wipeAllData()
+                                DemoSeedConfiguration.clearSeedVersion()
+                            } catch {
+                                AppLog.service.error("Demo seed reset failed: \(String(describing: error))")
+                                resetFailed = true
+                            }
+                        }
+                        if !resetFailed {
+                            await DemoDataSeeder(overrideShouldResetBeforeSeed: shouldReset ? false : nil).seedIfNeeded()
+                            dataRevision &+= 1
+                        }
+                    }
+                    #endif
+#endif
                     // Ensure KVS-based sync services reflect current settings
                     CardAppearanceStore.shared.applySettingsChanged()
                     BudgetPreferenceSync.shared.applySettingsChanged()
@@ -245,7 +266,7 @@ struct OffshoreBudgetingApp: App {
         if let seed = env["UITEST_SEED"], !seed.isEmpty {
             Task { @MainActor in
                 await CoreDataService.shared.waitUntilStoresLoaded(timeout: 5.0)
-                seedForUITests(scenario: seed)
+                await seedForUITests(scenario: seed)
             }
         }
 #endif
@@ -382,10 +403,29 @@ private extension OffshoreBudgetingApp {
     }
 
     @MainActor
-    func seedForUITests(scenario: String) {
+    func seedForUITests(scenario: String) async {
         let ctx = CoreDataService.shared.viewContext
         switch scenario.lowercased() {
         case "empty":
+            return
+        case "demo":
+#if DEBUG
+            guard DemoSeedConfiguration.shouldSeedOnLaunch() else { return }
+            let shouldReset = DemoSeedConfiguration.shouldResetBeforeSeed()
+            var resetFailed = false
+            if shouldReset {
+                do {
+                    try CoreDataService.shared.wipeAllData()
+                    DemoSeedConfiguration.clearSeedVersion()
+                } catch {
+                    AppLog.service.error("UI test demo seed reset failed: \(String(describing: error))")
+                    resetFailed = true
+                }
+            }
+            if !resetFailed {
+                await DemoDataSeeder(overrideShouldResetBeforeSeed: shouldReset ? false : nil).seedIfNeeded()
+            }
+#endif
             return
         case "income1":
             let inc = Income(context: ctx)

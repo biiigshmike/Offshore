@@ -25,6 +25,8 @@ enum DemoSeedConfiguration {
     private static let userDefaultsVersionKey = "UBDemoSeedVersion"
     private static let currentSeedVersion = 1
 
+    static var seedVersion: Int { currentSeedVersion }
+
     private static var isSupportedDebugTarget: Bool {
         #if targetEnvironment(simulator)
         return true

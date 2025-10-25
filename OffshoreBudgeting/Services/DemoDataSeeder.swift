@@ -363,4 +363,15 @@ struct DemoDataSeeder {
     // MARK: Constants
     private static let seedVersionDefaultsKey = "UBDemoSeedVersion"
 }
+
+extension DemoDataSeeder {
+    init(overrideSeedMode: DemoSeedConfiguration.SeedMode? = nil,
+         overrideShouldResetBeforeSeed: Bool? = nil) {
+        let resolvedSeedMode = overrideSeedMode ?? DemoSeedConfiguration.seedMode()
+        let resolvedShouldReset = overrideShouldResetBeforeSeed ?? DemoSeedConfiguration.shouldResetBeforeSeed()
+        self.init(seedVersion: DemoSeedConfiguration.seedVersion,
+                  seedMode: resolvedSeedMode,
+                  shouldResetBeforeSeed: resolvedShouldReset)
+    }
+}
 #endif

@@ -57,6 +57,7 @@ struct CardTileView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(card.name)\(isSelected ? ", selected" : "")"))
         .accessibilityHint(Text("Tap to select card"))
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
         .accessibilityIdentifier("card_tile_\(card.id)")
     }
 }
@@ -84,9 +85,11 @@ private extension CardTileView {
         }
         .aspectRatio(aspectRatio, contentMode: .fit)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(selectionBackdropOverlay)
         .overlay(selectionRingOverlay) // <- inner visible ring
         .overlay(selectionGlowOverlay) // <- outer glow (pretty when not clipped)
         .overlay(thinEdgeOverlay)
+        .overlay(alignment: .topTrailing) { selectionBadgeOverlay }
         //.shadow(color: .black.opacity(showsBaseShadow ? 0.20 : 0), radius: showsBaseShadow ? 6 : 0, x: 0, y: showsBaseShadow ? 4 : 0)
     }
 
@@ -104,13 +107,13 @@ private extension CardTileView {
                 isSelected
                 ? card.theme.glowColor.opacity(0.95)
                 : .clear,
-                lineWidth: isSelected ? 2.5 : 0
+                lineWidth: isSelected ? 4 : 0
             )
             .overlay(
-                // Subtle inner assist ring to help on very bright cards
-                RoundedRectangle(cornerRadius: cornerRadius - 1.5, style: .continuous)
-                    .inset(by: 1.5)
-                    .stroke(isSelected ? Color.white.opacity(0.45) : .clear, lineWidth: isSelected ? 0.8 : 0)
+                // Neutral assist ring keeps the outline legible on both light and dark themes.
+                RoundedRectangle(cornerRadius: cornerRadius - 2.5, style: .continuous)
+                    .inset(by: 2.5)
+                    .stroke(isSelected ? Color.white.opacity(0.6) : .clear, lineWidth: isSelected ? 1.5 : 0)
             )
             .allowsHitTesting(false)
     }
@@ -135,6 +138,39 @@ private extension CardTileView {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .strokeBorder(Color.primary.opacity(0.18), lineWidth: 1)
             .allowsHitTesting(false)
+    }
+
+    // MARK: Selection Backdrop
+    /// Softly tints the tile body with the glow color for additional emphasis.
+    var selectionBackdropOverlay: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(card.theme.glowColor)
+            .opacity(isSelected ? 0.18 : 0)
+            .blur(radius: isSelected ? 18 : 0)
+            .blendMode(.screen)
+            .compositingGroup()
+            .allowsHitTesting(false)
+    }
+
+    // MARK: Selection Badge
+    var selectionBadgeOverlay: some View {
+        Group {
+            if isSelected {
+                Capsule(style: .continuous)
+                    .fill(card.theme.glowColor.opacity(0.9))
+                    .overlay(
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                    )
+                    .shadow(color: card.theme.glowColor.opacity(0.35), radius: 6, x: 0, y: 2)
+                    .padding(DS.Spacing.s)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
     }
 
     // MARK: Title builder

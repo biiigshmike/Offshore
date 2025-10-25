@@ -84,6 +84,7 @@ private extension CardTileView {
         }
         .aspectRatio(aspectRatio, contentMode: .fit)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(selectionFillOverlay)
         .overlay(selectionRingOverlay) // <- inner visible ring
         .overlay(selectionGlowOverlay) // <- outer glow (pretty when not clipped)
         .overlay(thinEdgeOverlay)
@@ -95,6 +96,23 @@ private extension CardTileView {
         card.theme.backgroundStyle(for: themeManager.selectedTheme)
     }
 
+    // MARK: Selection Fill & Badge
+    /// Additional selected-state feedback using the accent color and blend modes.
+    var selectionFillOverlay: some View {
+        Group {
+            if isSelected {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(card.theme.selectionAccentColor.opacity(0.22))
+                    .blendMode(card.theme.selectionAccentBlendMode)
+                    .overlay(alignment: .topTrailing) {
+                        selectionBadge
+                            .padding(DS.Spacing.m)
+                    }
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
     // MARK: Selection Ring (always visible, not clipped)
     /// A high-contrast ring drawn INSIDE the card bounds so it can’t be clipped.
     var selectionRingOverlay: some View {
@@ -102,15 +120,18 @@ private extension CardTileView {
             .inset(by: 0.5) // keep the ring inside the edge
             .stroke(
                 isSelected
-                ? card.theme.glowColor.opacity(0.95)
+                ? card.theme.selectionAccentColor
                 : .clear,
-                lineWidth: isSelected ? 2.5 : 0
+                lineWidth: isSelected ? 3.2 : 0
             )
             .overlay(
                 // Subtle inner assist ring to help on very bright cards
-                RoundedRectangle(cornerRadius: cornerRadius - 1.5, style: .continuous)
-                    .inset(by: 1.5)
-                    .stroke(isSelected ? Color.white.opacity(0.45) : .clear, lineWidth: isSelected ? 0.8 : 0)
+                RoundedRectangle(cornerRadius: cornerRadius - 2.0, style: .continuous)
+                    .inset(by: 2.0)
+                    .stroke(
+                        isSelected ? card.theme.selectionAssistStrokeColor : .clear,
+                        lineWidth: isSelected ? 1.1 : 0
+                    )
             )
             .allowsHitTesting(false)
     }
@@ -155,5 +176,19 @@ private extension CardTileView {
                     .ub_cardTitleShadow()
             }
         }
+    }
+
+    // MARK: Selection Badge
+    var selectionBadge: some View {
+        ZStack {
+            Circle()
+                .fill(card.theme.selectionAccentColor.opacity(0.92))
+            Image(systemName: "checkmark")
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(card.theme.selectionGlyphColor)
+        }
+        .frame(width: 28, height: 28)
+        .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 3)
+        .accessibilityHidden(true)
     }
 }

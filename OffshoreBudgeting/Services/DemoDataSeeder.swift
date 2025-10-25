@@ -5,6 +5,7 @@ import SwiftUI
 
 // MARK: - DemoDataSeeder
 /// Seeds deterministic demo data for debug builds.
+@MainActor
 struct DemoDataSeeder {
 
     // MARK: Dependencies
@@ -29,14 +30,14 @@ struct DemoDataSeeder {
          seedMode: DemoSeedConfiguration.SeedMode,
          shouldResetBeforeSeed: Bool,
          coreData: CoreDataService = .shared,
-         workspaceService: WorkspaceService = .shared,
+         workspaceService: WorkspaceService,
          cardService: CardService = CardService(),
          budgetService: BudgetService = BudgetService(),
          incomeService: IncomeService = IncomeService(),
          plannedExpenseService: PlannedExpenseService = PlannedExpenseService(),
          unplannedExpenseService: UnplannedExpenseService = UnplannedExpenseService(),
          categoryService: ExpenseCategoryService = ExpenseCategoryService(),
-         cardAppearanceStore: CardAppearanceStore = .shared,
+         cardAppearanceStore: CardAppearanceStore,
          userDefaults: UserDefaults = .standard) {
         self.seedVersion = seedVersion
         self.seedMode = seedMode
@@ -371,7 +372,9 @@ extension DemoDataSeeder {
         let resolvedShouldReset = overrideShouldResetBeforeSeed ?? DemoSeedConfiguration.shouldResetBeforeSeed()
         self.init(seedVersion: DemoSeedConfiguration.seedVersion,
                   seedMode: resolvedSeedMode,
-                  shouldResetBeforeSeed: resolvedShouldReset)
+                  shouldResetBeforeSeed: resolvedShouldReset,
+                  workspaceService: WorkspaceService.shared,
+                  cardAppearanceStore: CardAppearanceStore.shared)
     }
 }
 #endif

@@ -1306,11 +1306,12 @@ private extension HomeView {
                             // Gauge preview
                             let current = currentAmountForChip(cat)
                             let lower = min(chipCapMin, chipCapMax)
-                            let upper = max(max(chipCapMin, chipCapMax), max(current, 1))
+                            let capUpper = max(chipCapMin, chipCapMax)
+                            let gaugeUpper = max(capUpper, max(current, 1))
                             let maxUnset = (segment == .variable) && !chipHasExplicitMaxCap
                             let exceeded = (!maxUnset) && (current > chipCapMax)
-                            let maxLabelString = maxUnset ? "—" : formatCurrency(upper)
-                            Gauge(value: min(max(current, lower), upper), in: lower...upper) {
+                            let maxLabelString = maxUnset ? "—" : formatCurrency(capUpper)
+                            Gauge(value: min(max(current, lower), gaugeUpper), in: lower...gaugeUpper) {
                             } currentValueLabel: {
                                 EmptyView()
                             } minimumValueLabel: {

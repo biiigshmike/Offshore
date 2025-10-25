@@ -60,7 +60,7 @@ struct CardPickerRow: View {
                 }
             }
             .padding(.horizontal, DS.Spacing.l)
-            .padding(.vertical, DS.Spacing.s)
+            .padding(.vertical, DS.Spacing.m)
         }
         // Hide indicators across platforms; remove neutral background for flat look
         .scrollIndicators(.hidden)

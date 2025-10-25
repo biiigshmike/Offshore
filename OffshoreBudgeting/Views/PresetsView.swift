@@ -41,7 +41,7 @@ struct PresetsView: View {
             } else {
                 List {
                     let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
-                    let firstID = vm.items.first?.id
+                    //let firstID = vm.items.first?.id
 
                     ForEach(vm.items) { item in
                         PresetRowView(item: item) { template in sheetTemplateToAssign = template }

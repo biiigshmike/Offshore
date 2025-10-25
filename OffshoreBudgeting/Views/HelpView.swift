@@ -121,7 +121,7 @@ struct HelpView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Overview and navigation:")
                     .font(.title3).bold()
-                Text("• Use the left and right chevrons to move between budget periods. The current period is selected by default.")
+                Text("• Use the left and right chevrons to move between budget periods. The current period is controlled by pressing the calendar icon, or by changing your default budget period in Settings.")
                 Text("• If no budget exists for the selected period, the top‑right shows only the ellipsis and calendar buttons. Tap the ellipsis to Create Budget.")
                 Text("• After a budget exists, the ellipsis menu includes Manage Cards, Manage Presets, Edit Budget, and Delete Budget.")
                 Text("• Use the calendar button to jump to a specific period and create budgets for it.")

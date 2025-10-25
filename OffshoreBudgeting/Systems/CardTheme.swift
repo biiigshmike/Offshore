@@ -29,6 +29,27 @@ private func rgbaComponents(from color: Color) -> (Double, Double, Double, Doubl
     return (Double(red), Double(green), Double(blue), Double(alpha))
 }
 
+private func relativeLuminance(red: Double, green: Double, blue: Double) -> Double {
+    func transform(_ channel: Double) -> Double {
+        if channel <= 0.03928 {
+            return channel / 12.92
+        } else {
+            return pow((channel + 0.055) / 1.055, 2.4)
+        }
+    }
+
+    let r = transform(red)
+    let g = transform(green)
+    let b = transform(blue)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+private func mixComponent(_ value: Double, toward target: Double, amount: Double) -> Double {
+    let clampedAmount = max(0, min(1, amount))
+    let mixed = value + (target - value) * clampedAmount
+    return max(0, min(1, mixed))
+}
+
 // MARK: - CardTheme
 /// Palette + behavior for card backgrounds and overlay patterns.
 enum CardTheme: String, CaseIterable, Identifiable, Codable {
@@ -108,6 +129,47 @@ enum CardTheme: String, CaseIterable, Identifiable, Codable {
     // MARK: Glow Color
     /// Use the leading gradient color as the selection glow.
     var glowColor: Color { colors.0 }
+
+    /// Accent used for high-contrast selection affordances.
+    var selectionAccentColor: Color {
+        guard let components = rgbaComponents(from: glowColor) else { return glowColor }
+
+        let luminance = relativeLuminance(red: components.0, green: components.1, blue: components.2)
+        let target: Double = luminance < 0.52 ? 1.0 : 0.0
+        let adjustmentAmount: Double = 0.55
+
+        let red = mixComponent(components.0, toward: target, amount: adjustmentAmount)
+        let green = mixComponent(components.1, toward: target, amount: adjustmentAmount)
+        let blue = mixComponent(components.2, toward: target, amount: adjustmentAmount)
+
+        return Color(red: red, green: green, blue: blue, opacity: max(0.6, components.3))
+    }
+
+    /// Whether the accent skews toward darker values (used for contrasts).
+    var selectionAccentIsDark: Bool {
+        guard let components = rgbaComponents(from: selectionAccentColor) else { return false }
+        let luminance = relativeLuminance(red: components.0, green: components.1, blue: components.2)
+        return luminance < 0.45
+    }
+
+    /// Stroke color used to provide an inner contrast ring inside the accent ring.
+    var selectionAssistStrokeColor: Color {
+        if selectionAccentIsDark {
+            return Color.white.opacity(0.55)
+        } else {
+            return Color.black.opacity(0.45)
+        }
+    }
+
+    /// Blend mode to use when layering translucent selection fills.
+    var selectionAccentBlendMode: BlendMode {
+        selectionAccentIsDark ? .plusDarker : .plusLighter
+    }
+
+    /// Glyph color that contrasts against the accent background.
+    var selectionGlyphColor: Color {
+        selectionAccentIsDark ? .white : .black
+    }
 
     /// Single flat color used when gradients should be avoided (System theme).
     var flatColor: Color {

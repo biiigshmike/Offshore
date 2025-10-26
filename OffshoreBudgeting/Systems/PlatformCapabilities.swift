@@ -32,7 +32,6 @@ extension PlatformCapabilities {
         // iOS/iPadOS peers.
         var supportsModernTranslucency = resolveOS26TranslucencySupport()
 
-        #if DEBUG
         // Developer / QA override to simulate legacy behaviour on devices
         // that support Liquid Glass. Debug‑only so Release builds always
         // prioritize OS26 styling on modern devices.
@@ -41,7 +40,6 @@ extension PlatformCapabilities {
         if forceLegacyByEnv || forceLegacyByDefaults {
             supportsModernTranslucency = false
         }
-        #endif
 
         #if targetEnvironment(macCatalyst)
         let supportsAdaptiveKeypad = false // Catalyst does not present iOS keypad layouts.

@@ -115,6 +115,13 @@ struct OffshoreBudgetingApp: App {
                     colorScheme: systemColorScheme,
                     platformCapabilities: platformCapabilities
                 )
+#if targetEnvironment(macCatalyst)
+                if let windowScene = UIApplication.shared.connectedScenes
+                    .compactMap({ $0 as? UIWindowScene })
+                    .first(where: { $0.activationState != .unattached }) {
+                    windowScene.sizeRestrictions?.minimumSize = CGSize(width: 2562, height: 1666)
+                }
+#endif
                 // Register for remote notifications so CloudKit can push changes.
                 UIApplication.shared.registerForRemoteNotifications()
                 Task { @MainActor in

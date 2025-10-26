@@ -115,21 +115,7 @@ struct OffshoreBudgetingApp: App {
                     colorScheme: systemColorScheme,
                     platformCapabilities: platformCapabilities
                 )
-#if targetEnvironment(macCatalyst)
-                if let windowScene = UIApplication.shared.connectedScenes
-                    .compactMap({ $0 as? UIWindowScene })
-                    .first(where: { $0.activationState != .unattached }) {
-                    let targetSize = CGSize(width: 2562, height: 1666)
-                    windowScene.sizeRestrictions?.minimumSize = targetSize
-                    windowScene.sizeRestrictions?.maximumSize = targetSize
 
-                    var macGeometry = UIWindowScene.GeometryPreferencesMac()
-                    macGeometry.size = targetSize
-                    windowScene.requestGeometryUpdate(macGeometry) { error in
-                        AppLog.ui.error("Failed to update Catalyst window geometry: \(error.localizedDescription)")
-                    }
-                }
-#endif
                 // Register for remote notifications so CloudKit can push changes.
                 UIApplication.shared.registerForRemoteNotifications()
                 Task { @MainActor in

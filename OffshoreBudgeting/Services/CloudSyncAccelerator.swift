@@ -31,17 +31,16 @@ final class CloudSyncAccelerator {
         lastNudge = now
 
         Task.detached(priority: .utility) {
-            // Use the default container for the warm-up to remain safe if
-            // the named container isn’t available in entitlements.
-            let container = CKContainer.default()
+            // Use the app's named container to match Core Data mirroring.
+            let container = CKContainer(identifier: CloudKitConfig.containerIdentifier)
             do {
                 // 1) Warm up by checking account status quickly.
                 _ = try await container.accountStatus()
 
-                // 2) Issue a minimal query for a single lightweight record type (“Budget”).
+                // 2) Issue a minimal query for a single lightweight mirrored record type.
                 //    We don’t use the result; the goal is to tickle the connection.
                 let db = container.privateCloudDatabase
-                let query = CKQuery(recordType: "Budget", predicate: NSPredicate(value: true))
+                let query = CKQuery(recordType: "CD_Budget", predicate: NSPredicate(value: true))
                 let op = CKQueryOperation(query: query)
                 op.resultsLimit = 1
                 op.desiredKeys = ["id"]
@@ -52,6 +51,7 @@ final class CloudSyncAccelerator {
                 db.add(op)
             } catch {
                 // Non‑fatal; this is best‑effort.
+                AppLog.iCloud.debug("CloudSyncAccelerator nudge error: \(String(describing: error))")
             }
         }
     }

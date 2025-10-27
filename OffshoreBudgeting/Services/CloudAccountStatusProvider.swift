@@ -83,12 +83,11 @@ final class CloudAccountStatusProvider: ObservableObject {
         }
     }
 
-    /// Returns whether iCloud is currently available. When the status has not
-    /// been fetched yet this method queries CloudKit and caches the result.
-    /// - Parameter forceRefresh: When `true`, bypasses any cached value and
-    ///   re-queries CloudKit.
-    /// - Returns: `true` when the user has an available iCloud account for the
-    ///   configured container.
+    /// Returns whether iCloud is currently available for the app's named container.
+    /// When the status has not been fetched yet this method queries CloudKit and caches the result.
+    /// After confirming general iCloud availability, this also performs a minimal
+    /// container‑specific probe to guard against entitlement or production schema issues.
+    /// - Parameter forceRefresh: When `true`, bypasses any cached value and re-queries CloudKit.
     func resolveAvailability(forceRefresh: Bool = false) async -> Bool {
         if !forceRefresh, let cached = lastStatus {
             let isAvailable = cached == .available
@@ -96,9 +95,8 @@ final class CloudAccountStatusProvider: ObservableObject {
             return isAvailable
         }
 
-        // Use the default container for account status to avoid traps when
-        // a named container isn’t available in the current entitlements.
-        let container = CKContainer.default()
+        // Use the app's named container.
+        let container = CKContainer(identifier: Self.containerIdentifier)
         let status: CKAccountStatus
         do {
             status = try await container.accountStatus()
@@ -109,14 +107,42 @@ final class CloudAccountStatusProvider: ObservableObject {
             return false
         }
 
-        lastStatus = status
-        switch status {
-        case .available:
-            availability = .available
-            return true
-        default:
+        // If the account itself isn't available, short‑circuit.
+        guard status == .available else {
+            lastStatus = status
             availability = .unavailable
             return false
+        }
+
+        // Perform a tiny query against a mirrored record type to validate that the
+        // specified container is reachable and the Production schema is deployed.
+        // We treat "no results" as success; only transport/authorization/schema errors
+        // should flip availability to unavailable.
+        let ok = await probeNamedContainer(container)
+        lastStatus = ok ? .available : .noAccount
+        availability = ok ? .available : .unavailable
+        return ok
+    }
+
+    /// Runs a minimal query on the private database for a mirrored Core Data record type.
+    /// Returns true on success (even with zero results), false on any error.
+    private func probeNamedContainer(_ container: CKContainer) async -> Bool {
+        await withCheckedContinuation { continuation in
+            let db = container.privateCloudDatabase
+            let query = CKQuery(recordType: "CD_Budget", predicate: NSPredicate(value: true))
+            let op = CKQueryOperation(query: query)
+            op.resultsLimit = 1
+            // Only errors matter here
+            op.queryResultBlock = { result in
+                switch result {
+                case .success:
+                    continuation.resume(returning: true)
+                case .failure(let error):
+                    AppLog.iCloud.error("Cloud container probe failed: \(String(describing: error))")
+                    continuation.resume(returning: false)
+                }
+            }
+            db.add(op)
         }
     }
 

@@ -50,6 +50,11 @@ final class CoreDataService: ObservableObject {
     // Tracks the currently-configured mode of the persistent store description.
     private var _currentMode: PersistentStoreMode = .local
     private var currentMode: PersistentStoreMode { _currentMode }
+
+    /// Human‑readable description of the active persistent store mode for diagnostics.
+    public var storeModeDescription: String { _currentMode == .cloudKit ? "CloudKit" : "Local" }
+    /// Convenience flag used by diagnostics/UI to indicate whether CloudKit mirroring is active.
+    public var isCloudStoreActive: Bool { _currentMode == .cloudKit }
     
     // MARK: Persistent Container
     /// Expose the container as NSPersistentContainer (backed by NSPersistentCloudKitContainer).
@@ -300,10 +305,11 @@ extension CoreDataService {
 
         if enableSync {
             if currentMode == .cloudKit { return }
-            let available = await CloudAccountStatusProvider.shared.resolveAvailability(forceRefresh: false)
+            let available = await CloudAccountStatusProvider.shared.resolveAvailability(forceRefresh: true)
             guard available else {
-                // Fall back to local if iCloud is not available.
-                disableCloudSyncPreferences()
+                // iCloud (named container) currently unavailable. Keep the user's
+                // preference intact, but remain in local mode to avoid breaking UX.
+                if AppLog.isVerbose { AppLog.iCloud.info("Cloud unavailable – staying in local mode while keeping preference enabled") }
                 await reconfigurePersistentStoresForLocalMode()
                 return
             }

@@ -6,14 +6,14 @@ import CloudKit
 struct CloudDataRemoteProbe {
     private let container: CKContainer
     private let database: CKDatabase
+    // NSPersistentCloudKitContainer mirrors Core Data entities using the
+    // "CD_<EntityName>" record type convention by default.
     private let recordTypes = [
-        "Budget", "Card", "Income", "PlannedExpense", "UnplannedExpense", "ExpenseCategory"
+        "CD_Budget", "CD_Card", "CD_Income", "CD_PlannedExpense", "CD_UnplannedExpense", "CD_ExpenseCategory"
     ]
 
     init(containerIdentifier: String = CloudKitConfig.containerIdentifier) {
-        // Prefer the default container to avoid crashes when specific
-        // identifiers are not present in the current entitlements.
-        self.container = CKContainer.default()
+        self.container = CKContainer(identifier: containerIdentifier)
         self.database = container.privateCloudDatabase
     }
 

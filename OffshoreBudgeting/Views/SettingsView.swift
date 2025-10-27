@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var showMergeDone = false
     @State private var showDisableCloudOptions = false
     @State private var isReconfiguringStores = false
+    @StateObject private var cloudDiag = CloudDiagnostics.shared
 
     // Guided walkthrough removed
 
@@ -65,68 +66,8 @@ struct SettingsView: View {
                     }
                 }
                 
-
                 // iCloud Sync
-                SettingsCard(
-                    iconSystemName: "icloud",
-                    title: "iCloud",
-                    subtitle: "Manage CloudKit sync and status."
-                ) {
-                    VStack(spacing: 0) {
-                        SettingsRow(title: "Enable iCloud Sync", showsTopDivider: false) {
-                            Toggle("", isOn: Binding(
-                                get: { vm.enableCloudSync },
-                                set: { newValue in
-                                    if vm.enableCloudSync && newValue == false {
-                                        showDisableCloudOptions = true
-                                        return
-                                    }
-                                    if !vm.enableCloudSync && newValue == true {
-                                        isReconfiguringStores = true
-                                        vm.enableCloudSync = true
-                                        if vm.syncCardThemes == false { vm.syncCardThemes = true }
-                                        Task { @MainActor in
-                                            try? await Task.sleep(nanoseconds: 80_000_000)
-                                            await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
-                                            _ = WorkspaceService.shared.ensureActiveWorkspaceID()
-                                            await WorkspaceService.shared.assignWorkspaceIDIfMissing()
-                                            CardAppearanceStore.shared.applySettingsChanged()
-                                            BudgetPreferenceSync.shared.applySettingsChanged()
-                                            isReconfiguringStores = false
-                                        }
-                                    }
-                                }
-                            ))
-                            .labelsHidden()
-                        }
-                        SettingsRow(title: "Sync Card Themes") {
-                            Toggle("", isOn: $vm.syncCardThemes)
-                                .labelsHidden()
-                                .disabled(!vm.enableCloudSync)
-                                .onChange(of: vm.syncCardThemes) { _ in
-                                    Task { @MainActor in
-                                        CardAppearanceStore.shared.applySettingsChanged()
-                                    }
-                                }
-                        }
-                        SettingsRow(title: "Sync Budget Period") {
-                            Toggle("", isOn: $vm.syncBudgetPeriod)
-                                .labelsHidden()
-                                .disabled(!vm.enableCloudSync)
-                                .onChange(of: vm.syncBudgetPeriod) { _ in
-                                    Task { @MainActor in
-                                        BudgetPreferenceSync.shared.applySettingsChanged()
-                                    }
-                                }
-                        }
-                        Button(action: { showMergeConfirm = true }) {
-                            SettingsRow(title: "Merge Local Data into iCloud", detail: "Run") {
-                                Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.secondary)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+                iCloudCard
                 
 
                 // Help
@@ -178,6 +119,7 @@ struct SettingsView: View {
             .padding(.bottom, 24)
         }
         .navigationTitle("Settings")
+        .task { await cloudDiag.refresh() }
         .confirmationDialog("Turn Off iCloud Sync?", isPresented: $showDisableCloudOptions, titleVisibility: .visible) {
             Button("Switch to Local (Keep Data)", role: .destructive) { disableCloud(eraseLocal: false) }
             Button("Remove from This Device", role: .destructive) { disableCloud(eraseLocal: true) }
@@ -253,11 +195,115 @@ struct SettingsView: View {
                 do { try CoreDataService.shared.wipeAllData() } catch { }
                 UbiquitousFlags.clearHasCloudData()
             }
+            await cloudDiag.refresh()
             isReconfiguringStores = false
         }
     }
 
     // Guided walkthrough removed
+}
+
+private extension SettingsView {
+    @ViewBuilder
+    var iCloudCard: some View {
+        SettingsCard(
+            iconSystemName: "icloud",
+            title: "iCloud",
+            subtitle: "Manage CloudKit sync and status."
+        ) {
+            VStack(spacing: 0) {
+                SettingsRow(title: "Enable iCloud Sync", showsTopDivider: false) {
+                    Toggle("", isOn: cloudToggleBinding).labelsHidden()
+                }
+                // Cloud status diagnostics
+                SettingsRow(title: "Store Mode") {
+                    Text(cloudDiag.storeMode).foregroundStyle(.secondary)
+                }
+                SettingsRow(title: "Container Reachable") {
+                    Text(containerReachabilityText)
+                        .foregroundStyle(containerReachabilityColor)
+                }
+                SettingsRow(title: "Last CloudKit Error") {
+                    Text(cloudDiag.lastCloudKitErrorDescription ?? "None")
+                        .foregroundStyle((cloudDiag.lastCloudKitErrorDescription == nil) ? Color.secondary : Color.orange)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                SettingsRow(title: "Refresh Status") {
+                    Button("Run") { Task { await cloudDiag.refresh() } }
+                }
+                SettingsRow(title: "Sync Card Themes") {
+                    Toggle("", isOn: $vm.syncCardThemes)
+                        .labelsHidden()
+                        .disabled(!vm.enableCloudSync)
+                        .onChange(of: vm.syncCardThemes) { _ in
+                            Task { @MainActor in
+                                CardAppearanceStore.shared.applySettingsChanged()
+                            }
+                        }
+                }
+                SettingsRow(title: "Sync Budget Period") {
+                    Toggle("", isOn: $vm.syncBudgetPeriod)
+                        .labelsHidden()
+                        .disabled(!vm.enableCloudSync)
+                        .onChange(of: vm.syncBudgetPeriod) { _ in
+                            Task { @MainActor in
+                                BudgetPreferenceSync.shared.applySettingsChanged()
+                            }
+                        }
+                }
+                Button(action: { showMergeConfirm = true }) {
+                    SettingsRow(title: "Merge Local Data into iCloud", detail: "Run") {
+                        Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    var cloudToggleBinding: Binding<Bool> {
+        Binding<Bool>(
+            get: { vm.enableCloudSync },
+            set: { newValue in
+                if vm.enableCloudSync && newValue == false {
+                    showDisableCloudOptions = true
+                    return
+                }
+                if !vm.enableCloudSync && newValue == true {
+                    isReconfiguringStores = true
+                    vm.enableCloudSync = true
+                    if vm.syncCardThemes == false { vm.syncCardThemes = true }
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 80_000_000)
+                        await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
+                        _ = WorkspaceService.shared.ensureActiveWorkspaceID()
+                        await WorkspaceService.shared.assignWorkspaceIDIfMissing()
+                        CardAppearanceStore.shared.applySettingsChanged()
+                        BudgetPreferenceSync.shared.applySettingsChanged()
+                        await cloudDiag.refresh()
+                        isReconfiguringStores = false
+                    }
+                }
+            }
+        )
+    }
+
+    var containerReachabilityText: String {
+        switch cloudDiag.containerReachable {
+        case .some(true): return "Yes"
+        case .some(false): return "No"
+        case .none: return "Checking…"
+        }
+    }
+
+    var containerReachabilityColor: Color {
+        switch cloudDiag.containerReachable {
+        case .some(true): return .secondary
+        case .some(false): return .red
+        case .none: return .secondary
+        }
+    }
 }
 
 // Intentionally empty: SettingsRow is defined in SettingsViewModel.swift

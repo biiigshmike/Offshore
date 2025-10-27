@@ -27,7 +27,7 @@ final class CoreDataService: ObservableObject {
     /// IMPORTANT: Ensure your model is named "SoFarModel.xcdatamodeld".
     private let modelName = "OffshoreBudgetingModel"
     /// CloudKit container identifier (must match entitlements / dashboard).
-    private let cloudKitContainerIdentifier = "iCloud.com.mbrown.offshore"
+    private let cloudKitContainerIdentifier = "iCloud.com.mb.offshore-budgeting"
     
     /// Reads the user's preference to enable CloudKit sync.
     private var enableCloudKitSync: Bool {

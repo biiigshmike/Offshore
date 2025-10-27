@@ -5,10 +5,10 @@
 	<key>aps-environment</key>
 	<string>development</string>
 	<key>com.apple.developer.aps-environment</key>
-	<string>development</string>
+	<string>release</string>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
-		<string>iCloud.com.mbrown.offshore</string>
+		<string>iCloud.com.mb.offshore-budgeting</string>
 	</array>
 	<key>com.apple.developer.icloud-services</key>
 	<array>

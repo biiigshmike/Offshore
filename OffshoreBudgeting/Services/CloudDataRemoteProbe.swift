@@ -11,7 +11,9 @@ struct CloudDataRemoteProbe {
     ]
 
     init(containerIdentifier: String = CloudKitConfig.containerIdentifier) {
-        self.container = CKContainer(identifier: containerIdentifier)
+        // Prefer the default container to avoid crashes when specific
+        // identifiers are not present in the current entitlements.
+        self.container = CKContainer.default()
         self.database = container.privateCloudDatabase
     }
 

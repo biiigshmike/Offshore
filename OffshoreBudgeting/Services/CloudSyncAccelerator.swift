@@ -31,7 +31,9 @@ final class CloudSyncAccelerator {
         lastNudge = now
 
         Task.detached(priority: .utility) {
-            let container = CKContainer(identifier: CloudKitConfig.containerIdentifier)
+            // Use the default container for the warm-up to remain safe if
+            // the named container isn’t available in entitlements.
+            let container = CKContainer.default()
             do {
                 // 1) Warm up by checking account status quickly.
                 _ = try await container.accountStatus()
@@ -54,4 +56,3 @@ final class CloudSyncAccelerator {
         }
     }
 }
-

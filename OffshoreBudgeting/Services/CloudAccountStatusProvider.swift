@@ -96,7 +96,9 @@ final class CloudAccountStatusProvider: ObservableObject {
             return isAvailable
         }
 
-        let container = CKContainer(identifier: Self.containerIdentifier)
+        // Use the default container for account status to avoid traps when
+        // a named container isn’t available in the current entitlements.
+        let container = CKContainer.default()
         let status: CKAccountStatus
         do {
             status = try await container.accountStatus()

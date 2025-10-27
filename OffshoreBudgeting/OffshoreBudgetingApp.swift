@@ -122,6 +122,16 @@ struct OffshoreBudgetingApp: App {
                     // Ensure stores are loaded in the background
                     CoreDataService.shared.ensureLoaded()
                     await CoreDataService.shared.waitUntilStoresLoaded()
+                    // If onboarding was previously marked complete but the store has no
+                    // persisted data (e.g., after a reset), clear the flag so the intro
+                    // flow can run again.
+                    let onboardingKey = "didCompleteOnboarding"
+                    let defaults = UserDefaults.standard
+                    if defaults.object(forKey: onboardingKey) != nil,
+                       !CloudDataProbe().hasAnyData() {
+                        defaults.removeObject(forKey: onboardingKey)
+                        didCompleteOnboarding = false
+                    }
                     // Re-apply cloud preference if needed and initialize workspace
                     if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue) {
                         await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)

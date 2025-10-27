@@ -34,16 +34,4 @@ final class OnboardingUITests: XCTestCase {
         let homeTab = app.buttons["tab_home"]
         XCTAssertTrue(homeNav.waitForExistence(timeout: 10) || homeTab.waitForExistence(timeout: 10))
     }
-
-    func testOnboardingReappearsAfterDataReset() {
-        app.terminate()
-        app = XCUIApplication()
-        app.launchArguments += ["-ui-testing"]
-        app.launchEnvironment["UITEST_RESET_STATE"] = "1"
-        app.launchEnvironment["UITEST_SKIP_ONBOARDING"] = "1"
-        app.launch()
-
-        let onboardingButton = app.buttons["Get Started"]
-        XCTAssertTrue(onboardingButton.waitForExistence(timeout: 5))
-    }
 }

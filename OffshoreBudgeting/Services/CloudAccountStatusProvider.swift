@@ -50,6 +50,16 @@ final class CloudAccountStatusProvider: ObservableObject {
     private var isChecking = false
     private var lastStatus: CKAccountStatus?
 
+    private var coreDataZoneID: CKRecordZone.ID? {
+        guard CoreDataService.shared.isCloudStoreActive else { return nil }
+        return Self.coreDataZoneIdentifier
+    }
+
+    private static let coreDataZoneIdentifier = CKRecordZone.ID(
+        zoneName: "com.apple.coredata.cloudkit.zone",
+        ownerName: CKCurrentUserDefaultName
+    )
+
     // MARK: Init
     init() {
         NotificationCenter.default.addObserver(
@@ -132,17 +142,44 @@ final class CloudAccountStatusProvider: ObservableObject {
             let query = CKQuery(recordType: "CD_Budget", predicate: NSPredicate(value: true))
             let op = CKQueryOperation(query: query)
             op.resultsLimit = 1
+            if let zoneID = coreDataZoneID {
+                op.zoneID = zoneID
+            }
             // Only errors matter here
             op.queryResultBlock = { result in
                 switch result {
                 case .success:
                     continuation.resume(returning: true)
                 case .failure(let error):
-                    AppLog.iCloud.error("Cloud container probe failed: \(String(describing: error))")
-                    continuation.resume(returning: false)
+                    if Self.shouldTreatErrorAsReachable(error) {
+                        if AppLog.isVerbose {
+                            AppLog.iCloud.info("Cloud container probe zone missing but treating as reachable: \(String(describing: error))")
+                        }
+                        continuation.resume(returning: true)
+                    } else {
+                        AppLog.iCloud.error("Cloud container probe failed: \(String(describing: error))")
+                        continuation.resume(returning: false)
+                    }
                 }
             }
             db.add(op)
+        }
+    }
+
+    private static func shouldTreatErrorAsReachable(_ error: Error) -> Bool {
+        guard let ckError = error as? CKError else { return false }
+        switch ckError.code {
+        case .zoneNotFound, .unknownItem:
+            return true
+        case .partialFailure:
+            let partialErrors = ckError.partialErrorsByItemID ?? [:]
+            guard !partialErrors.isEmpty else { return false }
+            return partialErrors.values.allSatisfy { value in
+                guard let innerError = value as? CKError else { return false }
+                return innerError.code == .zoneNotFound
+            }
+        default:
+            return false
         }
     }
 

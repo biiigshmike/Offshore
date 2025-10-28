@@ -36,23 +36,51 @@ final class CoreDataEntityChangeMonitor {
     ) {
         // IMPORTANT: Use the global Notification.Name constant.
         // (There is no `NSManagedObjectContext.objectsDidChangeNotification` static.)
-        cancellable = NotificationCenter.default
+        let entityNameSet = Set(entityNames)
+        let relevantKeys: [String] = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey]
+
+        let objectsDidChangePublisher = NotificationCenter.default
             .publisher(for: .NSManagedObjectContextObjectsDidChange, object: nil)
             .compactMap { $0.userInfo }
             .map { userInfo -> Bool in
-                // If any inserted/updated/deleted objects match our entities, mark relevant.
-                let keys: [String] = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey]
-                for key in keys {
-                    if let set = userInfo[key] as? Set<NSManagedObject>,
-                       set.contains(where: { obj in
-                           guard let name = obj.entity.name else { return false }
-                           return entityNames.contains(name)
-                       }) {
-                        return true
+                relevantKeys.contains { key in
+                    guard let objects = userInfo[key] as? Set<NSManagedObject> else { return false }
+                    return objects.contains { object in
+                        guard let name = object.entity.name else { return false }
+                        return entityNameSet.contains(name)
                     }
                 }
-                return false
             }
+
+        let didSavePublisher = NotificationCenter.default
+            .publisher(for: .NSManagedObjectContextDidSave, object: nil)
+            .compactMap { $0.userInfo }
+            .map { userInfo -> Bool in
+                relevantKeys.contains { key in
+                    guard let objects = userInfo[key] as? Set<NSManagedObject> else { return false }
+                    return objects.contains { object in
+                        guard let name = object.entity.name else { return false }
+                        return entityNameSet.contains(name)
+                    }
+                }
+            }
+
+        let didMergeObjectIDsPublisher = NotificationCenter.default
+            .publisher(for: .NSManagedObjectContextDidMergeChangesObjectIDs, object: nil)
+            .compactMap { $0.userInfo }
+            .map { userInfo -> Bool in
+                relevantKeys.contains { key in
+                    guard let objectIDs = userInfo[key] as? Set<NSManagedObjectID> else { return false }
+                    return objectIDs.contains { objectID in
+                        guard let name = objectID.entity.name else { return false }
+                        return entityNameSet.contains(name)
+                    }
+                }
+            }
+
+        cancellable = objectsDidChangePublisher
+            .merge(with: didSavePublisher)
+            .merge(with: didMergeObjectIDsPublisher)
             .filter { $0 } // keep only relevant changes
             .debounce(for: .milliseconds(debounceMilliseconds), scheduler: RunLoop.main)
             .sink { _ in

@@ -37,14 +37,27 @@ final class CoreDataEntityChangeMonitor {
         // IMPORTANT: Use the global Notification.Name constant.
         // (There is no `NSManagedObjectContext.objectsDidChangeNotification` static.)
         let entityNameSet = Set(entityNames)
-        let relevantKeys: [String] = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey]
+        let relevantObjectKeys: [String] = [
+            NSInsertedObjectsKey,
+            NSUpdatedObjectsKey,
+            NSDeletedObjectsKey,
+            NSRefreshedObjectsKey,
+            NSInvalidatedObjectsKey
+        ]
+        let relevantObjectIDKeys: [String] = [
+            NSInsertedObjectIDsKey,
+            NSUpdatedObjectIDsKey,
+            NSDeletedObjectIDsKey,
+            NSRefreshedObjectIDsKey,
+            NSInvalidatedObjectIDsKey
+        ]
 
         let objectsDidChangePublisher = NotificationCenter.default
             .publisher(for: .NSManagedObjectContextObjectsDidChange, object: nil)
             .compactMap { $0.userInfo }
             .map { userInfo -> Bool in
-                relevantKeys.contains { key in
-                    guard let objects = userInfo[key] as? Set<NSManagedObject> else { return false }
+                relevantObjectKeys.contains { key in
+                    guard let objects = CoreDataEntityChangeMonitor.extractManagedObjects(from: userInfo[key]) else { return false }
                     return objects.contains { object in
                         guard let name = object.entity.name else { return false }
                         return entityNameSet.contains(name)
@@ -56,8 +69,8 @@ final class CoreDataEntityChangeMonitor {
             .publisher(for: .NSManagedObjectContextDidSave, object: nil)
             .compactMap { $0.userInfo }
             .map { userInfo -> Bool in
-                relevantKeys.contains { key in
-                    guard let objects = userInfo[key] as? Set<NSManagedObject> else { return false }
+                relevantObjectKeys.contains { key in
+                    guard let objects = CoreDataEntityChangeMonitor.extractManagedObjects(from: userInfo[key]) else { return false }
                     return objects.contains { object in
                         guard let name = object.entity.name else { return false }
                         return entityNameSet.contains(name)
@@ -69,8 +82,8 @@ final class CoreDataEntityChangeMonitor {
             .publisher(for: .NSManagedObjectContextDidMergeChangesObjectIDs, object: nil)
             .compactMap { $0.userInfo }
             .map { userInfo -> Bool in
-                relevantKeys.contains { key in
-                    guard let objectIDs = userInfo[key] as? Set<NSManagedObjectID> else { return false }
+                (relevantObjectIDKeys + relevantObjectKeys).contains { key in
+                    guard let objectIDs = CoreDataEntityChangeMonitor.extractManagedObjectIDs(from: userInfo[key]) else { return false }
                     return objectIDs.contains { objectID in
                         guard let name = objectID.entity.name else { return false }
                         return entityNameSet.contains(name)
@@ -90,5 +103,49 @@ final class CoreDataEntityChangeMonitor {
 
     deinit {
         cancellable?.cancel()
+    }
+}
+
+// MARK: - Private Helpers
+private extension CoreDataEntityChangeMonitor {
+    static func extractManagedObjects(from value: Any?) -> [NSManagedObject]? {
+        if let set = value as? Set<NSManagedObject> {
+            return Array(set)
+        }
+        if let nsSet = value as? NSSet {
+            return nsSet.compactMap { $0 as? NSManagedObject }
+        }
+        if let array = value as? [NSManagedObject] {
+            return array
+        }
+        if let array = value as? [Any] {
+            return array.compactMap { $0 as? NSManagedObject }
+        }
+        if let nsArray = value as? NSArray {
+            return nsArray.compactMap { $0 as? NSManagedObject }
+        }
+        return nil
+    }
+
+    static func extractManagedObjectIDs(from value: Any?) -> [NSManagedObjectID]? {
+        if let set = value as? Set<NSManagedObjectID> {
+            return Array(set)
+        }
+        if let nsSet = value as? NSSet {
+            return nsSet.compactMap { $0 as? NSManagedObjectID }
+        }
+        if let array = value as? [NSManagedObjectID] {
+            return array
+        }
+        if let array = value as? [Any] {
+            return array.compactMap { $0 as? NSManagedObjectID }
+        }
+        if let nsArray = value as? NSArray {
+            return nsArray.compactMap { $0 as? NSManagedObjectID }
+        }
+        if let objects = extractManagedObjects(from: value) {
+            return objects.map { $0.objectID }
+        }
+        return nil
     }
 }

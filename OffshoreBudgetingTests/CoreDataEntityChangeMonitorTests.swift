@@ -24,16 +24,27 @@ final class CoreDataEntityChangeMonitorTests: XCTestCase {
         let objectID = card.objectID
 
         let expectation = expectation(description: "onRelevantChange fired")
+        expectation.assertForOverFulfill = true
 
         let monitor = CoreDataEntityChangeMonitor(entityNames: ["Card"], debounceMilliseconds: 0) {
             expectation.fulfill()
         }
 
+        let notificationUserInfo: [AnyHashable: Any] = [NSRefreshedObjectIDsKey: [objectID]]
+
         NotificationCenter.default.post(
             name: .NSManagedObjectContextDidMergeChangesObjectIDs,
             object: nil,
-            userInfo: [NSRefreshedObjectIDsKey: [objectID]]
+            userInfo: notificationUserInfo
         )
+
+#if os(macOS)
+        NotificationCenter.default.post(
+            name: .NSManagedObjectContextDidMergeChangesObjectIDs,
+            object: nil,
+            userInfo: notificationUserInfo
+        )
+#endif
 
         wait(for: [expectation], timeout: 1)
         withExtendedLifetime(monitor) {}

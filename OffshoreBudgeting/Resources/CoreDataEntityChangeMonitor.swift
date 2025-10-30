@@ -66,7 +66,12 @@ final class CoreDataEntityChangeMonitor {
                     return nil
                 }
 
-                return NotificationDedupToken(notification: notification)
+                return NotificationDedupToken(
+                    notification: notification,
+                    userInfo: userInfo,
+                    relevantObjectKeys: relevantObjectKeys,
+                    relevantObjectIDKeys: relevantObjectIDKeys
+                )
             }
 
         let didSavePublisher = NotificationCenter.default
@@ -83,7 +88,12 @@ final class CoreDataEntityChangeMonitor {
                     return nil
                 }
 
-                return NotificationDedupToken(notification: notification)
+                return NotificationDedupToken(
+                    notification: notification,
+                    userInfo: userInfo,
+                    relevantObjectKeys: relevantObjectKeys,
+                    relevantObjectIDKeys: relevantObjectIDKeys
+                )
             }
 
         let didMergeObjectIDsPublisher = NotificationCenter.default
@@ -100,7 +110,12 @@ final class CoreDataEntityChangeMonitor {
                     return nil
                 }
 
-                return NotificationDedupToken(notification: notification)
+                return NotificationDedupToken(
+                    notification: notification,
+                    userInfo: userInfo,
+                    relevantObjectKeys: relevantObjectKeys,
+                    relevantObjectIDKeys: relevantObjectIDKeys
+                )
             }
 
         cancellable = objectsDidChangePublisher
@@ -123,14 +138,68 @@ private extension CoreDataEntityChangeMonitor {
     struct NotificationDedupToken: Equatable {
         let name: Notification.Name
         let objectIdentifier: ObjectIdentifier?
+        let payloadDigest: NotificationPayloadDigest
 
-        init(notification: Notification) {
+        init(
+            notification: Notification,
+            userInfo: [AnyHashable: Any],
+            relevantObjectKeys: [String],
+            relevantObjectIDKeys: [String]
+        ) {
             name = notification.name
             if let object = notification.object as AnyObject? {
                 objectIdentifier = ObjectIdentifier(object)
             } else {
                 objectIdentifier = nil
             }
+
+            payloadDigest = NotificationPayloadDigest(
+                userInfo: userInfo,
+                relevantObjectKeys: relevantObjectKeys,
+                relevantObjectIDKeys: relevantObjectIDKeys
+            )
+        }
+    }
+
+    struct NotificationPayloadDigest: Equatable {
+        struct Component: Equatable {
+            let key: String
+            let identifiers: [String]
+        }
+
+        let components: [Component]
+
+        init(
+            userInfo: [AnyHashable: Any],
+            relevantObjectKeys: [String],
+            relevantObjectIDKeys: [String]
+        ) {
+            var mapping: [String: Set<String>] = [:]
+
+            func addIdentifiers(_ identifiers: [String], for key: String) {
+                guard !identifiers.isEmpty else { return }
+                var set = mapping[key] ?? Set<String>()
+                identifiers.forEach { set.insert($0) }
+                mapping[key] = set
+            }
+
+            for key in relevantObjectKeys {
+                guard let objects = CoreDataEntityChangeMonitor.extractManagedObjects(from: userInfo[key]) else { continue }
+                let identifiers = objects.map { $0.objectID.uriRepresentation().absoluteString }
+                addIdentifiers(identifiers, for: key)
+            }
+
+            for key in relevantObjectIDKeys {
+                guard let objectIDs = CoreDataEntityChangeMonitor.extractManagedObjectIDs(from: userInfo[key]) else { continue }
+                let identifiers = objectIDs.map { $0.uriRepresentation().absoluteString }
+                addIdentifiers(identifiers, for: key)
+            }
+
+            components = mapping
+                .map { key, identifiers -> Component in
+                    Component(key: key, identifiers: identifiers.sorted())
+                }
+                .sorted { $0.key < $1.key }
         }
     }
 

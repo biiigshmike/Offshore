@@ -49,4 +49,35 @@ final class CoreDataEntityChangeMonitorTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
         withExtendedLifetime(monitor) {}
     }
+
+    func testNotificationsWithDifferentObjectIDsDoNotDeduplicate() {
+        let stack = TestCoreDataStack()
+        let context = stack.container.viewContext
+
+        let firstCard = NSEntityDescription.insertNewObject(forEntityName: "Card", into: context)
+        let secondCard = NSEntityDescription.insertNewObject(forEntityName: "Card", into: context)
+
+        let expectation = expectation(description: "onRelevantChange fired twice")
+        expectation.expectedFulfillmentCount = 2
+        expectation.assertForOverFulfill = true
+
+        let monitor = CoreDataEntityChangeMonitor(entityNames: ["Card"], debounceMilliseconds: 0) {
+            expectation.fulfill()
+        }
+
+        NotificationCenter.default.post(
+            name: .NSManagedObjectContextDidMergeChangesObjectIDs,
+            object: context,
+            userInfo: [NSUpdatedObjectIDsKey: [firstCard.objectID]]
+        )
+
+        NotificationCenter.default.post(
+            name: .NSManagedObjectContextDidMergeChangesObjectIDs,
+            object: context,
+            userInfo: [NSUpdatedObjectIDsKey: [secondCard.objectID]]
+        )
+
+        wait(for: [expectation], timeout: 1)
+        withExtendedLifetime(monitor) {}
+    }
 }

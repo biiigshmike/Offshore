@@ -54,47 +54,59 @@ final class CoreDataEntityChangeMonitor {
 
         let objectsDidChangePublisher = NotificationCenter.default
             .publisher(for: .NSManagedObjectContextObjectsDidChange, object: nil)
-            .compactMap { $0.userInfo }
-            .map { userInfo -> Bool in
-                relevantObjectKeys.contains { key in
-                    guard let objects = CoreDataEntityChangeMonitor.extractManagedObjects(from: userInfo[key]) else { return false }
-                    return objects.contains { object in
-                        guard let name = object.entity.name else { return false }
-                        return entityNameSet.contains(name)
-                    }
+            .compactMap { notification -> NotificationDedupToken? in
+                guard
+                    let userInfo = notification.userInfo,
+                    CoreDataEntityChangeMonitor.containsRelevantObjects(
+                        in: userInfo,
+                        keys: relevantObjectKeys,
+                        entityNameSet: entityNameSet
+                    )
+                else {
+                    return nil
                 }
+
+                return NotificationDedupToken(notification: notification)
             }
 
         let didSavePublisher = NotificationCenter.default
             .publisher(for: .NSManagedObjectContextDidSave, object: nil)
-            .compactMap { $0.userInfo }
-            .map { userInfo -> Bool in
-                relevantObjectKeys.contains { key in
-                    guard let objects = CoreDataEntityChangeMonitor.extractManagedObjects(from: userInfo[key]) else { return false }
-                    return objects.contains { object in
-                        guard let name = object.entity.name else { return false }
-                        return entityNameSet.contains(name)
-                    }
+            .compactMap { notification -> NotificationDedupToken? in
+                guard
+                    let userInfo = notification.userInfo,
+                    CoreDataEntityChangeMonitor.containsRelevantObjects(
+                        in: userInfo,
+                        keys: relevantObjectKeys,
+                        entityNameSet: entityNameSet
+                    )
+                else {
+                    return nil
                 }
+
+                return NotificationDedupToken(notification: notification)
             }
 
         let didMergeObjectIDsPublisher = NotificationCenter.default
             .publisher(for: .NSManagedObjectContextDidMergeChangesObjectIDs, object: nil)
-            .compactMap { $0.userInfo }
-            .map { userInfo -> Bool in
-                (relevantObjectIDKeys + relevantObjectKeys).contains { key in
-                    guard let objectIDs = CoreDataEntityChangeMonitor.extractManagedObjectIDs(from: userInfo[key]) else { return false }
-                    return objectIDs.contains { objectID in
-                        guard let name = objectID.entity.name else { return false }
-                        return entityNameSet.contains(name)
-                    }
+            .compactMap { notification -> NotificationDedupToken? in
+                guard
+                    let userInfo = notification.userInfo,
+                    CoreDataEntityChangeMonitor.containsRelevantObjectIDs(
+                        in: userInfo,
+                        keys: relevantObjectIDKeys + relevantObjectKeys,
+                        entityNameSet: entityNameSet
+                    )
+                else {
+                    return nil
                 }
+
+                return NotificationDedupToken(notification: notification)
             }
 
         cancellable = objectsDidChangePublisher
             .merge(with: didSavePublisher)
             .merge(with: didMergeObjectIDsPublisher)
-            .filter { $0 } // keep only relevant changes
+            .removeDuplicates()
             .debounce(for: .milliseconds(debounceMilliseconds), scheduler: RunLoop.main)
             .sink { _ in
                 onRelevantChange()
@@ -108,6 +120,48 @@ final class CoreDataEntityChangeMonitor {
 
 // MARK: - Private Helpers
 private extension CoreDataEntityChangeMonitor {
+    struct NotificationDedupToken: Equatable {
+        let name: Notification.Name
+        let objectIdentifier: ObjectIdentifier?
+
+        init(notification: Notification) {
+            name = notification.name
+            if let object = notification.object as AnyObject? {
+                objectIdentifier = ObjectIdentifier(object)
+            } else {
+                objectIdentifier = nil
+            }
+        }
+    }
+
+    static func containsRelevantObjects(
+        in userInfo: [AnyHashable: Any],
+        keys: [String],
+        entityNameSet: Set<String>
+    ) -> Bool {
+        keys.contains { key in
+            guard let objects = extractManagedObjects(from: userInfo[key]) else { return false }
+            return objects.contains { object in
+                guard let name = object.entity.name else { return false }
+                return entityNameSet.contains(name)
+            }
+        }
+    }
+
+    static func containsRelevantObjectIDs(
+        in userInfo: [AnyHashable: Any],
+        keys: [String],
+        entityNameSet: Set<String>
+    ) -> Bool {
+        keys.contains { key in
+            guard let objectIDs = extractManagedObjectIDs(from: userInfo[key]) else { return false }
+            return objectIDs.contains { objectID in
+                guard let name = objectID.entity.name else { return false }
+                return entityNameSet.contains(name)
+            }
+        }
+    }
+
     static func extractManagedObjects(from value: Any?) -> [NSManagedObject]? {
         if let set = value as? Set<NSManagedObject> {
             return Array(set)

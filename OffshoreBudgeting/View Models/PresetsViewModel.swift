@@ -51,6 +51,7 @@ struct PresetListItem: Identifiable, Equatable {
 final class PresetsViewModel: ObservableObject {
     @Published private(set) var items: [PresetListItem] = []
     private var changeMonitor: CoreDataEntityChangeMonitor?
+    private var dataStoreObserver: NSObjectProtocol?
     private var pendingApply: DispatchWorkItem?
     private var lastLoadedAt: Date? = nil
 
@@ -62,7 +63,21 @@ final class PresetsViewModel: ObservableObject {
             debounceMilliseconds: DataChangeDebounce.milliseconds()
         ) { [weak self] in
             guard let self else { return }
-            self.loadTemplates(using: context)
+            // Ensure main-actor hop for actor-isolated method
+            Task { @MainActor in
+                self.loadTemplates(using: context)
+            }
+        }
+        if dataStoreObserver == nil {
+            dataStoreObserver = NotificationCenter.default.addObserver(
+                forName: .dataStoreDidChange,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.loadTemplates(using: context)
+                }
+            }
         }
         loadTemplates(using: context)
     }
@@ -82,7 +97,8 @@ final class PresetsViewModel: ObservableObject {
                     let children = PlannedExpenseService.shared.fetchChildren(of: t, in: bg)
                     let planned = t.plannedAmount
                     let actual = t.actualAmount
-                    let assignedCount = children.count
+                    // Count distinct budgets to avoid over-reporting when duplicates exist
+                    let assignedCount = Set(children.compactMap { $0.budget?.id }).count
 
                     var upcomingDates: [Date] = children
                         .compactMap { $0.transactionDate }
@@ -132,6 +148,9 @@ final class PresetsViewModel: ObservableObject {
         }
         pendingApply = work
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delayMS), execute: work)
+    }
+    deinit {
+        if let observer = dataStoreObserver { NotificationCenter.default.removeObserver(observer) }
     }
 }
 

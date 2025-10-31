@@ -126,8 +126,9 @@ final class CoreDataService: ObservableObject {
     private func postLoadConfiguration() {
         // Merge changes from background contexts so UI updates automatically.
         viewContext.automaticallyMergesChangesFromParent = true
-        // Align with Apple guidance for UI contexts: ObjectTrump to prefer in-memory
-        // edits over store values on conflict, while still merging background imports.
+        // Align with Apple guidance for UI contexts: prefer in‑memory edits over store values
+        // on conflict, and automatically merge background/imported changes so FRCs update
+        // live when CloudKit mirroring applies remote transactions (including deletions).
         viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         // Optional: performance niceties
         viewContext.undoManager = nil

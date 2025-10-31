@@ -185,9 +185,19 @@ final class CardDetailViewModel: ObservableObject {
                                    isPreset: false)
             }
 
-            // Split planned expenses into actuals vs upcoming
+            // Split planned expenses into actuals vs upcoming, with duplicate guard
+            // for template-children duplicated under the same budget.
+            var seenPlannedKeys = Set<String>()
             let plannedActuals: [CardExpense] = planned.compactMap { exp in
                 guard exp.actualAmount != 0 else { return nil }
+                // Build a strict key only when it's a template child; otherwise don't dedupe.
+                if let templateID = exp.globalTemplateID, let budget = exp.budget {
+                    let dateKey = String(format: "%.0f", (exp.transactionDate ?? .distantPast).timeIntervalSince1970)
+                    let key = "\(templateID.uuidString)|\(budget.objectID.uriRepresentation().absoluteString)|\(dateKey)|\(exp.actualAmount)|\(exp.plannedAmount)"
+                    if seenPlannedKeys.contains(key) { return nil }
+                    seenPlannedKeys.insert(key)
+                }
+
                 let desc = (exp.value(forKey: "descriptionText") as? String)
                     ?? (exp.value(forKey: "title") as? String) ?? ""
                 let uuid = exp.value(forKey: "id") as? UUID

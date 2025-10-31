@@ -104,6 +104,28 @@ extension PlannedExpenseService {
     func ensureChild(from template: PlannedExpense,
                      attachedTo budget: Budget,
                      in context: NSManagedObjectContext) -> PlannedExpense {
+        // First, collapse any accidental duplicates for this template+budget pair.
+        if let templateID = template.id {
+            let req: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
+            req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "isGlobal == NO"),
+                NSPredicate(format: "budget == %@", budget),
+                NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg)
+            ])
+            if let matches = try? context.fetch(req), matches.count > 1 {
+                // Prefer keeping the one with the greatest actualAmount (preserves recorded spend)
+                let keep = matches.max(by: { $0.actualAmount < $1.actualAmount })
+                for m in matches {
+                    if m != keep { context.delete(m) }
+                }
+                if context.hasChanges {
+                    do { try context.save() } catch {
+                        AppLog.service.error("ensureChild dedupe save error: \(String(describing: error))")
+                    }
+                }
+            }
+        }
+
         if let existing = child(of: template, for: budget, in: context) {
             let correctedDate = alignedTransactionDate(for: template, budget: budget)
 

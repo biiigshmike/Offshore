@@ -24,6 +24,9 @@ final class MergeService {
         // mirroring upload local records and rely on manual review for
         // duplicates. We can add a preview-based dedupe later.
         if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue) {
+            // Under cloud sync, perform only a strict, safe dedupe for template children
+            // scoped to (workspaceID, budget, globalTemplateID).
+            didChange = try mergeStrictTemplateChildren(ctx) || didChange
             if didChange { try ctx.save() }
             return
         }
@@ -145,6 +148,49 @@ final class MergeService {
                 changed = true
             } else {
                 seen.insert(key)
+            }
+        }
+        return changed
+    }
+
+    /// Strictly deduplicates non-global PlannedExpense children that reference the same
+    /// template (globalTemplateID) in the same budget. Keeps the record with the highest
+    /// actualAmount to preserve any recorded spend; ties break by latest transactionDate.
+    private func mergeStrictTemplateChildren(_ ctx: NSManagedObjectContext) throws -> Bool {
+        let req: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
+        // Only non-global with a template link
+        req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "isGlobal == NO"),
+            NSPredicate(format: "globalTemplateID != nil")
+        ])
+        let items = try ctx.fetch(req)
+        let ws = WorkspaceService.shared.activeWorkspaceID.uuidString
+
+        // Group by (workspaceID | budgetRef | templateID)
+        var buckets: [String: [PlannedExpense]] = [:]
+        for p in items {
+            guard let budget = p.budget, let templateID = p.globalTemplateID else { continue }
+            let budgetRef = budget.objectID.uriRepresentation().absoluteString
+            let key = "\(ws)|\(budgetRef)|\(templateID.uuidString)"
+            buckets[key, default: []].append(p)
+        }
+
+        var changed = false
+        for (_, group) in buckets where group.count > 1 {
+            // Choose the best to keep
+            let keep = group.max { a, b in
+                if a.actualAmount == b.actualAmount {
+                    let ad = a.transactionDate ?? .distantPast
+                    let bd = b.transactionDate ?? .distantPast
+                    return ad < bd
+                }
+                return a.actualAmount < b.actualAmount
+            }
+            for item in group {
+                if item != keep {
+                    ctx.delete(item)
+                    changed = true
+                }
             }
         }
         return changed

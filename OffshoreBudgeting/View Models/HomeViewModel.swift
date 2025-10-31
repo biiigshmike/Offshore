@@ -437,7 +437,18 @@ final class HomeViewModel: ObservableObject {
         // MARK: Planned Expenses (attached to budget)
         let plannedFetch = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
         plannedFetch.predicate = NSPredicate(format: "budget == %@", budget)
-        let plannedExpenses: [PlannedExpense] = (try? context.fetch(plannedFetch)) ?? []
+        let plannedRaw: [PlannedExpense] = (try? context.fetch(plannedFetch)) ?? []
+        // Deduplicate strict duplicates of template-children within this budget to avoid double-counting
+        var seenTemplateChildKeys = Set<String>()
+        let plannedExpenses: [PlannedExpense] = plannedRaw.filter { exp in
+            if let templateID = exp.globalTemplateID {
+                let dateKey = String(format: "%.0f", (exp.transactionDate ?? .distantPast).timeIntervalSince1970)
+                let key = "\(templateID.uuidString)|\(dateKey)|\(exp.plannedAmount)|\(exp.actualAmount)"
+                if seenTemplateChildKeys.contains(key) { return false }
+                seenTemplateChildKeys.insert(key)
+            }
+            return true
+        }
 
         let plannedExpensesPlannedTotal = plannedExpenses.reduce(0.0) { $0 + $1.plannedAmount }
         let plannedExpensesActualTotal  = plannedExpenses.reduce(0.0) { $0 + $1.actualAmount }

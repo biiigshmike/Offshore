@@ -64,6 +64,7 @@ final class CardsViewModel: ObservableObject {
     private var latestSnapshot: [CardItem] = []
     private var lastLoadedAt: Date? = nil
     private var pendingThemeCleanup = Set<UUID>()
+    private var dataStoreObserver: NSObjectProtocol?
 
     // MARK: Combine
     /// Holds reactive subscriptions (e.g., for theme refresh).
@@ -121,6 +122,19 @@ final class CardsViewModel: ObservableObject {
                 AppLog.viewModel.info("CardsViewModel configuring observer")
             }
             self.configureAndStartObserver()
+        }
+
+        // Also listen for broad data store changes (e.g., remote CloudKit imports),
+        // and force a refresh so deletions from other devices disappear without
+        // requiring an app restart.
+        if dataStoreObserver == nil {
+            dataStoreObserver = NotificationCenter.default.addObserver(
+                forName: .dataStoreDidChange,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { await self?.refresh() }
+            }
         }
     }
 
@@ -347,5 +361,11 @@ final class CardsViewModel: ObservableObject {
             return copy
         }
         state = .loaded(updated)
+    }
+}
+
+extension CardsViewModel {
+    deinit {
+        if let observer = dataStoreObserver { NotificationCenter.default.removeObserver(observer) }
     }
 }

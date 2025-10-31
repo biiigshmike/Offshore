@@ -294,8 +294,9 @@ final class BudgetDetailsViewModel: ObservableObject {
 
         loadState = .loading
         AppLog.viewModel.debug("BudgetDetailsViewModel.load() awaiting persistent stores…")
-        CoreDataService.shared.ensureLoaded()
-        await CoreDataService.shared.waitUntilStoresLoaded()
+        if !CoreDataService.shared.storesLoaded {
+            await CoreDataService.shared.waitUntilStoresLoaded()
+        }
         AppLog.viewModel.debug("BudgetDetailsViewModel.load() continuing – storesLoaded: \(CoreDataService.shared.storesLoaded)")
 
         // Resolve the Budget instance (use existingObject to avoid stale faults)

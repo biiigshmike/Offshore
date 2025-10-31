@@ -215,23 +215,6 @@ private extension SettingsView {
                 SettingsRow(title: "Enable iCloud Sync", showsTopDivider: false) {
                     Toggle("", isOn: cloudToggleBinding).labelsHidden()
                 }
-                // Cloud status diagnostics
-                SettingsRow(title: "Store Mode") {
-                    Text(cloudDiag.storeMode).foregroundStyle(.secondary)
-                }
-                SettingsRow(title: "Container Reachable") {
-                    Text(containerReachabilityText)
-                        .foregroundStyle(containerReachabilityColor)
-                }
-                SettingsRow(title: "Last CloudKit Error") {
-                    Text(cloudDiag.lastCloudKitErrorDescription ?? "None")
-                        .foregroundStyle((cloudDiag.lastCloudKitErrorDescription == nil) ? Color.secondary : Color.orange)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                SettingsRow(title: "Refresh Status") {
-                    Button("Run") { Task { await cloudDiag.refresh() } }
-                }
                 SettingsRow(title: "Sync Card Themes") {
                     Toggle("", isOn: $vm.syncCardThemes)
                         .labelsHidden()
@@ -252,12 +235,7 @@ private extension SettingsView {
                             }
                         }
                 }
-                Button(action: { showMergeConfirm = true }) {
-                    SettingsRow(title: "Merge Local Data into iCloud", detail: "Run") {
-                        Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
+
             }
         }
     }
@@ -289,21 +267,7 @@ private extension SettingsView {
         )
     }
 
-    var containerReachabilityText: String {
-        switch cloudDiag.containerReachable {
-        case .some(true): return "Yes"
-        case .some(false): return "No"
-        case .none: return "Checking…"
-        }
-    }
-
-    var containerReachabilityColor: Color {
-        switch cloudDiag.containerReachable {
-        case .some(true): return .secondary
-        case .some(false): return .red
-        case .none: return .secondary
-        }
-    }
+    // Removed: Store Mode and Container Reachable rows for a cleaner UI
 }
 
 // Intentionally empty: SettingsRow is defined in SettingsViewModel.swift

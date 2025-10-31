@@ -1,0 +1,272 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddIncomeFormView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Update Recurring Income",
+        "location": {
+          "startingColumn": 13,
+          "startingLine": 81
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Income",
+        "location": {
+          "startingColumn": 56,
+          "startingLine": 34
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Income",
+        "location": {
+          "startingColumn": 72,
+          "startingLine": 34
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 37
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Changes",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 40
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Income",
+        "location": {
+          "startingColumn": 71,
+          "startingLine": 40
+        }
+      },
+      {
+        "comment": "",
+        "key": "Couldn’t Save",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 58
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 60
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit only this instance",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 85
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit this and all future instances (creates a new series)",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 86
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit all instances (past and future)",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 87
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 88
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selecting \"Edit this and all future instances\" creates a new series. Changes from this point forward will be treated as a new series.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 90
+        }
+      },
+      {
+        "comment": "",
+        "key": "Editing a recurring income. Choosing \"Edit this and all future instances\" will create a new series. Changes from this point forward will be treated as a new series.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 109
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 129
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 130
+        }
+      },
+      {
+        "comment": "",
+        "key": "Type",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 134
+        }
+      },
+      {
+        "comment": "",
+        "key": "Paycheck",
+        "location": {
+          "startingColumn": 73,
+          "startingLine": 147
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 147
+        }
+      },
+      {
+        "comment": "",
+        "key": "Income Source",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 152
+        }
+      },
+      {
+        "comment": "",
+        "key": "Paycheck",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 155
+        }
+      },
+      {
+        "comment": "",
+        "key": "Income Source",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 160
+        }
+      },
+      {
+        "comment": "",
+        "key": "Source",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 167
+        }
+      },
+      {
+        "comment": "",
+        "key": "1000",
+        "location": {
+          "startingColumn": 78,
+          "startingLine": 178
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 178
+        }
+      },
+      {
+        "comment": "",
+        "key": "Income Amount",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 182
+        }
+      },
+      {
+        "comment": "",
+        "key": "1542.75",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 185
+        }
+      },
+      {
+        "comment": "",
+        "key": "Income Amount",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 189
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 196
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 205
+        }
+      },
+      {
+        "comment": "",
+        "key": "Entry Date",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 209
+        }
+      },
+      {
+        "comment": "",
+        "key": "Entry Date",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 211
+        }
+      },
+      {
+        "comment": "",
+        "key": "Recurrence",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 223
+        }
+      }
+    ]
+  },
+  "version": 1
+}

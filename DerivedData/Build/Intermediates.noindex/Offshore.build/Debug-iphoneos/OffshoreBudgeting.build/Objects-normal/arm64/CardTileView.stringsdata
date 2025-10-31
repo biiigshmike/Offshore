@@ -1,0 +1,24 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CardTileView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "%@%@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 58
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tap to select card",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 59
+        }
+      }
+    ]
+  },
+  "version": 1
+}

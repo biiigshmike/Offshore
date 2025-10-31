@@ -1,0 +1,58 @@
+{
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Services/CloudSyncMonitor.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CloudSyncMonitor.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CloudSyncMonitor.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CloudSyncMonitor.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CloudSyncMonitor.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CloudSyncMonitor.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Services/CoreDataService.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataService.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataService.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataService.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataService.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataService.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Services/ExpenseCategoryService.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/ExpenseCategoryService.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/ExpenseCategoryService.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/ExpenseCategoryService.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/ExpenseCategoryService.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/ExpenseCategoryService.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Services/IncomeService.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/IncomeService.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/IncomeService.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/IncomeService.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/IncomeService.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/IncomeService.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Services/MergeService.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/MergeService.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/MergeService.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/MergeService.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/MergeService.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/MergeService.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Services/PlannedExpenseService.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PlannedExpenseService.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PlannedExpenseService.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PlannedExpenseService.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PlannedExpenseService.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PlannedExpenseService.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Services/PlannedExpenseUpdateScope.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PlannedExpenseUpdateScope.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PlannedExpenseUpdateScope.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PlannedExpenseUpdateScope.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PlannedExpenseUpdateScope.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PlannedExpenseUpdateScope.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Services/RecurrenceEngine.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/RecurrenceEngine.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/RecurrenceEngine.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/RecurrenceEngine.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/RecurrenceEngine.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/RecurrenceEngine.swiftdeps"
+  }
+}

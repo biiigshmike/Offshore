@@ -1,0 +1,29 @@
+{
+  "" : {
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OffshoreBudgetingUITests-primary.dia",
+    "emit-module-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OffshoreBudgetingUITests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OffshoreBudgetingUITests-primary-emit-module.dia",
+    "pch" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OffshoreBudgetingUITests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OffshoreBudgetingUITests-primary.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgetingUITests/IncomeSmokeUITests.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/IncomeSmokeUITests.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/IncomeSmokeUITests.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/IncomeSmokeUITests.dia",
+    "index-unit-output-path" : "/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/IncomeSmokeUITests.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/IncomeSmokeUITests.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/IncomeSmokeUITests.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/IncomeSmokeUITests.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/IncomeSmokeUITests~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgetingUITests/OnboardingUITests.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OnboardingUITests.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OnboardingUITests.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OnboardingUITests.dia",
+    "index-unit-output-path" : "/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OnboardingUITests.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OnboardingUITests.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OnboardingUITests.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OnboardingUITests.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgetingUITests.build/Objects-normal/arm64/OnboardingUITests~partial.swiftmodule"
+  }
+}

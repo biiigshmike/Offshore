@@ -1,0 +1,136 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddCardFormView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Error",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 175
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Card",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 160
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Card",
+        "location": {
+          "startingColumn": 58,
+          "startingLine": 160
+        }
+      },
+      {
+        "comment": "",
+        "key": "Preview",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 101
+        }
+      },
+      {
+        "comment": "",
+        "key": "Apple Card",
+        "location": {
+          "startingColumn": 69,
+          "startingLine": 114
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 114
+        }
+      },
+      {
+        "comment": "",
+        "key": "Card Name",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 121
+        }
+      },
+      {
+        "comment": "",
+        "key": "Apple Card",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 123
+        }
+      },
+      {
+        "comment": "",
+        "key": "Card Name",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 129
+        }
+      },
+      {
+        "comment": "",
+        "key": "Name",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 135
+        }
+      },
+      {
+        "comment": "",
+        "key": "Theme",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 152
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 163
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Card",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 166
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Changes",
+        "location": {
+          "startingColumn": 59,
+          "startingLine": 166
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 176
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ theme",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 245
+        }
+      }
+    ]
+  },
+  "version": 1
+}

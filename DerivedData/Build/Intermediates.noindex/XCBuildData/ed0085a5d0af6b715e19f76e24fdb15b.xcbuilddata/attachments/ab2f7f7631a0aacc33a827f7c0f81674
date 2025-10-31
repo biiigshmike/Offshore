@@ -1,0 +1,127 @@
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Models/BudgetPeriod.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Models/CardItem.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/BudgetIncomeCalculator.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CardItem+CoreDataBridge.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CoreDataEntityChangeMonitor.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/CoreDataListObserver.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/DataRevisionEnvironment.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/HolographicMetallicText.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/NotificationName+Extensions.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/PlannedExpenseService+Templates.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/RecurrenceRule.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/SaveError.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/UnifiedSwipeActions.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Resources/View+If.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/Repository/CoreDataRepository.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/BudgetPreferenceSync.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/BudgetService.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CardService.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CloudAccountStatusProvider.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CloudDataProbe.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CloudDataRemoteProbe.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CloudDiagnostics.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CloudKitConfig.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CloudSyncAccelerator.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CloudSyncMonitor.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/CoreDataService.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/ExpenseCategoryService.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/IncomeService.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/MergeService.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/PlannedExpenseService.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/PlannedExpenseUpdateScope.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/RecurrenceEngine.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/UbiquitousFlags.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/UnplannedExpenseService.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Services/WorkspaceService.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Support/Logging.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/AppDelegate.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/AppSettings.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/AppTheme.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardAppearanceStore.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardPickerStore.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/CardTheme.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/Compatibility.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/DataChangeDebounce.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/DesignSystem.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/DesignSystem+Motion.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/GuidedWalkthroughManager.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/IncomeCalendarPalette.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/MetallicTextStyles.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/MotionSupport.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/OnboardingEnvironment.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/PlatformCapabilities.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/ResponsiveLayoutContext.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/RootTabView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/SafeAreaInsetsCompatibility.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/SystemTheme.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Systems/UITestingEnvironment.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddBudgetViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddIncomeFormViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddPlannedExpenseViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/AddUnplannedExpenseViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/BudgetDetailsViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/BudgetDetailsViewModelStore.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/CardDetailViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/CardsViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/HomeViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/IncomeScreenViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/PresetsViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/View\ Models/SettingsViewModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/Buttons.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/CalendarNavigationButtonStyle.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/CategoryChipPill.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/GlassCTAButton.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/PillSegmentedControl.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/SheetDetentsCompat.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/Components/TranslucentButtonStyle.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddBudgetView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddCardFormView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddIncomeFormView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddPlannedExpenseView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/AddUnplannedExpenseView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardDetailView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardPickerItemTile.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardPickerRow.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardsView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CardTileView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CategoryChipStyle.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CloudSyncGateView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/CustomRecurrenceEditorView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/EditCategoryCapsView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/HelpView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/HomeView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/IncomeEditorView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/IncomeView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ManageBudgetCardsSheet.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/ManageBudgetPresetsSheet.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/OnboardingView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetBudgetAssignmentSheet.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetRowView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/PresetsView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/RecurrencePickerView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/RenameCardSheet.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/SettingsView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/SidebarViewController.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/UBEmptyState.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/Views/WorkspaceSetupView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/ContentView.swift
+/Users/Michael/Xcode\ iOS/Offshore/OffshoreBudgeting/OffshoreBudgetingApp.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Workspace+CoreDataClass.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Workspace+CoreDataProperties.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Budget+CoreDataClass.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Budget+CoreDataProperties.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Card+CoreDataClass.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Card+CoreDataProperties.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/CategorySpendingCap+CoreDataClass.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/CategorySpendingCap+CoreDataProperties.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/ExpenseCategory+CoreDataClass.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/ExpenseCategory+CoreDataProperties.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Income+CoreDataClass.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/Income+CoreDataProperties.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/PlannedExpense+CoreDataClass.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/PlannedExpense+CoreDataProperties.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/UnplannedExpense+CoreDataClass.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/UnplannedExpense+CoreDataProperties.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/CoreDataGenerated/OffshoreBudgetingModel/OffshoreBudgetingModel+CoreDataModel.swift
+/Users/Michael/Xcode\ iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/DerivedSources/GeneratedAssetSymbols.swift

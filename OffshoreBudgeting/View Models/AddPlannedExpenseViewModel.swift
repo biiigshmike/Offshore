@@ -92,7 +92,6 @@ final class AddPlannedExpenseViewModel: ObservableObject {
     // MARK: load()
     func load() async {
         cardsLoaded = cardPickerStore?.isReady ?? false
-        CoreDataService.shared.ensureLoaded()
         allBudgets = fetchBudgets()
         pruneSelectedBudgets()
         allCategories = fetchCategories()

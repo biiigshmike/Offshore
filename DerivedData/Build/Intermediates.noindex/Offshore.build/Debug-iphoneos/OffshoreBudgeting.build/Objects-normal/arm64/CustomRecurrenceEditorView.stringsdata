@@ -1,0 +1,104 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CustomRecurrenceEditorView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Custom Recurrence",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 102
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 105
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 111
+        }
+      },
+      {
+        "comment": "",
+        "key": "Custom Recurrence",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 122
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 125
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "Every",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 153
+        }
+      },
+      {
+        "comment": "",
+        "key": "Unit",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 158
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 155
+        }
+      },
+      {
+        "comment": "",
+        "key": "FREQUENCY",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 164
+        }
+      },
+      {
+        "comment": "",
+        "key": "WEEKDAYS",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 172
+        }
+      },
+      {
+        "comment": "",
+        "key": "Preview",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 178
+        }
+      }
+    ]
+  },
+  "version": 1
+}

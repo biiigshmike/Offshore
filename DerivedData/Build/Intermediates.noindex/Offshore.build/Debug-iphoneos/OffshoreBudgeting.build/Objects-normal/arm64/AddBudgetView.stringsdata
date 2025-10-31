@@ -1,0 +1,144 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddBudgetView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Couldn’t Save Budget",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 210
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Budget",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 193
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Budget",
+        "location": {
+          "startingColumn": 61,
+          "startingLine": 193
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 101
+        }
+      },
+      {
+        "comment": "",
+        "key": "Budget Name",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 109
+        }
+      },
+      {
+        "comment": "",
+        "key": "Name",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 114
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 123
+        }
+      },
+      {
+        "comment": "",
+        "key": "End",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 126
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dates",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "No cards yet. Add cards first to track expenses.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 140
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cards to Track",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 158
+        }
+      },
+      {
+        "comment": "",
+        "key": "No presets yet. You can add them later.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 167
+        }
+      },
+      {
+        "comment": "",
+        "key": "Preset Planned Expenses",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 185
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 196
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Changes",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 199
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Budget",
+        "location": {
+          "startingColumn": 60,
+          "startingLine": 199
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 215
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -231,10 +231,11 @@ final class HomeViewModel: ObservableObject {
 
         isRefreshing = true
         AppLog.viewModel.debug("HomeViewModel.refresh() started – current state: \(String(describing: self.state))")
-        CoreDataService.shared.ensureLoaded()
-        AppLog.viewModel.debug("HomeViewModel.refresh() awaiting persistent stores…")
-        await CoreDataService.shared.waitUntilStoresLoaded()
-        AppLog.viewModel.debug("HomeViewModel.refresh() continuing – storesLoaded: \(CoreDataService.shared.storesLoaded)")
+        if !CoreDataService.shared.storesLoaded {
+            AppLog.viewModel.debug("HomeViewModel.refresh() awaiting persistent stores…")
+            await CoreDataService.shared.waitUntilStoresLoaded()
+            AppLog.viewModel.debug("HomeViewModel.refresh() continuing – storesLoaded: \(CoreDataService.shared.storesLoaded)")
+        }
 
         let requestedPeriod = period
         let requestedDate = selectedDate

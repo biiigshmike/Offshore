@@ -27,7 +27,8 @@ final class CoreDataService: ObservableObject {
     /// IMPORTANT: Ensure your model is named "SoFarModel.xcdatamodeld".
     private let modelName = "OffshoreBudgetingModel"
     /// CloudKit container identifier (must match entitlements / dashboard).
-    private let cloudKitContainerIdentifier = "iCloud.com.mb.offshore-budgeting"
+    /// Use the single source of truth from CloudKitConfig to avoid drift.
+    private var cloudKitContainerIdentifier: String { CloudKitConfig.containerIdentifier }
     
     /// Reads the user's preference to enable CloudKit sync.
     private var enableCloudKitSync: Bool {
@@ -74,9 +75,11 @@ final class CoreDataService: ObservableObject {
         description.setOption(true as NSNumber, forKey: NSMigratePersistentStoresAutomaticallyOption)
         description.setOption(true as NSNumber, forKey: NSInferMappingModelAutomaticallyOption)
 
-        // Initial mode selection is conservative: start in local mode.
-        // If the user has enabled CloudKit, we rebuild the stores after launch.
-        let initialMode: PersistentStoreMode = .local
+        // Initial mode selection: if the user has already enabled CloudKit sync,
+        // start in CloudKit mode to avoid an immediate rebuild after launch.
+        // This is safe even if iCloud account is temporarily unavailable —
+        // the store still loads and begins mirroring when possible.
+        let initialMode: PersistentStoreMode = (enableCloudKitSync ? .cloudKit : .local)
         configure(description: description, for: initialMode)
 
         cloudContainer.persistentStoreDescriptions = [description]
@@ -123,8 +126,9 @@ final class CoreDataService: ObservableObject {
     private func postLoadConfiguration() {
         // Merge changes from background contexts so UI updates automatically.
         viewContext.automaticallyMergesChangesFromParent = true
-        // You had StoreTrump; keeping your choice here.
-        viewContext.mergePolicy = NSMergeByPropertyStoreTrumpMergePolicy
+        // Align with Apple guidance for UI contexts: ObjectTrump to prefer in-memory
+        // edits over store values on conflict, while still merging background imports.
+        viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         // Optional: performance niceties
         viewContext.undoManager = nil
 
@@ -454,3 +458,26 @@ private extension CoreDataService {
         }
     }
 }
+
+#if DEBUG
+// MARK: - Development: CloudKit Schema Initialization
+extension CoreDataService {
+    /// Initializes the CloudKit schema for the current container in the
+    /// Development environment. No-ops in Release builds.
+    ///
+    /// Call this from a debug-only UI or via an environment flag after stores load.
+    @MainActor
+    func initializeCloudKitSchemaIfNeeded() async {
+        guard isCloudStoreActive else { return }
+        // Ensure stores are loaded and container is configured for CloudKit.
+        await waitUntilStoresLoaded(timeout: 10.0)
+        guard let cloudContainer = container as? NSPersistentCloudKitContainer else { return }
+        do {
+            try cloudContainer.initializeCloudKitSchema(options: [])
+            AppLog.iCloud.info("Initialized CloudKit schema in Development environment")
+        } catch {
+            AppLog.iCloud.error("Failed to initialize CloudKit schema: \(String(describing: error))")
+        }
+    }
+}
+#endif

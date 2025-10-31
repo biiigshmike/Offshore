@@ -85,7 +85,9 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
     // MARK: load()
     func load() async {
         cardsLoaded = cardPickerStore?.isReady ?? false
-        await CoreDataService.shared.waitUntilStoresLoaded()
+        if !CoreDataService.shared.storesLoaded {
+            await CoreDataService.shared.waitUntilStoresLoaded()
+        }
         reloadLists()
 
         if isEditing, let id = unplannedExpenseID,

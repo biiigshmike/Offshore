@@ -1,0 +1,6 @@
+Target dependency graph (3 targets)
+Target 'OffshoreBudgeting' in project 'Offshore'
+➜ Explicit dependency on target 'MijickCalendarView' in project 'MijickCalendarView'
+Target 'MijickCalendarView' in project 'MijickCalendarView'
+➜ Explicit dependency on target 'MijickCalendarView' in project 'MijickCalendarView'
+Target 'MijickCalendarView' in project 'MijickCalendarView' (no dependencies)

@@ -122,9 +122,8 @@ struct OffshoreBudgetingApp: App {
                     // Ensure stores are loaded in the background
                     CoreDataService.shared.ensureLoaded()
                     await CoreDataService.shared.waitUntilStoresLoaded()
-                    // Re-apply cloud preference if needed and initialize workspace
+                    // Initialize workspace and reflect cloud flags
                     if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue) {
-                        await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
                         if CloudDataProbe().hasAnyData() { UbiquitousFlags.setHasCloudDataTrue() }
                     }
                     await WorkspaceService.shared.initializeOnLaunch()
@@ -143,6 +142,12 @@ struct OffshoreBudgetingApp: App {
                     startObservingDataChanges()
                     // Nudge CloudKit while foreground to accelerate initial sync visibility.
                     CloudSyncAccelerator.shared.nudgeOnForeground()
+                    // DEBUG: Optional Development schema initialization
+                    #if DEBUG
+                    if ProcessInfo.processInfo.environment["INIT_CLOUDKIT_SCHEMA"] == "1" {
+                        await CoreDataService.shared.initializeCloudKitSchemaIfNeeded()
+                    }
+                    #endif
                 }
             }
             .onChange(of: scenePhase) { newPhase in

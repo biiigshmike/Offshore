@@ -1,0 +1,176 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CardDetailView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Delete Expense?",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 125
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 126
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "This will remove the expense from the card.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 133
+        }
+      },
+      {
+        "comment": "",
+        "key": "Couldn't Delete Expense",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 137
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 139
+        }
+      },
+      {
+        "comment": "",
+        "key": "Couldn’t load details",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 161
+        }
+      },
+      {
+        "comment": "",
+        "key": "No expenses yet",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 172
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add an expense to see totals and categories here.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 174
+        }
+      },
+      {
+        "comment": "",
+        "key": "TOTAL SPENT",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 205
+        }
+      },
+      {
+        "comment": "",
+        "key": "No category totals available.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 212
+        }
+      },
+      {
+        "comment": "",
+        "key": "BY CATEGORY",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 233
+        }
+      },
+      {
+        "comment": "",
+        "key": "No expenses found.",
+        "location": {
+          "startingColumn": 57,
+          "startingLine": 242
+        }
+      },
+      {
+        "comment": "",
+        "key": "No results for “%@”",
+        "location": {
+          "startingColumn": 80,
+          "startingLine": 242
+        }
+      },
+      {
+        "comment": "",
+        "key": "EXPENSES",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 273
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search expenses",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 374
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 378
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Expense",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 407
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Planned Expense",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 396
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Variable Expense",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 399
+        }
+      },
+      {
+        "comment": "",
+        "key": "·",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 473
+        }
+      }
+    ]
+  },
+  "version": 1
+}

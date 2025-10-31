@@ -1,0 +1,216 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/SettingsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 121
+        }
+      },
+      {
+        "comment": "",
+        "key": "Turn Off iCloud Sync?",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 123
+        }
+      },
+      {
+        "comment": "",
+        "key": "Erase All Data?",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 130
+        }
+      },
+      {
+        "comment": "",
+        "key": "Merge Local Data into iCloud?",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 136
+        }
+      },
+      {
+        "comment": "",
+        "key": "Merge Complete",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 142
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 38
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "Switch to Local (Keep Data)",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 124
+        }
+      },
+      {
+        "comment": "",
+        "key": "Remove from This Device",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 125
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 126
+        }
+      },
+      {
+        "comment": "",
+        "key": "Choose what to do with your data on this device.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 128
+        }
+      },
+      {
+        "comment": "",
+        "key": "Erase",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 132
+        }
+      },
+      {
+        "comment": "",
+        "key": "This will remove all budgets, cards, incomes, and expenses. This action cannot be undone.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 134
+        }
+      },
+      {
+        "comment": "",
+        "key": "Merge",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 137
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 138
+        }
+      },
+      {
+        "comment": "",
+        "key": "This will look for duplicate items across devices and collapse them to avoid duplicates. Your data remains in iCloud; this action cannot be undone.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 140
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 143
+        }
+      },
+      {
+        "comment": "",
+        "key": "Your data has been merged. If you still see duplicates, you can run the merge again or contact support.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 145
+        }
+      },
+      {
+        "comment": "",
+        "key": "Merging data…",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 153
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reconfiguring storage…",
+        "location": {
+          "startingColumn": 62,
+          "startingLine": 153
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 216
+        }
+      },
+      {
+        "comment": "",
+        "key": "Run",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 228
+        }
+      },
+      {
+        "comment": "",
+        "key": "Run",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 237
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 248
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 258
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,51 @@
+{
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/View Models/PresetsViewModel.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PresetsViewModel.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PresetsViewModel.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PresetsViewModel.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PresetsViewModel.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PresetsViewModel.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/View Models/SettingsViewModel.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SettingsViewModel.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SettingsViewModel.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SettingsViewModel.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SettingsViewModel.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SettingsViewModel.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/Components/Buttons.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/Buttons.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/Buttons.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/Buttons.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/Buttons.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/Buttons.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/Components/CalendarNavigationButtonStyle.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CalendarNavigationButtonStyle.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CalendarNavigationButtonStyle.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CalendarNavigationButtonStyle.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CalendarNavigationButtonStyle.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CalendarNavigationButtonStyle.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/Components/CategoryChipPill.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CategoryChipPill.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CategoryChipPill.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CategoryChipPill.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CategoryChipPill.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CategoryChipPill.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/Components/GlassCTAButton.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/GlassCTAButton.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/GlassCTAButton.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/GlassCTAButton.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/GlassCTAButton.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/GlassCTAButton.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/Components/PillSegmentedControl.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PillSegmentedControl.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PillSegmentedControl.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PillSegmentedControl.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PillSegmentedControl.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/PillSegmentedControl.swiftdeps"
+  }
+}

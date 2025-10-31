@@ -58,6 +58,8 @@ struct HomeView: View {
     @State private var rightPairLeftColumnWidth: CGFloat = 0
     // Shared width for the right column of the right-side pairs (Projected/Actual Planned)
     @State private var rightPairRightColumnWidth: CGFloat = 0
+    // Debounced toolbar visibility updates to avoid bounce between active budgets
+    @State private var addMenuVisibilityWork: DispatchWorkItem? = nil
 
     // MARK: Category Chip Menu (Step 1)
     @State private var chipMenuSelected: BudgetSummary.CategorySpending? = nil
@@ -108,31 +110,20 @@ struct HomeView: View {
         .toolbar { toolbarContent }
         .task {
             vm.startIfNeeded()
-            isAddMenuVisible = (summary != nil)
+            refreshAddMenuVisibility(animated: false)
         }
         // If the selected budget period changes (via calendar menu or Settings),
         // clear any cached summary from a previous period so UI doesn't show
         // stale data for periods without an exact match.
         .onChange(of: budgetPeriodRawValue) { _ in
-            lastNonNilSummary = nil
             // Immediately reflect active/inactive state in toolbar visibility
-            // so the + glyph responds to period changes without waiting on a refresh.
-            let shouldShowAddMenu = (summary != nil)
-            if shouldShowAddMenu != isAddMenuVisible {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isAddMenuVisible = shouldShowAddMenu
-                }
-            }
+            // using a stable source (activeSummary) to avoid flicker.
+            refreshAddMenuVisibility(animated: true)
             // Rows are fetch-driven; no manual reload needed
         }
         // Also respond to date changes within the current period immediately
         .onChange(of: vm.selectedDate) { _ in
-            let shouldShowAddMenu = (summary != nil)
-            if shouldShowAddMenu != isAddMenuVisible {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isAddMenuVisible = shouldShowAddMenu
-                }
-            }
+            refreshAddMenuVisibility(animated: true)
         }
         .onChange(of: vm.state) { newState in
             // Only react to stable states to reduce flicker. Keep rows visible
@@ -152,12 +143,9 @@ struct HomeView: View {
             default:
                 break
             }
-            let shouldShowAddMenu = (summary != nil)
-            if shouldShowAddMenu != isAddMenuVisible {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isAddMenuVisible = shouldShowAddMenu
-                }
-            }
+            // Use activeSummary to retain visibility across transient states
+            // (e.g., .initial/.loading/.empty) and avoid toolbar bounce.
+            refreshAddMenuVisibility(animated: true)
         }
         .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
         .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
@@ -205,12 +193,11 @@ struct HomeView: View {
                         calendarMenu
                         if isAddMenuVisible {
                             addExpenseMenu
-                                .transition(.scale.combined(with: .opacity))
+                                .transition(.opacity.combined(with: .scale))
                         }
                         ellipsisMenu
                     }
                 }
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isAddMenuVisible)
             }
         } else {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -218,11 +205,10 @@ struct HomeView: View {
                     calendarMenu
                     if isAddMenuVisible {
                         addExpenseMenu
-                            .transition(.scale.combined(with: .opacity))
+                            .transition(.opacity.combined(with: .scale))
                     }
                     ellipsisMenu
                 }
-                .animation(.easeInOut(duration: 0.2), value: isAddMenuVisible)
             }
         }
     }
@@ -270,13 +256,17 @@ struct HomeView: View {
     @ViewBuilder
     private func glassToolbarLabel(_ symbol: String) -> some View {
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Image(systemName: symbol)
+            let base = Image(systemName: symbol)
                 .foregroundStyle(.primary)
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 44, height: 44)
                 .glassEffectUnion(id: "home-toolbar", namespace: homeToolbarGlassNamespace)
                 .glassEffectID(symbol, in: homeToolbarGlassNamespace)
-                .glassEffectTransition(.matchedGeometry)
+            if symbol != "plus" {
+                base.glassEffectTransition(.matchedGeometry)
+            } else {
+                base
+            }
         } else {
             Image(systemName: symbol)
                 .font(.system(size: 16, weight: .semibold))
@@ -642,9 +632,46 @@ struct HomeView: View {
     private var activeSummary: BudgetSummary? {
         switch vm.state {
         case .loaded:
+            // When data is fully loaded, only treat an exact match for the
+            // current period as active.
             return summary
+        case .empty:
+            // No budgets for the selected period → inactive.
+            return nil
         default:
+            // During transient states (.initial/.loading), keep last good
+            // snapshot to avoid flicker while we resolve the next period.
             return lastNonNilSummary
+        }
+    }
+
+    /// Updates the visibility of the Add (+) toolbar menu using a stable
+    /// summary source that avoids flicker during transient state changes.
+    private func refreshAddMenuVisibility(animated: Bool) {
+        let targetVisible = (activeSummary != nil)
+        guard targetVisible != isAddMenuVisible else { return }
+        // Cancel any in-flight toggle
+        addMenuVisibilityWork?.cancel()
+        if targetVisible {
+            // Show immediately; do not animate between active budgets.
+            isAddMenuVisible = true
+        } else {
+            // Hide with a short delay and animate out. If another active
+            // budget appears quickly, skip the hide to avoid bounce.
+            let work = DispatchWorkItem { [self] in
+                let stillShouldHide = (self.activeSummary == nil)
+                if stillShouldHide {
+                    if animated {
+                        withAnimation(.easeOut(duration: 0.22)) {
+                            self.isAddMenuVisible = false
+                        }
+                    } else {
+                        self.isAddMenuVisible = false
+                    }
+                }
+            }
+            addMenuVisibilityWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(250), execute: work)
         }
     }
 

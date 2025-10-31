@@ -1,0 +1,127 @@
+{
+  "configurations" : [
+    {
+      "id" : "F69ED2E7-C964-4093-A8CB-19A8E6B872CC",
+      "name" : "Phone Light EN (Default)",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "UITEST_RESET_STATE",
+            "value" : "1"
+          },
+          {
+            "key" : "UITEST_COLOR_SCHEME",
+            "value" : "light"
+          },
+          {
+            "key" : "UITEST_SIZE_CATEGORY",
+            "value" : "m"
+          },
+          {
+            "key" : "UITEST_LOCALE",
+            "value" : "en_US"
+          }
+        ]
+      }
+    },
+    {
+      "id" : "B7E7A07A-64DC-4E1F-9F2E-DC6B6A35A0A2",
+      "name" : "Phone Dark EN (XXL)",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "UITEST_RESET_STATE",
+            "value" : "1"
+          },
+          {
+            "key" : "UITEST_COLOR_SCHEME",
+            "value" : "dark"
+          },
+          {
+            "key" : "UITEST_SIZE_CATEGORY",
+            "value" : "xxl"
+          },
+          {
+            "key" : "UITEST_LOCALE",
+            "value" : "en_US"
+          }
+        ]
+      }
+    },
+    {
+      "id" : "2C5F14A7-3F5A-4B9B-8B99-FA9B2EA24E31",
+      "name" : "iPad Light DE (XXL)",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "UITEST_RESET_STATE",
+            "value" : "1"
+          },
+          {
+            "key" : "UITEST_COLOR_SCHEME",
+            "value" : "light"
+          },
+          {
+            "key" : "UITEST_SIZE_CATEGORY",
+            "value" : "xxl"
+          },
+          {
+            "key" : "UITEST_LOCALE",
+            "value" : "de_DE"
+          }
+        ]
+      }
+    },
+    {
+      "id" : "88B98E81-1E9B-4A2D-94F8-FC1F0B42D93C",
+      "name" : "Phone Dark AR (RTL)",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "UITEST_RESET_STATE",
+            "value" : "1"
+          },
+          {
+            "key" : "UITEST_COLOR_SCHEME",
+            "value" : "dark"
+          },
+          {
+            "key" : "UITEST_SIZE_CATEGORY",
+            "value" : "l"
+          },
+          {
+            "key" : "UITEST_LOCALE",
+            "value" : "ar"
+          },
+          {
+            "key" : "UITEST_TIMEZONE",
+            "value" : "UTC"
+          }
+        ]
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "maximumTestRepetitions" : 1,
+    "systemAttachmentLifetime" : "deleteOnSuccess",
+    "testTimeoutsEnabled" : true,
+    "uiTestingScreenshotsLifetime" : "keepAlways"
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Offshore.xcodeproj",
+        "identifier" : "4CF2204E2E4A33BC00AD5F29",
+        "name" : "OffshoreBudgetingUITests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Offshore.xcodeproj",
+        "identifier" : "4CF220442E4A33BC00AD5F29",
+        "name" : "OffshoreBudgetingTests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -114,7 +114,9 @@ final class CardsViewModel: ObservableObject {
         // Immediately start the actual data fetch.
         Task { [weak self] in
             guard let self else { return }
-            await CoreDataService.shared.waitUntilStoresLoaded(timeout: 3.0, pollInterval: 0.05)
+            if !CoreDataService.shared.storesLoaded {
+                await CoreDataService.shared.waitUntilStoresLoaded(timeout: 3.0, pollInterval: 0.05)
+            }
             if AppLog.isVerbose {
                 AppLog.viewModel.info("CardsViewModel configuring observer")
             }
@@ -133,7 +135,9 @@ final class CardsViewModel: ObservableObject {
         observer?.stop()
         observer = nil
 
-        await CoreDataService.shared.waitUntilStoresLoaded(timeout: 3.0, pollInterval: 0.05)
+        if !CoreDataService.shared.storesLoaded {
+            await CoreDataService.shared.waitUntilStoresLoaded(timeout: 3.0, pollInterval: 0.05)
+        }
         configureAndStartObserver()
     }
 

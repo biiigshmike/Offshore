@@ -118,14 +118,21 @@ final class CoreDataEntityChangeMonitor {
                 )
             }
 
-        cancellable = objectsDidChangePublisher
+        let merged = objectsDidChangePublisher
             .merge(with: didSavePublisher)
             .merge(with: didMergeObjectIDsPublisher)
             .removeDuplicates()
-            .debounce(for: .milliseconds(debounceMilliseconds), scheduler: RunLoop.main)
-            .sink { _ in
-                onRelevantChange()
-            }
+
+        if debounceMilliseconds > 0 {
+            cancellable = merged
+                .debounce(for: .milliseconds(debounceMilliseconds), scheduler: RunLoop.main)
+                .sink { _ in onRelevantChange() }
+        } else {
+            // No debounce: deliver immediately on the main run loop.
+            cancellable = merged
+                .receive(on: RunLoop.main)
+                .sink { _ in onRelevantChange() }
+        }
     }
 
     deinit {

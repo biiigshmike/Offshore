@@ -64,7 +64,6 @@ final class AddBudgetViewModel: ObservableObject {
         // FIX: Synchronous preload so the first frame of the sheet isn't blank.
         // This does not require the async .load(); it gives us non-empty fields immediately.
         if let id = editingBudgetObjectID {
-            CoreDataService.shared.ensureLoaded()
             if let existing = try? context.existingObject(with: id) as? Budget {
                 budgetName = (existing.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                 if let s = existing.startDate { self.startDate = s }
@@ -103,8 +102,9 @@ final class AddBudgetViewModel: ObservableObject {
     /// Loads cards and global planned-expense templates.
     /// When editing, refreshes the Budget fields and current template selections.
     func load() async {
-        CoreDataService.shared.ensureLoaded()
-        await CoreDataService.shared.waitUntilStoresLoaded()
+        if !CoreDataService.shared.storesLoaded {
+            await CoreDataService.shared.waitUntilStoresLoaded()
+        }
 
         allCards = fetchCards()
         globalPlannedExpenseTemplates = fetchGlobalPlannedExpenseTemplates()

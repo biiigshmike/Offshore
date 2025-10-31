@@ -1,0 +1,384 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddPlannedExpenseView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Apply changes to related expenses?",
+        "location": {
+          "startingColumn": 13,
+          "startingLine": 342
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Planned Expense",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 273
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Planned Expense",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 273
+        }
+      },
+      {
+        "comment": "",
+        "key": "No cards yet. Add one to assign this expense.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 106
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Card",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 118
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Card",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 116
+        }
+      },
+      {
+        "comment": "",
+        "key": "Card",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 130
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select a Budget",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 139
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add to a budget now?",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 141
+        }
+      },
+      {
+        "comment": "",
+        "key": "Electric",
+        "location": {
+          "startingColumn": 79,
+          "startingLine": 172
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 172
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expense Description",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 177
+        }
+      },
+      {
+        "comment": "",
+        "key": "Rent",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 179
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expense Description",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 184
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expense Description",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 190
+        }
+      },
+      {
+        "comment": "",
+        "key": "100",
+        "location": {
+          "startingColumn": 83,
+          "startingLine": 200
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 200
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned Amount",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 204
+        }
+      },
+      {
+        "comment": "",
+        "key": "2000",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 206
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned Amount",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 210
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned Amount",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 216
+        }
+      },
+      {
+        "comment": "",
+        "key": "102.50",
+        "location": {
+          "startingColumn": 82,
+          "startingLine": 226
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 226
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Amount",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 230
+        }
+      },
+      {
+        "comment": "",
+        "key": "102.50",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 232
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Amount",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 236
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Amount",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 242
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 251
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transaction Date",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 254
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transaction Date",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 256
+        }
+      },
+      {
+        "comment": "",
+        "key": "Use in future budgets?",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 263
+        }
+      },
+      {
+        "comment": "",
+        "key": "Use in future budgets?",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 265
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 276
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Changes",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 279
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 60,
+          "startingLine": 279
+        }
+      },
+      {
+        "comment": "",
+        "key": "Only this expense",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 345
+        }
+      },
+      {
+        "comment": "",
+        "key": "Past instances",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 350
+        }
+      },
+      {
+        "comment": "",
+        "key": "Future instances",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 355
+        }
+      },
+      {
+        "comment": "",
+        "key": "All instances",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 360
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 365
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search Budgets",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 412
+        }
+      },
+      {
+        "comment": "",
+        "key": "Choose Budget",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 447
+        }
+      },
+      {
+        "comment": "",
+        "key": "No categories yet",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 601
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 644
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Category",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 656
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Category",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 675
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 659
+        }
+      }
+    ]
+  },
+  "version": 1
+}

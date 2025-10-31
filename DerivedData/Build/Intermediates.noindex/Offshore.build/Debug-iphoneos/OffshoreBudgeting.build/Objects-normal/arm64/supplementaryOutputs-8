@@ -1,0 +1,51 @@
+{
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/RootTabView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/RootTabView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/RootTabView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/RootTabView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/RootTabView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/RootTabView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/SafeAreaInsetsCompatibility.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SafeAreaInsetsCompatibility.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SafeAreaInsetsCompatibility.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SafeAreaInsetsCompatibility.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SafeAreaInsetsCompatibility.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SafeAreaInsetsCompatibility.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/SystemTheme.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SystemTheme.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SystemTheme.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SystemTheme.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SystemTheme.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/SystemTheme.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/UITestingEnvironment.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/UITestingEnvironment.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/UITestingEnvironment.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/UITestingEnvironment.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/UITestingEnvironment.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/UITestingEnvironment.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/View Models/AddBudgetViewModel.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddBudgetViewModel.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddBudgetViewModel.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddBudgetViewModel.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddBudgetViewModel.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddBudgetViewModel.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/View Models/AddIncomeFormViewModel.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddIncomeFormViewModel.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddIncomeFormViewModel.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddIncomeFormViewModel.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddIncomeFormViewModel.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddIncomeFormViewModel.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/View Models/AddPlannedExpenseViewModel.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddPlannedExpenseViewModel.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddPlannedExpenseViewModel.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddPlannedExpenseViewModel.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddPlannedExpenseViewModel.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/AddPlannedExpenseViewModel.swiftdeps"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Models/BudgetPeriod.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/BudgetPeriod.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/BudgetPeriod.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/BudgetPeriod.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/BudgetPeriod.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/BudgetPeriod.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Models/CardItem.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CardItem.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CardItem.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CardItem.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CardItem.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CardItem.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Resources/BudgetIncomeCalculator.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/BudgetIncomeCalculator.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/BudgetIncomeCalculator.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/BudgetIncomeCalculator.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/BudgetIncomeCalculator.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/BudgetIncomeCalculator.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Resources/CardItem+CoreDataBridge.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CardItem+CoreDataBridge.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CardItem+CoreDataBridge.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CardItem+CoreDataBridge.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CardItem+CoreDataBridge.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CardItem+CoreDataBridge.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Resources/CoreDataEntityChangeMonitor.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataEntityChangeMonitor.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataEntityChangeMonitor.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataEntityChangeMonitor.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataEntityChangeMonitor.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataEntityChangeMonitor.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Resources/CoreDataListObserver.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataListObserver.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataListObserver.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataListObserver.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataListObserver.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/CoreDataListObserver.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Resources/DataRevisionEnvironment.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/DataRevisionEnvironment.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/DataRevisionEnvironment.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/DataRevisionEnvironment.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/DataRevisionEnvironment.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/DataRevisionEnvironment.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Resources/HolographicMetallicText.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/HolographicMetallicText.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/HolographicMetallicText.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/HolographicMetallicText.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/HolographicMetallicText.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphoneos/OffshoreBudgeting.build/Objects-normal/arm64/HolographicMetallicText.swiftdeps"
+  }
+}

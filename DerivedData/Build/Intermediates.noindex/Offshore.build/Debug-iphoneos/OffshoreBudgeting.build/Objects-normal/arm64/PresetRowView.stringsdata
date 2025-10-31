@@ -1,0 +1,32 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/PresetRowView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Assigned Budgets: %lld",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 54
+        }
+      },
+      {
+        "comment": "",
+        "key": "NEXT DATE",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 67
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 121
+        }
+      }
+    ]
+  },
+  "version": 1
+}

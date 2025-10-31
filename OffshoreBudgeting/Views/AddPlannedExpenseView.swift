@@ -517,6 +517,8 @@ private struct CategoryChipsRow: View {
     private var categories: FetchedResults<ExpenseCategory>
 
     @State private var isPresentingNewCategory = false
+    // Force fresh instance so the editor sheet doesn't retain prior @State on Mac Catalyst
+    @State private var addCategorySheetInstanceID = UUID()
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
 
@@ -550,6 +552,8 @@ private struct CategoryChipsRow: View {
             }
             // Guard presentationDetents for iOS 16+ only.
             .modifier(PresentationDetentsCompat())
+            // Ensure a fresh view identity each presentation
+            .id(addCategorySheetInstanceID)
             .environment(\.managedObjectContext, viewContext)
         }
         .onChange(of: categories.count) { _ in
@@ -617,7 +621,11 @@ private extension CategoryChipsRow {
     }
 
     private var addCategoryButton: some View {
-        AddCategoryPill { isPresentingNewCategory = true }
+        AddCategoryPill {
+            // Refresh identity and present
+            addCategorySheetInstanceID = UUID()
+            isPresentingNewCategory = true
+        }
             .padding(.leading, DS.Spacing.s)
     }
 }

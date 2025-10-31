@@ -291,6 +291,8 @@ private struct CategoryChipsRow: View {
 
     // MARK: Local State
     @State private var isPresentingNewCategory = false
+    // Force fresh instance so the editor sheet doesn't retain prior @State on Mac Catalyst
+    @State private var addCategorySheetInstanceID = UUID()
     @Environment(\.platformCapabilities) private var capabilities
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
@@ -337,6 +339,7 @@ private struct CategoryChipsRow: View {
                     base
                 }
             }
+            .id(addCategorySheetInstanceID)
         }
         .onChange(of: categories.count) { _ in
             // Auto-pick first category if none selected yet
@@ -403,6 +406,7 @@ private extension CategoryChipsRow {
 
     private var addCategoryButton: some View {
         AddCategoryPill {
+            addCategorySheetInstanceID = UUID()
             isPresentingNewCategory = true
         }
         .padding(.leading, DS.Spacing.s)

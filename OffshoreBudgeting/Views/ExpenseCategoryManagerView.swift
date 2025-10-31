@@ -34,6 +34,8 @@ struct ExpenseCategoryManagerView: View {
     
     // MARK: UI State
     @State private var isPresentingAddSheet: Bool = false
+    // Force a fresh sheet instance each presentation (fixes Mac Catalyst state reuse)
+    @State private var addSheetInstanceID = UUID()
     @State private var categoryToEdit: ExpenseCategory?
     @State private var categoryToDelete: ExpenseCategory?
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
@@ -59,7 +61,11 @@ struct ExpenseCategoryManagerView: View {
                     
                     // Right: Add Category (clear/plain, 33x33 hit box)
                     ToolbarItem(placement: .primaryAction) {
-                        Button(action: { isPresentingAddSheet = true }) {
+                        Button(action: {
+                            // Refresh the sheet identity so @State in the sheet resets on each open
+                            addSheetInstanceID = UUID()
+                            isPresentingAddSheet = true
+                        }) {
                             Image(systemName: "plus")
                                 .symbolRenderingMode(.monochrome)
                                 .foregroundStyle(.primary)
@@ -74,12 +80,25 @@ struct ExpenseCategoryManagerView: View {
         }
         .accentColor(themeManager.selectedTheme.resolvedTint)
         .tint(themeManager.selectedTheme.resolvedTint)
-        .sheet(isPresented: $isPresentingAddSheet) {
+        .sheet(isPresented: $isPresentingAddSheet, onDismiss: {
+            // Ensure the presenting flag is cleared and next open is fresh
+            isPresentingAddSheet = false
+        }) {
             ExpenseCategoryEditorSheet(
                 initialName: "",
                 initialHex: "#4E9CFF",
-                onSave: { name, hex in addCategory(name: name, hex: hex) }
+                onCancel: { isPresentingAddSheet = false },
+                onSave: { name, hex in
+                    addCategory(name: name, hex: hex)
+                    // Explicitly flip binding off to avoid any Catalyst re-present glitch
+                    #if targetEnvironment(macCatalyst)
+                    DispatchQueue.main.async { isPresentingAddSheet = false }
+                    #else
+                    isPresentingAddSheet = false
+                    #endif
+                }
             )
+            .id(addSheetInstanceID)
         }
         .sheet(item: $categoryToEdit) { category in
             ExpenseCategoryEditorSheet(
@@ -296,11 +315,17 @@ struct ExpenseCategoryEditorSheet: View {
     @State private var name: String
     @State private var color: Color
     
+    // Optional cancel hook so presenters can flip their isPresented binding on macOS/Catalyst
+    let onCancel: (() -> Void)?
     let onSave: (_ name: String, _ hex: String) -> Void
     
-    init(initialName: String, initialHex: String, onSave: @escaping (_ name: String, _ hex: String) -> Void) {
+    init(initialName: String,
+         initialHex: String,
+         onCancel: (() -> Void)? = nil,
+         onSave: @escaping (_ name: String, _ hex: String) -> Void) {
         self._name = State(initialValue: initialName)
         self._color = State(initialValue: UBColorFromHex(initialHex) ?? .blue)
+        self.onCancel = onCancel
         self.onSave = onSave
     }
     
@@ -338,22 +363,35 @@ struct ExpenseCategoryEditorSheet: View {
             .listStyle(.insetGrouped)
             .scrollIndicators(.hidden)
             .navigationTitle("New Category")
+            .interactiveDismissDisabled(false)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        // Notify presenter (if provided) and dismiss.
+                        onCancel?()
+                        // Defer to next runloop to avoid Catalyst sheet bugs.
+                        DispatchQueue.main.async {
+                            dismiss()
+                            forceDismissAnyPresentedControllerIfNeeded()
+                        }
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmed.isEmpty, let hex = colorToHex(color) else { return }
                         onSave(trimmed, hex)
-                        dismiss()
+                        // Defer to next runloop to avoid Catalyst sheet bugs.
+                        DispatchQueue.main.async {
+                            dismiss()
+                            forceDismissAnyPresentedControllerIfNeeded()
+                        }
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
-        .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
+        .modifier(DetentsForCategoryEditorCompat())
     }
     
     // Minimal nav container for older OS support
@@ -373,6 +411,21 @@ struct ExpenseCategoryEditorSheet: View {
         let ri = Int(round(r * 255)), gi = Int(round(g * 255)), bi = Int(round(b * 255))
         return String(format: "#%02X%02X%02X", ri, gi, bi)
     }
+
+    // Fallback for Mac Catalyst where SwiftUI sheet dismissal can sometimes
+    // visually linger even after state changes. This ensures any presented
+    // controller is dismissed.
+    private func forceDismissAnyPresentedControllerIfNeeded() {
+        #if targetEnvironment(macCatalyst)
+        DispatchQueue.main.async {
+            UIApplication.shared.connectedScenes
+                .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+                .first?
+                .rootViewController?
+                .dismiss(animated: true)
+        }
+        #endif
+    }
 }
 
 // MARK: - ColorCircle
@@ -387,6 +440,18 @@ struct ColorCircle: View {
                 Circle().strokeBorder(Color.primary.opacity(0.1))
             )
             .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Local Detents modifier for Category Editor (avoids Catalyst bug)
+private struct DetentsForCategoryEditorCompat: ViewModifier {
+    func body(content: Content) -> some View {
+        #if targetEnvironment(macCatalyst)
+        // Avoid presentationDetents on Mac Catalyst due to dismissal glitches.
+        content
+        #else
+        content.applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
+        #endif
     }
 }
 

@@ -102,6 +102,11 @@ struct IncomeView: View {
         }
         .navigationTitle("Income")
         .toolbar { toolbarContent }
+        .refreshable {
+            // Pull-to-refresh: nudge CloudKit and reload the selected day
+            CloudSyncAccelerator.shared.nudgeOnForeground()
+            vm.reloadForSelectedDay(forceMonthReload: true)
+        }
         .onChange(of: vm.selectedDate) { _ in
             vm.reloadForSelectedDay(forceMonthReload: false)
         }

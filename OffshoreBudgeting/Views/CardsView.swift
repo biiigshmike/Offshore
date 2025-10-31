@@ -20,6 +20,8 @@ struct CardsView: View {
     private let columns = [GridItem(.adaptive(minimum: 260, maximum: 260), spacing: 16)]
     private let cardHeight: CGFloat = 160
 
+    
+
     var body: some View { cardsContent }
 
     @ViewBuilder
@@ -84,6 +86,12 @@ struct CardsView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .top)
             }
+            .refreshable {
+                // Pull-to-refresh: nudge CloudKit and reload cards
+                CloudSyncAccelerator.shared.nudgeOnForeground()
+                await vm.refresh()
+            }
+            
             .navigationTitle("Cards")
             .toolbar { toolbarContent }
             .onAppear { vm.startIfNeeded() }

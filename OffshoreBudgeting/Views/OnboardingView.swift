@@ -7,8 +7,6 @@ struct OnboardingView: View {
     @Environment(\.platformCapabilities) private var capabilities
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
     @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
-    @AppStorage(AppSettingsKeys.syncCardThemes.rawValue) private var syncCardThemes: Bool = false
-    @AppStorage(AppSettingsKeys.syncBudgetPeriod.rawValue) private var syncBudgetPeriod: Bool = false
 
     enum Step { case welcome, categories, cards, presets, loading }
     @State private var step: Step = .welcome
@@ -45,10 +43,6 @@ struct OnboardingView: View {
         .transition(.opacity)
         .onboardingPresentation() // mark hierarchy for onboarding-specific styling
         .onChange(of: enableCloudSync) { newValue in
-            if newValue {
-                if !syncCardThemes { syncCardThemes = true }
-                if !syncBudgetPeriod { syncBudgetPeriod = true }
-            }
             Task { @MainActor in
                 await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: newValue)
             }

@@ -91,6 +91,70 @@ final class WorkspaceService {
     func initializeOnLaunch() async {
         _ = ensureActiveWorkspaceID()
         await assignWorkspaceIDIfMissing()
+        seedBudgetPeriodIfNeeded()
     }
 }
 
+// MARK: - Workspace helpers (budget period persistence)
+extension WorkspaceService {
+    /// Returns the Workspace row for the active workspace ID, creating it when missing.
+    func fetchOrCreateWorkspace(in context: NSManagedObjectContext = CoreDataService.shared.viewContext) -> NSManagedObject? {
+        let id = ensureActiveWorkspaceID()
+        let req = NSFetchRequest<NSManagedObject>(entityName: "Workspace")
+        req.fetchLimit = 1
+        req.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        if let existing = try? context.fetch(req).first {
+            return existing
+        }
+        guard let entity = NSEntityDescription.entity(forEntityName: "Workspace", in: context) else { return nil }
+        let ws = NSManagedObject(entity: entity, insertInto: context)
+        ws.setValue(id, forKey: "id")
+        // Best-effort defaults
+        if ws.entity.attributesByName.keys.contains("name") && (ws.value(forKey: "name") as? String) == nil {
+            ws.setValue("Default", forKey: "name")
+        }
+        if ws.entity.attributesByName.keys.contains("isCloud") && (ws.value(forKey: "isCloud") as? Bool) == nil {
+            ws.setValue(cloudEnabled, forKey: "isCloud")
+        }
+        try? context.save()
+        return ws
+    }
+
+    /// Reads the current budget period stored on the Workspace row.
+    func currentBudgetPeriod(in context: NSManagedObjectContext = CoreDataService.shared.viewContext) -> BudgetPeriod {
+        guard let ws = fetchOrCreateWorkspace(in: context) else { return .monthly }
+        if ws.entity.attributesByName.keys.contains("budgetPeriod"),
+           let raw = ws.value(forKey: "budgetPeriod") as? String,
+           let p = BudgetPeriod(rawValue: raw) {
+            return p
+        }
+        return .monthly
+    }
+
+    /// Persists the budget period to the Workspace row.
+    func setBudgetPeriod(_ period: BudgetPeriod, in context: NSManagedObjectContext = CoreDataService.shared.viewContext) {
+        guard let ws = fetchOrCreateWorkspace(in: context) else { return }
+        if ws.entity.attributesByName.keys.contains("budgetPeriod") {
+            ws.setValue(period.rawValue, forKey: "budgetPeriod")
+        }
+        if ws.entity.attributesByName.keys.contains("budgetPeriodUpdatedAt") {
+            ws.setValue(Date(), forKey: "budgetPeriodUpdatedAt")
+        }
+        try? context.save()
+    }
+
+    /// One-time seed: if Workspace.budgetPeriod is nil, copy from UserDefaults and persist.
+    func seedBudgetPeriodIfNeeded() {
+        let ctx = CoreDataService.shared.viewContext
+        guard let ws = fetchOrCreateWorkspace(in: ctx) else { return }
+        if ws.entity.attributesByName.keys.contains("budgetPeriod"),
+           (ws.value(forKey: "budgetPeriod") as? String) == nil {
+            let localRaw = UserDefaults.standard.string(forKey: AppSettingsKeys.budgetPeriod.rawValue) ?? BudgetPeriod.monthly.rawValue
+            ws.setValue(localRaw, forKey: "budgetPeriod")
+            if ws.entity.attributesByName.keys.contains("budgetPeriodUpdatedAt") {
+                ws.setValue(Date(), forKey: "budgetPeriodUpdatedAt")
+            }
+            try? ctx.save()
+        }
+    }
+}

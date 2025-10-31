@@ -12,8 +12,6 @@ struct CloudSyncGateView: View {
     // MARK: App Storage
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
     @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
-    @AppStorage(AppSettingsKeys.syncCardThemes.rawValue) private var syncCardThemes: Bool = false
-    @AppStorage(AppSettingsKeys.syncBudgetPeriod.rawValue) private var syncBudgetPeriod: Bool = false
 
     // MARK: Local State
     @State private var shouldShowOnboarding: Bool = false
@@ -105,9 +103,7 @@ struct CloudSyncGateView: View {
     }
 
     private func enableAndProbeForExistingData() {
-        // Turn on Cloud preferences (and dependent flags) up-front.
-        if !syncCardThemes { syncCardThemes = true }
-        if !syncBudgetPeriod { syncBudgetPeriod = true }
+        // Turn on Cloud sync up-front.
         enableCloudSync = true
 
         // If any device previously indicated cloud data exists, verify remotely first.

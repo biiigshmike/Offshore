@@ -142,20 +142,7 @@ enum Month {
 final class HomeViewModel: ObservableObject {
 
     // MARK: Published State
-    @AppStorage(AppSettingsKeys.budgetPeriod.rawValue)
-    private var budgetPeriodRawValue: String = BudgetPeriod.monthly.rawValue {
-        didSet {
-            guard budgetPeriodRawValue != oldValue else { return }
-            selectedDate = period.start(of: Date())
-            Task { [weak self] in
-                await self?.refresh()
-            }
-        }
-    }
-
-    private var period: BudgetPeriod {
-        BudgetPeriod(rawValue: budgetPeriodRawValue) ?? .monthly
-    }
+    @Published private(set) var period: BudgetPeriod = .monthly
 
     @Published var selectedDate: Date = BudgetPeriod.monthly.start(of: Date()) {
         didSet {
@@ -184,6 +171,7 @@ final class HomeViewModel: ObservableObject {
     /// - Parameter context: The Core Data context to use (defaults to main viewContext).
     init(context: NSManagedObjectContext = CoreDataService.shared.viewContext) {
         self.context = context
+        self.period = WorkspaceService.shared.currentBudgetPeriod(in: context)
         self.selectedDate = period.start(of: Date())
     }
 
@@ -199,7 +187,7 @@ final class HomeViewModel: ObservableObject {
             // Refresh only on relevant entity changes to reduce churn and flicker.
             // Budget + expenses + income + categories + card membership affect summaries.
             entityChangeMonitor = CoreDataEntityChangeMonitor(
-                entityNames: ["Budget", "PlannedExpense", "UnplannedExpense", "Income", "ExpenseCategory", "Card"],
+                entityNames: ["Budget", "PlannedExpense", "UnplannedExpense", "Income", "ExpenseCategory", "Card", "Workspace"],
                 debounceMilliseconds: DataChangeDebounce.milliseconds()
             ) { [weak self] in
                 Task { await self?.refresh() }
@@ -237,6 +225,8 @@ final class HomeViewModel: ObservableObject {
             AppLog.viewModel.debug("HomeViewModel.refresh() continuing – storesLoaded: \(CoreDataService.shared.storesLoaded)")
         }
 
+        // Refresh local period from Workspace in case it changed remotely
+        self.period = WorkspaceService.shared.currentBudgetPeriod(in: context)
         let requestedPeriod = period
         let requestedDate = selectedDate
         let (start, end) = requestedPeriod.range(containing: requestedDate)
@@ -363,8 +353,13 @@ final class HomeViewModel: ObservableObject {
     /// Updates the budget period preference and triggers a refresh.
     /// - Parameter newPeriod: The newly selected budget period.
     func updateBudgetPeriod(to newPeriod: BudgetPeriod) {
-        guard budgetPeriodRawValue != newPeriod.rawValue else { return }
-        budgetPeriodRawValue = newPeriod.rawValue
+        guard period != newPeriod else { return }
+        WorkspaceService.shared.setBudgetPeriod(newPeriod, in: context)
+        self.period = newPeriod
+        selectedDate = newPeriod.start(of: Date())
+        Task { [weak self] in
+            await self?.refresh()
+        }
     }
 
     // MARK: adjustSelectedPeriod(by:)

@@ -38,7 +38,12 @@ struct SettingsView: View {
                             Toggle("", isOn: $vm.confirmBeforeDelete).labelsHidden()
                         }
                         SettingsRow(title: "Default Budget Period") {
-                            Picker("", selection: $vm.budgetPeriod) {
+                            Picker("",
+                                   selection: Binding<BudgetPeriod>(
+                                       get: { WorkspaceService.shared.currentBudgetPeriod(in: viewContext) },
+                                       set: { WorkspaceService.shared.setBudgetPeriod($0, in: viewContext) }
+                                   )
+                            ) {
                                 ForEach(BudgetPeriod.selectableCases) { Text($0.displayName).tag($0) }
                             }
                             .labelsHidden()
@@ -215,26 +220,7 @@ private extension SettingsView {
                 SettingsRow(title: "Enable iCloud Sync", showsTopDivider: false) {
                     Toggle("", isOn: cloudToggleBinding).labelsHidden()
                 }
-                SettingsRow(title: "Sync Card Themes") {
-                    Toggle("", isOn: $vm.syncCardThemes)
-                        .labelsHidden()
-                        .disabled(!vm.enableCloudSync)
-                        .onChange(of: vm.syncCardThemes) { _ in
-                            Task { @MainActor in
-                                CardAppearanceStore.shared.applySettingsChanged()
-                            }
-                        }
-                }
-                SettingsRow(title: "Sync Budget Period") {
-                    Toggle("", isOn: $vm.syncBudgetPeriod)
-                        .labelsHidden()
-                        .disabled(!vm.enableCloudSync)
-                        .onChange(of: vm.syncBudgetPeriod) { _ in
-                            Task { @MainActor in
-                                BudgetPreferenceSync.shared.applySettingsChanged()
-                            }
-                        }
-                }
+                // Budget Period sync is handled via Core Data (Workspace) when Cloud is enabled.
 
             }
         }
@@ -251,14 +237,12 @@ private extension SettingsView {
                 if !vm.enableCloudSync && newValue == true {
                     isReconfiguringStores = true
                     vm.enableCloudSync = true
-                    if vm.syncCardThemes == false { vm.syncCardThemes = true }
                     Task { @MainActor in
                         try? await Task.sleep(nanoseconds: 80_000_000)
                         await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
                         _ = WorkspaceService.shared.ensureActiveWorkspaceID()
                         await WorkspaceService.shared.assignWorkspaceIDIfMissing()
-                        CardAppearanceStore.shared.applySettingsChanged()
-                        BudgetPreferenceSync.shared.applySettingsChanged()
+                        // Workspace-backed period will mirror via Core Data
                         await cloudDiag.refresh()
                         isReconfiguringStores = false
                     }

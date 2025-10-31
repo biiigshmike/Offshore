@@ -128,9 +128,7 @@ struct OffshoreBudgetingApp: App {
                     }
                     await WorkspaceService.shared.initializeOnLaunch()
 
-                    // Ensure KVS-based sync services reflect current settings
-                    CardAppearanceStore.shared.applySettingsChanged()
-                    BudgetPreferenceSync.shared.applySettingsChanged()
+                    // No BudgetPreferenceSync – budget period mirrors via Core Data (Workspace)
                     // Create the CardPickerStore now that Core Data is ready
                     if cardPickerStore == nil {
                         let store = CardPickerStore()

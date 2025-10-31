@@ -87,9 +87,7 @@ struct AddUnplannedExpenseView: View {
                 do {
                     let service = CardService()
                     let card = try service.createCard(name: newName)
-                    if let uuid = card.value(forKey: "id") as? UUID {
-                        CardAppearanceStore.shared.setTheme(selectedTheme, for: uuid)
-                    }
+                    try service.updateCard(card, name: nil, theme: selectedTheme)
                     vm.selectedCardID = card.objectID
                 } catch {
                     let alert = UIAlertController(title: "Couldn’t Create Card", message: error.localizedDescription, preferredStyle: .alert)

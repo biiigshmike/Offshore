@@ -298,14 +298,8 @@ struct CardDetailView: View {
             }
 
             if let managedCard {
-                try service.updateCard(managedCard, name: name)
-
-                let resolvedUUID = cardSnapshot.uuid
-                    ?? (managedCard.value(forKey: "id") as? UUID)
-                if let resolvedUUID {
-                    CardAppearanceStore.shared.setTheme(theme, for: resolvedUUID)
-                }
-
+                // Persist name and theme to Core Data
+                try service.updateCard(managedCard, name: name, theme: theme)
                 cardSnapshot.name = name
                 cardSnapshot.theme = theme
                 refreshCardDetails()

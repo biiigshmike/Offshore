@@ -18,8 +18,6 @@ struct HomeView: View {
 
     // MARK: State & View Model
     @StateObject private var vm = HomeViewModel()
-    @AppStorage(AppSettingsKeys.budgetPeriod.rawValue)
-    private var budgetPeriodRawValue: String = BudgetPeriod.monthly.rawValue
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
     private var confirmBeforeDelete: Bool = true
 
@@ -108,6 +106,12 @@ struct HomeView: View {
         .listStyle(.plain)
         .navigationTitle("Home")
         .toolbar { toolbarContent }
+        
+        .refreshable {
+            // Pull-to-refresh: nudge CloudKit and refresh summaries
+            CloudSyncAccelerator.shared.nudgeOnForeground()
+            await vm.refresh()
+        }
         .task {
             vm.startIfNeeded()
             refreshAddMenuVisibility(animated: false)
@@ -115,7 +119,7 @@ struct HomeView: View {
         // If the selected budget period changes (via calendar menu or Settings),
         // clear any cached summary from a previous period so UI doesn't show
         // stale data for periods without an exact match.
-        .onChange(of: budgetPeriodRawValue) { _ in
+        .onChange(of: vm.period) { _ in
             // Immediately reflect active/inactive state in toolbar visibility
             // using a stable source (activeSummary) to avoid flicker.
             refreshAddMenuVisibility(animated: true)
@@ -601,7 +605,7 @@ struct HomeView: View {
     }
 
     // MARK: Derived Data
-    private var budgetPeriod: BudgetPeriod { BudgetPeriod(rawValue: budgetPeriodRawValue) ?? .monthly }
+    private var budgetPeriod: BudgetPeriod { vm.period }
 
     private var periodTitle: String { budgetPeriod.title(for: vm.selectedDate) }
 
@@ -1394,7 +1398,7 @@ private extension HomeView {
                     .transition(.scale.combined(with: .opacity))
                     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: chipMenuVisible)
                     .onAppear { reloadChipMenuCaps(for: cat) }
-                    .onChange(of: budgetPeriodRawValue) { _ in reloadChipMenuCaps(for: cat) }
+            .onChange(of: vm.period) { _ in reloadChipMenuCaps(for: cat) }
                     .onChange(of: vm.selectedDate) { _ in reloadChipMenuCaps(for: cat) }
                     .onChange(of: segment) { _ in reloadChipMenuCaps(for: cat, resetAmount: true) }
                 }
@@ -1823,7 +1827,7 @@ private extension HomeView {
             .padding(.bottom, 16)
             .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 4)
             .onChange(of: vm.selectedDate) { _ in reloadCapsForSelectionChange() }
-            .onChange(of: budgetPeriodRawValue) { _ in reloadCapsForSelectionChange() }
+            .onChange(of: vm.period) { _ in reloadCapsForSelectionChange() }
             .onChange(of: segment) { _ in reloadCapsForSelectionChange(resetAmount: true) }
             .animation(.spring(response: 0.4, dampingFraction: 0.85), value: capMode)
         } else {

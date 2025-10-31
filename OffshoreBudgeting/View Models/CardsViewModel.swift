@@ -18,7 +18,7 @@
 
 import SwiftUI
 import CoreData
-import Combine   // NEW: for reactive theme refresh
+ 
 
 // MARK: - CardsLoadState
 enum CardsLoadState: Equatable {
@@ -57,35 +57,22 @@ final class CardsViewModel: ObservableObject {
 
     // MARK: Dependencies
     private let cardService: CardService
-    private let appearanceStore: CardAppearanceStore
+    
     private var observer: CoreDataListObserver<Card>?
     private var hasStarted = false
     private var pendingApply: DispatchWorkItem?
     private var latestSnapshot: [CardItem] = []
     private var lastLoadedAt: Date? = nil
-    private var pendingThemeCleanup = Set<UUID>()
+    
     private var dataStoreObserver: NSObjectProtocol?
 
     // MARK: Combine
-    /// Holds reactive subscriptions (e.g., for theme refresh).
-    private var cancellables = Set<AnyCancellable>() // NEW
+    
 
     // MARK: Init
-    init(cardService: CardService = CardService(),
-         appearanceStore: CardAppearanceStore? = nil) {
+    init(cardService: CardService = CardService()) {
         self.cardService = cardService
-        let resolvedAppearanceStore = appearanceStore ?? CardAppearanceStore.shared
-        self.appearanceStore = resolvedAppearanceStore
 
-        // Reactive Theme Refresh (no store changes required)
-        // Listens for UserDefaults changes (where CardAppearanceStore persists).
-        // When themes change, re-apply values onto the current items without waiting for Core Data.
-        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.reapplyThemes()
-            }
-            .store(in: &cancellables)
     }
 
     // MARK: startIfNeeded()
@@ -172,9 +159,12 @@ final class CardsViewModel: ObservableObject {
             // Map Core Data -> UI items (use stable objectID)
             let mappedItems: [CardItem] = managedObjects.map { managedObject in
                 let uuid = managedObject.value(forKey: "id") as? UUID
+                // Prefer Core Data attribute first; fallback to legacy appearance store
                 let theme: CardTheme = {
-                    if let uuid { return self.appearanceStore.theme(for: uuid) }
-                    // If an old row is missing `id`, show a stable local default.
+                    if managedObject.entity.attributesByName["theme"] != nil,
+                       let raw = managedObject.value(forKey: "theme") as? String,
+                       let t = CardTheme(rawValue: raw) { return t }
+                    // Default neutral theme if missing
                     return .graphite
                 }()
 
@@ -208,14 +198,6 @@ final class CardsViewModel: ObservableObject {
             let work = DispatchWorkItem { [weak self] in
                 guard let self else { return }
                 let items = self.latestSnapshot
-                // If any theme deletions are pending for cards that are no longer present,
-                // clean them up now to avoid triggering a defaults change while the row exists.
-                let presentUUIDs = Set(items.compactMap { $0.uuid })
-                let readyToRemove = self.pendingThemeCleanup.subtracting(presentUUIDs)
-                if !readyToRemove.isEmpty {
-                    for uuid in readyToRemove { self.appearanceStore.removeTheme(for: uuid) }
-                    self.pendingThemeCleanup.subtract(readyToRemove)
-                }
                 if items.isEmpty {
                     self.state = .empty
                     if AppLog.isVerbose {
@@ -250,14 +232,10 @@ final class CardsViewModel: ObservableObject {
 
         do {
             let created = try cardService.createCard(name: trimmed, ensureUniqueName: true)
-            if let newUUID = created.value(forKey: "id") as? UUID {
-                // Persist theme first so the next FRC snapshot uses it instead of default .rose
-                appearanceStore.setTheme(theme, for: newUUID)
-                // Force a refresh to ensure the newly-inserted row picks up the stored theme
-                await refresh()
-                // Also re-apply on existing snapshot in case we're already loaded
-                reapplyThemes()
-            }
+            // Persist theme to Core Data so the FRC snapshot includes it atomically
+            try cardService.updateCard(created, name: nil, theme: theme)
+            // Force a refresh to ensure the newly-inserted row picks up the stored theme
+            await refresh()
         } catch {
             self.alert = CardsViewAlert(kind: .error(message: error.localizedDescription))
         }
@@ -306,9 +284,8 @@ final class CardsViewModel: ObservableObject {
             } else if let oid = card.objectID, let managed = try? CoreDataService.shared.viewContext.existingObject(with: oid) as? Card {
                 try cardService.deleteCard(managed)
             }
-            // Defer theme cleanup until after the row disappears from the grid to avoid
-            // a UserDefaults change reapplying a default `.rose` before removal.
-            if let uuid = card.uuid { pendingThemeCleanup.insert(uuid) }
+            // Post-delete nudge to encourage prompt CloudKit push delivery
+            CloudSyncAccelerator.shared.nudgeOnForeground()
         } catch {
             self.alert = CardsViewAlert(kind: .error(message: error.localizedDescription))
         }
@@ -328,33 +305,37 @@ final class CardsViewModel: ObservableObject {
                     try cardService.renameCard(managed, to: name)
                     didRename = true
                 }
+                // Persist theme on Core Data
+                try cardService.updateCard(managed, name: nil, theme: theme)
             } else if let oid = card.objectID, let managed = try? CoreDataService.shared.viewContext.existingObject(with: oid) as? Card {
                 if (managed.value(forKey: "name") as? String) != name {
                     try cardService.renameCard(managed, to: name)
                     didRename = true
                 }
+                // Persist theme on Core Data (uuid may be nil here)
+                try cardService.updateCard(managed, name: nil, theme: theme)
             }
-            if let uuid = card.uuid {
-                appearanceStore.setTheme(theme, for: uuid)
-            }
-            // If only the theme changed (no rename/Core Data write), re-apply themes to update UI right away.
-            if !didRename {
-                reapplyThemes()
-            }
+            // If only the theme changed (no rename), refresh UI promptly
+            if !didRename { reapplyThemes() }
         } catch {
             self.alert = CardsViewAlert(kind: .error(message: error.localizedDescription))
         }
     }
 
     // MARK: reapplyThemes()
-    /// Re-reads the theme for each currently loaded item from `CardAppearanceStore`
-    /// and emits a new `.loaded` state so the grid re-renders without Core Data changes.
+    /// Re-reads the theme for each currently loaded item from Core Data
+    /// and emits a new `.loaded` state so the grid re-renders immediately.
     private func reapplyThemes() {
         guard case .loaded(let items) = state else { return }
+        let ctx = CoreDataService.shared.viewContext
         let updated = items.map { item -> CardItem in
             var copy = item
-            if let uuid = item.uuid {
-                copy.theme = appearanceStore.theme(for: uuid)
+            if let oid = item.objectID,
+               let managed = try? ctx.existingObject(with: oid) as? Card,
+               managed.entity.attributesByName["theme"] != nil,
+               let raw = managed.value(forKey: "theme") as? String,
+               let t = CardTheme(rawValue: raw) {
+                copy.theme = t
             } else {
                 copy.theme = .graphite
             }

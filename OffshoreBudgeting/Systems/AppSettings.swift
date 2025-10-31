@@ -9,7 +9,5 @@ enum AppSettingsKeys: String {
     case calendarHorizontal
     case presetsDefaultUseInFutureBudgets
     case budgetPeriod
-    case syncCardThemes
-    case syncBudgetPeriod
     case enableCloudSync
 }

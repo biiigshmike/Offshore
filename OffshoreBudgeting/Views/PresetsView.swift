@@ -74,7 +74,11 @@ struct PresetsView: View {
         .navigationTitle("Presets")
         .toolbar { toolbarContent }
         .onAppear { vm.startIfNeeded(using: viewContext) }
-        .refreshable { vm.loadTemplates(using: viewContext) }
+        .refreshable {
+            // Pull-to-refresh: nudge CloudKit and reload list
+            CloudSyncAccelerator.shared.nudgeOnForeground()
+            vm.loadTemplates(using: viewContext)
+        }
         .sheet(isPresented: $isPresentingAdd) {
             AddGlobalPresetSheet(onSaved: { vm.loadTemplates(using: viewContext) })
                 .environment(\.managedObjectContext, viewContext)

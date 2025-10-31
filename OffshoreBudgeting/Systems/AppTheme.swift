@@ -63,16 +63,8 @@ final class NotificationCenterAdapter: NotificationCentering {
 }
 
 enum CloudSyncPreferences {
-    // App theme sync disabled; keep API for compatibility but do nothing.
-    static func disableAppThemeSync(in defaults: UserDefaults) {
-        /* no-op */
-    }
-
-    /// Disables syncing of CardTheme selection via iCloud KVS.
-    /// - Parameter defaults: Local `UserDefaults` used to persist the flag.
-    static func disableCardThemeSync(in defaults: UserDefaults) {
-        defaults.set(false, forKey: AppSettingsKeys.syncCardThemes.rawValue)
-    }
+    // Placeholder to preserve API call sites if any remain; no card theme sync.
+    static func disableAppThemeSync(in defaults: UserDefaults) { /* no-op */ }
 }
 
 // MARK: - AppTheme

@@ -321,9 +321,7 @@ struct AddPlannedExpenseView: View {
                 do {
                     let service = CardService()
                     let card = try service.createCard(name: newName)
-                    if let uuid = card.value(forKey: "id") as? UUID {
-                        CardAppearanceStore.shared.setTheme(selectedTheme, for: uuid)
-                    }
+                    try service.updateCard(card, name: nil, theme: selectedTheme)
                     // Select the new card immediately
                     vm.selectedCardID = card.objectID
                 } catch {

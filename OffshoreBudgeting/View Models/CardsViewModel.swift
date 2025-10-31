@@ -362,9 +362,7 @@ final class CardsViewModel: ObservableObject {
         }
         state = .loaded(updated)
     }
-}
 
-extension CardsViewModel {
     deinit {
         if let observer = dataStoreObserver { NotificationCenter.default.removeObserver(observer) }
     }

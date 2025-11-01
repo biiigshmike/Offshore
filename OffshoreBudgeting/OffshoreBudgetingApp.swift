@@ -13,6 +13,7 @@ import Combine
 struct OffshoreBudgetingApp: App {
     // UIApplicationDelegate bridge for remote notifications
     @UIApplicationDelegateAdaptor(OffshoreAppDelegate.self) private var appDelegate
+
     // MARK: Dependencies
     @StateObject private var themeManager = ThemeManager()
     @State private var cardPickerStore: CardPickerStore?
@@ -28,6 +29,9 @@ struct OffshoreBudgetingApp: App {
     // MARK: Onboarding State
     /// Persisted flag indicating whether the intro flow has been completed.
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
+
+    // MARK: App Lock (Biometrics)
+    @StateObject private var appLockViewModel = AppLockViewModel()
 
     // MARK: Init
     init() {
@@ -59,6 +63,12 @@ struct OffshoreBudgetingApp: App {
                         // Glass setup overlay while preparing/syncing
                         if !dataReady || !coreDataReady || cardPickerStore == nil {
                             WorkspaceSetupView(isSyncing: isSyncing)
+                                .transition(.opacity)
+                        }
+
+                        // MARK: App Lock Overlay (optional privacy mask)
+                        if appLockViewModel.isLockEnabled && appLockViewModel.isLocked {
+                            AppLockView(viewModel: appLockViewModel)
                                 .transition(.opacity)
                         }
                     }
@@ -101,10 +111,6 @@ struct OffshoreBudgetingApp: App {
             .environment(\.platformCapabilities, platformCapabilities)
             .environment(\.uiTestingFlags, testFlags)
             .environment(\.startTabIdentifier, startTab)
-            // Apply the selected theme's accent color to all controls.
-            // `tint` covers most modern SwiftUI controls, while `accentColor`
-            // is still required for some AppKit-backed macOS components
-            // (e.g., checkboxes, date pickers) to respect the theme.
             .accentColor(themeManager.selectedTheme.resolvedTint)
             .tint(themeManager.selectedTheme.resolvedTint)
             .modifier(ThemedToggleTint(color: themeManager.selectedTheme.toggleTint))
@@ -129,7 +135,6 @@ struct OffshoreBudgetingApp: App {
                     await WorkspaceService.shared.initializeOnLaunch()
 
                     // No BudgetPreferenceSync – budget period mirrors via Core Data (Workspace)
-                    // Create the CardPickerStore now that Core Data is ready
                     if cardPickerStore == nil {
                         let store = CardPickerStore()
                         cardPickerStore = store
@@ -138,19 +143,31 @@ struct OffshoreBudgetingApp: App {
                     coreDataReady = true
                     startDataReadinessFlow()
                     startObservingDataChanges()
-                    // Nudge CloudKit while foreground to accelerate initial sync visibility.
                     CloudSyncAccelerator.shared.nudgeOnForeground()
-                    // DEBUG: Optional Development schema initialization
                     #if DEBUG
                     if ProcessInfo.processInfo.environment["INIT_CLOUDKIT_SCHEMA"] == "1" {
                         await CoreDataService.shared.initializeCloudKitSchemaIfNeeded()
                     }
                     #endif
                 }
+
+                // MARK: App Lock Kick (Cold Start) — single source of truth
+                if appLockViewModel.isLockEnabled {
+                    appLockViewModel.lock()
+                    // Prompt once; internal debounce prevents duplicates.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        appLockViewModel.attemptUnlockWithBiometrics()
+                    }
+                }
             }
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .active {
                     CloudSyncAccelerator.shared.nudgeOnForeground()
+
+                    // Foreground return: prompt once if still locked.
+                    if appLockViewModel.isLockEnabled && appLockViewModel.isLocked {
+                        appLockViewModel.attemptUnlockWithBiometrics()
+                    }
                 }
             }
             .onChange(of: systemColorScheme) { newScheme in
@@ -168,9 +185,7 @@ struct OffshoreBudgetingApp: App {
                     platformCapabilities: platformCapabilities
                 )
             }
-            // Apply test-only UI overrides (color scheme, content size, locale)
             .modifier(TestUIOverridesModifier(overrides: overrides))
-            // Inject the managedObjectContext only after stores are ready to avoid main-thread I/O warning.
             .if(coreDataReady) { view in
                 view.environment(\.managedObjectContext, CoreDataService.shared.viewContext)
             }
@@ -192,15 +207,12 @@ struct OffshoreBudgetingApp: App {
         dataReady = false
         isSyncing = true
         Task { @MainActor in
-            // If remote likely empty, don’t wait long.
             let remoteHas = await CloudDataRemoteProbe().hasAnyRemoteData(timeout: 4.0)
             if !remoteHas {
-                // No remote data expected; proceed immediately.
                 dataReady = true
                 isSyncing = false
                 return
             }
-            // Wait for either import to complete or any data to appear locally.
             async let importDone: Bool = CloudSyncMonitor.shared.awaitInitialImport(timeout: 10.0)
             async let localData: Bool = CloudDataProbe().scanForExistingData(timeout: 8.0, pollInterval: 0.25)
             let a = await importDone
@@ -209,8 +221,6 @@ struct OffshoreBudgetingApp: App {
             dataReady = ok
             isSyncing = false
             if ok { dataRevision &+= 1 }
-            // After initial import is satisfied, issue one more gentle nudge so
-            // any straggling pushes land while the main UI is up.
             if ok { CloudSyncAccelerator.shared.nudgeOnForeground() }
         }
     }
@@ -223,7 +233,6 @@ struct OffshoreBudgetingApp: App {
             object: nil,
             queue: .main
         ) { _ in
-            // Only force a one-time refresh while the setup overlay is still visible.
             if !dataReady {
                 dataRevision &+= 1
             }
@@ -237,7 +246,6 @@ struct OffshoreBudgetingApp: App {
         guard processInfo.arguments.contains("-ui-testing") else { return }
         let env = processInfo.environment
         if env["UITEST_SKIP_ONBOARDING"] == "1" {
-            // Mark onboarding complete so tabs show immediately
             UserDefaults.standard.set(true, forKey: "didCompleteOnboarding")
             UserDefaults.standard.synchronize()
         }
@@ -258,7 +266,6 @@ struct OffshoreBudgetingApp: App {
 
     private func resetPersistentStateForUITests() {
         resetUserDefaultsForUITests()
-        // Stores may still be loading asynchronously. Wait, then wipe.
         Task { @MainActor in
             await CoreDataService.shared.waitUntilStoresLoaded(timeout: 3.0)
             do { try CoreDataService.shared.wipeAllData() } catch { /* non-fatal in UI tests */ }
@@ -269,7 +276,6 @@ struct OffshoreBudgetingApp: App {
         guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
         let defaults = UserDefaults.standard
         defaults.removePersistentDomain(forName: bundleIdentifier)
-        // Respect skip-onboarding flag when resetting defaults for UI tests
         #if DEBUG
         let skip = ProcessInfo.processInfo.environment["UITEST_SKIP_ONBOARDING"] == "1"
         defaults.set(skip, forKey: "didCompleteOnboarding")
@@ -333,7 +339,6 @@ private extension OffshoreBudgetingApp {
         guard processInfo.arguments.contains("-ui-testing") else { return .init(colorScheme: nil, sizeCategory: nil, locale: nil) }
         let env = processInfo.environment
 
-        // Color scheme: "light" or "dark"
         let scheme: ColorScheme? = {
             switch env["UITEST_COLOR_SCHEME"]?.lowercased() {
             case "dark": return .dark
@@ -342,7 +347,6 @@ private extension OffshoreBudgetingApp {
             }
         }()
 
-        // Dynamic Type size category (e.g., "XXL", "accessibilityXL")
         let sizeCategory: ContentSizeCategory? = {
             guard let raw = env["UITEST_SIZE_CATEGORY"]?.lowercased() else { return nil }
             let map: [String: ContentSizeCategory] = [
@@ -361,13 +365,11 @@ private extension OffshoreBudgetingApp {
             return map[raw]
         }()
 
-        // Locale override, e.g., "de_DE", "en_US"
         let locale: Locale? = {
             if let ident = env["UITEST_LOCALE"], !ident.isEmpty { return Locale(identifier: ident) }
             return nil
         }()
 
-        // Time zone override, e.g., "UTC" or "America/Los_Angeles"
         if let tzIdent = env["UITEST_TIMEZONE"], let tz = TimeZone(identifier: tzIdent) {
             NSTimeZone.default = tz
         }

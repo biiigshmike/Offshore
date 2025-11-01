@@ -150,11 +150,14 @@ struct ExpenseCategoryManagerView: View {
                         }
                         .onDelete { offsets in
                             let targets = offsets.map { categories[$0] }
-                            if let used = targets.first(where: { usageCounts(for: $0).total > 0 }) {
-                                categoryToDelete = used
-                            } else if confirmBeforeDelete, let first = targets.first {
-                                categoryToDelete = first
+                            if confirmBeforeDelete {
+                                if let used = targets.first(where: { usageCounts(for: $0).total > 0 }) {
+                                    categoryToDelete = used
+                                } else if let first = targets.first {
+                                    categoryToDelete = first
+                                }
                             } else {
+                                // Strictly delete with no alerts when confirmations are disabled
                                 targets.forEach(deleteCategory(_:))
                             }
                         }
@@ -184,12 +187,11 @@ struct ExpenseCategoryManagerView: View {
             onTap: { categoryToEdit = category },
             onEdit: { categoryToEdit = category },
             onDelete: {
-                let counts = usageCounts(for: category)
-                if counts.total > 0 {
-                    categoryToDelete = category
-                } else if confirmBeforeDelete {
+                if confirmBeforeDelete {
+                    // Show confirmation (with cascade details if in use)
                     categoryToDelete = category
                 } else {
+                    // Strictly delete without any alert
                     deleteCategory(category)
                 }
             }

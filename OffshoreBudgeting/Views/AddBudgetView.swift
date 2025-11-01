@@ -140,6 +140,9 @@ struct AddBudgetView: View {
                     Text("No cards yet. Add cards first to track expenses.")
                         .foregroundStyle(.secondary)
                 } else {
+                    // Toggle All (button)
+                    toggleAllRowButton(action: toggleAllCards)
+
                     ForEach(vm.allCards, id: \.objectID) { card in
                         let isTracking = Binding(
                             get: { vm.selectedCardObjectIDs.contains(card.objectID) },
@@ -167,6 +170,9 @@ struct AddBudgetView: View {
                     Text("No presets yet. You can add them later.")
                         .foregroundStyle(.secondary)
                 } else {
+                    // Toggle All (button)
+                    toggleAllRowButton(action: toggleAllPresets)
+
                     ForEach(vm.globalPlannedExpenseTemplates, id: \.objectID) { template in
                         let isSelected = Binding(
                             get: { vm.selectedTemplateObjectIDs.contains(template.objectID) },
@@ -241,6 +247,64 @@ struct AddBudgetView: View {
         } catch {
             saveErrorMessage = error.localizedDescription
             return false
+        }
+    }
+
+    // MARK: - Toggle All helpers
+    private func toggleAllCards() {
+        let allSelected = !vm.allCards.isEmpty && vm.selectedCardObjectIDs.count == vm.allCards.count
+        if allSelected {
+            vm.selectedCardObjectIDs.removeAll()
+        } else {
+            vm.selectedCardObjectIDs = Set(vm.allCards.map { $0.objectID })
+        }
+    }
+
+    private func toggleAllPresets() {
+        let allSelected = !vm.globalPlannedExpenseTemplates.isEmpty && vm.selectedTemplateObjectIDs.count == vm.globalPlannedExpenseTemplates.count
+        if allSelected {
+            vm.selectedTemplateObjectIDs.removeAll()
+        } else {
+            vm.selectedTemplateObjectIDs = Set(vm.globalPlannedExpenseTemplates.map { $0.objectID })
+        }
+    }
+
+    @ViewBuilder
+    private func toggleAllRowButton(action: @escaping () -> Void) -> some View {
+        let label = Text("Toggle All")
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 44, maxHeight: 44)
+
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(action: action) {
+                label
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Color.green.opacity(0.75))
+        } else {
+            Button(action: action) {
+                label
+            }
+            .buttonStyle(.plain)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(
+                        {
+                            #if canImport(UIKit)
+                            return Color(UIColor { traits in
+                                traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
+                            })
+                            #elseif canImport(AppKit)
+                            return Color(nsColor: NSColor.windowBackgroundColor)
+                            #else
+                            return Color.gray.opacity(0.2)
+                            #endif
+                        }()
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
     }
 }

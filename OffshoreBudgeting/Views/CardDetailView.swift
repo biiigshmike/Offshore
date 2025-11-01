@@ -34,6 +34,9 @@ struct CardDetailView: View {
     @State private var isConfirmingDelete: Bool = false
     @State private var deletionError: DeletionError?
     @State private var editingExpense: CardExpense?
+    // Date range pickers
+    @State private var startDate: Date = Date()
+    @State private var endDate: Date = Date()
 
     // Guided walkthrough state removed
     // No longer tracking header offset via state; the header is rendered
@@ -176,14 +179,14 @@ struct CardDetailView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .padding()
-        case .loaded(let total, _, _):
+        case .loaded:
             let cardMaxWidth = resolvedCardMaxWidth(in: layoutContext)
-            detailsList(cardMaxWidth: cardMaxWidth, total: total)
+            detailsList(cardMaxWidth: cardMaxWidth)
     }
     }
 
     @ViewBuilder
-    private func detailsList(cardMaxWidth: CGFloat?, total: Double) -> some View {
+    private func detailsList(cardMaxWidth: CGFloat?) -> some View {
         List {
             Section {
                 CardTileView(card: cardSnapshot, enableMotionShine: true)
@@ -193,9 +196,24 @@ struct CardDetailView: View {
                     .padding(.bottom, 12)
             }
 
+            // Date Range + Presets
+            Section {
+                HStack(spacing: 8) {
+                    DatePicker("Start", selection: $startDate, displayedComponents: .date)
+                        .labelsHidden()
+                    DatePicker("End", selection: $endDate, displayedComponents: .date)
+                        .labelsHidden()
+                    // Go button: liquid glass circular on OS 26, rounded rect legacy
+                    goButton
+                    Spacer(minLength: 0)
+                    // Calendar menu: liquid glass circular on OS 26, plain legacy
+                    calendarMenu
+                }
+            }
+
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(total, format: .currency(code: currencyCode))
+                    Text(viewModel.filteredTotal, format: .currency(code: currencyCode))
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -207,32 +225,44 @@ struct CardDetailView: View {
                     .textCase(nil)
             }
 
+            // Category Chips (horizontal)
             Section {
-                if viewModel.filteredCategories.isEmpty {
-                    Text("No category totals available.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, DesignSystem.Spacing.l)
-                } else {
-                    ForEach(viewModel.filteredCategories) { cat in
-                        HStack {
-                            Circle()
-                                .fill(cat.color)
-                                .frame(width: 10, height: 10)
-                            Text(cat.name)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Text(cat.amount, format: .currency(code: currencyCode))
-                                .monospacedDigit()
-                                .font(.callout.weight(.semibold))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(viewModel.filteredCategories) { cat in
+                            categoryChip(cat)
                         }
-                        .padding(.vertical, 2)
+                        if viewModel.filteredCategories.isEmpty {
+                            Text("No categories yet")
+                                .foregroundStyle(.secondary)
+                                .padding(.vertical, 8)
+                        }
                     }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 }
-            } header: {
-                Text("BY CATEGORY")
-                    .font(.subheadline.weight(.semibold))
-                    .textCase(nil)
+                .frame(height: 44)
+            }
+
+            // Segment Picker
+            Section {
+                Picker("", selection: $viewModel.segment) {
+                    Text("Planned").tag(CardDetailViewModel.Segment.planned)
+                    Text("Variable").tag(CardDetailViewModel.Segment.variable)
+                    Text("Unified").tag(CardDetailViewModel.Segment.all)
+                }
+                .pickerStyle(.segmented)
+            }
+
+            // Sort Bar
+            Section {
+                Picker("Sort", selection: $viewModel.sort) {
+                    Text("A–Z").tag(CardDetailViewModel.Sort.titleAZ)
+                    Text("$↓").tag(CardDetailViewModel.Sort.amountLowHigh)
+                    Text("$↑").tag(CardDetailViewModel.Sort.amountHighLow)
+                    Text("Date ↑").tag(CardDetailViewModel.Sort.dateOldNew)
+                    Text("Date ↓").tag(CardDetailViewModel.Sort.dateNewOld)
+                }
+                .pickerStyle(.segmented)
             }
 
             Section {
@@ -356,6 +386,15 @@ struct CardDetailView: View {
         }
     }
 
+    // Apply a preset and refresh
+    private func setPreset(_ period: BudgetPeriod) {
+        let r = period.range(containing: Date())
+        startDate = r.start
+        endDate = r.end
+        viewModel.setDateRange(r.start, r.end)
+        Task { await viewModel.load() }
+    }
+
     private var navigationContent: some View {
         content
             .navigationTitle(cardSnapshot.name)
@@ -403,6 +442,89 @@ struct CardDetailView: View {
                     }
                 }
             }
+            .task {
+                // Initialize local start/end from the model's allowed interval
+                if let interval = viewModel.allowedInterval {
+                    startDate = interval.start
+                    endDate = interval.end
+                } else {
+                    let p = WorkspaceService.shared.currentBudgetPeriod(in: viewContext)
+                    let r = p.range(containing: Date())
+                    startDate = r.start
+                    endDate = r.end
+                }
+            }
+    }
+
+    // MARK: Date Row Controls
+    @ViewBuilder
+    private var goButton: some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(action: applyDateRange) {
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 44, height: 44)
+                    .glassEffect(.regular.tint(.clear).interactive(true))
+            }
+            .buttonStyle(.plain)
+            .buttonBorderShape(.circle)
+            .tint(.accentColor)
+            .accessibilityLabel("Apply date range")
+        } else {
+            let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+            Button(action: applyDateRange) {
+                Text("Go").font(.subheadline.weight(.semibold))
+                    .frame(minWidth: 44)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(shape.fill(Color.secondary.opacity(0.12)))
+                    .contentShape(shape)
+            }
+            .buttonStyle(.plain)
+            .overlay(shape.stroke(Color.secondary.opacity(0.18), lineWidth: 0.5))
+            .accessibilityLabel("Apply date range")
+        }
+    }
+
+    @ViewBuilder
+    private var calendarMenu: some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Menu {
+                Button("Daily") { setPreset(.daily) }
+                Button("Weekly") { setPreset(.weekly) }
+                Button("Monthly") { setPreset(.monthly) }
+                Button("Quarterly") { setPreset(.quarterly) }
+                Button("Yearly") { setPreset(.yearly) }
+            } label: {
+                Image(systemName: "calendar")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 44, height: 44)
+                    .glassEffect(.regular.tint(.clear).interactive(true))
+            }
+            .buttonStyle(.plain)
+            .buttonBorderShape(.circle)
+            .tint(.accentColor)
+            .accessibilityLabel("Select date preset")
+        } else {
+            Menu {
+                Button("Daily") { setPreset(.daily) }
+                Button("Weekly") { setPreset(.weekly) }
+                Button("Monthly") { setPreset(.monthly) }
+                Button("Quarterly") { setPreset(.quarterly) }
+                Button("Yearly") { setPreset(.yearly) }
+            } label: {
+                Image(systemName: "calendar")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 33, height: 33)
+            }
+            .accessibilityLabel("Select date preset")
+        }
+    }
+
+    private func applyDateRange() {
+        if endDate < startDate { endDate = startDate }
+        viewModel.setDateRange(startDate, endDate)
+        Task { await viewModel.load() }
     }
 
     
@@ -527,4 +649,62 @@ fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
     let g = Double((intVal >> 8) & 0xFF) / 255.0
     let b = Double(intVal & 0xFF) / 255.0
     return Color(red: r, green: g, blue: b)
+}
+
+// MARK: - Category Chip (CardDetail)
+private extension CardDetailView {
+    @ViewBuilder
+    func categoryChip(_ cat: CardCategoryTotal) -> some View {
+        let accentColor = cat.color
+        let isSelected = viewModel.selectedCategoryID == cat.categoryObjectID
+        let glassTintColor = accentColor.opacity(0.25)
+        let legacyShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+
+        let label = HStack(spacing: DS.Spacing.s) {
+            Circle().fill(accentColor).frame(width: 10, height: 10)
+            Text(cat.name).font(.subheadline.weight(.medium))
+            Text(cat.amount, format: .currency(code: currencyCode)).font(.subheadline.weight(.semibold))
+        }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 44, maxHeight: 44)
+
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(action: {
+                if viewModel.selectedCategoryID == cat.categoryObjectID { viewModel.selectedCategoryID = nil }
+                else { viewModel.selectedCategoryID = cat.categoryObjectID }
+            }) {
+                label
+                    .glassEffect(
+                        .regular
+                            .tint(isSelected ? glassTintColor : .none)
+                            .interactive(true)
+                    )
+                    .frame(minHeight: 44, maxHeight: 44)
+                    .clipShape(Capsule())
+                    .compositingGroup()
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .animation(.easeOut(duration: 0.15), value: isSelected)
+            .frame(maxHeight: 44)
+        } else {
+            Button(action: {
+                if viewModel.selectedCategoryID == cat.categoryObjectID { viewModel.selectedCategoryID = nil }
+                else { viewModel.selectedCategoryID = cat.categoryObjectID }
+            }) {
+                label
+            }
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .animation(.easeOut(duration: 0.15), value: isSelected)
+            .frame(maxHeight: 33)
+            .buttonStyle(.plain)
+            .background(
+                legacyShape.fill(isSelected ? glassTintColor : DS.Colors.chipFill)
+            )
+            .overlay(
+                legacyShape.stroke(isSelected ? DS.Colors.chipSelectedStroke : DS.Colors.chipFill, lineWidth: 1)
+            )
+            .contentShape(legacyShape)
+        }
+    }
 }

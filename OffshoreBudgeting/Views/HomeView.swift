@@ -74,6 +74,12 @@ struct HomeView: View {
     private enum ChipMenuMode { case preview, edit }
     @State private var chipMenuMode: ChipMenuMode = .preview
 
+    // MARK: Category Filter Selection (tap-to-filter)
+    // Persist across segment switches
+    @State private var selectedCategoryURI: URL? = nil
+    // Cache of explicit MAX caps for the active period+segment (by category URI)
+    @State private var chipMaxCaps: [URL: Double] = [:]
+
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
 
@@ -115,6 +121,7 @@ struct HomeView: View {
         .task {
             vm.startIfNeeded()
             refreshAddMenuVisibility(animated: false)
+            reloadMaxCapsCache()
         }
         // If the selected budget period changes (via calendar menu or Settings),
         // clear any cached summary from a previous period so UI doesn't show
@@ -182,6 +189,10 @@ struct HomeView: View {
         .overlayPreferenceValue(ChipFramePreferenceKey.self) { anchors in
             chipMenuOverlay(anchors)
         }
+        // Keep per-period cap cache up-to-date
+        .onChange(of: vm.period) { _ in reloadMaxCapsCache() }
+        .onChange(of: vm.selectedDate) { _ in reloadMaxCapsCache() }
+        .onChange(of: segment) { _ in reloadMaxCapsCache() }
         // Rows are fetch-driven; no manual clearing needed on store change
     }
 
@@ -412,7 +423,20 @@ struct HomeView: View {
         return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(categories) { cat in
-                    chipView(title: cat.categoryName, amount: cat.amount, hex: cat.hexColor)
+                    let isSelected = (selectedCategoryURI == cat.categoryURI)
+                    let maxCap = chipMaxCaps[cat.categoryURI]
+                    let current = (segment == .planned) ? currentAmountForChip(cat) : cat.amount
+                    let exceeded = (maxCap != nil) && (current > (maxCap ?? .infinity))
+                    chipView(
+                        title: cat.categoryName,
+                        amount: cat.amount,
+                        hex: cat.hexColor,
+                        isSelected: isSelected,
+                        isExceeded: exceeded,
+                        onTap: {
+                            if isSelected { selectedCategoryURI = nil } else { selectedCategoryURI = cat.categoryURI }
+                        }
+                    )
                         // Ensure a clear hit area for gestures
                         .contentShape(Rectangle())
                         // Capture the chip's bounds for anchored menu placement
@@ -474,6 +498,7 @@ struct HomeView: View {
                     end: end,
                     sort: sort,
                     horizontalPadding: horizontalPadding,
+                    selectedCategoryURI: selectedCategoryURI,
                     confirmBeforeDelete: confirmBeforeDelete,
                     onEdit: { id in editingPlannedBox = ObjectIDBox(id: id) },
                     onDelete: { exp in requestDelete(planned: exp) }
@@ -485,6 +510,7 @@ struct HomeView: View {
                     end: end,
                     sort: sort,
                     horizontalPadding: horizontalPadding,
+                    selectedCategoryURI: selectedCategoryURI,
                     confirmBeforeDelete: confirmBeforeDelete,
                     onEdit: { id in editingUnplannedBox = ObjectIDBox(id: id) },
                     onDelete: { exp in requestDelete(unplanned: exp) }
@@ -751,21 +777,27 @@ struct HomeView: View {
 
     // MARK: Chips Styling
     @ViewBuilder
-    private func chipView(title: String, amount: Double, hex: String?) -> some View {
+    private func chipView(title: String, amount: Double, hex: String?, isSelected: Bool, isExceeded: Bool, onTap: @escaping () -> Void) -> some View {
         let dot = UBColorFromHex(hex) ?? .secondary
         let chipLabel = HStack(spacing: 8) {
             Circle().fill(dot).frame(width: 8, height: 8)
             Text(title).font(.subheadline.weight(.medium))
-            Text(formatCurrency(amount)).font(.subheadline.weight(.semibold))
+            Text(formatCurrency(amount))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(isExceeded ? Color.red : Color.primary)
         }
         .padding(.horizontal, 12)
         .frame(height: 44)
         .background(.clear)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Button(action: {}) {
+            Button(action: onTap) {
                 chipLabel
-                    .glassEffect(.regular.tint(.clear).interactive(true))
+                    .glassEffect(
+                        .regular
+                            .tint(isSelected ? dot.opacity(0.25) : .clear)
+                            .interactive(true)
+                    )
                     .frame(minHeight: 44, maxHeight: 44)
             }
             .buttonBorderShape(.capsule)
@@ -775,17 +807,30 @@ struct HomeView: View {
             .frame(minHeight: 44, maxHeight: 44)
             .clipShape(Capsule())
             .compositingGroup()
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
         } else {
-            chipLabel
-                .frame(minHeight: 44, maxHeight: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color(UIColor { traits in
+            Button(action: onTap) {
+                chipLabel
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .frame(minHeight: 44, maxHeight: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(
+                        isSelected
+                        ? dot.opacity(0.20)
+                        : Color(UIColor { traits in
                             traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
-                        }))
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                .frame(minHeight: 44, maxHeight: 44)
+                        })
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(isSelected ? dot.opacity(0.35) : .clear, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .frame(minHeight: 44, maxHeight: 44)
         }
 
     }
@@ -1003,9 +1048,11 @@ struct HomeView: View {
 private struct PlannedRowsList: View {
     @FetchRequest var rows: FetchedResults<PlannedExpense>
     let horizontalPadding: CGFloat
+    let selectedCategoryURI: URL?
     let confirmBeforeDelete: Bool
     let onEdit: (NSManagedObjectID) -> Void
     let onDelete: (PlannedExpense) -> Void
+    @EnvironmentObject private var themeManager: ThemeManager
 
     init(
         budget: Budget,
@@ -1013,15 +1060,26 @@ private struct PlannedRowsList: View {
         end: Date,
         sort: HomeView.Sort,
         horizontalPadding: CGFloat,
+        selectedCategoryURI: URL?,
         confirmBeforeDelete: Bool,
         onEdit: @escaping (NSManagedObjectID) -> Void,
         onDelete: @escaping (PlannedExpense) -> Void
     ) {
         let req = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-        req.predicate = NSPredicate(format: "budget == %@ AND transactionDate >= %@ AND transactionDate <= %@", budget, start as NSDate, end as NSDate)
+        var predicates: [NSPredicate] = [
+            NSPredicate(format: "budget == %@", budget),
+            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate)
+        ]
+        if let selectedCategoryURI,
+           let catID = CoreDataService.shared.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: selectedCategoryURI),
+           let category = try? CoreDataService.shared.viewContext.existingObject(with: catID) as? ExpenseCategory {
+            predicates.append(NSPredicate(format: "expenseCategory == %@", category))
+        }
+        req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         req.sortDescriptors = PlannedRowsList.sortDescriptors(for: sort)
         _rows = FetchRequest(fetchRequest: req)
         self.horizontalPadding = horizontalPadding
+        self.selectedCategoryURI = selectedCategoryURI
         self.confirmBeforeDelete = confirmBeforeDelete
         self.onEdit = onEdit
         self.onDelete = onDelete
@@ -1038,11 +1096,45 @@ private struct PlannedRowsList: View {
         } else {
             ForEach(rows, id: \.objectID) { exp in
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(Self.readPlannedDescription(exp) ?? "Expense").font(.headline)
-                        Text(Self.dateString(exp.transactionDate)).font(.subheadline).foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        let symbolWidth: CGFloat = 14
+                        let dotColor = UBColorFromHex(exp.expenseCategory?.color) ?? .secondary
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Circle().fill(dotColor).frame(width: 8, height: 8)
+                                .frame(width: symbolWidth, alignment: .leading)
+                            Text(Self.readPlannedDescription(exp) ?? "Expense")
+                                .font(.headline)
+                        }
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Group {
+                                if let card = exp.card {
+                                    let theme: CardTheme = {
+                                        if card.entity.attributesByName["theme"] != nil,
+                                           let raw = card.value(forKey: "theme") as? String,
+                                           let t = CardTheme(rawValue: raw) { return t }
+                                        return .graphite
+                                    }()
+                                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                        .fill(theme.backgroundStyle(for: themeManager.selectedTheme))
+                                        .overlay(theme.patternOverlay(cornerRadius: 2))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                                .stroke(Color.primary.opacity(0.18), lineWidth: 1)
+                                        )
+                                        .frame(width: 12, height: 8)
+                                } else {
+                                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                                        .frame(width: 12, height: 8)
+                                }
+                            }
+                            .frame(width: symbolWidth, alignment: .leading)
+                            Text(Self.dateString(exp.transactionDate))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    Spacer()
+                    Spacer(minLength: 8)
                     VStack(alignment: .trailing, spacing: 4) {
                         Text("Planned: \(Self.formatCurrency(exp.plannedAmount))")
                             .font(.subheadline.weight(.semibold))
@@ -1107,9 +1199,11 @@ private struct PlannedRowsList: View {
 private struct VariableRowsList: View {
     @FetchRequest var rows: FetchedResults<UnplannedExpense>
     let horizontalPadding: CGFloat
+    let selectedCategoryURI: URL?
     let confirmBeforeDelete: Bool
     let onEdit: (NSManagedObjectID) -> Void
     let onDelete: (UnplannedExpense) -> Void
+    @EnvironmentObject private var themeManager: ThemeManager
 
     init(
         budget: Budget,
@@ -1117,19 +1211,30 @@ private struct VariableRowsList: View {
         end: Date,
         sort: HomeView.Sort,
         horizontalPadding: CGFloat,
+        selectedCategoryURI: URL?,
         confirmBeforeDelete: Bool,
         onEdit: @escaping (NSManagedObjectID) -> Void,
         onDelete: @escaping (UnplannedExpense) -> Void
     ) {
         let req = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
         if let cards = budget.cards as? Set<Card>, !cards.isEmpty {
-            req.predicate = NSPredicate(format: "card IN %@ AND transactionDate >= %@ AND transactionDate <= %@", cards as NSSet, start as NSDate, end as NSDate)
+            var subs: [NSPredicate] = [
+                NSPredicate(format: "card IN %@", cards as NSSet),
+                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate)
+            ]
+            if let selectedCategoryURI,
+               let catID = CoreDataService.shared.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: selectedCategoryURI),
+               let category = try? CoreDataService.shared.viewContext.existingObject(with: catID) as? ExpenseCategory {
+                subs.append(NSPredicate(format: "expenseCategory == %@", category))
+            }
+            req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: subs)
         } else {
             req.predicate = NSPredicate(value: false)
         }
         req.sortDescriptors = VariableRowsList.sortDescriptors(for: sort)
         _rows = FetchRequest(fetchRequest: req)
         self.horizontalPadding = horizontalPadding
+        self.selectedCategoryURI = selectedCategoryURI
         self.confirmBeforeDelete = confirmBeforeDelete
         self.onEdit = onEdit
         self.onDelete = onDelete
@@ -1146,12 +1251,47 @@ private struct VariableRowsList: View {
         } else {
             ForEach(rows, id: \.objectID) { exp in
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(Self.readUnplannedDescription(exp) ?? "Expense").font(.headline)
-                        Text(Self.dateString(exp.transactionDate)).font(.subheadline).foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        let symbolWidth: CGFloat = 14
+                        let dotColor = UBColorFromHex(exp.expenseCategory?.color) ?? .secondary
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Circle().fill(dotColor).frame(width: 8, height: 8)
+                                .frame(width: symbolWidth, alignment: .leading)
+                            Text(Self.readUnplannedDescription(exp) ?? "Expense")
+                                .font(.headline)
+                        }
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Group {
+                                if let card = exp.card {
+                                    let theme: CardTheme = {
+                                        if card.entity.attributesByName["theme"] != nil,
+                                           let raw = card.value(forKey: "theme") as? String,
+                                           let t = CardTheme(rawValue: raw) { return t }
+                                        return .graphite
+                                    }()
+                                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                        .fill(theme.backgroundStyle(for: themeManager.selectedTheme))
+                                        .overlay(theme.patternOverlay(cornerRadius: 2))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                                .stroke(Color.primary.opacity(0.18), lineWidth: 1)
+                                        )
+                                        .frame(width: 12, height: 8)
+                                } else {
+                                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                                        .frame(width: 12, height: 8)
+                                }
+                            }
+                            .frame(width: symbolWidth, alignment: .leading)
+                            Text(Self.dateString(exp.transactionDate))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    Spacer()
-                    Text(Self.formatCurrency(exp.amount)).font(.headline)
+                    Spacer(minLength: 8)
+                    Text(Self.formatCurrency(exp.amount))
+                        .font(.headline)
                 }
                 .frame(maxWidth: .infinity)
                 .unifiedSwipeActions(
@@ -1220,6 +1360,28 @@ fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
 
 // MARK: - Chip Menu Overlay Builder (extracted for type-check performance)
 private extension HomeView {
+    // Refresh the cache of explicit MAX caps for all categories in the active period+segment.
+    func reloadMaxCapsCache() {
+        let key = periodKey(for: budgetPeriod, date: vm.selectedDate, segment: segment)
+        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+        fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "period == %@", key),
+            NSPredicate(format: "expenseType == %@", "max")
+        ])
+        do {
+            let results = try moc.fetch(fetch)
+            var dict: [URL: Double] = [:]
+            for r in results {
+                if let category = r.value(forKey: "category") as? NSManagedObject,
+                   let amount = r.value(forKey: "amount") as? Double {
+                    dict[category.objectID.uriRepresentation()] = amount
+                }
+            }
+            chipMaxCaps = dict
+        } catch {
+            chipMaxCaps = [:]
+        }
+    }
     func currentAmountForChip(_ cat: BudgetSummary.CategorySpending) -> Double {
         if segment == .variable {
             return cat.amount

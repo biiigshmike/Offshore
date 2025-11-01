@@ -18,6 +18,8 @@ struct PresetBudgetAssignmentSheet: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
+    private var confirmBeforeDelete: Bool = true
 
     // MARK: Inputs
     let template: PlannedExpense
@@ -26,6 +28,9 @@ struct PresetBudgetAssignmentSheet: View {
     // MARK: State
     @State private var budgets: [Budget] = []
     @State private var membership: [UUID: Bool] = [:] // Budget.id : isAssigned
+    @State private var isConfirmingDelete: Bool = false
+    @State private var budgetPendingDeletion: NSManagedObjectID?
+    @State private var editingBudgetBox: ObjectIDBox?
 
     // MARK: Body
     var body: some View {
@@ -49,6 +54,11 @@ struct PresetBudgetAssignmentSheet: View {
                         ))
                         .labelsHidden()
                     }
+                    .unifiedSwipeActions(
+                        UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
+                        onEdit: { editingBudgetBox = ObjectIDBox(id: budget.objectID) },
+                        onDelete: { requestDeleteBudget(budget) }
+                    )
                     .padding(.vertical, 6)
                 }
             }
@@ -89,6 +99,30 @@ struct PresetBudgetAssignmentSheet: View {
             theme: themeManager.selectedTheme,
             configuration: themeManager.glassConfiguration
         )
+        .alert("Delete Budget?", isPresented: $isConfirmingDelete) {
+            Button("Delete", role: .destructive) { performDeleteBudget() }
+            Button("Cancel", role: .cancel) { budgetPendingDeletion = nil }
+        } message: {
+            Text("This action cannot be undone.")
+        }
+        .sheet(item: $editingBudgetBox) { box in
+            if let budget = try? CoreDataService.shared.viewContext.existingObject(with: box.id) as? Budget {
+                let start = budget.startDate ?? Date()
+                let end = budget.endDate ?? Date()
+                AddBudgetView(
+                    editingBudgetObjectID: budget.objectID,
+                    fallbackStartDate: start,
+                    fallbackEndDate: end,
+                    onSaved: {
+                        reload()
+                        onChangesCommitted?()
+                    }
+                )
+                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            } else {
+                Text("Budget not found")
+            }
+        }
     }
 
     // MARK: - Navigation container (iOS 16+/macOS 13+ NavigationStack; older NavigationView)
@@ -130,6 +164,32 @@ struct PresetBudgetAssignmentSheet: View {
         membership[budgetID] = newValue
     }
 
+    // MARK: - Delete Budget (Swipe)
+    private func requestDeleteBudget(_ budget: Budget) {
+        if confirmBeforeDelete {
+            budgetPendingDeletion = budget.objectID
+            isConfirmingDelete = true
+        } else {
+            budgetPendingDeletion = budget.objectID
+            performDeleteBudget()
+        }
+    }
+
+    private func performDeleteBudget() {
+        guard let id = budgetPendingDeletion else { return }
+        budgetPendingDeletion = nil
+        do {
+            if let budget = try viewContext.existingObject(with: id) as? Budget {
+                try BudgetService().deleteBudget(budget)
+                // Refresh local list and membership map
+                reload()
+                onChangesCommitted?()
+            }
+        } catch {
+            AppLog.ui.error("PresetBudgetAssignmentSheet delete budget error: \(String(describing: error))")
+        }
+    }
+
     // MARK: - Save
     private func saveContext() {
         guard viewContext.hasChanges else { return }
@@ -145,4 +205,9 @@ struct PresetBudgetAssignmentSheet: View {
         f.timeStyle = .none
         return "\(f.string(from: start)) – \(f.string(from: end))"
     }
+}
+
+// MARK: - ObjectIDBox (for sheet identity)
+private struct ObjectIDBox: Identifiable {
+    let id: NSManagedObjectID
 }

@@ -28,6 +28,7 @@ struct AddUnplannedExpenseView: View {
     @StateObject private var vm: AddUnplannedExpenseViewModel
     @EnvironmentObject private var cardPickerStore: CardPickerStore
     @State private var isPresentingAddCard = false
+    @State private var didApplyInitialCardSelection = false
     
     // MARK: - Layout
     /// Height of the card picker row.  This matches the tile height defined in
@@ -67,11 +68,29 @@ struct AddUnplannedExpenseView: View {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
                     }
+                    // Editing: single trailing action
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(vm.isEditing ? "Save Changes" : "Save") {
-                            if trySave() { dismiss() }
+                        if vm.isEditing {
+                            Button("Save Changes") {
+                                if trySave() { dismiss() }
+                            }
+                            .disabled(!vm.canSave)
                         }
-                        .disabled(!vm.canSave)
+                    }
+                    // Adding: separate trailing actions (no container)
+                    if !vm.isEditing {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Save") {
+                                if trySave() { dismiss() }
+                            }
+                            .disabled(!vm.canSave)
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Save and Add") {
+                                if saveAndStayOpen() { resetFormForNewEntry() }
+                            }
+                            .disabled(!vm.canSave)
+                        }
                     }
                 }
         }
@@ -79,6 +98,13 @@ struct AddUnplannedExpenseView: View {
         .onAppear {
             vm.attachCardPickerStoreIfNeeded(cardPickerStore)
             vm.startIfNeeded()
+            applyInitialCardSelectionIfNeeded()
+        }
+        .onChange(of: vm.cardsLoaded) { _ in
+            applyInitialCardSelectionIfNeeded()
+        }
+        .onChange(of: vm.allCards) { _ in
+            applyInitialCardSelectionIfNeeded()
         }
         // Make sure our chips & sheet share the same context.
         .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
@@ -265,9 +291,16 @@ struct AddUnplannedExpenseView: View {
             return false
         }
     }
-}
 
-// MARK: - CategoryChipsRow
+    /// Clears key entry fields while keeping selections to quickly add another expense.
+    private func resetFormForNewEntry() {
+        vm.descriptionText = ""
+        vm.amountString = ""
+        // Keep selected card, category, and date.
+    }
+    }
+
+    // MARK: - CategoryChipsRow
 /// Shared layout metrics for the category pill controls.
 /// Shows a static “Add” pill followed by a horizontally-scrolling list of
 /// category chips (live via @FetchRequest). Selecting a chip updates the binding.
@@ -354,6 +387,33 @@ private struct CategoryChipsRow: View {
             bottom: verticalInset,
             trailing: DS.Spacing.l
         )
+    }
+}
+
+private extension AddUnplannedExpenseView {
+    func applyInitialCardSelectionIfNeeded() {
+        guard !didApplyInitialCardSelection, let initialCardID else { return }
+        vm.selectedCardID = initialCardID
+        didApplyInitialCardSelection = true
+    }
+    /// Saves without notifying the parent via `onSaved` so the sheet stays open.
+    /// Returns true on success, false on failure or if validation fails.
+    func saveAndStayOpen() -> Bool {
+        guard vm.canSave else { return false }
+        do {
+            try vm.save()
+            // Intentionally do not call onSaved() to avoid dismissing the sheet.
+            return true
+        } catch {
+            let alert = UIAlertController(title: "Couldn’t Save", message: error.localizedDescription, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            UIApplication.shared.connectedScenes
+                .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+                .first?
+                .rootViewController?
+                .present(alert, animated: true)
+            return false
+        }
     }
 }
 

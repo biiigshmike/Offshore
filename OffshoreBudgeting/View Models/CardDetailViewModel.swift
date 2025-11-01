@@ -29,6 +29,7 @@ struct CardCategoryTotal: Identifiable, Hashable {
     let name: String
     let amount: Double
     let colorHex: String?
+    let categoryObjectID: NSManagedObjectID?
     
     var color: Color {
         UBColorFromHex(colorHex) ?? .secondary
@@ -87,7 +88,8 @@ final class CardDetailViewModel: ObservableObject {
 
     // MARK: Inputs
     let card: CardItem
-    let allowedInterval: DateInterval?   // nil = all time
+    // Date interval used to scope fetches. Defaults to the current budget period's range.
+    private(set) var allowedInterval: DateInterval?
     
     // MARK: Services
     private let unplannedService = UnplannedExpenseService()
@@ -97,22 +99,45 @@ final class CardDetailViewModel: ObservableObject {
     // MARK: Outputs
     @Published var state: CardDetailLoadState = .initial
     @Published var searchText: String = ""
+    // Segment & sorting state
+    enum Segment { case planned, variable, all }
+    @Published var segment: Segment = .planned
+    enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
+    @Published var sort: Sort = .dateNewOld
+    // Category filter (by Core Data object identity when available)
+    @Published var selectedCategoryID: NSManagedObjectID? = nil
 
     // Filtered view of expenses
     var filteredExpenses: [CardExpense] {
-        guard case .loaded(_, _, let expenses) = state else { return [] }
-        guard !searchText.isEmpty else { return expenses }
-
-        let q = searchText.lowercased()
-        let df = DateFormatter()
-        df.dateStyle = .medium
-
-        return expenses.filter { exp in
-            if exp.description.lowercased().contains(q) { return true }
-            if let date = exp.date, df.string(from: date).lowercased().contains(q) { return true }
-            if let name = exp.category?.name?.lowercased(), name.contains(q) { return true }
-            return false
+        guard case .loaded(_, _, let expensesAll) = state else { return [] }
+        // Segment base
+        var items: [CardExpense]
+        switch segment {
+        case .planned:
+            items = expensesAll.filter { $0.isPlanned }
+        case .variable:
+            items = expensesAll.filter { !$0.isPlanned }
+        case .all:
+            items = expensesAll
         }
+        // Category filter
+        if let target = selectedCategoryID {
+            items = items.filter { $0.category?.objectID == target }
+        }
+        // Search filter
+        if !searchText.isEmpty {
+            let q = searchText.lowercased()
+            let df = DateFormatter(); df.dateStyle = .medium
+            items = items.filter { exp in
+                if exp.description.lowercased().contains(q) { return true }
+                if let date = exp.date, df.string(from: date).lowercased().contains(q) { return true }
+                if let name = exp.category?.name?.lowercased(), name.contains(q) { return true }
+                return false
+            }
+        }
+        // Sort
+        items = applySort(sort, to: items)
+        return items
     }
 
     // Upcoming section removed; no filteredUpcoming
@@ -122,11 +147,21 @@ final class CardDetailViewModel: ObservableObject {
         guard case .loaded = state else { return [] }
         return buildCategories(from: filteredExpenses)
     }
+
+    /// Total from current filters (used by UI Total Spent section)
+    var filteredTotal: Double { filteredExpenses.reduce(0) { $0 + $1.amount } }
     
     // MARK: Init
     init(card: CardItem, allowedInterval: DateInterval? = nil, context: NSManagedObjectContext = CoreDataService.shared.viewContext) {
         self.card = card
-        self.allowedInterval = allowedInterval
+        // Default to current workspace budget period range if not provided
+        if let allowedInterval {
+            self.allowedInterval = allowedInterval
+        } else {
+            let p = WorkspaceService.shared.currentBudgetPeriod(in: context)
+            let r = p.range(containing: Date())
+            self.allowedInterval = DateInterval(start: r.start, end: r.end)
+        }
         self.viewContext = context
     }
     
@@ -233,6 +268,11 @@ final class CardDetailViewModel: ObservableObject {
         }
     }
 
+    /// Update the date range used for fetches and reload.
+    func setDateRange(_ start: Date, _ end: Date) {
+        self.allowedInterval = DateInterval(start: start, end: end)
+    }
+
     func delete(expense: CardExpense) async throws {
         guard let objectID = expense.objectID else {
             AppLog.ui.error("CardDetailViewModel.delete missing objectID for expense id=\(expense.id)")
@@ -294,16 +334,36 @@ final class CardDetailViewModel: ObservableObject {
 
     /// Builds category totals from a list of expenses
     private func buildCategories(from expenses: [CardExpense]) -> [CardCategoryTotal] {
-        var buckets: [String: (amount: Double, colorHex: String?)] = [:]
+        // Bucket by category object identity primarily; fall back to name when missing.
+        struct BucketKey: Hashable { let objectIDURI: URL?; let name: String }
+        var buckets: [BucketKey: (amount: Double, colorHex: String?, objectID: NSManagedObjectID?)] = [:]
         for exp in expenses {
             let amount = exp.amount
-            let name = exp.category?.name ?? "Uncategorized"
+            let name = (exp.category?.name ?? "Uncategorized").trimmingCharacters(in: .whitespacesAndNewlines)
+            let objectID = exp.category?.objectID
+            let uri = objectID?.uriRepresentation()
+            let key = BucketKey(objectIDURI: uri, name: name)
             let hex = exp.category?.color
-            let current = buckets[name] ?? (0, hex)
-            buckets[name] = (current.amount + amount, current.colorHex ?? hex)
+            let current = buckets[key] ?? (0, hex, objectID)
+            buckets[key] = (current.amount + amount, current.colorHex ?? hex, current.objectID ?? objectID)
         }
         return buckets
-            .map { CardCategoryTotal(name: $0.key, amount: $0.value.amount, colorHex: $0.value.colorHex) }
+            .map { (k, v) in CardCategoryTotal(name: k.name, amount: v.amount, colorHex: v.colorHex, categoryObjectID: v.objectID) }
             .sorted { $0.amount > $1.amount }
+    }
+
+    private func applySort(_ sort: Sort, to items: [CardExpense]) -> [CardExpense] {
+        switch sort {
+        case .titleAZ:
+            return items.sorted { a, b in a.description.localizedCaseInsensitiveCompare(b.description) == .orderedAscending }
+        case .amountLowHigh:
+            return items.sorted { a, b in a.amount < b.amount }
+        case .amountHighLow:
+            return items.sorted { a, b in a.amount > b.amount }
+        case .dateOldNew:
+            return items.sorted { a, b in (a.date ?? .distantPast) < (b.date ?? .distantPast) }
+        case .dateNewOld:
+            return items.sorted { a, b in (a.date ?? .distantPast) > (b.date ?? .distantPast) }
+        }
     }
 }

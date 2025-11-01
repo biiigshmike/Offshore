@@ -40,6 +40,7 @@ struct AddPlannedExpenseView: View {
     @State private var didApplyInitialCardSelection = false
 
     @State private var budgetSearchText = ""
+    @State private var showAllBudgets = false
     @State private var isShowingScopeDialog = false
 
     private var filteredBudgets: [Budget] {
@@ -275,11 +276,29 @@ struct AddPlannedExpenseView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
+                // Editing: single trailing action
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(vm.isEditing ? "Save Changes" : "Save") {
-                        if trySave() { dismiss() }
+                    if vm.isEditing {
+                        Button("Save Changes") {
+                            if trySave() { dismiss() }
+                        }
+                        .disabled(!vm.canSave)
                     }
-                    .disabled(!vm.canSave)
+                }
+                // Adding: separate trailing actions (no container)
+                if !vm.isEditing {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            if trySave() { dismiss() }
+                        }
+                        .disabled(!vm.canSave)
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save and Add") {
+                            if saveAndStayOpen() { resetFormForNewEntry() }
+                        }
+                        .disabled(!vm.canSave)
+                    }
                 }
             }
         }
@@ -287,6 +306,7 @@ struct AddPlannedExpenseView: View {
         .onAppear {
             vm.attachCardPickerStoreIfNeeded(cardPickerStore)
             vm.startIfNeeded()
+            applyInitialCardSelectionIfNeeded()
             applyInitialAssignBudgetToggleIfNeeded()
         }
         .onChange(of: vm.cardsLoaded) { _ in
@@ -403,50 +423,92 @@ struct AddPlannedExpenseView: View {
             .present(alert, animated: true)
     }
 
+    /// Saves without invoking `onSaved` so the sheet remains open.
+    /// Returns true on success, false on failure or if validation fails.
+    private func saveAndStayOpen() -> Bool {
+        guard vm.canSave else { return false }
+        do {
+            try vm.save(scope: .onlyThis)
+            // Do NOT call onSaved() here — parent may dismiss sheet.
+            return true
+        } catch {
+            presentSaveError(error)
+            return false
+        }
+    }
+
+    /// Clears key entry fields so the user can add another item without closing the form.
+    private func resetFormForNewEntry() {
+        // Keep selections (card, category, budgets, global preset toggle) as-is for faster entry.
+        vm.descriptionText = ""
+        vm.plannedAmountString = ""
+        vm.actualAmountString = ""
+        // Keep date unchanged to facilitate adding multiple for a given day.
+    }
+
     @ViewBuilder
     private var budgetPickerSection: some View {
         Section {
+            // Search field
             HStack(alignment: .center) {
                 TextField("Search Budgets", text: $budgetSearchText)
-                .autocorrectionDisabled(true)
-                .textInputAutocapitalization(.never)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                    .autocorrectionDisabled(true)
+                    .textInputAutocapitalization(.never)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            HStack(alignment: .center) {
-                // Use a Menu instead of a Picker to prevent warnings about
-                // invalid selections when the available budgets change.
-                Menu {
-                    ForEach(filteredBudgets, id: \.objectID) { budget in
-                        Button {
+
+            // Inline, multi-select list with trailing checkmarks
+            let all = filteredBudgets
+            let isSearching = !budgetSearchText.isEmpty
+            let limit = 10
+            let collapsed = !showAllBudgets && !isSearching && all.count > limit
+            let visible = collapsed ? Array(all.prefix(limit)) : all
+
+            if all.isEmpty {
+                Text("No matching budgets")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ForEach(visible, id: \.objectID) { budget in
+                    Button {
+                        withAnimation(.easeInOut) {
                             vm.toggleBudgetSelection(for: budget.objectID)
-                        } label: {
-                            HStack {
-                                Text(budget.name ?? "Untitled")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                if vm.isBudgetSelected(budget.objectID) {
-                                    Image(systemName: "checkmark")
-                                }
+                        }
+                    } label: {
+                        HStack {
+                            Text(budget.name ?? "Untitled")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            if vm.isBudgetSelected(budget.objectID) {
+                                Image(systemName: "checkmark")
                             }
                         }
                     }
-                } label: {
-                    Text(budgetSelectionSummary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .accessibilityLabel("Select budget \(budget.name ?? "Untitled")")
+                    .accessibilityValue(vm.isBudgetSelected(budget.objectID) ? "Selected" : "Not Selected")
                 }
-                .menuStyle(.borderlessButton)
-                .menuActionDismissBehavior(.disabled)
-                .id(budgetSearchText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Spacer(minLength: 0)
+
+                // Show All / Show Less control (only when not searching)
+                if !isSearching && all.count > limit {
+                    if showAllBudgets {
+                        Button("Show Less") { withAnimation(.easeInOut) { showAllBudgets = false } }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        let remaining = all.count - limit
+                        Button("Show All (\(remaining) more)") { withAnimation(.easeInOut) { showAllBudgets = true } }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         } header: {
             Text("Choose Budget")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
         }
+        .animation(.easeInOut, value: showAllBudgets)
     }
 
     private func applyDefaultSaveAsGlobalPresetIfNeeded() {
@@ -456,11 +518,7 @@ struct AddPlannedExpenseView: View {
     }
 
     private func applyInitialCardSelectionIfNeeded() {
-        guard !didApplyInitialCardSelection,
-              let initialCardID,
-              vm.selectedCardID == nil,
-              vm.cardsLoaded,
-              vm.allCards.contains(where: { $0.objectID == initialCardID }) else { return }
+        guard !didApplyInitialCardSelection, let initialCardID else { return }
         vm.selectedCardID = initialCardID
         didApplyInitialCardSelection = true
     }
@@ -476,15 +534,6 @@ struct AddPlannedExpenseView: View {
         }
     }
 
-    private var budgetSelectionSummary: String {
-        let names = vm.selectedBudgetNames
-        guard !names.isEmpty else { return "Select Budgets" }
-        if names.count == 1 { return names[0] }
-        if names.count == 2 { return names.joined(separator: ", ") }
-        let prefix = names.prefix(2).joined(separator: ", ")
-        let remaining = names.count - 2
-        return "\(prefix) +\(remaining) more"
-    }
 }
 
 // MARK: - Navigation container

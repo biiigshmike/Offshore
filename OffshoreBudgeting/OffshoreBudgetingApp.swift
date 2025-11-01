@@ -153,10 +153,16 @@ struct OffshoreBudgetingApp: App {
 
                 // MARK: App Lock Kick (Cold Start)
                 // Lock immediately on launch so content is obscured.
-                // We intentionally do NOT prompt here — scenePhase(.active)
-                // will trigger a single unlock prompt per foreground.
                 if appLockViewModel.isLockEnabled {
                     appLockViewModel.lock()
+                    #if targetEnvironment(macCatalyst)
+                    // On Mac Catalyst, onAppear can happen after the scene is already active,
+                    // which would mean no .active phase change occurs. Trigger a single prompt
+                    // right away when we detect we are already active.
+                    if scenePhase == .active, appLockViewModel.isLocked {
+                        appLockViewModel.attemptUnlockWithBiometrics()
+                    }
+                    #endif
                 }
             }
             .onChange(of: scenePhase) { newPhase in

@@ -14,6 +14,10 @@ import Combine
 #if canImport(SwiftUI)
 import SwiftUI
 #endif
+// AppKit is only available on native macOS apps, not Mac Catalyst
+#if os(macOS) && !targetEnvironment(macCatalyst)
+import AppKit
+#endif
 
 // MARK: - AppLockViewModel
 /// Controls whether the UI is locked behind Face ID / Touch ID.
@@ -107,7 +111,7 @@ public final class AppLockViewModel: ObservableObject {
     /// We **only** lock on background here. We no longer auto-prompt on foreground.
     /// App.swift decides when to prompt (cold start, foreground, etc.).
     private func observeLifecycle() {
-        #if canImport(AppKit)
+        #if os(macOS) && !targetEnvironment(macCatalyst)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(appDidResignActive),
@@ -122,7 +126,7 @@ public final class AppLockViewModel: ObservableObject {
     // UIKit locking is managed by the App via scenePhase (.background)
 
     // MARK: Lifecycle Selectors (AppKit)
-    #if canImport(AppKit)
+    #if os(macOS) && !targetEnvironment(macCatalyst)
     @objc private func appDidResignActive() {
         if isAuthenticating { return }
         if let until = unlockGraceUntil, Date() < until { return }

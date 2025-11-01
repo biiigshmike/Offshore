@@ -20,6 +20,7 @@ import SwiftUI
 /// - Use `isLockEnabled` to gate behavior via user settings.
 /// - Call `lock()` when app enters background or on cold start.
 /// - Call `attemptUnlockWithBiometrics()` from App.swift (cold start / foreground).
+@MainActor
 public final class AppLockViewModel: ObservableObject {
 
     // MARK: Published State
@@ -38,6 +39,8 @@ public final class AppLockViewModel: ObservableObject {
     private var isAuthenticating: Bool = false
     private var lastPromptAt: Date? = nil
     private let promptThrottleSeconds: TimeInterval = 1.0
+    private var unlockGraceUntil: Date? = nil
+    private let unlockGraceSeconds: TimeInterval = 0.8
 
     // MARK: Initialization
     public init(biometricManager: BiometricAuthenticationManager = .shared) {
@@ -85,7 +88,14 @@ public final class AppLockViewModel: ObservableObject {
             switch result {
             case .success:
                 self.lastErrorMessage = nil
+                self.unlockGraceUntil = Date().addingTimeInterval(self.unlockGraceSeconds)
+                #if canImport(SwiftUI)
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.isLocked = false
+                }
+                #else
                 self.isLocked = false
+                #endif
             case .failure(let error):
                 self.lastErrorMessage = error.localizedDescription
                 // Remain locked; user can tap again or we can re-prompt on demand later.
@@ -97,15 +107,7 @@ public final class AppLockViewModel: ObservableObject {
     /// We **only** lock on background here. We no longer auto-prompt on foreground.
     /// App.swift decides when to prompt (cold start, foreground, etc.).
     private func observeLifecycle() {
-        #if canImport(UIKit)
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(appDidEnterBackground),
-            name: UIApplication.didEnterBackgroundNotification,
-            object: nil
-        )
-        // Removed foreground auto-prompt to avoid double sheets.
-        #elseif canImport(AppKit)
+        #if canImport(AppKit)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(appDidResignActive),
@@ -117,15 +119,13 @@ public final class AppLockViewModel: ObservableObject {
     }
 
     // MARK: Lifecycle Selectors (UIKit)
-    #if canImport(UIKit)
-    @objc private func appDidEnterBackground() {
-        lock()
-    }
-    #endif
+    // UIKit locking is managed by the App via scenePhase (.background)
 
     // MARK: Lifecycle Selectors (AppKit)
     #if canImport(AppKit)
     @objc private func appDidResignActive() {
+        if isAuthenticating { return }
+        if let until = unlockGraceUntil, Date() < until { return }
         lock()
     }
     #endif

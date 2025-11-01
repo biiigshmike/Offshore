@@ -11,6 +11,7 @@ struct SettingsView: View {
     // MARK: State
     @StateObject private var vm = SettingsViewModel()
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
+    @AppStorage("appLockEnabled") private var isLockEnabled: Bool = true
     @State private var showResetAlert = false
     @State private var showMergeConfirm = false
     @State private var isMerging = false
@@ -48,6 +49,18 @@ struct SettingsView: View {
                             }
                             .labelsHidden()
                         }
+                    }
+                }
+                
+                SettingsCard(
+                    iconSystemName: "hand.raised.fill",
+                    title: "Touch ID / Face ID",
+                    subtitle: "Lock the app when inactive and unlock on return."
+                ) {
+                    VStack(spacing: 0) {
+                            SettingsRow(title: "Enable Touch ID / Face ID", showsTopDivider: false) {
+                                Toggle("", isOn: $isLockEnabled).labelsHidden()
+                            }
                     }
                 }
                 

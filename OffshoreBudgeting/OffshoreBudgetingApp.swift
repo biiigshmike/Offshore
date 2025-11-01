@@ -151,13 +151,12 @@ struct OffshoreBudgetingApp: App {
                     #endif
                 }
 
-                // MARK: App Lock Kick (Cold Start) — single source of truth
+                // MARK: App Lock Kick (Cold Start)
+                // Lock immediately on launch so content is obscured.
+                // We intentionally do NOT prompt here — scenePhase(.active)
+                // will trigger a single unlock prompt per foreground.
                 if appLockViewModel.isLockEnabled {
                     appLockViewModel.lock()
-                    // Prompt once; internal debounce prevents duplicates.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        appLockViewModel.attemptUnlockWithBiometrics()
-                    }
                 }
             }
             .onChange(of: scenePhase) { newPhase in
@@ -167,6 +166,11 @@ struct OffshoreBudgetingApp: App {
                     // Foreground return: prompt once if still locked.
                     if appLockViewModel.isLockEnabled && appLockViewModel.isLocked {
                         appLockViewModel.attemptUnlockWithBiometrics()
+                    }
+                } else if newPhase == .background {
+                    // Centralize background locking here to avoid races
+                    if appLockViewModel.isLockEnabled {
+                        appLockViewModel.lock()
                     }
                 }
             }

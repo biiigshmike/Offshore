@@ -51,9 +51,9 @@
 			path = OffshoreBudgetingTests;
 			sourceTree = "<group>";
 		};
-		4CDA44552EB5817B00650699 /* Screenshots */ = {
+		4CDA44552EB5817B00650699 /* Documentation */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Screenshots;
+			path = Documentation;
 			sourceTree = "<group>";
 		};
 		4CF220392E4A33BA00AD5F29 /* OffshoreBudgeting */ = {
@@ -100,7 +100,7 @@
 		4CF2202E2E4A33B900AD5F29 = {
 			isa = PBXGroup;
 			children = (
-				4CDA44552EB5817B00650699 /* Screenshots */,
+				4CDA44552EB5817B00650699 /* Documentation */,
 				4C73FEFC2EA01E2C003D4745 /* OffshoreBudgeting.xctestplan */,
 				4CF220392E4A33BA00AD5F29 /* OffshoreBudgeting */,
 				4C73FEF62EA01DF8003D4745 /* OffshoreBudgetingTests */,
@@ -135,7 +135,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				4CDA44552EB5817B00650699 /* Screenshots */,
+				4CDA44552EB5817B00650699 /* Documentation */,
 				4CF220392E4A33BA00AD5F29 /* OffshoreBudgeting */,
 			);
 			name = OffshoreBudgeting;

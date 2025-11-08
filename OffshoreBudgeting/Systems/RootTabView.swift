@@ -49,9 +49,17 @@ struct RootTabView: View {
     @ViewBuilder
     private var tabViewBody: some View {
         if #available(iOS 18.0, macCatalyst 18.0, macOS 15.0, *) {
-            baseTabView
-                .tabViewStyle(.sidebarAdaptable)
-                .sidebar { sidebarList }
+            // Inline TabView so the compiler recognizes the concrete TabView type
+            // and exposes the `.sidebar {}` modifier available on iOS 18+.
+            TabView(selection: $selectedTab) {
+                tabViewItem(for: .home)
+                tabViewItem(for: .income)
+                tabViewItem(for: .cards)
+                tabViewItem(for: .presets)
+                tabViewItem(for: .settings)
+            }
+            .onAppear { applyStartTabIfNeeded() }
+            .tabViewStyle(.sidebarAdaptable)
         } else {
             baseTabView
         }
@@ -70,7 +78,9 @@ struct RootTabView: View {
 
     @available(iOS 18.0, macCatalyst 18.0, macOS 15.0, *)
     private var sidebarList: some View {
-        List(selection: $selectedTab) {
+        // `List(selection:)` isn't available on iOS; we still drive selection
+        // via explicit taps inside SidebarSections.
+        List {
             SidebarSections(selection: $selectedTab)
         }
         .listStyle(.sidebar)
@@ -152,7 +162,7 @@ struct RootTabView: View {
 }
 
 // MARK: - Tab Metadata
-private extension RootTabView.Tab {
+extension RootTabView.Tab {
     /// Localized title used in the tab bar label for each case.
     var title: String {
         switch self {

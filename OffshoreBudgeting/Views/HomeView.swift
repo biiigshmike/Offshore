@@ -5,31 +5,6 @@ import Combine
 import UIKit
 #endif
 
-// MARK: - Home Navigation Routing
-@MainActor
-final class HomeNavigationRouter: ObservableObject {
-    @Published var destination: HomeNavigationDestination?
-
-    func present(_ kind: HomeNavigationDestination.Kind) {
-        destination = HomeNavigationDestination(kind: kind)
-    }
-}
-
-struct HomeNavigationDestination: Identifiable, Hashable {
-    enum Kind: Hashable {
-        case addPlanned
-        case addVariable
-    }
-
-    let kind: Kind
-    let id: UUID
-
-    init(kind: Kind, id: UUID = UUID()) {
-        self.kind = kind
-        self.id = id
-    }
-}
-
 // MARK: - HomeView2
 /// A simplified, self‑contained rebuild of the Home screen that follows
 /// "Apple Way" SwiftUI layout primitives and native styles.
@@ -107,14 +82,6 @@ struct HomeView: View {
 
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
-    @EnvironmentObject private var navigationRouter: HomeNavigationRouter
-
-    private var navigationDestinationBinding: Binding<HomeNavigationDestination?> {
-        Binding(
-            get: { navigationRouter.destination },
-            set: { navigationRouter.destination = $0 }
-        )
-    }
 
     // MARK: Body
     var body: some View { homeContent }
@@ -200,33 +167,16 @@ struct HomeView: View {
         .sheet(item: $editingPlannedBox) { box in
             AddPlannedExpenseView(
                 plannedExpenseID: box.id,
-                onSaved: makeExpenseSavedHandler()
+                onSaved: { Task { await vm.refresh() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
         .sheet(item: $editingUnplannedBox) { box in
             AddUnplannedExpenseView(
                 unplannedExpenseID: box.id,
-                onSaved: makeExpenseSavedHandler()
+                onSaved: { Task { await vm.refresh() } }
             )
             .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .navigationDestination(item: navigationDestinationBinding) { destination in
-            switch destination.kind {
-            case .addPlanned:
-                AddPlannedExpenseView.navigationDestination(
-                    preselectedBudgetID: summary?.id,
-                    defaultSaveAsGlobalPreset: false,
-                    showAssignBudgetToggle: true,
-                    onSaved: makeExpenseSavedHandler()
-                )
-            case .addVariable:
-                AddVariableExpenseView.navigationDestination(
-                    allowedCardIDs: nil,
-                    initialDate: vm.selectedDate,
-                    onSaved: makeExpenseSavedHandler()
-                )
-            }
         }
         .alert(item: $vm.alert, content: alert(for:))
         .alert(deleteAlertTitle, isPresented: $isConfirmingDelete) {
@@ -582,22 +532,18 @@ struct HomeView: View {
             preselectedBudgetID: summary?.id,
             defaultSaveAsGlobalPreset: false,
             showAssignBudgetToggle: true,
-            onSaved: makeExpenseSavedHandler()
+            onSaved: { Task { await vm.refresh() } }
         )
         .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
     }
 
     private var addVariableSheet: some View {
-        AddVariableExpenseView(
+        AddUnplannedExpenseView(
             allowedCardIDs: nil,
             initialDate: vm.selectedDate,
-            onSaved: makeExpenseSavedHandler()
+            onSaved: { Task { await vm.refresh() } }
         )
         .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-    }
-
-    private func makeExpenseSavedHandler() -> () -> Void {
-        { Task { await vm.refresh() } }
     }
 
     // MARK: Manage Sheets

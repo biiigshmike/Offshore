@@ -25,6 +25,8 @@ struct AddPlannedExpenseView: View {
     let onSaved: () -> Void
     /// Optional card to preselect on first load.
     let initialCardID: NSManagedObjectID?
+    /// Controls whether the view wraps its content in a navigation container.
+    private let includeNavigationContainer: Bool
 
     // MARK: State
     /// We don't call `dismiss()` directly anymore (the scaffold handles it),
@@ -65,8 +67,9 @@ struct AddPlannedExpenseView: View {
         preselectedBudgetID: NSManagedObjectID? = nil,
         defaultSaveAsGlobalPreset: Bool = false,
         showAssignBudgetToggle: Bool = false,
-        onSaved: @escaping () -> Void,
-        initialCardID: NSManagedObjectID? = nil
+        onSaved: @escaping () -> Void = {},
+        initialCardID: NSManagedObjectID? = nil,
+        includeNavigationContainer: Bool = true
     ) {
         self.plannedExpenseID = plannedExpenseID
         self.preselectedBudgetID = preselectedBudgetID
@@ -74,6 +77,7 @@ struct AddPlannedExpenseView: View {
         self.showAssignBudgetToggle = showAssignBudgetToggle
         self.onSaved = onSaved
         self.initialCardID = initialCardID
+        self.includeNavigationContainer = includeNavigationContainer
         let shouldStartAssigning: Bool
         if !showAssignBudgetToggle {
             shouldStartAssigning = true
@@ -94,8 +98,154 @@ struct AddPlannedExpenseView: View {
 
     // MARK: Body
     var body: some View {
-        navigationContainer {
-            Form {
+        rootView
+            .onAppear {
+                vm.attachCardPickerStoreIfNeeded(cardPickerStore)
+                vm.startIfNeeded()
+                applyInitialCardSelectionIfNeeded()
+                applyInitialAssignBudgetToggleIfNeeded()
+            }
+            .onChange(of: vm.cardsLoaded) { _ in
+                guard vm.cardsLoaded else { return }
+                applyDefaultSaveAsGlobalPresetIfNeeded()
+                applyInitialCardSelectionIfNeeded()
+                applyInitialAssignBudgetToggleIfNeeded()
+            }
+            .onChange(of: vm.allBudgets.count) { _ in
+                applyInitialAssignBudgetToggleIfNeeded()
+            }
+            .onChange(of: vm.selectedBudgetIDs) { _ in
+                applyInitialAssignBudgetToggleIfNeeded()
+            }
+            .onChange(of: vm.saveAsGlobalPreset) { _ in
+                didApplyDefaultGlobal = true
+            }
+            .onChange(of: vm.allCards) { _ in
+                applyInitialCardSelectionIfNeeded()
+            }
+            .onChange(of: vm.selectedCardID) { _ in
+                didApplyInitialCardSelection = true
+            }
+            .onChange(of: vm.saveScope) { newValue in
+                guard newValue == .entireSeries else { return }
+                guard !didSyncAssignBudgetToggle else { return }
+                withAnimation(.easeInOut) {
+                    isAssigningToBudget = true
+                }
+                didSyncAssignBudgetToggle = true
+            }
+            .onChange(of: isAssigningToBudget) { newValue in
+                guard showAssignBudgetToggle else { return }
+                if newValue {
+                    if vm.selectedBudgetIDs.isEmpty, let first = vm.allBudgets.first?.objectID {
+                        vm.selectedBudgetIDs = [first]
+                    }
+                } else {
+                    vm.selectedBudgetIDs = []
+                }
+            }
+            .sheet(isPresented: $isPresentingAddCard) {
+                AddCardFormView { newName, selectedTheme in
+                    do {
+                        let service = CardService()
+                        let card = try service.createCard(name: newName)
+                        try service.updateCard(card, name: nil, theme: selectedTheme)
+                        vm.selectedCardID = card.objectID
+                    } catch {
+                        let alert = UIAlertController(
+                            title: "Couldn’t Create Card",
+                            message: error.localizedDescription,
+                            preferredStyle: .alert
+                        )
+                        alert.addAction(UIAlertAction(title: "OK", style: .default))
+                        UIApplication.shared.connectedScenes
+                            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+                            .first?
+                            .rootViewController?
+                            .present(alert, animated: true)
+                    }
+                }
+            }
+            .confirmationDialog(
+                "Apply changes to related expenses?",
+                isPresented: $isShowingScopeDialog
+            ) {
+                Button("Only this expense") {
+                    if performSave(scope: .onlyThis) {
+                        dismiss()
+                    }
+                }
+                Button("Past instances") {
+                    if performSave(scope: .past(referenceDate: vm.transactionDate)) {
+                        dismiss()
+                    }
+                }
+                Button("Future instances") {
+                    if performSave(scope: .future(referenceDate: vm.transactionDate)) {
+                        dismiss()
+                    }
+                }
+                Button("All instances") {
+                    if performSave(scope: .all(referenceDate: vm.transactionDate)) {
+                        dismiss()
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            }
+            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+    }
+
+    @ViewBuilder
+    private var rootView: some View {
+        let scaffold = formScaffold
+
+        if includeNavigationContainer {
+            navigationContainer {
+                scaffold
+            }
+            .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
+        } else {
+            scaffold
+        }
+    }
+
+    private var formScaffold: some View {
+        formContent
+            .listStyle(.insetGrouped)
+            .scrollIndicators(.hidden)
+            .navigationTitle(vm.isEditing ? "Edit Planned Expense" : "Add Planned Expense")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if vm.isEditing {
+                        Button("Save Changes") {
+                            if trySave() { dismiss() }
+                        }
+                        .disabled(!vm.canSave)
+                    }
+                }
+                if !vm.isEditing {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            if trySave() { dismiss() }
+                        }
+                        .disabled(!vm.canSave)
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save and Add") {
+                            if saveAndStayOpen() { resetFormForNewEntry() }
+                        }
+                        .disabled(!vm.canSave)
+                    }
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var formContent: some View {
+        Form {
             // MARK: Card Selection
             Section {
                 if !vm.cardsLoaded {
@@ -155,7 +305,6 @@ struct AddPlannedExpenseView: View {
             Section {
                 CategoryChipsRow(selectedCategoryID: $vm.selectedCategoryID)
             }
-//            .ub_formSectionClearBackground()
             .accessibilityElement(children: .contain)
 
             // MARK: Individual Fields
@@ -167,7 +316,6 @@ struct AddPlannedExpenseView: View {
 
             // Expense Description
             Section {
-                // Use an empty label and a prompt for true placeholder styling on modern OSes.
                 HStack(alignment: .center) {
                     if #available(iOS 15.0, macCatalyst 15.0, *) {
                         TextField("", text: $vm.descriptionText, prompt: Text("Electric"))
@@ -248,7 +396,6 @@ struct AddPlannedExpenseView: View {
 
             // Transaction Date
             Section {
-                // Hide the label of the DatePicker itself; the section header supplies the label.
                 DatePicker("", selection: $vm.transactionDate, displayedComponents: [.date])
                     .labelsHidden()
                     .datePickerStyle(.compact)
@@ -259,7 +406,7 @@ struct AddPlannedExpenseView: View {
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
             }
-            // MARK: Use in future budgets?
+
             Section {
                 Toggle("Use in future budgets?", isOn: $vm.saveAsGlobalPreset)
             } header: {
@@ -268,119 +415,6 @@ struct AddPlannedExpenseView: View {
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
             }
-            }
-            .listStyle(.insetGrouped)
-            .scrollIndicators(.hidden)
-            .navigationTitle(vm.isEditing ? "Edit Planned Expense" : "Add Planned Expense")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                // Editing: single trailing action
-                ToolbarItem(placement: .confirmationAction) {
-                    if vm.isEditing {
-                        Button("Save Changes") {
-                            if trySave() { dismiss() }
-                        }
-                        .disabled(!vm.canSave)
-                    }
-                }
-                // Adding: separate trailing actions (no container)
-                if !vm.isEditing {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
-                            if trySave() { dismiss() }
-                        }
-                        .disabled(!vm.canSave)
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save and Add") {
-                            if saveAndStayOpen() { resetFormForNewEntry() }
-                        }
-                        .disabled(!vm.canSave)
-                    }
-                }
-            }
-        }
-        .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
-        .onAppear {
-            vm.attachCardPickerStoreIfNeeded(cardPickerStore)
-            vm.startIfNeeded()
-            applyInitialCardSelectionIfNeeded()
-            applyInitialAssignBudgetToggleIfNeeded()
-        }
-        .onChange(of: vm.cardsLoaded) { _ in
-            guard vm.cardsLoaded else { return }
-            applyDefaultSaveAsGlobalPresetIfNeeded()
-            applyInitialCardSelectionIfNeeded()
-            applyInitialAssignBudgetToggleIfNeeded()
-        }
-        .onChange(of: vm.allBudgets.count) { _ in
-            applyInitialAssignBudgetToggleIfNeeded()
-        }
-        .onChange(of: vm.selectedBudgetIDs) { _ in
-            applyInitialAssignBudgetToggleIfNeeded()
-        }
-        .onChange(of: vm.allCards) { _ in
-            applyInitialCardSelectionIfNeeded()
-        }
-        .onChange(of: isAssigningToBudget) { newValue in
-            guard showAssignBudgetToggle else { return }
-            if newValue {
-                if vm.selectedBudgetIDs.isEmpty, let first = vm.allBudgets.first?.objectID {
-                    vm.selectedBudgetIDs = [first]
-                }
-            } else {
-                vm.selectedBudgetIDs = []
-            }
-        }
-        .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        // Add Card sheet for empty state
-        .sheet(isPresented: $isPresentingAddCard) {
-            AddCardFormView { newName, selectedTheme in
-                do {
-                    let service = CardService()
-                    let card = try service.createCard(name: newName)
-                    try service.updateCard(card, name: nil, theme: selectedTheme)
-                    // Select the new card immediately
-                    vm.selectedCardID = card.objectID
-                } catch {
-                    // Best-effort simple alert; the sheet handles its own dismissal
-                    let alert = UIAlertController(title: "Couldn’t Create Card", message: error.localizedDescription, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    UIApplication.shared.connectedScenes
-                        .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-                        .first?
-                        .rootViewController?
-                        .present(alert, animated: true)
-                }
-            }
-        }
-        .confirmationDialog(
-            "Apply changes to related expenses?",
-            isPresented: $isShowingScopeDialog
-        ) {
-            Button("Only this expense") {
-                if performSave(scope: .onlyThis) {
-                    dismiss()
-                }
-            }
-            Button("Past instances") {
-                if performSave(scope: .past(referenceDate: vm.transactionDate)) {
-                    dismiss()
-                }
-            }
-            Button("Future instances") {
-                if performSave(scope: .future(referenceDate: vm.transactionDate)) {
-                    dismiss()
-                }
-            }
-            Button("All instances") {
-                if performSave(scope: .all(referenceDate: vm.transactionDate)) {
-                    dismiss()
-                }
-            }
-            Button("Cancel", role: .cancel) { }
         }
     }
 
@@ -534,6 +568,33 @@ struct AddPlannedExpenseView: View {
         }
     }
 
+}
+
+// MARK: - Sidebar Convenience
+extension AddPlannedExpenseView {
+    /// Convenience wrapper that prepares the view for navigation-based presentations
+    /// such as sidebar links. Injects the shared view context and omits the nested
+    /// navigation container used for sheet presentations.
+    /// - Parameters mirror the designated initializer.
+    static func navigationDestination(
+        plannedExpenseID: NSManagedObjectID? = nil,
+        preselectedBudgetID: NSManagedObjectID? = nil,
+        defaultSaveAsGlobalPreset: Bool = false,
+        showAssignBudgetToggle: Bool = false,
+        onSaved: @escaping () -> Void = {},
+        initialCardID: NSManagedObjectID? = nil
+    ) -> some View {
+        AddPlannedExpenseView(
+            plannedExpenseID: plannedExpenseID,
+            preselectedBudgetID: preselectedBudgetID,
+            defaultSaveAsGlobalPreset: defaultSaveAsGlobalPreset,
+            showAssignBudgetToggle: showAssignBudgetToggle,
+            onSaved: onSaved,
+            initialCardID: initialCardID,
+            includeNavigationContainer: false
+        )
+        .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+    }
 }
 
 // MARK: - Navigation container

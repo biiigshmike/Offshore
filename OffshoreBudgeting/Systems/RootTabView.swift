@@ -39,6 +39,7 @@ struct RootTabView: View {
     @Environment(\.startTabIdentifier) private var startTabIdentifier
     @State private var selectedTab: Tab = .home
     @State private var appliedStartTab: Bool = false
+    @StateObject private var homeNavigationRouter = HomeNavigationRouter()
 
     var body: some View {
         tabViewBody
@@ -74,6 +75,7 @@ struct RootTabView: View {
             SidebarSections(selection: $selectedTab)
         }
         .listStyle(.sidebar)
+        .environmentObject(homeNavigationRouter)
     }
 
     @ViewBuilder
@@ -122,6 +124,7 @@ struct RootTabView: View {
         switch tab {
         case .home:
             HomeView()
+                .environmentObject(homeNavigationRouter)
                 .id(dataRevision)
         case .income:
             IncomeView()

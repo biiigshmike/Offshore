@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SidebarSections: View {
     @Binding var selection: RootTabView.Tab
+    @EnvironmentObject private var navigationRouter: HomeNavigationRouter
 
     var body: some View {
         Section("Overview") {
@@ -21,6 +22,26 @@ struct SidebarSections: View {
             ForEach(RootTabView.Tab.secondarySidebarTabs, id: \.self) { tab in
                 sidebarRow(for: tab)
             }
+        }
+
+        Section("Quick Actions") {
+            Button {
+                selection = .home
+                navigationRouter.present(.addPlanned)
+            } label: {
+                Label("Add Planned Expense", systemImage: "calendar.badge.plus")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                selection = .home
+                navigationRouter.present(.addVariable)
+            } label: {
+                Label("Add Variable Expense", systemImage: "dollarsign.square")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
         }
     }
 

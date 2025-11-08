@@ -23,6 +23,7 @@ struct AddUnplannedExpenseView: View {
     let initialCardID: NSManagedObjectID?
     let initialDate: Date?
     let onSaved: () -> Void
+    private let includeNavigationContainer: Bool
 
     // MARK: State
     @StateObject private var vm: AddUnplannedExpenseViewModel
@@ -41,12 +42,14 @@ struct AddUnplannedExpenseView: View {
          allowedCardIDs: Set<NSManagedObjectID>? = nil,
          initialCardID: NSManagedObjectID? = nil,
          initialDate: Date? = nil,
-         onSaved: @escaping () -> Void) {
+         onSaved: @escaping () -> Void = {},
+         includeNavigationContainer: Bool = true) {
         self.unplannedExpenseID = unplannedExpenseID
         self.allowedCardIDs = allowedCardIDs
         self.initialCardID = initialCardID
         self.initialDate = initialDate
         self.onSaved = onSaved
+        self.includeNavigationContainer = includeNavigationContainer
 
         let model = AddUnplannedExpenseViewModel(
             unplannedExpenseID: unplannedExpenseID,
@@ -61,81 +64,106 @@ struct AddUnplannedExpenseView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        navigationContainer {
-            formContent
-                .navigationTitle(vm.isEditing ? "Edit Variable Expense" : "Add Variable Expense")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { dismiss() }
+        rootView
+            .onAppear {
+                vm.attachCardPickerStoreIfNeeded(cardPickerStore)
+                vm.startIfNeeded()
+                applyInitialCardSelectionIfNeeded()
+            }
+            .onChange(of: vm.cardsLoaded) { _ in
+                applyInitialCardSelectionIfNeeded()
+            }
+            .onChange(of: vm.allCards) { _ in
+                applyInitialCardSelectionIfNeeded()
+            }
+            .sheet(isPresented: $isPresentingAddCard) {
+                AddCardFormView { newName, selectedTheme in
+                    do {
+                        let service = CardService()
+                        let card = try service.createCard(name: newName)
+                        try service.updateCard(card, name: nil, theme: selectedTheme)
+                        vm.selectedCardID = card.objectID
+                    } catch {
+                        let alert = UIAlertController(
+                            title: "Couldn’t Create Card",
+                            message: error.localizedDescription,
+                            preferredStyle: .alert
+                        )
+                        alert.addAction(UIAlertAction(title: "OK", style: .default))
+                        UIApplication.shared.connectedScenes
+                            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+                            .first?
+                            .rootViewController?
+                            .present(alert, animated: true)
                     }
-                    // Editing: single trailing action
-                    ToolbarItem(placement: .confirmationAction) {
-                        if vm.isEditing {
-                            Button("Save Changes") {
-                                if trySave() { dismiss() }
-                            }
-                            .disabled(!vm.canSave)
-                        }
-                    }
-                    // Adding: separate trailing actions (no container)
-                    if !vm.isEditing {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Save") {
-                                if trySave() { dismiss() }
-                            }
-                            .disabled(!vm.canSave)
-                        }
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Save and Add") {
-                                if saveAndStayOpen() { resetFormForNewEntry() }
-                            }
-                            .disabled(!vm.canSave)
-                        }
-                    }
-                }
-        }
-        .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
-        .onAppear {
-            vm.attachCardPickerStoreIfNeeded(cardPickerStore)
-            vm.startIfNeeded()
-            applyInitialCardSelectionIfNeeded()
-        }
-        .onChange(of: vm.cardsLoaded) { _ in
-            applyInitialCardSelectionIfNeeded()
-        }
-        .onChange(of: vm.allCards) { _ in
-            applyInitialCardSelectionIfNeeded()
-        }
-        // Make sure our chips & sheet share the same context.
-        .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        .sheet(isPresented: $isPresentingAddCard) {
-            AddCardFormView { newName, selectedTheme in
-                do {
-                    let service = CardService()
-                    let card = try service.createCard(name: newName)
-                    try service.updateCard(card, name: nil, theme: selectedTheme)
-                    vm.selectedCardID = card.objectID
-                } catch {
-                    let alert = UIAlertController(title: "Couldn’t Create Card", message: error.localizedDescription, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    UIApplication.shared.connectedScenes
-                        .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-                        .first?
-                        .rootViewController?
-                        .present(alert, animated: true)
                 }
             }
+            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+    }
+
+    @ViewBuilder
+    private var rootView: some View {
+        let scaffold = formScaffold
+
+        if includeNavigationContainer {
+            navigationContainer {
+                scaffold
+            }
+            .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
+        } else {
+            scaffold
         }
     }
 
-    // MARK: Navigation container
-    @ViewBuilder
-    private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
-            NavigationStack { content() }
-        } else {
-            NavigationView { content() }
-        }
+    private var formScaffold: some View {
+        formContent
+            .navigationTitle(vm.isEditing ? "Edit Variable Expense" : "Add Variable Expense")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if vm.isEditing {
+                        Button("Save Changes") {
+                            if trySave() { dismiss() }
+                        }
+                        .disabled(!vm.canSave)
+                    }
+                }
+                if !vm.isEditing {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            if trySave() { dismiss() }
+                        }
+                        .disabled(!vm.canSave)
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save and Add") {
+                            if saveAndStayOpen() { resetFormForNewEntry() }
+                        }
+                        .disabled(!vm.canSave)
+                    }
+                }
+            }
+    }
+
+    // MARK: Navigation convenience
+    static func navigationDestination(
+        unplannedExpenseID: NSManagedObjectID? = nil,
+        allowedCardIDs: Set<NSManagedObjectID>? = nil,
+        initialCardID: NSManagedObjectID? = nil,
+        initialDate: Date? = nil,
+        onSaved: @escaping () -> Void = {}
+    ) -> some View {
+        AddUnplannedExpenseView(
+            unplannedExpenseID: unplannedExpenseID,
+            allowedCardIDs: allowedCardIDs,
+            initialCardID: initialCardID,
+            initialDate: initialDate,
+            onSaved: onSaved,
+            includeNavigationContainer: false
+        )
+        .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
     }
 
     // MARK: Form content
@@ -391,6 +419,15 @@ private struct CategoryChipsRow: View {
 }
 
 private extension AddUnplannedExpenseView {
+    @ViewBuilder
+    func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            NavigationStack { content() }
+        } else {
+            NavigationView { content() }
+        }
+    }
+
     func applyInitialCardSelectionIfNeeded() {
         guard !didApplyInitialCardSelection, let initialCardID else { return }
         vm.selectedCardID = initialCardID

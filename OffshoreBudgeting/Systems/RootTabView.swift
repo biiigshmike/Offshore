@@ -46,7 +46,18 @@ struct RootTabView: View {
 
     // MARK: Body builders
     /// The underlying `TabView` that binds to `selectedTab` and hosts each tab.
+    @ViewBuilder
     private var tabViewBody: some View {
+        if #available(iOS 18.0, macCatalyst 18.0, macOS 15.0, *) {
+            baseTabView
+                .tabViewStyle(.sidebarAdaptable)
+                .sidebar { sidebarList }
+        } else {
+            baseTabView
+        }
+    }
+
+    private var baseTabView: some View {
         TabView(selection: $selectedTab) {
             tabViewItem(for: .home)
             tabViewItem(for: .income)
@@ -55,6 +66,14 @@ struct RootTabView: View {
             tabViewItem(for: .settings)
         }
         .onAppear { applyStartTabIfNeeded() }
+    }
+
+    @available(iOS 18.0, macCatalyst 18.0, macOS 15.0, *)
+    private var sidebarList: some View {
+        List(selection: $selectedTab) {
+            SidebarSections(selection: $selectedTab)
+        }
+        .listStyle(.sidebar)
     }
 
     @ViewBuilder

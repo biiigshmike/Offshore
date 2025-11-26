@@ -28,6 +28,13 @@ struct HomeView: View {
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
     @State private var sort: Sort = .dateNewOld
+    private static let sortOptions: [(Sort, String)] = [
+        (.titleAZ, "A–Z"),
+        (.amountLowHigh, "$↓"),
+        (.amountHighLow, "$↑"),
+        (.dateOldNew, "Date ↑"),
+        (.dateNewOld, "Date ↓")
+    ]
 
     // MARK: Sheet Toggles (kept small and focused)
     @State private var isPresentingAddPlanned: Bool = false
@@ -427,7 +434,7 @@ struct HomeView: View {
                     let maxCap = chipMaxCaps[cat.categoryURI]
                     let current = (segment == .planned) ? currentAmountForChip(cat) : cat.amount
                     let exceeded = (maxCap != nil) && (current > (maxCap ?? .infinity))
-                    chipView(
+                    BudgetCategoryChipView(
                         title: cat.categoryName,
                         amount: cat.amount,
                         hex: cat.hexColor,
@@ -464,23 +471,16 @@ struct HomeView: View {
 
     // MARK: Segment Picker
     private var segmentPicker: some View {
-        Picker("", selection: $segment) {
-            Text("Planned Expenses").tag(Segment.planned)
-            Text("Variable Expenses").tag(Segment.variable)
-        }
-        .pickerStyle(.segmented)
+        BudgetExpenseSegmentedControl(
+            plannedSegment: Segment.planned,
+            variableSegment: Segment.variable,
+            selection: $segment
+        )
     }
 
     // MARK: Sort Bar
     private var sortBar: some View {
-        Picker("Sort", selection: $sort) {
-            Text("A–Z").tag(Sort.titleAZ)
-            Text("$↓").tag(Sort.amountLowHigh)
-            Text("$↑").tag(Sort.amountHighLow)
-            Text("Date ↑").tag(Sort.dateOldNew)
-            Text("Date ↓").tag(Sort.dateNewOld)
-        }
-        .pickerStyle(.segmented)
+        BudgetSortBar(selection: $sort, options: Self.sortOptions)
     }
 
     // MARK: Expense List / Empty State
@@ -488,32 +488,32 @@ struct HomeView: View {
     private var listRows: some View {
         // If no budget exactly matches the selected period, show a clear
         // "Budget inactive" message instead of generic empty list text.
-        if let s = summary,
-           let budget = try? CoreDataService.shared.viewContext.existingObject(with: s.id) as? Budget {
-            let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
-            if segment == .planned {
-                PlannedRowsList(
-                    budget: budget,
-                    start: start,
-                    end: end,
-                    sort: sort,
-                    horizontalPadding: horizontalPadding,
-                    selectedCategoryURI: selectedCategoryURI,
-                    confirmBeforeDelete: confirmBeforeDelete,
-                    onEdit: { id in editingPlannedBox = ObjectIDBox(id: id) },
-                    onDelete: { exp in requestDelete(planned: exp) }
+                if let s = summary,
+                   let budget = try? CoreDataService.shared.viewContext.existingObject(with: s.id) as? Budget {
+                    let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
+                    if segment == .planned {
+                        PlannedRowsList(
+                            budget: budget,
+                            start: start,
+                            end: end,
+                            sortDescriptors: PlannedRowsList.sortDescriptors(for: sort),
+                            horizontalPadding: horizontalPadding,
+                            selectedCategoryURI: selectedCategoryURI,
+                            confirmBeforeDelete: confirmBeforeDelete,
+                            onEdit: { id in editingPlannedBox = ObjectIDBox(id: id) },
+                            onDelete: { exp in requestDelete(planned: exp) }
                 )
-            } else {
-                VariableRowsList(
-                    budget: budget,
-                    start: start,
-                    end: end,
-                    sort: sort,
-                    horizontalPadding: horizontalPadding,
-                    selectedCategoryURI: selectedCategoryURI,
-                    confirmBeforeDelete: confirmBeforeDelete,
-                    onEdit: { id in editingUnplannedBox = ObjectIDBox(id: id) },
-                    onDelete: { exp in requestDelete(unplanned: exp) }
+                    } else {
+                        VariableRowsList(
+                            budget: budget,
+                            start: start,
+                            end: end,
+                            sortDescriptors: VariableRowsList.sortDescriptors(for: sort),
+                            horizontalPadding: horizontalPadding,
+                            selectedCategoryURI: selectedCategoryURI,
+                            confirmBeforeDelete: confirmBeforeDelete,
+                            onEdit: { id in editingUnplannedBox = ObjectIDBox(id: id) },
+                            onDelete: { exp in requestDelete(unplanned: exp) }
                 )
             }
         } else {
@@ -775,67 +775,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Chips Styling
-    @ViewBuilder
-    private func chipView(title: String, amount: Double, hex: String?, isSelected: Bool, isExceeded: Bool, onTap: @escaping () -> Void) -> some View {
-        let dot = UBColorFromHex(hex) ?? .secondary
-        let chipLabel = HStack(spacing: 8) {
-            Circle().fill(dot).frame(width: 8, height: 8)
-            Text(title).font(.subheadline.weight(.medium))
-            Text(formatCurrency(amount))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isExceeded ? Color.red : Color.primary)
-        }
-        .padding(.horizontal, 12)
-        .frame(height: 44)
-        .background(.clear)
-
-        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Button(action: onTap) {
-                chipLabel
-                    .glassEffect(
-                        .regular
-                            .tint(isSelected ? dot.opacity(0.25) : .clear)
-                            .interactive(true)
-                    )
-                    .frame(minHeight: 44, maxHeight: 44)
-            }
-            .buttonBorderShape(.capsule)
-            .foregroundStyle(.primary)
-            .allowsHitTesting(true)
-            .disabled(false)
-            .frame(minHeight: 44, maxHeight: 44)
-            .clipShape(Capsule())
-            .compositingGroup()
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
-        } else {
-            Button(action: onTap) {
-                chipLabel
-            }
-            .buttonStyle(.plain)
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
-            .frame(minHeight: 44, maxHeight: 44)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(
-                        isSelected
-                        ? dot.opacity(0.20)
-                        : Color(UIColor { traits in
-                            traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
-                        })
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .stroke(isSelected ? dot.opacity(0.35) : .clear, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .frame(minHeight: 44, maxHeight: 44)
-        }
-
-    }
-
-
     // MARK: Rows + Data
     @ViewBuilder
     private func plannedRow(_ exp: PlannedExpense) -> some View {
@@ -1045,7 +984,7 @@ struct HomeView: View {
 //
 
 // MARK: - FetchedResults-backed sublists for Home
-private struct PlannedRowsList: View {
+struct PlannedRowsList: View {
     @FetchRequest var rows: FetchedResults<PlannedExpense>
     let horizontalPadding: CGFloat
     let selectedCategoryURI: URL?
@@ -1058,7 +997,7 @@ private struct PlannedRowsList: View {
         budget: Budget,
         start: Date,
         end: Date,
-        sort: HomeView.Sort,
+        sortDescriptors: [NSSortDescriptor],
         horizontalPadding: CGFloat,
         selectedCategoryURI: URL?,
         confirmBeforeDelete: Bool,
@@ -1076,7 +1015,7 @@ private struct PlannedRowsList: View {
             predicates.append(NSPredicate(format: "expenseCategory == %@", category))
         }
         req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-        req.sortDescriptors = PlannedRowsList.sortDescriptors(for: sort)
+        req.sortDescriptors = sortDescriptors
         _rows = FetchRequest(fetchRequest: req)
         self.horizontalPadding = horizontalPadding
         self.selectedCategoryURI = selectedCategoryURI
@@ -1152,7 +1091,17 @@ private struct PlannedRowsList: View {
         }
     }
 
-    private static func sortDescriptors(for sort: HomeView.Sort) -> [NSSortDescriptor] {
+    static func sortDescriptors(for sort: HomeView.Sort) -> [NSSortDescriptor] {
+        switch sort {
+        case .titleAZ: return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+        case .amountLowHigh: return [NSSortDescriptor(key: "actualAmount", ascending: true)]
+        case .amountHighLow: return [NSSortDescriptor(key: "actualAmount", ascending: false)]
+        case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
+        case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
+        }
+    }
+
+    static func sortDescriptors(for sort: BudgetDetailsViewModel.SortOption) -> [NSSortDescriptor] {
         switch sort {
         case .titleAZ: return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
         case .amountLowHigh: return [NSSortDescriptor(key: "actualAmount", ascending: true)]
@@ -1196,7 +1145,7 @@ private struct PlannedRowsList: View {
     }
 }
 
-private struct VariableRowsList: View {
+struct VariableRowsList: View {
     @FetchRequest var rows: FetchedResults<UnplannedExpense>
     let horizontalPadding: CGFloat
     let selectedCategoryURI: URL?
@@ -1209,7 +1158,7 @@ private struct VariableRowsList: View {
         budget: Budget,
         start: Date,
         end: Date,
-        sort: HomeView.Sort,
+        sortDescriptors: [NSSortDescriptor],
         horizontalPadding: CGFloat,
         selectedCategoryURI: URL?,
         confirmBeforeDelete: Bool,
@@ -1231,7 +1180,7 @@ private struct VariableRowsList: View {
         } else {
             req.predicate = NSPredicate(value: false)
         }
-        req.sortDescriptors = VariableRowsList.sortDescriptors(for: sort)
+        req.sortDescriptors = sortDescriptors
         _rows = FetchRequest(fetchRequest: req)
         self.horizontalPadding = horizontalPadding
         self.selectedCategoryURI = selectedCategoryURI
@@ -1303,7 +1252,17 @@ private struct VariableRowsList: View {
         }
     }
 
-    private static func sortDescriptors(for sort: HomeView.Sort) -> [NSSortDescriptor] {
+    static func sortDescriptors(for sort: HomeView.Sort) -> [NSSortDescriptor] {
+        switch sort {
+        case .titleAZ: return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+        case .amountLowHigh: return [NSSortDescriptor(key: "amount", ascending: true)]
+        case .amountHighLow: return [NSSortDescriptor(key: "amount", ascending: false)]
+        case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
+        case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
+        }
+    }
+
+    static func sortDescriptors(for sort: BudgetDetailsViewModel.SortOption) -> [NSSortDescriptor] {
         switch sort {
         case .titleAZ: return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
         case .amountLowHigh: return [NSSortDescriptor(key: "amount", ascending: true)]
@@ -1348,16 +1307,6 @@ private struct VariableRowsList: View {
 }
 
 // MARK: - Hex Color Helper (local)
-fileprivate func UBColorFromHex(_ hex: String?) -> Color? {
-    guard var value = hex?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
-    if value.hasPrefix("#") { value.removeFirst() }
-    guard value.count == 6, let intVal = Int(value, radix: 16) else { return nil }
-    let r = Double((intVal >> 16) & 0xFF) / 255.0
-    let g = Double((intVal >> 8) & 0xFF) / 255.0
-    let b = Double((intVal & 0xFF)) / 255.0
-    return Color(red: r, green: g, blue: b)
-}
-
 // MARK: - Chip Menu Overlay Builder (extracted for type-check performance)
 private extension HomeView {
     // Refresh the cache of explicit MAX caps for all categories in the active period+segment.

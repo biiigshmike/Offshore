@@ -31,7 +31,7 @@ struct BudgetsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         } else if activeBudgets.isEmpty {
             UBEmptyState(
-                icon: "chart.pie",
+                iconSystemName: "chart.pie",
                 title: "No Active Budgets",
                 message: "Create a budget to get started."
             )

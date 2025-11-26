@@ -40,7 +40,7 @@ struct BudgetsView: View {
             List {
                 Section("Active Budgets") {
                     ForEach(activeBudgets, id: \.objectID) { budget in
-                        NavigationLink(destination: BudgetDetailsDestination(budgetID: budget.objectID)) {
+                        NavigationLink(destination: BudgetDetailsView(budgetID: budget.objectID)) {
                             BudgetRow(budget: budget)
                         }
                     }
@@ -110,71 +110,6 @@ private struct BudgetRow: View {
     private var title: String {
         let raw = budget.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return raw.isEmpty ? "Untitled Budget" : raw
-    }
-}
-
-// MARK: - Destination
-private struct BudgetDetailsDestination: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
-    let budgetID: NSManagedObjectID
-
-    @State private var budget: Budget?
-
-    private let dateFormatter: DateIntervalFormatter = {
-        let formatter = DateIntervalFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter
-    }()
-
-    var body: some View {
-        List {
-            if let budget {
-                Section("Overview") {
-                    DetailRow(title: "Name", value: budgetName(for: budget))
-                    if let start = budget.startDate, let end = budget.endDate {
-                        DetailRow(title: "Dates", value: dateFormatter.string(from: start, to: end))
-                    }
-                    if budget.isRecurring {
-                        DetailRow(title: "Recurring", value: budget.recurrenceType ?? "Yes")
-                    }
-                }
-            } else {
-                Section {
-                    Text("Budget not found")
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle(budgetTitle)
-        .task { loadBudget() }
-    }
-
-    private var budgetTitle: String { budgetName(for: budget) }
-
-    private func loadBudget() {
-        budget = try? viewContext.existingObject(with: budgetID) as? Budget
-    }
-
-    private func budgetName(for budget: Budget?) -> String {
-        let raw = budget?.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return raw.isEmpty ? "Budget" : raw
-    }
-}
-
-private struct DetailRow: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text(value)
-                .foregroundStyle(.secondary)
-        }
     }
 }
 

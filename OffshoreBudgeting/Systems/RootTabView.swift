@@ -28,6 +28,7 @@ struct RootTabView: View {
     /// presentation order in the `TabView`.
     enum Tab: Hashable, CaseIterable {
         case home
+        case budgets
         case income
         case cards
         case presets
@@ -53,6 +54,7 @@ struct RootTabView: View {
             // and exposes the `.sidebar {}` modifier available on iOS 18+.
             TabView(selection: $selectedTab) {
                 tabViewItem(for: .home)
+                tabViewItem(for: .budgets)
                 tabViewItem(for: .income)
                 tabViewItem(for: .cards)
                 tabViewItem(for: .presets)
@@ -68,6 +70,7 @@ struct RootTabView: View {
     private var baseTabView: some View {
         TabView(selection: $selectedTab) {
             tabViewItem(for: .home)
+            tabViewItem(for: .budgets)
             tabViewItem(for: .income)
             tabViewItem(for: .cards)
             tabViewItem(for: .presets)
@@ -133,6 +136,9 @@ struct RootTabView: View {
         case .home:
             HomeView()
                 .id(dataRevision)
+        case .budgets:
+            BudgetsView()
+                .id(dataRevision)
         case .income:
             IncomeView()
                 .id(dataRevision)
@@ -168,6 +174,8 @@ extension RootTabView.Tab {
         switch self {
         case .home:
             return "Home"
+        case .budgets:
+            return "Budgets"
         case .income:
             return "Income"
         case .cards:
@@ -184,6 +192,8 @@ extension RootTabView.Tab {
         switch self {
         case .home:
             return "house"
+        case .budgets:
+            return "chart.pie"
         case .income:
             return "calendar"
         case .cards:
@@ -199,6 +209,7 @@ extension RootTabView.Tab {
     var accessibilityID: String {
         switch self {
         case .home: return "tab_home"
+        case .budgets: return "tab_budgets"
         case .income: return "tab_income"
         case .cards: return "tab_cards"
         case .presets: return "tab_presets"
@@ -220,6 +231,7 @@ private extension RootTabView {
     func mapStartTab(key: String) -> Tab? {
         switch key.lowercased() {
         case "home": return .home
+        case "budgets": return .budgets
         case "income": return .income
         case "cards": return .cards
         case "presets": return .presets

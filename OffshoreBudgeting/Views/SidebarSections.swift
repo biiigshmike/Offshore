@@ -50,6 +50,6 @@ struct SidebarSections: View {
 }
 
 private extension RootTabView.Tab {
-    static var primarySidebarTabs: [RootTabView.Tab] { [.home, .income, .cards] }
+    static var primarySidebarTabs: [RootTabView.Tab] { [.home, .budgets, .income, .cards] }
     static var secondarySidebarTabs: [RootTabView.Tab] { [.presets, .settings] }
 }

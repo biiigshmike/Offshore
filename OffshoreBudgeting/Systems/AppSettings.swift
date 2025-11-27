@@ -10,4 +10,6 @@ enum AppSettingsKeys: String {
     case presetsDefaultUseInFutureBudgets
     case budgetPeriod
     case enableCloudSync
+    case homeCardOrder
+    case homePinnedCards
 }

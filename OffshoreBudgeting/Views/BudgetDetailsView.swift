@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 
+@MainActor
 struct BudgetDetailsView: View {
     private struct ObjectIDBox: Identifiable { let id: NSManagedObjectID }
 
@@ -18,16 +19,20 @@ struct BudgetDetailsView: View {
     @State private var editingBudgetBox: ObjectIDBox?
     @State private var editingPlannedBox: ObjectIDBox?
     @State private var editingUnplannedBox: ObjectIDBox?
+    @State private var capGaugeData: CapGaugeData?
 
-    init(budgetID: NSManagedObjectID, store: BudgetDetailsViewModelStore = .shared) {
+    init(budgetID: NSManagedObjectID, store: BudgetDetailsViewModelStore? = nil) {
         self.budgetID = budgetID
-        _vm = StateObject(wrappedValue: store.viewModel(for: budgetID))
+        let resolvedStore = store ?? BudgetDetailsViewModelStore.shared
+        _vm = StateObject(wrappedValue: resolvedStore.viewModel(for: budgetID))
     }
 
     var body: some View {
         List {
             Section { summaryCard }
-            Section { filterControls }
+            Section { segmentRow }
+            Section { sortRow }
+            Section { categoryChipsRow }
             Section { rowsSection }
         }
         .listStyle(.insetGrouped)
@@ -58,6 +63,9 @@ struct BudgetDetailsView: View {
         .sheet(item: $editingUnplannedBox) { box in
             AddUnplannedExpenseView(unplannedExpenseID: box.id, onSaved: { Task { await vm.refreshRows() } })
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+        }
+        .sheet(item: $capGaugeData) { data in
+            CategoryCapGaugeSheet(data: data) { capGaugeData = nil }
         }
         .toolbar { toolbarContent }
     }
@@ -93,26 +101,29 @@ struct BudgetDetailsView: View {
         }
     }
 
-    private var filterControls: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            BudgetExpenseSegmentedControl(
-                plannedSegment: BudgetDetailsViewModel.Segment.planned,
-                variableSegment: BudgetDetailsViewModel.Segment.variable,
-                selection: $segment
-            )
-            BudgetSortBar(
-                selection: $sort,
-                options: [
-                    (.titleAZ, "A–Z"),
-                    (.amountLowHigh, "$↓"),
-                    (.amountHighLow, "$↑"),
-                    (.dateOldNew, "Date ↑"),
-                    (.dateNewOld, "Date ↓")
-                ]
-            )
-            categoryChips
-        }
-        .listRowInsets(EdgeInsets())
+    private var segmentRow: some View {
+        BudgetExpenseSegmentedControl(
+            plannedSegment: BudgetDetailsViewModel.Segment.planned,
+            variableSegment: BudgetDetailsViewModel.Segment.variable,
+            selection: $segment
+        )
+        .padding(.vertical, 4)
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+    }
+
+    private var sortRow: some View {
+        BudgetSortBar(
+            selection: $sort,
+            options: [
+                (.titleAZ, "A–Z"),
+                (.amountLowHigh, "$↓"),
+                (.amountHighLow, "$↑"),
+                (.dateOldNew, "Date ↑"),
+                (.dateNewOld, "Date ↓")
+            ]
+        )
+        .padding(.vertical, 4)
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
     }
 
     @ViewBuilder
@@ -150,7 +161,7 @@ struct BudgetDetailsView: View {
         }
     }
 
-    private var categoryChips: some View {
+    private var categoryChipsRow: some View {
         let categories: [BudgetSummary.CategorySpending] = {
             if let summary = vm.summary {
                 return segment == .planned ? summary.plannedCategoryBreakdown : summary.variableCategoryBreakdown
@@ -178,6 +189,10 @@ struct BudgetDetailsView: View {
                             selectedCategoryURI = isSelected ? nil : cat.categoryURI
                         }
                     )
+                    .simultaneousGesture(
+                        LongPressGesture(minimumDuration: 0.35)
+                            .onEnded { _ in presentCapGauge(for: cat) }
+                    )
                 }
                 if categories.isEmpty {
                     Text("No categories yet")
@@ -188,6 +203,8 @@ struct BudgetDetailsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(height: 44)
+        .padding(.vertical, 2)
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
     }
 
     @ToolbarContentBuilder
@@ -225,7 +242,12 @@ struct BudgetDetailsView: View {
     private var currencyFormatter: NumberFormatter {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = Locale.current.currencyCode ?? "USD"
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            formatter.currencyCode = Locale.current.currency?.identifier ?? "USD"
+        } else {
+            let locale = Locale.current as NSLocale
+            formatter.currencyCode = (locale.object(forKey: .currencyCode) as? String) ?? "USD"
+        }
         return formatter
     }
 
@@ -268,5 +290,159 @@ struct BudgetDetailsView: View {
             }
         }
         .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+    }
+
+    // MARK: - Cap Gauge (long-press on category chip)
+    struct CapGaugeData: Identifiable {
+        let id = UUID()
+        let category: BudgetSummary.CategorySpending
+        let minCap: Double
+        let maxCap: Double?
+        let current: Double
+        let color: Color
+        let hasExplicitMax: Bool
+    }
+
+    private func presentCapGauge(for cat: BudgetSummary.CategorySpending) {
+        let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
+        guard cat.categoryURI.scheme == "x-coredata",
+              let catID = coordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
+              let category = try? CoreDataService.shared.viewContext.existingObject(with: catID) as? ExpenseCategory
+        else {
+            capGaugeData = CapGaugeData(category: cat, minCap: 0, maxCap: nil, current: cat.amount, color: UBColorFromHex(cat.hexColor) ?? .accentColor, hasExplicitMax: false)
+            return
+        }
+
+        let key = periodKey(start: vm.startDate, end: vm.endDate, segment: segment)
+        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+        fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "category == %@", category),
+            NSPredicate(format: "period == %@", key),
+            NSPredicate(format: "expenseType IN %@", ["min", "max"])
+        ])
+
+        var minCap: Double = 0
+        var maxCap: Double? = nil
+        do {
+            let results = try CoreDataService.shared.viewContext.fetch(fetch)
+            for r in results {
+                let type = (r.value(forKey: "expenseType") as? String)?.lowercased()
+                if type == "min" {
+                    if let amt = r.value(forKey: "amount") as? Double { minCap = amt }
+                }
+                if type == "max" {
+                    if let amt = r.value(forKey: "amount") as? Double { maxCap = amt }
+                }
+            }
+        } catch {
+            // Fall back to defaults on fetch failure
+        }
+
+        let color = UBColorFromHex(cat.hexColor) ?? .accentColor
+        capGaugeData = CapGaugeData(
+            category: cat,
+            minCap: minCap,
+            maxCap: maxCap,
+            current: cat.amount,
+            color: color,
+            hasExplicitMax: (maxCap != nil)
+        )
+    }
+
+    private func periodKey(start: Date, end: Date, segment: BudgetDetailsViewModel.Segment) -> String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(secondsFromGMT: 0)
+        f.dateFormat = "yyyy-MM-dd"
+        let s = f.string(from: start)
+        let e = f.string(from: end)
+        return "\(s)|\(e)|\(segment.rawValue)"
+    }
+
+// MARK: - Cap Gauge Sheet
+    private struct CategoryCapGaugeSheet: View {
+        let data: BudgetDetailsView.CapGaugeData
+        let onDismiss: () -> Void
+
+        private var maxValue: Double {
+            data.maxCap ?? max(data.current + 1, 1)
+        }
+        private var lowerBound: Double { data.minCap }
+        private var upperBound: Double { max(maxValue, lowerBound) }
+        private var maxLabelString: String {
+            data.hasExplicitMax ? formatCurrency(maxValue) : "—"
+        }
+
+        var body: some View {
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 16) {
+                    Gauge(
+                        value: clamp(data.current, min: lowerBound, max: upperBound),
+                        in: lowerBound...upperBound
+                    ) {
+                        EmptyView()
+                    } currentValueLabel: {
+                        Text(formatCurrency(data.current))
+                    }
+                    .tint(
+                        LinearGradient(
+                            colors: [data.color.opacity(0.35), data.color],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+
+                    HStack {
+                        Text(formatCurrency(lowerBound)).foregroundStyle(.secondary)
+                        Spacer()
+                        Text(maxLabelString)
+                            .foregroundStyle(.secondary)
+                            .opacity(data.hasExplicitMax ? 1 : 0.7)
+                    }
+                    .font(.footnote)
+
+                    HStack {
+                        Text("Current: \(formatCurrency(data.current))").foregroundStyle(.secondary)
+                        Spacer()
+                        Text("Range: \(formatCurrency(lowerBound)) – \(data.hasExplicitMax ? formatCurrency(maxValue) : "No max")")
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.footnote)
+
+                    if !data.hasExplicitMax {
+                        Text("No max set for this category in this period.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+                }
+                .padding()
+                .navigationTitle(data.category.categoryName)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done", action: onDismiss)
+                    }
+                }
+            }
+        }
+        
+        private func formatCurrency(_ value: Double) -> String {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .currency
+            if #available(iOS 16.0, macCatalyst 16.0, *) {
+                formatter.currencyCode = Locale.current.currency?.identifier ?? "USD"
+            } else {
+                let locale = Locale.current as NSLocale
+                formatter.currencyCode = (locale.object(forKey: .currencyCode) as? String) ?? "USD"
+            }
+            return formatter.string(from: value as NSNumber) ?? String(format: "%.2f", value)
+        }
+        
+        private func clamp(_ value: Double, min: Double, max: Double) -> Double {
+            Swift.max(min, Swift.min(value, max))
+        }
     }
 }

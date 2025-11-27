@@ -984,6 +984,18 @@ struct HomeView: View {
 //
 
 // MARK: - FetchedResults-backed sublists for Home
+
+private func categoryPredicate(from uri: URL?) -> NSPredicate? {
+    let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
+    guard
+        let uri = uri,
+        uri.scheme == "x-coredata",
+        let catID = coordinator.managedObjectID(forURIRepresentation: uri),
+        let category = try? CoreDataService.shared.viewContext.existingObject(with: catID) as? ExpenseCategory
+    else { return nil }
+    return NSPredicate(format: "expenseCategory == %@", category)
+}
+
 struct PlannedRowsList: View {
     @FetchRequest var rows: FetchedResults<PlannedExpense>
     let horizontalPadding: CGFloat
@@ -1009,10 +1021,8 @@ struct PlannedRowsList: View {
             NSPredicate(format: "budget == %@", budget),
             NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate)
         ]
-        if let selectedCategoryURI,
-           let catID = CoreDataService.shared.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: selectedCategoryURI),
-           let category = try? CoreDataService.shared.viewContext.existingObject(with: catID) as? ExpenseCategory {
-            predicates.append(NSPredicate(format: "expenseCategory == %@", category))
+        if let catPredicate = categoryPredicate(from: selectedCategoryURI) {
+            predicates.append(catPredicate)
         }
         req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         req.sortDescriptors = sortDescriptors
@@ -1171,10 +1181,8 @@ struct VariableRowsList: View {
                 NSPredicate(format: "card IN %@", cards as NSSet),
                 NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate)
             ]
-            if let selectedCategoryURI,
-               let catID = CoreDataService.shared.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: selectedCategoryURI),
-               let category = try? CoreDataService.shared.viewContext.existingObject(with: catID) as? ExpenseCategory {
-                subs.append(NSPredicate(format: "expenseCategory == %@", category))
+            if let catPredicate = categoryPredicate(from: selectedCategoryURI) {
+                subs.append(catPredicate)
             }
             req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: subs)
         } else {

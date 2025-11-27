@@ -3,6 +3,8 @@ import CoreData
 import Combine
 #if canImport(UIKit)
 import UIKit
+#elseif canImport(AppKit)
+import AppKit
 #endif
 
 // MARK: - HomeView2
@@ -20,6 +22,10 @@ struct HomeView: View {
     @StateObject private var vm = HomeViewModel()
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
     private var confirmBeforeDelete: Bool = true
+    @AppStorage(AppSettingsKeys.homeCardOrder.rawValue)
+    private var storedHomeCardOrder: String = ""
+    @AppStorage(AppSettingsKeys.homePinnedCards.rawValue)
+    private var storedPinnedCards: String = ""
 
     // MARK: Local UI State
     enum Segment: String, CaseIterable, Identifiable { case planned, variable; var id: String { rawValue } }
@@ -58,6 +64,10 @@ struct HomeView: View {
     @State private var currentSummaryID: NSManagedObjectID? = nil
     @State private var lastNonNilSummary: BudgetSummary? = nil
 
+    // MARK: Date Filters
+    @State private var startDateOverride: Date?
+    @State private var endDateOverride: Date?
+
     // Shared width so the left column of the right-side pairs (Max/Min)
     // aligns vertically across rows.
     @State private var rightPairLeftColumnWidth: CGFloat = 0
@@ -89,37 +99,24 @@ struct HomeView: View {
 
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     // MARK: Body
     var body: some View { homeContent }
 
     @ViewBuilder
     private var homeContent: some View {
-        List {
-            // Header + controls grouped as one vertical block so List owns scrolling
-            Section {
-                VStack(alignment: .leading, spacing: 20) {
-                    headerBlock
-                    periodNavigator
-                    metricsGrid
-                    categoryChips
-                    segmentPicker
-                    sortBar
-                }
-                .padding(.horizontal, horizontalPadding)
-                .padding(.top, 8)
-                .padding(.bottom, 8) // space before first row section
-                .listRowInsets(EdgeInsets())
-                .listRowSeparator(.hidden)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                cardGrid
+                expenseSection
             }
-
-            // Rows Section (Planned/Variable)
-            Section { listRows }
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, 12)
         }
-        .listStyle(.plain)
         .navigationTitle("Home")
         .toolbar { toolbarContent }
-        
+
         .refreshable {
             // Pull-to-refresh: nudge CloudKit and refresh summaries
             CloudSyncAccelerator.shared.nudgeOnForeground()
@@ -138,6 +135,7 @@ struct HomeView: View {
             // using a stable source (activeSummary) to avoid flicker.
             refreshAddMenuVisibility(animated: true)
             // Rows are fetch-driven; no manual reload needed
+            resetDateOverrides()
         }
         // Also respond to date changes within the current period immediately
         .onChange(of: vm.selectedDate) { _ in
@@ -294,6 +292,223 @@ struct HomeView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 44, height: 44)
         }
+    }
+
+    // MARK: Cards
+    private var cardGrid: some View {
+        LazyVGrid(columns: gridColumns, spacing: 16) {
+            ForEach(cardLayout, id: \.self) { type in
+                cardContainer(for: type)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func cardContainer(for type: HomeCardType) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: type.systemImage)
+                    .font(.title3.weight(.semibold))
+                Text(type.title)
+                    .font(.headline)
+                Spacer()
+                pinButton(for: type)
+            }
+            .foregroundStyle(.primary)
+
+            cardView(for: type)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackground)
+        .contextMenu { cardContextMenu(for: type) }
+    }
+
+    @ViewBuilder
+    private func cardView(for type: HomeCardType) -> some View {
+        switch type {
+        case .budgetSummary:
+            VStack(alignment: .leading, spacing: 16) {
+                headerBlock
+                periodNavigator
+                dateFilters
+                metricsGrid
+                categoryChips
+                segmentPicker
+                sortBar
+            }
+        case .recentExpenses:
+            RecentExpensesFeed(
+                start: filterStartDate,
+                end: filterEndDate,
+                budgetID: summary?.id,
+                formatter: { formatCurrency($0) }
+            )
+        case .upcomingIncome:
+            UpcomingIncomeFeed(
+                start: filterStartDate,
+                end: filterEndDate,
+                formatter: { formatCurrency($0) }
+            )
+        }
+    }
+
+    // MARK: Card Layout Helpers
+    private var cardLayout: [HomeCardType] {
+        let saved = storedHomeCardOrder.split(separator: ",").compactMap { HomeCardType(rawValue: String($0)) }
+        let order = saved.isEmpty ? HomeCardType.defaultOrder : saved
+        let pins = pinnedCards
+        let pinned = order.filter { pins.contains($0) }
+        let unpinned = order.filter { !pins.contains($0) }
+        return pinned + unpinned
+    }
+
+    private var pinnedCards: Set<HomeCardType> {
+        let raw = storedPinnedCards.split(separator: ",").compactMap { HomeCardType(rawValue: String($0)) }
+        return Set(raw)
+    }
+
+    private var gridColumns: [GridItem] {
+        let minWidth: CGFloat = horizontalSizeClass == .regular ? 320 : 260
+        return [GridItem(.adaptive(minimum: minWidth, maximum: 520), spacing: 16, alignment: .top)]
+    }
+
+    @ViewBuilder
+    private var cardBackground: some View {
+        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.clear)
+                .glassEffect(.regular.tint(.clear).interactive(true), in: .rect(cornerRadius: 16))
+        } else {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    Color(
+                        #if canImport(UIKit)
+                        UIColor {
+                            $0.userInterfaceStyle == .dark
+                            ? UIColor(white: 0.12, alpha: 1)
+                            : UIColor.secondarySystemBackground
+                        }
+                        #else
+                        NSColor.windowBackgroundColor
+                        #endif
+                    )
+                )
+                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        }
+    }
+
+    private func cardContextMenu(for type: HomeCardType) -> some View {
+        Group {
+            Button(pinnedCards.contains(type) ? "Unpin" : "Pin") { togglePin(type) }
+            Button("Move Up") { moveCard(type, offset: -1) }
+            Button("Move Down") { moveCard(type, offset: 1) }
+            Button("Reset Layout") { resetCardLayout() }
+        }
+    }
+
+    @ViewBuilder
+    private func pinButton(for type: HomeCardType) -> some View {
+        Button(action: { togglePin(type) }) {
+            Image(systemName: pinnedCards.contains(type) ? "pin.fill" : "pin")
+                .font(.callout.weight(.semibold))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(pinnedCards.contains(type) ? "Unpin card" : "Pin card")
+    }
+
+    private func moveCard(_ type: HomeCardType, offset: Int) {
+        var order = storedHomeCardOrder.split(separator: ",").compactMap { HomeCardType(rawValue: String($0)) }
+        if order.isEmpty { order = HomeCardType.defaultOrder }
+        guard let idx = order.firstIndex(of: type) else { return }
+        let newIndex = max(0, min(order.count - 1, idx + offset))
+        guard newIndex != idx else { return }
+        order.remove(at: idx)
+        order.insert(type, at: newIndex)
+        save(order: order)
+    }
+
+    private func togglePin(_ type: HomeCardType) {
+        var pins = pinnedCards
+        if pins.contains(type) {
+            pins.remove(type)
+        } else {
+            pins.insert(type)
+        }
+        storedPinnedCards = pins.map { $0.rawValue }.joined(separator: ",")
+    }
+
+    private func resetCardLayout() {
+        save(order: HomeCardType.defaultOrder)
+        storedPinnedCards = ""
+    }
+
+    private func save(order: [HomeCardType]) {
+        storedHomeCardOrder = order.map { $0.rawValue }.joined(separator: ",")
+    }
+
+    // MARK: Date Filters
+    private var dateFilters: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Date Filter")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                if startDateOverride != nil || endDateOverride != nil {
+                    Button("Reset") { resetDateOverrides() }
+                        .buttonStyle(.borderless)
+                        .font(.footnote.weight(.semibold))
+                }
+            }
+            HStack(spacing: 12) {
+                DatePicker(
+                    "Start",
+                    selection: Binding(get: { filterStartDate }, set: { newValue in
+                        startDateOverride = newValue
+                        if newValue > filterEndDate { endDateOverride = newValue }
+                    }),
+                    displayedComponents: .date
+                )
+                DatePicker(
+                    "End",
+                    selection: Binding(get: { filterEndDate }, set: { newValue in
+                        endDateOverride = newValue
+                        if newValue < filterStartDate { startDateOverride = newValue }
+                    }),
+                    displayedComponents: .date
+                )
+            }
+        }
+    }
+
+    private func resetDateOverrides() {
+        startDateOverride = nil
+        endDateOverride = nil
+    }
+
+    private var filterStartDate: Date {
+        let base = budgetPeriod.range(containing: vm.selectedDate)
+        let start = startDateOverride ?? base.start
+        let end = endDateOverride ?? base.end
+        return min(start, end)
+    }
+
+    private var filterEndDate: Date {
+        let base = budgetPeriod.range(containing: vm.selectedDate)
+        let start = startDateOverride ?? base.start
+        let end = endDateOverride ?? base.end
+        return max(start, end)
+    }
+
+    // MARK: Expense Section
+    @ViewBuilder
+    private var expenseSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(segment == .planned ? "Planned Expenses" : "Variable Expenses")
+                .font(.headline)
+            listRows
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: Header
@@ -488,32 +703,33 @@ struct HomeView: View {
     private var listRows: some View {
         // If no budget exactly matches the selected period, show a clear
         // "Budget inactive" message instead of generic empty list text.
-                if let s = summary,
-                   let budget = try? CoreDataService.shared.viewContext.existingObject(with: s.id) as? Budget {
-                    let (start, end) = budgetPeriod.range(containing: vm.selectedDate)
-                    if segment == .planned {
-                        PlannedRowsList(
-                            budget: budget,
-                            start: start,
-                            end: end,
-                            sortDescriptors: PlannedRowsList.sortDescriptors(for: sort),
-                            horizontalPadding: horizontalPadding,
-                            selectedCategoryURI: selectedCategoryURI,
-                            confirmBeforeDelete: confirmBeforeDelete,
-                            onEdit: { id in editingPlannedBox = ObjectIDBox(id: id) },
-                            onDelete: { exp in requestDelete(planned: exp) }
+        if let s = summary,
+           let budget = try? CoreDataService.shared.viewContext.existingObject(with: s.id) as? Budget {
+            let start = filterStartDate
+            let end = filterEndDate
+            if segment == .planned {
+                PlannedRowsList(
+                    budget: budget,
+                    start: start,
+                    end: end,
+                    sortDescriptors: PlannedRowsList.sortDescriptors(for: sort),
+                    horizontalPadding: horizontalPadding,
+                    selectedCategoryURI: selectedCategoryURI,
+                    confirmBeforeDelete: confirmBeforeDelete,
+                    onEdit: { id in editingPlannedBox = ObjectIDBox(id: id) },
+                    onDelete: { exp in requestDelete(planned: exp) }
                 )
-                    } else {
-                        VariableRowsList(
-                            budget: budget,
-                            start: start,
-                            end: end,
-                            sortDescriptors: VariableRowsList.sortDescriptors(for: sort),
-                            horizontalPadding: horizontalPadding,
-                            selectedCategoryURI: selectedCategoryURI,
-                            confirmBeforeDelete: confirmBeforeDelete,
-                            onEdit: { id in editingUnplannedBox = ObjectIDBox(id: id) },
-                            onDelete: { exp in requestDelete(unplanned: exp) }
+            } else {
+                VariableRowsList(
+                    budget: budget,
+                    start: start,
+                    end: end,
+                    sortDescriptors: VariableRowsList.sortDescriptors(for: sort),
+                    horizontalPadding: horizontalPadding,
+                    selectedCategoryURI: selectedCategoryURI,
+                    confirmBeforeDelete: confirmBeforeDelete,
+                    onEdit: { id in editingUnplannedBox = ObjectIDBox(id: id) },
+                    onDelete: { exp in requestDelete(unplanned: exp) }
                 )
             }
         } else {
@@ -521,8 +737,6 @@ struct HomeView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
-                .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
-                .listRowSeparator(.hidden)
         }
     }
 
@@ -979,6 +1193,164 @@ struct HomeView: View {
         }
         return nil
     }
+}
+
+// MARK: - Home Feed Cards
+private struct RecentExpensesFeed: View {
+    @FetchRequest var planned: FetchedResults<PlannedExpense>
+    @FetchRequest var unplanned: FetchedResults<UnplannedExpense>
+    private let formatter: (Double) -> String
+    private let limit: Int = 5
+
+    init(start: Date, end: Date, budgetID: NSManagedObjectID?, formatter: @escaping (Double) -> String) {
+        let ctx = CoreDataService.shared.viewContext
+        var plannedPredicates: [NSPredicate] = [
+            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate)
+        ]
+        var unplannedPredicates: [NSPredicate] = [
+            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate)
+        ]
+
+        if let budgetID, let budget = try? ctx.existingObject(with: budgetID) as? Budget {
+            plannedPredicates.append(NSPredicate(format: "budget == %@", budget))
+            if let cards = budget.cards as? Set<Card>, !cards.isEmpty {
+                unplannedPredicates.append(NSPredicate(format: "card IN %@", cards))
+            }
+        }
+
+        let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+        plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: plannedPredicates)
+        plannedReq.sortDescriptors = [NSSortDescriptor(key: "transactionDate", ascending: false)]
+        plannedReq.fetchLimit = limit
+
+        let unplannedReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
+        unplannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: unplannedPredicates)
+        unplannedReq.sortDescriptors = [NSSortDescriptor(key: "transactionDate", ascending: false)]
+        unplannedReq.fetchLimit = limit
+
+        _planned = FetchRequest(fetchRequest: plannedReq)
+        _unplanned = FetchRequest(fetchRequest: unplannedReq)
+        self.formatter = formatter
+    }
+
+    var body: some View {
+        let items = mergedItems.prefix(limit)
+        if items.isEmpty {
+            Text("No expenses in this window.")
+                .foregroundStyle(.secondary)
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(items) { item in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title)
+                                .font(.subheadline.weight(.semibold))
+                            if let date = item.date {
+                                Text(date, style: .date)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        Text(formatter(item.amount))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+
+    private var mergedItems: [ExpenseFeedItem] {
+        let plannedItems = planned.map { exp in
+            ExpenseFeedItem(
+                id: exp.objectID,
+                title: readDescription(exp),
+                amount: exp.actualAmount == 0 ? exp.plannedAmount : exp.actualAmount,
+                date: exp.transactionDate
+            )
+        }
+        let unplannedItems = unplanned.map { exp in
+            ExpenseFeedItem(
+                id: exp.objectID,
+                title: readDescription(exp),
+                amount: exp.amount,
+                date: exp.transactionDate
+            )
+        }
+
+        return (plannedItems + unplannedItems).sorted { lhs, rhs in
+            let lhsDate = lhs.date ?? .distantPast
+            let rhsDate = rhs.date ?? .distantPast
+            if lhsDate == rhsDate { return lhs.title < rhs.title }
+            return lhsDate > rhsDate
+        }
+    }
+
+    private func readDescription(_ object: NSManagedObject) -> String {
+        let keys = object.entity.attributesByName.keys
+        if keys.contains("descriptionText") {
+            return (object.value(forKey: "descriptionText") as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Expense"
+        } else if keys.contains("title") {
+            return (object.value(forKey: "title") as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Expense"
+        }
+        return "Expense"
+    }
+}
+
+private struct UpcomingIncomeFeed: View {
+    @FetchRequest var incomes: FetchedResults<Income>
+    private let formatter: (Double) -> String
+    private let limit: Int = 5
+
+    init(start: Date, end: Date, formatter: @escaping (Double) -> String) {
+        let req = NSFetchRequest<Income>(entityName: "Income")
+        let lowerBound = max(start, Date())
+        req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "date >= %@", lowerBound as NSDate),
+            NSPredicate(format: "date <= %@", end as NSDate),
+            NSPredicate(format: "isPlanned == YES")
+        ])
+        req.sortDescriptors = [NSSortDescriptor(key: "date", ascending: true)]
+        req.fetchLimit = limit
+        _incomes = FetchRequest(fetchRequest: req)
+        self.formatter = formatter
+    }
+
+    var body: some View {
+        if incomes.isEmpty {
+            Text("No upcoming income in this window.")
+                .foregroundStyle(.secondary)
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(incomes.prefix(limit)) { income in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(income.name ?? "Income")
+                                .font(.subheadline.weight(.semibold))
+                            if let date = income.date {
+                                Text(date, style: .date)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        Text(formatter(income.amount))
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+}
+
+private struct ExpenseFeedItem: Identifiable {
+    let id: NSManagedObjectID
+    let title: String
+    let amount: Double
+    let date: Date?
 }
 
 //

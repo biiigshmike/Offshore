@@ -152,6 +152,7 @@ final class HomeViewModel: ObservableObject {
             }
         }
     }
+    @Published private(set) var customDateRange: ClosedRange<Date>? = nil
     @Published private(set) var state: BudgetLoadState = .initial
     @Published var alert: HomeViewAlert?
 
@@ -174,6 +175,14 @@ final class HomeViewModel: ObservableObject {
         self.period = WorkspaceService.shared.currentBudgetPeriod(in: context)
         self.selectedDate = period.start(of: Date())
     }
+
+    var currentDateRange: ClosedRange<Date> {
+        if let customDateRange { return customDateRange }
+        let bounds = period.range(containing: selectedDate)
+        return bounds.start...bounds.end
+    }
+
+    var isUsingCustomRange: Bool { customDateRange != nil }
 
     // MARK: startIfNeeded()
     /// Starts loading budgets exactly once.
@@ -229,9 +238,15 @@ final class HomeViewModel: ObservableObject {
         self.period = WorkspaceService.shared.currentBudgetPeriod(in: context)
         let requestedPeriod = period
         let requestedDate = selectedDate
-        let (start, end) = requestedPeriod.range(containing: requestedDate)
+        let requestedRange: ClosedRange<Date>
+        if let customDateRange {
+            requestedRange = customDateRange
+        } else {
+            let (start, end) = requestedPeriod.range(containing: requestedDate)
+            requestedRange = start...end
+        }
 
-        let summaries = await loadSummaries(period: requestedPeriod, dateRange: start...end)
+        let summaries = await loadSummaries(period: requestedPeriod, dateRange: requestedRange)
         AppLog.viewModel.debug("HomeViewModel.refresh() finished fetching summaries – count: \(summaries.count)")
 
         // Even if this task was cancelled (for example, by a rapid burst of
@@ -242,7 +257,9 @@ final class HomeViewModel: ObservableObject {
         let calendar = Calendar.current
         let periodChanged = self.period != requestedPeriod
         let dateChanged = !calendar.isDate(self.selectedDate, inSameDayAs: requestedDate)
-        if periodChanged || dateChanged {
+        let rangeChanged = !calendar.isDate(self.currentDateRange.lowerBound, inSameDayAs: requestedRange.lowerBound) ||
+                           !calendar.isDate(self.currentDateRange.upperBound, inSameDayAs: requestedRange.upperBound)
+        if periodChanged || dateChanged || rangeChanged {
             AppLog.viewModel.debug("HomeViewModel.refresh() discarding fetched summaries – selection changed during fetch")
         } else {
             let newState: BudgetLoadState = summaries.isEmpty ? .empty : .loaded(summaries)
@@ -250,7 +267,7 @@ final class HomeViewModel: ObservableObject {
         }
 
         isRefreshing = false
-        if periodChanged || dateChanged {
+        if periodChanged || dateChanged || rangeChanged {
             let hadPendingRefresh = needsAnotherRefresh
             needsAnotherRefresh = false
             AppLog.viewModel.debug("HomeViewModel.refresh() restarting refresh for updated selection – coalesced: \(hadPendingRefresh)")
@@ -349,6 +366,31 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
+    // MARK: Custom Date Range
+    func applyCustomRange(start: Date, end: Date) {
+        guard let normalized = Self.normalizedRange(start: start, end: end) else { return }
+        customDateRange = normalized
+        Task { [weak self] in
+            await self?.refresh()
+        }
+    }
+
+    func clearCustomRange() {
+        guard customDateRange != nil else { return }
+        customDateRange = nil
+        Task { [weak self] in
+            await self?.refresh()
+        }
+    }
+
+    private static func normalizedRange(start: Date, end: Date) -> ClosedRange<Date>? {
+        let cal = Calendar.current
+        let lower = cal.startOfDay(for: start)
+        guard let upper = cal.date(bySettingHour: 23, minute: 59, second: 59, of: end) else { return nil }
+        guard lower <= upper else { return nil }
+        return lower...upper
+    }
+
     // MARK: updateBudgetPeriod(to:)
     /// Updates the budget period preference and triggers a refresh.
     /// - Parameter newPeriod: The newly selected budget period.
@@ -357,6 +399,7 @@ final class HomeViewModel: ObservableObject {
         WorkspaceService.shared.setBudgetPeriod(newPeriod, in: context)
         self.period = newPeriod
         selectedDate = newPeriod.start(of: Date())
+        customDateRange = nil
         Task { [weak self] in
             await self?.refresh()
         }
@@ -366,6 +409,7 @@ final class HomeViewModel: ObservableObject {
     /// Moves the selected period forward/backward.
     /// - Parameter delta: Positive to go forward, negative to go backward.
     func adjustSelectedPeriod(by delta: Int) {
+        customDateRange = nil
         selectedDate = period.advance(selectedDate, by: delta)
     }
 

@@ -46,6 +46,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		4C5695B12EDA2F9F004F77D9 /* Screenshots */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Screenshots;
+			sourceTree = "<group>";
+		};
 		4C73FEF62EA01DF8003D4745 /* OffshoreBudgetingTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = OffshoreBudgetingTests;
@@ -100,6 +105,7 @@
 		4CF2202E2E4A33B900AD5F29 = {
 			isa = PBXGroup;
 			children = (
+				4C5695B12EDA2F9F004F77D9 /* Screenshots */,
 				4CDA44552EB5817B00650699 /* Documentation */,
 				4C73FEFC2EA01E2C003D4745 /* OffshoreBudgeting.xctestplan */,
 				4CF220392E4A33BA00AD5F29 /* OffshoreBudgeting */,
@@ -135,6 +141,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				4C5695B12EDA2F9F004F77D9 /* Screenshots */,
 				4CDA44552EB5817B00650699 /* Documentation */,
 				4CF220392E4A33BA00AD5F29 /* OffshoreBudgeting */,
 			);

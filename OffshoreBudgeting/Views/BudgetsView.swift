@@ -8,6 +8,7 @@ struct BudgetsView: View {
     @State private var budgets: [Budget] = []
     @State private var isLoading = false
     @State private var alert: AlertItem?
+    @State private var isPresentingAddBudget = false
 
     // MARK: Services
     private let budgetService = BudgetService()
@@ -15,6 +16,7 @@ struct BudgetsView: View {
     var body: some View {
         content
             .navigationTitle("Budgets")
+            .toolbar { toolbarContent }
             .task { await loadBudgetsIfNeeded() }
             .refreshable { await loadBudgets() }
             .alert(item: $alert) { alert in
@@ -36,6 +38,7 @@ struct BudgetsView: View {
                 message: "Create a budget to get started."
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .sheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
         } else {
             List {
                 Section("Active Budgets") {
@@ -47,7 +50,27 @@ struct BudgetsView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .sheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
         }
+    }
+
+    // MARK: Toolbar
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Buttons.toolbarIcon("plus") { isPresentingAddBudget = true }
+                .accessibilityLabel("Add Budget")
+        }
+    }
+
+    // MARK: Sheet
+    private var addBudgetSheet: some View {
+        let defaults = defaultBudgetDates()
+        return AddBudgetView(
+            initialStartDate: defaults.start,
+            initialEndDate: defaults.end,
+            onSaved: { Task { await loadBudgets() } }
+        )
     }
 
     private var activeBudgets: [Budget] {
@@ -68,6 +91,7 @@ struct BudgetsView: View {
             await MainActor.run {
                 budgets = allBudgets
                 isLoading = false
+                isPresentingAddBudget = false
             }
         } catch {
             await MainActor.run {
@@ -80,6 +104,13 @@ struct BudgetsView: View {
     private func isActive(_ budget: Budget, on date: Date) -> Bool {
         guard let start = budget.startDate, let end = budget.endDate else { return false }
         return start <= date && end >= date
+    }
+
+    private func defaultBudgetDates() -> (start: Date, end: Date) {
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: Date())
+        let end = cal.date(byAdding: .day, value: 29, to: start) ?? start
+        return (start, end)
     }
 }
 

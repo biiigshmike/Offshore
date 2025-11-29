@@ -7,6 +7,7 @@ struct BudgetDetailsView: View {
 
     let budgetID: NSManagedObjectID
     @StateObject private var vm: BudgetDetailsViewModel
+    @Environment(\.dismiss) private var dismiss
 
     @State private var segment: BudgetDetailsViewModel.Segment = .planned
     @State private var sort: BudgetDetailsViewModel.SortOption = .dateNewOld
@@ -20,6 +21,9 @@ struct BudgetDetailsView: View {
     @State private var editingPlannedBox: ObjectIDBox?
     @State private var editingUnplannedBox: ObjectIDBox?
     @State private var capGaugeData: CapGaugeData?
+    @State private var isConfirmingDelete = false
+    @State private var deleteErrorMessage: String?
+    private let budgetService = BudgetService()
 
     init(budgetID: NSManagedObjectID, store: BudgetDetailsViewModelStore? = nil) {
         self.budgetID = budgetID
@@ -66,6 +70,17 @@ struct BudgetDetailsView: View {
         }
         .sheet(item: $capGaugeData) { data in
             CategoryCapGaugeSheet(data: data) { capGaugeData = nil }
+        }
+        .alert("Delete Budget?", isPresented: $isConfirmingDelete) {
+            Button("Delete", role: .destructive) { deleteBudget() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This action cannot be undone.")
+        }
+        .alert("Error", isPresented: Binding(get: { deleteErrorMessage != nil }, set: { if !$0 { deleteErrorMessage = nil } })) {
+            Button("OK", role: .cancel) { deleteErrorMessage = nil }
+        } message: {
+            Text(deleteErrorMessage ?? "")
         }
         .toolbar { toolbarContent }
     }
@@ -209,16 +224,8 @@ struct BudgetDetailsView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup(placement: .navigationBarTrailing) {
-            Menu {
-                Button("Add Planned Expense") { isPresentingAddPlanned = true }
-                Button("Add Variable Expense") { isPresentingAddVariable = true }
-                Button("Manage Cards") { isPresentingManageCards = true }
-                Button("Manage Presets") { isPresentingManagePresets = true }
-                if let budget = vm.budget { Button("Edit Budget") { editingBudgetBox = ObjectIDBox(id: budget.objectID) } }
-            } label: {
-                Image(systemName: "plus")
-            }
+        ToolbarItem(placement: .primaryAction) {
+            toolbarActions
         }
     }
 
@@ -229,6 +236,46 @@ struct BudgetDetailsView: View {
                 .foregroundStyle(.secondary)
             Text(currencyFormatter.string(from: value as NSNumber) ?? "--")
                 .font(.headline)
+        }
+    }
+
+    // MARK: Toolbar Actions
+    private var toolbarActions: some View {
+        HStack(spacing: 8) {
+            Menu {
+                Button("Add Planned Expense") { isPresentingAddPlanned = true }
+                Button("Add Variable Expense") { isPresentingAddVariable = true }
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 30, height: 30)
+            }
+
+            Menu {
+                Button("Manage Cards") { isPresentingManageCards = true }
+                Button("Manage Presets") { isPresentingManagePresets = true }
+                if let budget = vm.budget {
+                    Button("Edit Budget") { editingBudgetBox = ObjectIDBox(id: budget.objectID) }
+                }
+                Button("Delete Budget", role: .destructive) { isConfirmingDelete = true }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 30, height: 30)
+            }
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(.clear)
+        .clipShape(Capsule())
+    }
+
+    @ViewBuilder
+    private var toolbarBackground: some View {
+        if #available(iOS 26.0, macOS 15.0, macCatalyst 26.0, *) {
+            Color.clear.glassEffect(.regular, in: .capsule)
+        } else {
+            Color(UIColor.secondarySystemBackground).opacity(0.9)
         }
     }
 
@@ -249,6 +296,17 @@ struct BudgetDetailsView: View {
             formatter.currencyCode = (locale.object(forKey: .currencyCode) as? String) ?? "USD"
         }
         return formatter
+    }
+
+    private func deleteBudget() {
+        guard let budget = vm.budget else { return }
+        do {
+            try budgetService.deleteBudget(budget)
+            dismiss()
+        } catch {
+            // Simple fallback alert; could be expanded for user messaging.
+            deleteErrorMessage = "Unable to delete budget."
+        }
     }
 
     private var addPlannedSheet: some View {

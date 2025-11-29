@@ -395,10 +395,17 @@ final class HomeViewModel: ObservableObject {
     /// Updates the budget period preference and triggers a refresh.
     /// - Parameter newPeriod: The newly selected budget period.
     func updateBudgetPeriod(to newPeriod: BudgetPeriod) {
-        guard period != newPeriod else { return }
-        WorkspaceService.shared.setBudgetPeriod(newPeriod, in: context)
+        let desiredStart = newPeriod.start(of: Date())
+        let cal = Calendar.current
+        let needsUpdate = period != newPeriod ||
+                          customDateRange != nil ||
+                          !cal.isDate(selectedDate, inSameDayAs: desiredStart)
+        guard needsUpdate else { return }
+        if period != newPeriod {
+            WorkspaceService.shared.setBudgetPeriod(newPeriod, in: context)
+        }
         self.period = newPeriod
-        selectedDate = newPeriod.start(of: Date())
+        selectedDate = desiredStart
         customDateRange = nil
         Task { [weak self] in
             await self?.refresh()
@@ -506,7 +513,7 @@ final class HomeViewModel: ObservableObject {
         var variableCatMap: [NSManagedObjectID: (name: String, hex: String?, total: Double)] = [:]
 
         for e in plannedExpenses {
-            let amt = e.plannedAmount
+            let amt = e.actualAmount
             guard let cat = e.expenseCategory else { continue }
             let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             let hex = cat.color

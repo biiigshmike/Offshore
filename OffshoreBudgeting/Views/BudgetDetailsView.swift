@@ -21,6 +21,7 @@ struct BudgetDetailsView: View {
     @State private var editingPlannedBox: ObjectIDBox?
     @State private var editingUnplannedBox: ObjectIDBox?
     @State private var capGaugeData: CapGaugeData?
+    @State private var capOverrides: [String: (min: Double?, max: Double?)] = [:]
     @State private var isConfirmingDelete = false
     @State private var deleteErrorMessage: String?
     private let budgetService = BudgetService()
@@ -34,6 +35,10 @@ struct BudgetDetailsView: View {
     var body: some View {
         List {
             Section { summaryCard }
+            if case .loaded = vm.loadState, let summary = vm.summary {
+                Section { statRow(for: summary) }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            }
             Section { segmentRow }
             Section { sortRow }
             Section { categoryChipsRow }
@@ -45,10 +50,17 @@ struct BudgetDetailsView: View {
             await vm.load()
             segment = vm.selectedSegment
             sort = vm.sort
+            refreshCapOverrides()
         }
         .refreshable { await vm.refreshRows() }
         .onChange(of: segment) { vm.selectedSegment = $0 }
         .onChange(of: sort) { vm.sort = $0 }
+        .onChange(of: segment) { _ in refreshCapOverrides() }
+        .onChange(of: vm.startDate) { _ in refreshCapOverrides() }
+        .onChange(of: vm.endDate) { _ in refreshCapOverrides() }
+        .onChange(of: vm.loadState) { state in
+            if case .loaded = state { refreshCapOverrides() }
+        }
         .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
         .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
         .sheet(isPresented: $isPresentingManageCards) { manageCardsSheet }
@@ -69,7 +81,11 @@ struct BudgetDetailsView: View {
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
         .sheet(item: $capGaugeData) { data in
-            CategoryCapGaugeSheet(data: data) { capGaugeData = nil }
+            CategoryCapGaugeSheet(
+                data: data,
+                onDismiss: { capGaugeData = nil },
+                onSave: { min, max in await saveCaps(for: data, min: min, max: max) }
+            )
         }
         .alert("Delete Budget?", isPresented: $isConfirmingDelete) {
             Button("Delete", role: .destructive) { deleteBudget() }
@@ -102,11 +118,6 @@ struct BudgetDetailsView: View {
                     Text(dateFormatter.string(from: summary.periodStart, to: summary.periodEnd))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    HStack(alignment: .lastTextBaseline, spacing: 16) {
-                        summaryMetric(title: "PLANNED", value: summary.plannedExpensesPlannedTotal)
-                        summaryMetric(title: "ACTUAL", value: summary.plannedExpensesActualTotal)
-                        summaryMetric(title: "VARIABLE", value: summary.variableExpensesTotal)
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -199,7 +210,7 @@ struct BudgetDetailsView: View {
                         amount: cat.amount,
                         hex: cat.hexColor,
                         isSelected: isSelected,
-                        isExceeded: false,
+                        isExceeded: isOverCap(category: cat, segment: segment),
                         onTap: {
                             selectedCategoryURI = isSelected ? nil : cat.categoryURI
                         }
@@ -237,6 +248,87 @@ struct BudgetDetailsView: View {
             Text(currencyFormatter.string(from: value as NSNumber) ?? "--")
                 .font(.headline)
         }
+    }
+
+    @ViewBuilder
+    private func statRow(for summary: BudgetSummary) -> some View {
+        let projectedSavings = summary.potentialIncomeTotal - summary.plannedExpensesPlannedTotal - summary.variableExpensesTotal
+        let maxSavings = summary.potentialIncomeTotal - summary.plannedExpensesPlannedTotal
+        let expenseLabel = segment == .planned ? "Planned Expenses" : "Variable Expenses"
+        let expenseValue = segment == .planned ? summary.plannedExpensesActualTotal : summary.variableExpensesTotal
+
+        HStack(alignment: .top, spacing: 0) {
+            statCard(
+                title: "Income",
+                color: HomeView.HomePalette.income,
+                items: [
+                    StatItem(label: "Expected", value: currencyFormatter.string(from: summary.potentialIncomeTotal as NSNumber) ?? "--"),
+                    StatItem(label: "Received", value: currencyFormatter.string(from: summary.actualIncomeTotal as NSNumber) ?? "--")
+                ],
+                showDivider: true
+            )
+            statCard(
+                title: "Projected Savings",
+                color: HomeView.HomePalette.budgets,
+                items: [
+                    StatItem(label: "Projected", value: currencyFormatter.string(from: projectedSavings as NSNumber) ?? "--"),
+                    StatItem(label: "Max Savings", value: currencyFormatter.string(from: maxSavings as NSNumber) ?? "--")
+                ],
+                showDivider: true
+            )
+            statCard(
+                title: "Actual Savings",
+                color: .green,
+                items: [
+                    StatItem(label: "Actual", value: currencyFormatter.string(from: summary.actualSavingsTotal as NSNumber) ?? "--")
+                ],
+                showDivider: true
+            )
+            statCard(
+                title: expenseLabel,
+                color: HomeView.HomePalette.cards,
+                items: [
+                    StatItem(label: segment == .planned ? "Planned (actual)" : "Variable", value: currencyFormatter.string(from: expenseValue as NSNumber) ?? "--")
+                ],
+                showDivider: false
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    private struct StatItem {
+        let label: String
+        let value: String
+    }
+
+    private func statCard(title: String, color: Color, items: [StatItem], showDivider: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(color)
+            ForEach(items.indices, id: \.self) { idx in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(items[idx].label)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(items[idx].value)
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 110, alignment: .topLeading)
+        .background(Color.clear)
+        .overlay(alignment: .trailing) {
+            if showDivider {
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.15))
+                    .frame(width: 1)
+                    .padding(.vertical, 6)
+            }
+        }
+        .padding(.horizontal, showDivider ? 8 : 0)
     }
 
     // MARK: Toolbar Actions
@@ -359,19 +451,48 @@ struct BudgetDetailsView: View {
         let current: Double
         let color: Color
         let hasExplicitMax: Bool
+        let categoryObjectID: NSManagedObjectID?
+        let periodKey: String
     }
 
     private func presentCapGauge(for cat: BudgetSummary.CategorySpending) {
+        let key = periodKey(start: vm.startDate, end: vm.endDate, segment: segment)
+        let context = CoreDataService.shared.viewContext
         let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
-        guard cat.categoryURI.scheme == "x-coredata",
-              let catID = coordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
-              let category = try? CoreDataService.shared.viewContext.existingObject(with: catID) as? ExpenseCategory
-        else {
-            capGaugeData = CapGaugeData(category: cat, minCap: 0, maxCap: nil, current: cat.amount, color: UBColorFromHex(cat.hexColor) ?? .accentColor, hasExplicitMax: false)
+
+        func resolvedCategory() -> (ExpenseCategory, NSManagedObjectID)? {
+            if cat.categoryURI.scheme == "x-coredata",
+               let catID = coordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
+               let category = try? context.existingObject(with: catID) as? ExpenseCategory {
+                return (category, catID)
+            }
+            let name = cat.categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return nil }
+            let fetch = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+            fetch.predicate = NSPredicate(format: "name ==[cd] %@", name)
+            fetch.fetchLimit = 1
+            if let category = try? context.fetch(fetch).first {
+                return (category, category.objectID)
+            }
+            return nil
+        }
+
+        let defaults = defaultCaps(for: cat.categoryName, segment: segment)
+
+        guard let (category, _) = resolvedCategory() else {
+            capGaugeData = CapGaugeData(
+                category: cat,
+                minCap: defaults.min,
+                maxCap: defaults.max,
+                current: cat.amount,
+                color: UBColorFromHex(cat.hexColor) ?? .accentColor,
+                hasExplicitMax: defaults.max != nil,
+                categoryObjectID: nil,
+                periodKey: key
+            )
             return
         }
 
-        let key = periodKey(start: vm.startDate, end: vm.endDate, segment: segment)
         let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
         fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "category == %@", category),
@@ -379,8 +500,8 @@ struct BudgetDetailsView: View {
             NSPredicate(format: "expenseType IN %@", ["min", "max"])
         ])
 
-        var minCap: Double = 0
-        var maxCap: Double? = nil
+        var minCap: Double = defaults.min
+        var maxCap: Double? = defaults.max
         do {
             let results = try CoreDataService.shared.viewContext.fetch(fetch)
             for r in results {
@@ -403,7 +524,9 @@ struct BudgetDetailsView: View {
             maxCap: maxCap,
             current: cat.amount,
             color: color,
-            hasExplicitMax: (maxCap != nil)
+            hasExplicitMax: (maxCap != nil),
+            categoryObjectID: category.objectID,
+            periodKey: key
         )
     }
 
@@ -418,18 +541,167 @@ struct BudgetDetailsView: View {
         return "\(s)|\(e)|\(segment.rawValue)"
     }
 
+    private func normalizedCategoryName(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private var plannedPlannedCapTotals: [String: Double] {
+        vm.plannedExpenses.reduce(into: [:]) { dict, exp in
+            guard let name = exp.expenseCategory?.name else { return }
+            let key = normalizedCategoryName(name)
+            dict[key, default: 0] += exp.plannedAmount
+        }
+    }
+
+    private func refreshCapOverrides() {
+        let ctx = CoreDataService.shared.viewContext
+        let key = periodKey(start: vm.startDate, end: vm.endDate, segment: segment)
+        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+        fetch.predicate = NSPredicate(format: "period == %@", key)
+        let results = (try? ctx.fetch(fetch)) ?? []
+        var map: [String: (min: Double?, max: Double?)] = [:]
+        for cap in results {
+            guard let cat = cap.category,
+                  let name = cat.name else { continue }
+            let norm = normalizedCategoryName(name)
+            var entry = map[norm] ?? (min: nil, max: nil)
+            let type = (cap.expenseType ?? "").lowercased()
+            if type == "min" { entry.min = cap.amount }
+            if type == "max" { entry.max = cap.amount }
+            map[norm] = entry
+        }
+        capOverrides = map
+    }
+
+    private func defaultCaps(for categoryName: String, segment: BudgetDetailsViewModel.Segment) -> (min: Double, max: Double?) {
+        let key = normalizedCategoryName(categoryName)
+        let defaultMax = segment == .planned ? (plannedPlannedCapTotals[key] ?? 0) : nil
+        return (0, defaultMax)
+    }
+
+    private func capLimits(for categoryName: String, segment: BudgetDetailsViewModel.Segment) -> (min: Double, max: Double?) {
+        let key = normalizedCategoryName(categoryName)
+        let defaults = defaultCaps(for: categoryName, segment: segment)
+        let overrides = capOverrides[key]
+        let min = overrides?.min ?? defaults.min
+        let max = overrides?.max ?? defaults.max
+        return (min, max)
+    }
+
+    private func isOverCap(category: BudgetSummary.CategorySpending, segment: BudgetDetailsViewModel.Segment) -> Bool {
+        let limits = capLimits(for: category.categoryName, segment: segment)
+        guard let max = limits.max else { return false }
+        return category.amount > max
+    }
+
+    private func saveCaps(for data: CapGaugeData, min: Double, max: Double?) async {
+        let context = CoreDataService.shared.viewContext
+        let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
+        let catID: NSManagedObjectID? = {
+            if let direct = data.categoryObjectID { return direct }
+            if data.category.categoryURI.scheme == "x-coredata" {
+                return coordinator.managedObjectID(forURIRepresentation: data.category.categoryURI)
+            }
+            let name = data.category.categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return nil }
+            let fetch = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+            fetch.predicate = NSPredicate(format: "name ==[cd] %@", name)
+            fetch.fetchLimit = 1
+            return try? context.fetch(fetch).first?.objectID
+        }()
+        guard let catID else { return }
+        await context.perform {
+            guard let category = try? context.existingObject(with: catID) as? ExpenseCategory else { return }
+
+            let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+            fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "category == %@", category),
+                NSPredicate(format: "period == %@", data.periodKey),
+                NSPredicate(format: "expenseType IN %@", ["min", "max"])
+            ])
+            let results = (try? context.fetch(fetch)) ?? []
+
+            func upsert(type: String, amount: Double) {
+                if let existing = results.first(where: { ($0.expenseType ?? "").lowercased() == type.lowercased() }) {
+                    existing.amount = amount
+                    return
+                }
+                let cap = CategorySpendingCap(context: context)
+                cap.id = UUID()
+                cap.category = category
+                cap.expenseType = type
+                cap.period = data.periodKey
+                cap.amount = amount
+            }
+
+            upsert(type: "min", amount: min)
+            if let max {
+                upsert(type: "max", amount: max)
+            } else {
+                for cap in results where (cap.expenseType ?? "").lowercased() == "max" {
+                    context.delete(cap)
+                }
+            }
+
+            do { try context.save() } catch { /* swallow to keep UI responsive */ }
+        }
+
+        await MainActor.run {
+            capGaugeData = CapGaugeData(
+                category: data.category,
+                minCap: min,
+                maxCap: max,
+                current: data.current,
+                color: data.color,
+                hasExplicitMax: max != nil,
+                categoryObjectID: data.categoryObjectID,
+                periodKey: data.periodKey
+            )
+            refreshCapOverrides()
+            Task { await vm.refreshRows() }
+        }
+    }
+
 // MARK: - Cap Gauge Sheet
     private struct CategoryCapGaugeSheet: View {
         let data: BudgetDetailsView.CapGaugeData
         let onDismiss: () -> Void
+        let onSave: (Double, Double?) async -> Void
+
+        @State private var minText: String
+        @State private var maxText: String
+        @State private var isSaving = false
+
+        init(
+            data: BudgetDetailsView.CapGaugeData,
+            onDismiss: @escaping () -> Void,
+            onSave: @escaping (Double, Double?) async -> Void
+        ) {
+            self.data = data
+            self.onDismiss = onDismiss
+            self.onSave = onSave
+            _minText = State(initialValue: Self.formatInput(data.minCap))
+            _maxText = State(initialValue: data.maxCap.map { Self.formatInput($0) } ?? "")
+        }
+
+        private var editedMin: Double { parsedMin ?? data.minCap }
+        private var editedMax: Double? {
+            return parsedMax ?? data.maxCap
+        }
 
         private var maxValue: Double {
-            data.maxCap ?? max(data.current + 1, 1)
+            if let editedMax { return editedMax }
+            return max(data.current, editedMin) + 1
         }
-        private var lowerBound: Double { data.minCap }
+        private var lowerBound: Double { editedMin }
         private var upperBound: Double { max(maxValue, lowerBound) }
         private var maxLabelString: String {
-            data.hasExplicitMax ? formatCurrency(maxValue) : "—"
+            editedMax.map { formatCurrency($0) } ?? "—"
+        }
+        private var isSaveDisabled: Bool {
+            guard let min = parsedMin else { return true }
+            if let max = parsedMax { return isSaving || max < min }
+            return isSaving
         }
 
         var body: some View {
@@ -456,23 +728,19 @@ struct BudgetDetailsView: View {
                         Spacer()
                         Text(maxLabelString)
                             .foregroundStyle(.secondary)
-                            .opacity(data.hasExplicitMax ? 1 : 0.7)
+                            .opacity(editedMax != nil ? 1 : 0.7)
                     }
                     .font(.footnote)
 
                     HStack {
                         Text("Current: \(formatCurrency(data.current))").foregroundStyle(.secondary)
                         Spacer()
-                        Text("Range: \(formatCurrency(lowerBound)) – \(data.hasExplicitMax ? formatCurrency(maxValue) : "No max")")
+                        Text("Range: \(formatCurrency(lowerBound)) – \(editedMax.map { formatCurrency($0) } ?? "No max")")
                             .foregroundStyle(.secondary)
                     }
                     .font(.footnote)
 
-                    if !data.hasExplicitMax {
-                        Text("No max set for this category in this period.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
+                    capEditor
 
                     Spacer()
                 }
@@ -480,13 +748,75 @@ struct BudgetDetailsView: View {
                 .navigationTitle(data.category.categoryName)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel", action: onDismiss)
+                    }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Done", action: onDismiss)
+                        Button(isSaving ? "Saving…" : "Save") {
+                            Task { await handleSave() }
+                        }
+                        .disabled(isSaveDisabled)
                     }
                 }
             }
         }
-        
+
+        private var capEditor: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Set Spending Limits")
+                    .font(.subheadline.weight(.semibold))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Minimum")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    TextField("0.00", text: $minText)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Maximum")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    TextField("Leave Empty for No Maximum Amount", text: $maxText)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+        }
+
+        private func handleSave() async {
+            guard let min = parsedMin else { return }
+            let max = parsedMax
+            isSaving = true
+            defer { isSaving = false }
+            await onSave(min, max)
+            onDismiss()
+        }
+
+        private var parsedMin: Double? { parseAmount(minText) }
+        private var parsedMax: Double? { parseAmount(maxText) }
+
+        private func parseAmount(_ text: String) -> Double? {
+            let decimalSeparator = Locale.current.decimalSeparator ?? "."
+            let cleaned = text
+                .replacingOccurrences(of: Locale.current.groupingSeparator ?? ",", with: "")
+                .replacingOccurrences(of: Locale.current.currencySymbol ?? "$", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalized = cleaned.replacingOccurrences(of: decimalSeparator, with: ".")
+            return Double(normalized)
+        }
+
+        private static func formatInput(_ value: Double) -> String {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .decimal
+            formatter.maximumFractionDigits = 2
+            formatter.minimumFractionDigits = 0
+            formatter.usesGroupingSeparator = false
+            return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+        }
+
         private func formatCurrency(_ value: Double) -> String {
             let formatter = NumberFormatter()
             formatter.numberStyle = .currency

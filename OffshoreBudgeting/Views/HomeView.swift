@@ -26,6 +26,29 @@ struct CapStatus: Identifiable {
     let over: Bool
 }
 
+struct CategoryAvailability: Identifiable {
+    let id = UUID()
+    let name: String
+    let spent: Double
+    let cap: Double?
+    let available: Double
+    let color: Color
+    let over: Bool
+    let near: Bool
+    var capDisplay: String { cap.map { CategoryAvailability.formatCurrencyStatic($0) } ?? "∞" }
+
+    private static func formatCurrencyStatic(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            formatter.currencyCode = Locale.current.currency?.identifier ?? "USD"
+        } else {
+            formatter.currencyCode = Locale.current.currencyCode ?? "USD"
+        }
+        return formatter.string(from: value as NSNumber) ?? String(format: "%.2f", value)
+    }
+}
+
 // MARK: - HomeView – Widget Feed
 struct HomeView: View {
 
@@ -34,6 +57,9 @@ struct HomeView: View {
     @State private var nextPlannedSnapshot: PlannedExpenseSnapshot?
     @State private var weekdayWidgetTotals: [WeekdayTotal] = []
     @State private var capStatuses: [CapStatus] = []
+    @State private var availabilityPage: Int = 0
+    @State private var startDateSelection: Date = Date()
+    @State private var endDateSelection: Date = Date()
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
 
@@ -49,7 +75,7 @@ struct HomeView: View {
 
     enum HomeWidgetKind {
         case budgets, income, presets, cards
-        case dayOfWeek, caps
+        case dayOfWeek, caps, availability
 
         var titleColor: Color {
             switch self {
@@ -59,6 +85,7 @@ struct HomeView: View {
             case .cards:   return HomePalette.cards
             case .dayOfWeek: return HomePalette.presets
             case .caps: return HomePalette.presets
+            case .availability: return HomePalette.presets
             }
         }
     }
@@ -100,6 +127,9 @@ struct HomeView: View {
         .navigationTitle("Home")
         .refreshable { await vm.refresh() }
         .task { await onAppearTask() }
+        .onChange(of: vm.period) { _ in syncPickers(with: vm.currentDateRange) }
+        .onChange(of: vm.selectedDate) { _ in syncPickers(with: vm.currentDateRange) }
+        .onReceive(vm.$customDateRange) { _ in syncPickers(with: vm.currentDateRange) }
         .onChange(of: vm.state) { _ in Task { await stateDidChange() } }
         .alert(item: $vm.alert, content: alert(for:))
     }
@@ -122,17 +152,23 @@ struct HomeView: View {
         }
     }
 
+    @ViewBuilder
     private var dateRow: some View {
+        let applyDisabled = startDateSelection > endDateSelection
         HStack(spacing: 12) {
-            Label("Date Range", systemImage: "calendar")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-            Spacer()
             Text(rangeDescription(currentRange))
-                .font(.callout.weight(.semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(datePillBackground)
+                .font(.headline.weight(.semibold))
+            Spacer()
+            HStack(spacing: 8) {
+                DatePicker("Start date", selection: $startDateSelection, displayedComponents: [.date])
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                DatePicker("End date", selection: $endDateSelection, displayedComponents: [.date])
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                applyButton(applyDisabled)
+                periodMenu
+            }
         }
         .padding(12)
         .background(glassRowBackground)
@@ -160,19 +196,6 @@ struct HomeView: View {
         }
     }
 
-    private var datePillBackground: some View {
-        Group {
-            #if canImport(UIKit)
-            Color(UIColor.secondarySystemFill)
-            #elseif os(macOS)
-            Color(NSColor.controlBackgroundColor)
-            #else
-            Color.gray.opacity(0.15)
-            #endif
-        }
-        .clipShape(Capsule())
-    }
-
     @ViewBuilder
     private func widgetGrid(for summary: BudgetSummary) -> some View {
         LazyVGrid(columns: gridColumns, spacing: 18) {
@@ -183,6 +206,7 @@ struct HomeView: View {
             categorySpotlightWidget(for: summary)
             weekdayWidget(for: summary)
             capsWidget(for: summary)
+            categoryAvailabilityWidget(for: summary)
             ForEach(cardWidgets, id: \.objectID) { card in
                 cardWidget(card: card, summary: summary)
             }
@@ -283,7 +307,7 @@ struct HomeView: View {
     }
 
     private func categorySpotlightWidget(for summary: BudgetSummary) -> some View {
-        let categories = summary.variableCategoryBreakdown
+        let categories = summary.categoryBreakdown
         let totalExpenses = categories.map(\.amount).reduce(0, +)
         let slices = categorySlices(from: categories, limit: 3)
         let topCategory = categories.first ?? summary.plannedCategoryBreakdown.first ?? summary.categoryBreakdown.first
@@ -374,18 +398,94 @@ struct HomeView: View {
                     Circle().fill(Color.red.opacity(0.15)).frame(width: 10, height: 10)
                     Text("Over: \(overCount)")
                 }
-                .font(.footnote)
+                .font(.ubCaption)
                 HStack {
                     Circle().fill(Color.orange.opacity(0.2)).frame(width: 10, height: 10)
                     Text("Near: \(nearCount)")
                 }
-                .font(.footnote)
+                .font(.ubCaption)
                 Text("Tap to see category caps.")
-                    .font(.caption)
+                    .font(.ubCaption)
                     .foregroundStyle(.secondary)
             }
         }
     }
+
+    private func categoryAvailabilityWidget(for summary: BudgetSummary) -> some View {
+        let items = categoryAvailability(for: summary)
+        let pageSize = 3
+        let rowHeight: CGFloat = 60
+        let pages = stride(from: 0, to: items.count, by: pageSize).map { idx in
+            Array(items[idx..<min(idx + pageSize, items.count)])
+        }
+        let selection = Binding(
+            get: { min(availabilityPage, max(pages.count - 1, 0)) },
+            set: { availabilityPage = $0 }
+        )
+        let remainingIncome = max(summary.actualIncomeTotal - (summary.plannedExpensesActualTotal + summary.variableExpensesTotal), 0)
+
+        return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, kind: .availability, size: .large, summary: summary) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label("Remaining Income", systemImage: "banknote")
+                        .font(.ubCaption)
+                    Spacer()
+                    Text(formatCurrency(remainingIncome))
+                        .font(.ubDetailLabel.weight(.bold))
+                }
+                if pages.isEmpty {
+                    Text("No categories yet.")
+                        .foregroundStyle(.secondary)
+                        .font(.ubCaption)
+                } else {
+                    TabView(selection: selection) {
+                        ForEach(Array(pages.enumerated()), id: \.offset) { idx, page in
+                            VStack(spacing: 8) {
+                                ForEach(page) { item in
+                                    CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
+                                }
+                            }
+                            .padding(.horizontal, 2)
+                            .tag(idx)
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .frame(height: rowHeight * CGFloat(min(pageSize, items.count)) + 12)
+                    if pages.count > 1 {
+                        HStack {
+                            Button {
+                                availabilityPage = max(0, availabilityPage - 1)
+                            } label: {
+                                Image(systemName: "chevron.left")
+                            }
+                            .disabled(availabilityPage == 0)
+
+                            Spacer()
+                            HStack(spacing: 6) {
+                                ForEach(0..<pages.count, id: \.self) { idx in
+                                    Circle()
+                                        .fill(idx == availabilityPage ? Color.primary.opacity(0.8) : Color.primary.opacity(0.3))
+                                        .frame(width: 6, height: 6)
+                                }
+                            }
+                            Spacer()
+
+                            Button {
+                                availabilityPage = min(pages.count - 1, availabilityPage + 1)
+                            } label: {
+                                Image(systemName: "chevron.right")
+                            }
+                            .disabled(availabilityPage >= pages.count - 1)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                    }
+                }
+            }
+        }
+    }
+
 
     // MARK: Widget Helpers
     private func widgetLink<Content: View>(
@@ -421,11 +521,11 @@ struct HomeView: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.headline)
+                        .font(.ubWidgetTitle)
                         .foregroundStyle(kind.titleColor)
                     if let subtitle {
                         Text(subtitle)
-                            .font(.subheadline)
+                            .font(.ubWidgetSubtitle)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -489,9 +589,7 @@ struct HomeView: View {
         return summaries.first
     }
 
-    private var widgetRangeLabel: String {
-        vm.isUsingCustomRange ? "Custom dates" : "\(vm.period.displayName) period"
-    }
+    private var widgetRangeLabel: String { rangeDescription(currentRange) }
 
     private var heatmapBackground: some View {
         LinearGradient(
@@ -523,6 +621,7 @@ struct HomeView: View {
 
     // MARK: Lifecycle helpers
     private func onAppearTask() async {
+        syncPickers(with: currentRange)
         vm.startIfNeeded()
         let summary = primarySummary
         await loadNextPlannedExpense(for: summary)
@@ -541,8 +640,88 @@ struct HomeView: View {
 
     private func rangeDescription(_ range: ClosedRange<Date>) -> String {
         let f = DateFormatter()
-        f.dateStyle = .medium
-        return "\(f.string(from: range.lowerBound)) through \(f.string(from: range.upperBound))"
+        f.locale = Locale.current
+        f.dateFormat = "MMM d, yyyy"
+        let start = f.string(from: range.lowerBound)
+        let end = f.string(from: range.upperBound)
+        return "\(start) - \(end)"
+    }
+
+    @ViewBuilder
+    private func applyButton(_ disabled: Bool) -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, *) {
+            Button(action: applyCustomRangeFromPickers) {
+                Image(systemName: "arrow.right")
+                    .font(.headline.weight(.semibold))
+                    .frame(width: 36, height: 36)
+                    .glassEffect(.regular.tint(.clear).interactive(true))
+            }
+            .buttonStyle(.plain)
+            .buttonBorderShape(.circle)
+            .tint(.accentColor)
+            .disabled(disabled)
+        } else {
+            Button(action: applyCustomRangeFromPickers) {
+                Image(systemName: "arrow.right")
+                    .font(.headline.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .disabled(disabled)
+        }
+    }
+
+    @ViewBuilder
+    private var periodMenu: some View {
+        if #available(iOS 26.0, macCatalyst 26.0, *) {
+            Menu {
+                periodMenuItems
+            } label: {
+                Image(systemName: "calendar")
+                    .font(.headline.weight(.semibold))
+                    .frame(width: 36, height: 36)
+                    .glassEffect(.regular.tint(.clear).interactive(true))
+            }
+            .buttonStyle(.plain)
+            .buttonBorderShape(.circle)
+            .tint(.accentColor)
+        } else {
+            Menu {
+                periodMenuItems
+            } label: {
+                Image(systemName: "calendar")
+                    .font(.headline.weight(.semibold))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var periodMenuItems: some View {
+        ForEach(BudgetPeriod.selectableCases) { period in
+            Button {
+                applyPeriod(period)
+            } label: {
+                HStack {
+                    Text(period.displayName)
+                    if period == vm.period, !vm.isUsingCustomRange {
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+        }
+    }
+
+    private func syncPickers(with range: ClosedRange<Date>) {
+        startDateSelection = range.lowerBound
+        endDateSelection = range.upperBound
+    }
+
+    private func applyCustomRangeFromPickers() {
+        vm.applyCustomRange(start: startDateSelection, end: endDateSelection)
+    }
+
+    private func applyPeriod(_ period: BudgetPeriod) {
+        vm.updateBudgetPeriod(to: period)
+        syncPickers(with: vm.currentDateRange)
     }
 
     private func formatCurrency(_ amount: Double) -> String {
@@ -667,6 +846,10 @@ struct HomeView: View {
         await MainActor.run { capStatuses = caps }
     }
 
+    private func categoryAvailability(for summary: BudgetSummary) -> [CategoryAvailability] {
+        computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary))
+    }
+
     private static func readPlannedDescription(_ object: NSManagedObject) -> String? {
         let keys = object.entity.attributesByName.keys
         if keys.contains("descriptionText") {
@@ -731,6 +914,7 @@ private struct MetricDetailView: View {
     @State private var showAddIncomeSheet = false
     @State private var editingIncomeBox: ManagedIDBox?
     @State private var weekdaySpending: [WeekdayTotal] = []
+    @State private var scenarioAllocations: [String: Double] = [:]
 
     private var rangeText: String {
         let f = DateFormatter()
@@ -814,6 +998,8 @@ private struct MetricDetailView: View {
             capsContent
         case .dayOfWeek:
             weekdayContent
+        case .availability:
+            availabilityContent
         }
     }
 
@@ -870,24 +1056,24 @@ private struct MetricDetailView: View {
     private var capsContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Category Caps & Alerts")
-                .font(.headline)
+                .font(.ubSectionTitle)
             if let capStatuses, !capStatuses.isEmpty {
                 ForEach(capStatuses) { cap in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Circle().fill(cap.color.opacity(0.3)).frame(width: 10, height: 10)
                             Text(cap.name)
-                                .font(.subheadline.weight(.semibold))
+                                .font(.ubDetailLabel.weight(.semibold))
                             Spacer()
                             if cap.over {
                                 Text("Over")
-                                    .font(.caption2.weight(.bold))
+                                    .font(.ubChip)
                                     .padding(6)
                                     .background(Color.red.opacity(0.12))
                                     .clipShape(Capsule())
                             } else if cap.near {
                                 Text("Near")
-                                    .font(.caption2.weight(.bold))
+                                    .font(.ubChip)
                                     .padding(6)
                                     .background(Color.orange.opacity(0.12))
                                     .clipShape(Capsule())
@@ -897,11 +1083,11 @@ private struct MetricDetailView: View {
                             .tint(cap.color)
                         HStack {
                             Text("Spent: \(formatCurrency(cap.amount))")
-                                .font(.caption)
+                                .font(.ubCaption)
                                 .foregroundStyle(.secondary)
                             Spacer()
                             Text("Cap: \(formatCurrency(cap.cap))")
-                                .font(.caption)
+                                .font(.ubCaption)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -967,18 +1153,18 @@ private struct MetricDetailView: View {
 
     private var categoryContent: some View {
         Group {
-            if let topCategory {
-                let allCategories = summary.variableCategoryBreakdown
-                let totalExpenses = allCategories.map(\.amount).reduce(0, +)
+            let allCategories = summary.categoryBreakdown
+            let totalExpenses = allCategories.map(\.amount).reduce(0, +)
+            let slices = categorySlices(from: allCategories, limit: showAllCategories ? allCategories.count : 3)
+            if let leadingCategory = slices.first, !slices.isEmpty, totalExpenses > 0 {
                 let totalForList = max(totalExpenses, 1)
-                let slices = categorySlices(from: allCategories, limit: showAllCategories ? allCategories.count : 6)
                 let topSlices = Array(slices.prefix(3))
                 VStack(alignment: .leading, spacing: 12) {
                     CategoryDonutView(
                         slices: slices,
                         total: max(totalExpenses, 1),
                         centerTitle: "Top",
-                        centerValue: formatCurrency(topCategory.amount)
+                        centerValue: formatCurrency(leadingCategory.amount)
                     )
                     .frame(height: 220)
                     VStack(alignment: .leading, spacing: 6) {
@@ -989,14 +1175,12 @@ private struct MetricDetailView: View {
                             CategoryTopRow(slice: slice, total: max(totalExpenses, 1))
                         }
                     }
+                    heatmapCategoryButton(title: showAllCategories ? "Hide All Categories" : "Show All Categories") {
+                        withAnimation(.spring()) { showAllCategories.toggle() }
+                    }
                     if showAllCategories {
                         categoriesCompactList(allCategories, total: totalForList)
                     }
-                    Button(showAllCategories ? "Hide All Categories" : "Show All Categories") {
-                        withAnimation(.spring()) { showAllCategories.toggle() }
-                    }
-                    .buttonStyle(.plain)
-                    .font(.footnote.weight(.semibold))
                 }
             } else {
                 Text("No category data in this range.")
@@ -1005,14 +1189,230 @@ private struct MetricDetailView: View {
         }
     }
 
+    private var availabilityContent: some View {
+        let items = computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary))
+        let remainingIncome = max(summary.actualIncomeTotal - (summary.plannedExpensesActualTotal + summary.variableExpensesTotal), 0)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Remaining Income")
+                    .font(.ubSectionTitle)
+                Spacer()
+                Text(formatCurrency(remainingIncome))
+                    .font(.ubMetricValue)
+            }
+            if items.isEmpty {
+                Text("No categories or caps available.")
+                    .font(.ubBody)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(items) { item in
+                        CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
+                    }
+                    scenarioPlanner(items: items, remainingIncome: remainingIncome)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func scenarioPlanner(items: [CategoryAvailability], remainingIncome: Double) -> some View {
+        let totalAllocated = items.reduce(0) { $0 + allocationValue(for: $1) }
+        let potentialSavings = remainingIncome - totalAllocated
+        let slices = scenarioSlices(items: items, savings: potentialSavings)
+        let savingsGradient = potentialSavings >= 0 ? scenarioGradient(for: items) : nil
+        let savingsColor = potentialSavings >= 0
+            ? (savingsGradient == nil ? HomeView.HomePalette.income : scenarioAverageColor(for: items))
+            : Color.red.opacity(0.85)
+        let savingsTextStyle = savingsGradient ?? uniformAngularGradient(savingsColor)
+
+        VStack(alignment: .leading, spacing: 12) {
+            Divider().padding(.top, 4)
+            Text("What If? Scenario Planner")
+                .font(.ubSectionTitle)
+            Text("Adjust category allocations to see how much you could still save.")
+                .font(.ubBody)
+                .foregroundStyle(.secondary)
+
+            HStack {
+                Text(potentialSavings >= 0 ? "Potential Savings" : "Over-allocated")
+                    .font(.ubDetailLabel.weight(.semibold))
+                Spacer()
+                Text(formatCurrency(potentialSavings))
+                    .font(.ubMetricValue)
+                    .foregroundStyle(savingsTextStyle)
+                    .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
+            }
+
+            HStack(alignment: .top, spacing: 16) {
+                GeometryReader { geo in
+                    let width = geo.size.width
+                    let donutSize = min(max(width * 0.38, 180), 320)
+                    let listWidth = max(width - donutSize - 16, width * 0.48)
+
+                    HStack(alignment: .top, spacing: 16) {
+                        CategoryDonutView(
+                            slices: slices,
+                            total: max(slices.map(\.amount).reduce(0, +), 1),
+                            centerTitle: potentialSavings >= 0 ? "Potential Savings" : "Deficit",
+                            centerValue: formatCurrency(potentialSavings),
+                            savingsGradient: savingsGradient,
+                            centerValueGradient: savingsTextStyle
+                        )
+                        .frame(width: donutSize, height: donutSize)
+                        .frame(minWidth: 0, alignment: .leading)
+
+                        VStack(spacing: 10) {
+                            ForEach(items) { item in
+                                scenarioAllocationRow(item: item)
+                            }
+                        }
+                        .frame(width: listWidth, alignment: .leading)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(height: 300)
+            }
+        }
+        .onAppear { ensureScenarioDefaults(items: items) }
+        .onChange(of: items.map { normalizeCategoryName($0.name) }) { _ in
+            ensureScenarioDefaults(items: items)
+        }
+    }
+
+    private func scenarioAllocationRow(item: CategoryAvailability) -> some View {
+        let binding = allocationBinding(for: item)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                HStack(spacing: 6) {
+                    Circle().fill(item.color.opacity(0.8)).frame(width: 10, height: 10)
+                    Text(item.name)
+                }
+                    .font(.ubDetailLabel.weight(.semibold))
+                    .lineLimit(1)
+            }
+            HStack(spacing: 12) {
+                TextField("0", value: binding, formatter: allocationFormatter)
+                    .textFieldStyle(.roundedBorder)
+                    .keyboardType(.decimalPad)
+                    .frame(minWidth: 120, maxWidth: 170, alignment: .leading)
+                Spacer()
+                Stepper("", value: binding, in: 0...1_000_000, step: 25)
+                    .labelsHidden()
+            }
+        }
+    }
+
+    private func ensureScenarioDefaults(items: [CategoryAvailability]) {
+        var next = scenarioAllocations
+        let keys = items.map { normalizeCategoryName($0.name) }
+        for item in items {
+            let key = normalizeCategoryName(item.name)
+            if next[key] == nil {
+                next[key] = max(item.available, 0)
+            }
+        }
+        // Drop stale keys
+        next = next.filter { keys.contains($0.key) }
+        if next != scenarioAllocations {
+            scenarioAllocations = next
+        }
+    }
+
+    private func allocationValue(for item: CategoryAvailability) -> Double {
+        let key = normalizeCategoryName(item.name)
+        return scenarioAllocations[key] ?? item.available
+    }
+
+    private func allocationBinding(for item: CategoryAvailability) -> Binding<Double> {
+        let key = normalizeCategoryName(item.name)
+        return Binding(
+            get: { allocationValue(for: item) },
+            set: { newValue in
+                scenarioAllocations[key] = max(newValue, 0)
+            }
+        )
+    }
+
+private func scenarioSlices(items: [CategoryAvailability], savings: Double) -> [CategorySlice] {
+    var slices: [CategorySlice] = items.compactMap { item in
+        let amount = allocationValue(for: item)
+        guard amount > 0 else { return nil }
+        return CategorySlice(
+            name: item.name,
+            amount: amount,
+            color: item.color
+        )
+    }
+    if savings > 0 {
+        slices.append(CategorySlice(name: "Savings", amount: savings, color: scenarioAverageColor(for: items)))
+    } else if savings < 0 {
+        slices.append(CategorySlice(name: "Deficit", amount: abs(savings), color: Color.red.opacity(0.8)))
+    }
+    if slices.isEmpty {
+        slices.append(CategorySlice(name: "No Allocations", amount: 1, color: Color.secondary.opacity(0.3)))
+    }
+    return slices
+}
+
+private func scenarioGradient(for items: [CategoryAvailability]) -> AngularGradient? {
+    let colors = items.map { $0.color.opacity(0.9) }
+    let limited = Array(colors.prefix(6))
+    guard limited.count >= 2 else { return nil }
+    return AngularGradient(gradient: Gradient(colors: limited), center: .center)
+}
+
+private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
+    let colors = items.map { $0.color }
+    guard !colors.isEmpty else { return HomeView.HomePalette.income }
+    #if canImport(UIKit)
+    let comps = colors.compactMap { UIColor($0).cgColor.components }.filter { !$0.isEmpty }
+    #elseif os(macOS)
+    let comps = colors.compactMap { NSColor($0).usingColorSpace(.sRGB)?.cgColor.components }.filter { !$0.isEmpty }
+    #else
+    let comps: [[CGFloat]] = []
+    #endif
+    guard !comps.isEmpty else { return HomeView.HomePalette.income }
+    let avg = comps.reduce([0.0, 0.0, 0.0, 0.0]) { acc, c in
+        var next = acc
+        next[0] += Double(c[0])
+        next[1] += Double(c.count > 1 ? c[1] : c[0])
+        next[2] += Double(c.count > 2 ? c[2] : c[0])
+        next[3] += Double(c.count > 3 ? c[3] : 1)
+        return next
+    }
+    let count = Double(comps.count)
+    return Color(
+        red: avg[0] / count,
+        green: avg[1] / count,
+        blue: avg[2] / count,
+        opacity: avg[3] / count
+    )
+}
+
+    private var allocationFormatter: NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            formatter.currencyCode = Locale.current.currency?.identifier ?? "USD"
+        } else {
+            formatter.currencyCode = Locale.current.currencyCode ?? "USD"
+        }
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        return formatter
+    }
+
     // MARK: Helpers
     private func metricRow(label: String, value: String) -> some View {
         HStack {
             Text(label)
+                .font(.ubBody)
                 .foregroundStyle(.secondary)
             Spacer()
             Text(value)
-                .font(.headline)
+                .font(.ubMetricValue)
         }
     }
 
@@ -1021,7 +1421,7 @@ private struct MetricDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Timeline & Pace")
-                    .font(.headline)
+                    .font(.ubSectionTitle)
                 Spacer()
                 paceBadge(total: total)
             }
@@ -1047,12 +1447,57 @@ private struct MetricDetailView: View {
             status = "Behind"
         }
         return Text(status)
-            .font(.caption.weight(.semibold))
+            .font(.ubChip)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
                 Capsule().fill(HomeView.HomePalette.income.opacity(0.15))
             )
+    }
+
+    // MARK: Category Heatmap Button
+    private func heatmapCategoryButton(title: String, action: @escaping () -> Void) -> some View {
+        let shape26 = Capsule()
+        let shapeLegacy = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let gradient = categoryHeatmapGradient
+        let background = Group {
+            if let gradient {
+                gradient.opacity(0.35)
+            } else {
+                Color.accentColor.opacity(0.15)
+            }
+        }
+
+        let label = Text(title)
+            .font(.headline.weight(.bold))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .foregroundStyle(Color.primary.opacity(0.9))
+
+        return Group {
+            if #available(iOS 26.0, macCatalyst 26.0, *) {
+                Button(action: action) {
+                    label
+                }
+                .buttonStyle(.glassProminent)
+                .tint(.clear)
+                .background(background.clipShape(shape26))
+            } else {
+                Button(action: action) {
+                    label
+                }
+                .buttonStyle(.plain)
+                .background(background.clipShape(shapeLegacy))
+                .overlay(shapeLegacy.stroke(Color.primary.opacity(0.08), lineWidth: 1))
+            }
+        }
+    }
+
+    private var categoryHeatmapGradient: LinearGradient? {
+        let colors = summary.categoryBreakdown.compactMap { UBColorFromHex($0.hexColor) }
+        let limited = Array(colors.prefix(12))
+        guard !limited.isEmpty else { return nil }
+        return LinearGradient(colors: limited, startPoint: .leading, endPoint: .trailing)
     }
 
     @ViewBuilder
@@ -1149,7 +1594,7 @@ private struct MetricDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Trends")
-                    .font(.headline)
+                    .font(.ubSectionTitle)
                 Spacer()
                 Picker("Period", selection: $comparisonPeriod) {
                     ForEach(IncomeComparisonPeriod.allCases) { period in
@@ -1991,22 +2436,16 @@ private struct CategorySlice: Identifiable {
 
 private func categorySlices(from categories: [BudgetSummary.CategorySpending], limit: Int) -> [CategorySlice] {
     guard !categories.isEmpty else { return [] }
-    let total = categories.map(\.amount).reduce(0, +)
-    guard total > 0 else { return [] }
-    let top = Array(categories.prefix(limit))
-    let topSlices: [CategorySlice] = top.map {
+    let positive = categories.filter { $0.amount > 0 }
+    guard !positive.isEmpty else { return [] }
+    let limited = Array(positive.prefix(limit))
+    return limited.map {
         CategorySlice(
             name: $0.categoryName,
             amount: $0.amount,
             color: UBColorFromHex($0.hexColor) ?? HomeView.HomePalette.presets
         )
     }
-    let remaining = categories.dropFirst(limit)
-    let otherAmount = remaining.map(\.amount).reduce(0, +)
-    if otherAmount > 0 {
-        return topSlices + [CategorySlice(name: "Other", amount: otherAmount, color: .secondary)]
-    }
-    return topSlices
 }
 
 private func weekdayGradientColors(for summary: BudgetSummary) -> [Color] {
@@ -2018,19 +2457,26 @@ private func weekdayGradientColors(for summary: BudgetSummary) -> [Color] {
 
 private func fetchCapStatuses(for summary: BudgetSummary) async -> [CapStatus] {
     let ctx = CoreDataService.shared.viewContext
-    let categories = summary.variableCategoryBreakdown
+    let categories = summary.categoryBreakdown
     guard !categories.isEmpty else { return [] }
-    let key = capsPeriodKey(start: summary.periodStart, end: summary.periodEnd)
-    let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
-    var results: [CapStatus] = []
 
-    for cat in categories {
-        guard
-            cat.categoryURI.scheme == "x-coredata",
-            let catID = coordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
-            let category = try? ctx.existingObject(with: catID) as? ExpenseCategory
-        else { continue }
+    func resolveCategory(_ cat: BudgetSummary.CategorySpending) -> ExpenseCategory? {
+        let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
+        if cat.categoryURI.scheme == "x-coredata",
+           let catID = coordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
+           let category = try? ctx.existingObject(with: catID) as? ExpenseCategory {
+            return category
+        }
+        let name = cat.categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
+        let fetch = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+        fetch.predicate = NSPredicate(format: "name ==[cd] %@", name)
+        fetch.fetchLimit = 1
+        return try? ctx.fetch(fetch).first
+    }
 
+    func capAmount(for category: ExpenseCategory, segment: String) -> Double? {
+        let key = capsPeriodKey(start: summary.periodStart, end: summary.periodEnd, segment: segment)
         let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
         fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "category == %@", category),
@@ -2042,15 +2488,26 @@ private func fetchCapStatuses(for summary: BudgetSummary) async -> [CapStatus] {
             let cap = try? ctx.fetch(fetch).first,
             let amount = cap.value(forKey: "amount") as? Double,
             amount > 0
-        else { continue }
+        else { return nil }
+        return amount
+    }
+
+    var results: [CapStatus] = []
+
+    for cat in categories {
+        guard let category = resolveCategory(cat) else { continue }
+        let plannedCap = capAmount(for: category, segment: "planned") ?? 0
+        let variableCap = capAmount(for: category, segment: "variable") ?? 0
+        let totalCap = plannedCap + variableCap
+        guard totalCap > 0 else { continue }
 
         let color = UBColorFromHex(cat.hexColor) ?? HomeView.HomePalette.presets
-        let near = cat.amount >= amount * 0.85 && cat.amount < amount
-        let over = cat.amount >= amount
+        let near = cat.amount >= totalCap * 0.85 && cat.amount < totalCap
+        let over = cat.amount >= totalCap
         results.append(CapStatus(
             name: cat.categoryName,
             amount: cat.amount,
-            cap: amount,
+            cap: totalCap,
             color: color,
             near: near,
             over: over
@@ -2060,7 +2517,7 @@ private func fetchCapStatuses(for summary: BudgetSummary) async -> [CapStatus] {
     return results.sorted { ($0.over ? 1 : 0, $0.amount / max($0.cap, 1)) > ($1.over ? 1 : 0, $1.amount / max($1.cap, 1)) }
 }
 
-private func capsPeriodKey(start: Date, end: Date) -> String {
+private func capsPeriodKey(start: Date, end: Date, segment: String) -> String {
     let f = DateFormatter()
     f.calendar = Calendar(identifier: .gregorian)
     f.locale = Locale(identifier: "en_US_POSIX")
@@ -2068,7 +2525,82 @@ private func capsPeriodKey(start: Date, end: Date) -> String {
     f.dateFormat = "yyyy-MM-dd"
     let s = f.string(from: start)
     let e = f.string(from: end)
-    return "\(s)|\(e)|home"
+    return "\(s)|\(e)|\(segment)"
+}
+
+// MARK: - Shared helpers
+fileprivate func normalizeCategoryName(_ name: String) -> String {
+    name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+}
+
+fileprivate func categoryCaps(for summary: BudgetSummary) -> [String: (planned: Double?, variable: Double?)] {
+    let ctx = CoreDataService.shared.viewContext
+    var map: [String: (planned: Double?, variable: Double?)] = [:]
+
+    func fetchCaps(segment: String) {
+        let key = capsPeriodKey(start: summary.periodStart, end: summary.periodEnd, segment: segment)
+        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+        fetch.predicate = NSPredicate(format: "period == %@", key)
+        let results = (try? ctx.fetch(fetch)) ?? []
+        for cap in results {
+            guard let category = cap.category,
+                  let name = category.name else { continue }
+            let norm = normalizeCategoryName(name)
+            var entry = map[norm] ?? (planned: nil, variable: nil)
+            if (cap.expenseType ?? "").lowercased() == "max" {
+                if segment == "planned" { entry.planned = cap.amount } else { entry.variable = cap.amount }
+                map[norm] = entry
+            }
+        }
+    }
+
+    fetchCaps(segment: "planned")
+    fetchCaps(segment: "variable")
+    return map
+}
+
+fileprivate func computeCategoryAvailability(summary: BudgetSummary, caps: [String: (planned: Double?, variable: Double?)]) -> [CategoryAvailability] {
+    let remainingIncome = max(summary.actualIncomeTotal - (summary.plannedExpensesActualTotal + summary.variableExpensesTotal), 0)
+
+    let availabilities: [CategoryAvailability] = summary.categoryBreakdown.map { cat in
+        let norm = normalizeCategoryName(cat.categoryName)
+        let capTuple = caps[norm]
+        let combinedCap = (capTuple?.planned ?? 0) + (capTuple?.variable ?? 0)
+        let hasCap = combinedCap > 0
+        let capRemaining = hasCap ? max(combinedCap - cat.amount, 0) : remainingIncome
+        let available = min(capRemaining, remainingIncome)
+        let color = UBColorFromHex(cat.hexColor) ?? Color.accentColor
+        let over = hasCap && cat.amount >= combinedCap
+        let near = hasCap && cat.amount >= combinedCap * 0.85 && cat.amount < combinedCap
+        return CategoryAvailability(
+            name: cat.categoryName,
+            spent: cat.amount,
+            cap: hasCap ? combinedCap : nil,
+            available: available,
+            color: color,
+            over: over,
+            near: near
+        )
+    }
+
+    return availabilities
+        .sorted { lhs, rhs in
+            if lhs.spent == rhs.spent { return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending }
+            return lhs.spent > rhs.spent
+        }
+}
+
+// MARK: - Typography Helpers
+extension Font {
+    static let ubWidgetTitle = Font.headline.weight(.semibold)
+    static let ubWidgetSubtitle = Font.subheadline
+    static let ubSectionTitle = Font.headline.weight(.semibold)
+    static let ubMetricValue = Font.title3.weight(.bold)
+    static let ubDetailLabel = Font.subheadline
+    static let ubBody = Font.body
+    static let ubChip = Font.caption.weight(.semibold)
+    static let ubCaption = Font.footnote
+    static let ubSmallCaption = Font.caption2
 }
 
 private struct CategoryDonutView: View {
@@ -2076,6 +2608,8 @@ private struct CategoryDonutView: View {
     let total: Double
     let centerTitle: String
     let centerValue: String
+    var savingsGradient: AngularGradient? = nil
+    var centerValueGradient: AngularGradient? = nil
 
     var body: some View {
         ZStack {
@@ -2086,7 +2620,7 @@ private struct CategoryDonutView: View {
                         innerRadius: .ratio(0.60),
                         outerRadius: .ratio(1.0)
                     )
-                    .foregroundStyle(slice.color)
+                    .foregroundStyle(style(for: slice))
                 }
                 .chartLegend(.hidden)
                 .frame(maxWidth: .infinity)
@@ -2095,7 +2629,7 @@ private struct CategoryDonutView: View {
                 HStack(spacing: 4) {
                     ForEach(slices) { slice in
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(slice.color)
+                            .fill(style(for: slice))
                             .frame(maxWidth: .infinity)
                             .frame(height: 8)
                             .opacity(0.9)
@@ -2110,9 +2644,26 @@ private struct CategoryDonutView: View {
                     .foregroundStyle(.secondary)
                 Text(centerValue)
                     .font(.headline.weight(.semibold))
+                    .foregroundStyle(centerStyle)
+                    .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
             }
         }
     }
+
+    private var centerStyle: some ShapeStyle {
+        centerValueGradient ?? uniformAngularGradient(Color.primary)
+    }
+
+    private func style(for slice: CategorySlice) -> some ShapeStyle {
+        if slice.name == "Savings", let savingsGradient {
+            return savingsGradient
+        }
+        return uniformAngularGradient(slice.color)
+    }
+}
+
+fileprivate func uniformAngularGradient(_ color: Color) -> AngularGradient {
+    AngularGradient(gradient: Gradient(colors: [color, color]), center: .center)
 }
 
 private struct CategoryTopRow: View {

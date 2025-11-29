@@ -92,7 +92,7 @@ struct HelpView: View {
                 Text("Potential vs. Actual Savings")
                     .font(.title3).bold()
                 Divider()
-                Text("Potential savings = planned income − planned expenses for the period. Actual savings = actual income − actual expenses. Differences help you see whether you’re ahead or behind plan.\n")
+                Text("Potential Savings = planned income − planned expenses for the period. Actual savings = actual income − actual expenses. Differences help you see whether you’re ahead or behind plan.\n")
             }
             .padding()
             .navigationTitle("Introduction")

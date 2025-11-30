@@ -45,7 +45,8 @@ extension CardItem {
             objectID: managedCard.objectID,
             uuid: cardUUID,
             name: cardName,
-            theme: theme
+            theme: theme,
+            balance: nil
         )
     }
 }

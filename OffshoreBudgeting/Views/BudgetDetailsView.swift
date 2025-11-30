@@ -256,8 +256,10 @@ struct BudgetDetailsView: View {
         let maxSavings = summary.potentialIncomeTotal - summary.plannedExpensesPlannedTotal
         let expenseLabel = segment == .planned ? "Planned Expenses" : "Variable Expenses"
         let expenseValue = segment == .planned ? summary.plannedExpensesActualTotal : summary.variableExpensesTotal
+        let cardBackground = Color(.systemBackground)
+        let cardSpacing: CGFloat = 12
 
-        HStack(alignment: .top, spacing: 0) {
+        HStack(alignment: .top, spacing: cardSpacing) {
             statCard(
                 title: "Income",
                 color: HomeView.HomePalette.income,
@@ -265,7 +267,7 @@ struct BudgetDetailsView: View {
                     StatItem(label: "Expected", value: currencyFormatter.string(from: summary.potentialIncomeTotal as NSNumber) ?? "--"),
                     StatItem(label: "Received", value: currencyFormatter.string(from: summary.actualIncomeTotal as NSNumber) ?? "--")
                 ],
-                showDivider: true
+                background: cardBackground
             )
             statCard(
                 title: "Projected Savings",
@@ -274,7 +276,7 @@ struct BudgetDetailsView: View {
                     StatItem(label: "Projected", value: currencyFormatter.string(from: projectedSavings as NSNumber) ?? "--"),
                     StatItem(label: "Max Savings", value: currencyFormatter.string(from: maxSavings as NSNumber) ?? "--")
                 ],
-                showDivider: true
+                background: cardBackground
             )
             statCard(
                 title: "Actual Savings",
@@ -282,7 +284,7 @@ struct BudgetDetailsView: View {
                 items: [
                     StatItem(label: "Actual", value: currencyFormatter.string(from: summary.actualSavingsTotal as NSNumber) ?? "--")
                 ],
-                showDivider: true
+                background: cardBackground
             )
             statCard(
                 title: expenseLabel,
@@ -290,9 +292,10 @@ struct BudgetDetailsView: View {
                 items: [
                     StatItem(label: segment == .planned ? "Planned (actual)" : "Variable", value: currencyFormatter.string(from: expenseValue as NSNumber) ?? "--")
                 ],
-                showDivider: false
+                background: cardBackground
             )
         }
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
@@ -301,7 +304,7 @@ struct BudgetDetailsView: View {
         let value: String
     }
 
-    private func statCard(title: String, color: Color, items: [StatItem], showDivider: Bool) -> some View {
+    private func statCard(title: String, color: Color, items: [StatItem], background: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.caption.weight(.semibold))
@@ -315,20 +318,20 @@ struct BudgetDetailsView: View {
                         .font(.subheadline.weight(.semibold))
                 }
             }
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 12)
         .padding(.vertical, 10)
+        .padding(.horizontal, 12)
         .frame(maxWidth: .infinity, minHeight: 110, alignment: .topLeading)
-        .background(Color.clear)
-        .overlay(alignment: .trailing) {
-            if showDivider {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.15))
-                    .frame(width: 1)
-                    .padding(.vertical, 6)
-            }
-        }
-        .padding(.horizontal, showDivider ? 8 : 0)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(background)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.secondary.opacity(0.15), lineWidth: 1)
+                )
+        )
+        .multilineTextAlignment(.leading)
     }
 
     // MARK: Toolbar Actions

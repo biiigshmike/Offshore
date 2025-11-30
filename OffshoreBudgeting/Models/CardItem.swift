@@ -26,6 +26,8 @@ struct CardItem: Identifiable, Hashable {
     // MARK: Display
     var name: String
     var theme: CardTheme
+    /// Optional balance/total for display (e.g., aggregated spend in the period).
+    var balance: Double? = nil
 
     // MARK: Identifiable
     var id: String {

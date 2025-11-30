@@ -1,6 +1,7 @@
 import SwiftUI
 import Charts
 import CoreData
+import UniformTypeIdentifiers
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -49,6 +50,128 @@ struct CategoryAvailability: Identifiable {
     }
 }
 
+// MARK: - Layout Helpers
+private struct WidgetSpan: Equatable, Hashable {
+    let width: Int
+    let height: Int
+}
+
+private struct WidgetSpanKey: LayoutValueKey {
+    static let defaultValue = WidgetSpan(width: 1, height: 1)
+}
+
+@available(iOS 16.0, macOS 13.0, macCatalyst 16.0, *)
+private struct WidgetGridLayout: Layout {
+    let columns: Int
+    let spacing: CGFloat
+    let rowHeight: CGFloat
+
+    struct Cache {
+        var frames: [CGRect] = []
+        var size: CGSize = .zero
+        var proposalWidth: CGFloat = 0
+    }
+
+    func makeCache(subviews: Subviews) -> Cache { Cache() }
+
+    func updateCache(_ cache: inout Cache, for subviews: Subviews, proposal: ProposedViewSize) {
+        cache = computeLayout(subviews: subviews, proposal: proposal)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) -> CGSize {
+        if cache.frames.count != subviews.count || cache.proposalWidth != (proposal.width ?? 0) {
+            cache = computeLayout(subviews: subviews, proposal: proposal)
+        }
+        return cache.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
+        if cache.frames.count != subviews.count || cache.proposalWidth != (proposal.width ?? 0) {
+            cache = computeLayout(subviews: subviews, proposal: proposal)
+        }
+        for (index, frame) in cache.frames.enumerated() where index < subviews.count {
+            let origin = CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY)
+            subviews[index].place(
+                at: origin,
+                proposal: ProposedViewSize(width: frame.width, height: frame.height)
+            )
+        }
+    }
+
+    private func computeLayout(subviews: Subviews, proposal: ProposedViewSize) -> Cache {
+        let safeColumns = max(1, columns)
+        let proposedWidth = proposal.width ?? 0
+        #if canImport(UIKit)
+        let fallbackWidth: CGFloat = UIScreen.main.bounds.width - 40
+        #else
+        let fallbackWidth: CGFloat = 1024
+        #endif
+        let containerWidth = max(320, proposedWidth > 0 ? proposedWidth : fallbackWidth)
+        let totalSpacing = CGFloat(max(safeColumns - 1, 0)) * spacing
+        let columnWidth = (containerWidth - totalSpacing) / CGFloat(safeColumns)
+
+        var occupancy: [[Bool]] = []
+        var frames: [CGRect] = []
+
+        func firstFit(for spanWidth: Int) -> (row: Int, column: Int) {
+            let width = min(max(spanWidth, 1), safeColumns)
+            if occupancy.isEmpty {
+                occupancy.append(Array(repeating: false, count: safeColumns))
+            }
+            var row = 0
+            while true {
+                if row >= occupancy.count {
+                    occupancy.append(Array(repeating: false, count: safeColumns))
+                }
+                let rowSlots = occupancy[row]
+                let limit = safeColumns - width
+                if limit >= 0 {
+                    for start in 0...limit {
+                        let slice = rowSlots[start..<(start + width)]
+                        if slice.allSatisfy({ !$0 }) {
+                            return (row, start)
+                        }
+                    }
+                }
+                row += 1
+            }
+        }
+
+        for subview in subviews {
+            let span = subview[WidgetSpanKey.self]
+            let spanWidth = min(max(span.width, 1), safeColumns)
+            let spanHeight = max(span.height, 1)
+
+            let position = firstFit(for: spanWidth)
+            let row = position.row
+            let column = position.column
+
+            let neededRows = row + spanHeight
+            if neededRows > occupancy.count {
+                for _ in occupancy.count..<neededRows {
+                    occupancy.append(Array(repeating: false, count: safeColumns))
+                }
+            }
+            for r in row..<row + spanHeight {
+                for c in column..<column + spanWidth {
+                    occupancy[r][c] = true
+                }
+            }
+
+            let x = CGFloat(column) * (columnWidth + spacing)
+            let y = CGFloat(row) * (rowHeight + spacing)
+            let width = columnWidth * CGFloat(spanWidth) + spacing * CGFloat(max(spanWidth - 1, 0))
+            let height = rowHeight * CGFloat(spanHeight) + spacing * CGFloat(max(spanHeight - 1, 0))
+            frames.append(CGRect(x: x, y: y, width: width, height: height))
+        }
+
+        let rows = occupancy.count
+        let totalHeight = CGFloat(rows) * rowHeight + spacing * CGFloat(max(rows - 1, 0))
+        let totalWidth = columnWidth * CGFloat(safeColumns) + spacing * CGFloat(max(safeColumns - 1, 0))
+        return Cache(frames: frames, size: CGSize(width: totalWidth, height: totalHeight), proposalWidth: proposal.width ?? 0)
+    }
+}
+
 // MARK: - HomeView – Widget Feed
 struct HomeView: View {
 
@@ -63,7 +186,34 @@ struct HomeView: View {
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
 
-    private let gridColumns = [GridItem(.adaptive(minimum: 280, maximum: 460), spacing: 18, alignment: .top)]
+    @AppStorage("homePinnedWidgetIDs") private var pinnedStorage: String = ""
+    @AppStorage("homeWidgetOrderIDs") private var orderStorage: String = ""
+
+    private static let defaultWidgets: [WidgetID] = [
+        .income, .expenseToIncome, .savings, .nextPlanned, .categorySpotlight, .dayOfWeek, .caps, .availability
+    ]
+
+    @State private var pinnedIDs: [WidgetID] = HomeView.defaultWidgets
+    @State private var widgetOrder: [WidgetID] = HomeView.defaultWidgets
+    @State private var isEditing: Bool = false
+    @State private var draggingID: WidgetID?
+
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private let gridSpacing: CGFloat = 18
+    private let gridRowHeight: CGFloat = 170
+
+    private var columnCount: Int {
+        #if os(macOS)
+        return 4
+        #else
+        if horizontalSizeClass == .compact {
+            return 1
+        } else {
+            return 3
+        }
+        #endif
+    }
     @State private var cardWidgets: [CardItem] = []
 
     enum HomePalette {
@@ -90,22 +240,64 @@ struct HomeView: View {
         }
     }
 
-    private enum HomeWidgetSize {
-        case small, wide, large
+    private enum WidgetID: Hashable {
+        case income
+        case expenseToIncome
+        case savings
+        case nextPlanned
+        case categorySpotlight
+        case dayOfWeek
+        case caps
+        case availability
+        case card(String)
 
-        var columnSpan: Int {
+        var storageKey: String {
             switch self {
-            case .small: return 1
-            case .wide, .large: return 2
+            case .income: return "income"
+            case .expenseToIncome: return "expenseToIncome"
+            case .savings: return "savings"
+            case .nextPlanned: return "nextPlanned"
+            case .categorySpotlight: return "categorySpotlight"
+            case .dayOfWeek: return "dayOfWeek"
+            case .caps: return "caps"
+            case .availability: return "availability"
+            case .card(let uri): return "card:\(uri)"
             }
         }
 
-        var minHeight: CGFloat {
-            switch self {
-            case .small: return 150
-            case .wide: return 150
-            case .large: return 240
+        static func fromStorage(_ raw: String) -> WidgetID? {
+            switch raw {
+            case "income": return .income
+            case "expenseToIncome": return .expenseToIncome
+            case "savings": return .savings
+            case "nextPlanned": return .nextPlanned
+            case "categorySpotlight": return .categorySpotlight
+            case "dayOfWeek": return .dayOfWeek
+            case "caps": return .caps
+            case "availability": return .availability
+            default:
+                if raw.hasPrefix("card:") {
+                    let suffix = String(raw.dropFirst("card:".count))
+                    return .card(suffix)
+                }
+                return nil
             }
+        }
+    }
+
+    private struct WidgetItem: Identifiable, Hashable {
+        let id: WidgetID
+        let span: WidgetSpan
+        let view: AnyView
+        let title: String
+        let kind: HomeWidgetKind
+
+        static func == (lhs: WidgetItem, rhs: WidgetItem) -> Bool {
+            lhs.id == rhs.id
+        }
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(id.storageKey)
         }
     }
 
@@ -131,6 +323,9 @@ struct HomeView: View {
         .onChange(of: vm.selectedDate) { _ in syncPickers(with: vm.currentDateRange) }
         .onReceive(vm.$customDateRange) { _ in syncPickers(with: vm.currentDateRange) }
         .onChange(of: vm.state) { _ in Task { await stateDidChange() } }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave, object: CoreDataService.shared.viewContext)) { _ in
+            Task { await loadAllCards() }
+        }
         .alert(item: $vm.alert, content: alert(for:))
     }
 
@@ -198,24 +393,75 @@ struct HomeView: View {
 
     @ViewBuilder
     private func widgetGrid(for summary: BudgetSummary) -> some View {
-        LazyVGrid(columns: gridColumns, spacing: 18) {
-            incomeWidget(for: summary)
-            expenseRatioWidget(for: summary)
-            savingsWidget(for: summary)
-            nextPlannedExpenseWidget(for: summary)
-            categorySpotlightWidget(for: summary)
-            weekdayWidget(for: summary)
-            capsWidget(for: summary)
-            categoryAvailabilityWidget(for: summary)
-            ForEach(cardWidgets, id: \.objectID) { card in
-                cardWidget(card: card, summary: summary)
+        let items = widgetItems(for: summary)
+        let visibleItems = orderedVisibleItems(from: items)
+        let libraryItems = items.filter { !pinnedIDs.contains($0.id) }
+
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Widgets")
+                    .font(.headline.weight(.semibold))
+                Spacer()
+                Button(isEditing ? "Done" : "Edit") {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                        isEditing.toggle()
+                        draggingID = nil
+                    }
+                }
+                .buttonStyle(.plain)
             }
+
+            if #available(iOS 16.0, macOS 13.0, macCatalyst 16.0, *) {
+                WidgetGridLayout(columns: columnCount, spacing: gridSpacing, rowHeight: gridRowHeight) {
+                    ForEach(visibleItems) { item in
+                        widgetCell(for: item)
+                    }
+                }
+                .animation(.spring(response: 0.25, dampingFraction: 0.9), value: widgetOrder)
+                .animation(.spring(response: 0.25, dampingFraction: 0.9), value: pinnedIDs)
+            } else {
+                // Fallback to original stack on older OS versions.
+                LazyVStack(spacing: 12) {
+                    ForEach(visibleItems) { item in
+                        widgetCell(for: item)
+                    }
+                }
+            }
+
+            if isEditing && !libraryItems.isEmpty {
+                Divider()
+                    .padding(.vertical, 4)
+                Text("Add widgets")
+                    .font(.subheadline.weight(.semibold))
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(libraryItems) { item in
+                        Button {
+                            pinWidget(item.id)
+                        } label: {
+                            HStack {
+                                Text(item.title)
+                                Spacer()
+                                Image(systemName: "pin.fill")
+                            }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(cardBackground(kind: item.kind))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .onAppear { initializeLayoutStateIfNeeded(with: items) }
+        .onChange(of: items.map(\.id)) { _ in
+            initializeLayoutStateIfNeeded(with: items)
         }
     }
 
     // MARK: Widgets
     private func incomeWidget(for summary: BudgetSummary) -> some View {
-        widgetLink(title: "Income", subtitle: widgetRangeLabel, kind: .income, size: .wide, summary: summary) {
+        widgetLink(title: "Income", subtitle: widgetRangeLabel, kind: .income, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
                 let total = max(max(summary.potentialIncomeTotal, summary.actualIncomeTotal), 1)
                 Text(formatCurrency(summary.actualIncomeTotal))
@@ -234,7 +480,7 @@ struct HomeView: View {
         let income = max(max(summary.actualIncomeTotal, summary.potentialIncomeTotal), 1)
         let ratio = expenses / income
         let percent = ratio * 100
-        return widgetLink(title: "Expense to Income", subtitle: widgetRangeLabel, kind: .budgets, size: .small, summary: summary) {
+        return widgetLink(title: "Expense to Income", subtitle: widgetRangeLabel, kind: .budgets, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("\(percent, specifier: "%.0f")% of income spent")
                     .font(.headline)
@@ -262,7 +508,7 @@ struct HomeView: View {
         let clampedActual = max(actual, 0) // ProgressView must be non-negative
         let clampedProjected = max(projected, 0)
         let progressTotal = max(max(clampedProjected, clampedActual), 1)
-        return widgetLink(title: "Savings Outlook", subtitle: widgetRangeLabel, kind: .budgets, size: .small, summary: summary) {
+        return widgetLink(title: "Savings Outlook", subtitle: widgetRangeLabel, kind: .budgets, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -291,7 +537,7 @@ struct HomeView: View {
 
     private func nextPlannedExpenseWidget(for summary: BudgetSummary) -> some View {
         let snapshot = (nextPlannedSnapshot?.budgetID == summary.id) ? nextPlannedSnapshot : nil
-        return widgetLink(title: "Next Planned Expense", subtitle: widgetRangeLabel, kind: .cards, size: .small, summary: summary, snapshot: snapshot) {
+        return widgetLink(title: "Next Planned Expense", subtitle: widgetRangeLabel, kind: .cards, span: WidgetSpan(width: 1, height: 1), summary: summary, snapshot: snapshot) {
             if let snapshot {
                 PresetExpenseRowView(
                     title: snapshot.title,
@@ -311,18 +557,26 @@ struct HomeView: View {
         let totalExpenses = categories.map(\.amount).reduce(0, +)
         let slices = categorySlices(from: categories, limit: 3)
         let topCategory = categories.first ?? summary.plannedCategoryBreakdown.first ?? summary.categoryBreakdown.first
-        return widgetLink(title: "Category Spotlight", subtitle: widgetRangeLabel, kind: .presets, size: .large, summary: summary, topCategory: topCategory) {
+        return widgetLink(title: "Category Spotlight", subtitle: widgetRangeLabel, kind: .presets, span: WidgetSpan(width: 1, height: 2), summary: summary, topCategory: topCategory) {
             if let top = slices.first, totalExpenses > 0 {
-                CategoryDonutView(
-                    slices: slices,
-                    total: totalExpenses,
-                    centerTitle: top.name,
-                    centerValue: formatCurrency(top.amount)
-                )
-                .frame(height: 140)
-                Text("Top \(min(3, slices.count)) categories in this range.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                GeometryReader { geo in
+                    let donutHeight = max(180, geo.size.height * 0.6)
+                    VStack(alignment: .leading, spacing: 12) {
+                        CategoryDonutView(
+                            slices: slices,
+                            total: totalExpenses,
+                            centerTitle: top.name,
+                            centerValue: formatCurrency(top.amount)
+                        )
+                        .frame(height: donutHeight)
+
+                        Text("Top \(min(3, slices.count)) categories in this range.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
             } else {
                 Text("Add expenses to see category trends.")
                     .foregroundStyle(.secondary)
@@ -339,16 +593,23 @@ struct HomeView: View {
                 onDone: {}
             )
         } label: {
-            widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, size: .small) {
-                CardTileView(card: card, isInteractive: false, showsBaseShadow: false)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, span: WidgetSpan(width: 1, height: 2)) {
+                VStack(alignment: .leading, spacing: 8) {
+                    CardTileView(card: card, isInteractive: false, showsBaseShadow: false)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if let balance = card.balance {
+                        Text("\(formatCurrency(balance))")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                    }
+                }
+                .frame(maxHeight: .infinity, alignment: .topLeading)
             }
         }
         .buttonStyle(.plain)
     }
 
     private func weekdayWidget(for summary: BudgetSummary) -> some View {
-        return widgetLink(title: "Day of Week Spend", subtitle: widgetRangeLabel, kind: .dayOfWeek, size: .small, summary: summary) {
+        return widgetLink(title: "Day of Week Spend", subtitle: widgetRangeLabel, kind: .dayOfWeek, span: WidgetSpan(width: 1, height: 2), summary: summary) {
             if self.weekdayWidgetTotals.isEmpty {
                 Text("No spending yet.")
                     .foregroundStyle(.secondary)
@@ -359,32 +620,238 @@ struct HomeView: View {
                     let maxAmount = max(self.weekdayWidgetTotals.map(\.amount).max() ?? 1, 1)
                     let spacing: CGFloat = 8
                     let barWidth = max((geo.size.width - spacing * 6) / 7, 10)
-                    HStack(alignment: .bottom, spacing: spacing) {
-                        ForEach(self.weekdayWidgetTotals) { item in
-                            let norm = max(min(item.amount / maxAmount, 1), 0)
-                            let barColor = LinearGradient(
-                                colors: gradientColors.map { $0.opacity(0.35 + 0.35 * norm) },
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            VStack(spacing: 4) {
-                                Rectangle()
-                                    .fill(barColor)
-                                    .frame(width: barWidth, height: max(CGFloat(norm) * 60, 6))
-                                    .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
-                                Text(item.label)
-                                    .font(.caption2)
+                    // Leave room for the footer label; let bars fill the rest.
+                    let footerHeight: CGFloat = 28
+                    let barAreaHeight = max(70, geo.size.height - footerHeight)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .bottom, spacing: spacing) {
+                            ForEach(self.weekdayWidgetTotals) { item in
+                                let norm = max(min(item.amount / maxAmount, 1), 0)
+                                let barColor = LinearGradient(
+                                    colors: gradientColors.map { $0.opacity(0.35 + 0.35 * norm) },
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                                VStack(spacing: 4) {
+                                    Rectangle()
+                                        .fill(barColor)
+                                        .frame(width: barWidth, height: max(CGFloat(norm) * (barAreaHeight - 20), 6))
+                                        .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                                    Text(item.label)
+                                        .font(.caption2)
+                                }
                             }
                         }
+                        .frame(maxWidth: .infinity, minHeight: barAreaHeight, maxHeight: barAreaHeight, alignment: .bottomLeading)
+
+                        if let maxItem = self.weekdayWidgetTotals.max(by: { $0.amount < $1.amount }) {
+                            Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 }
-                .frame(height: 90)
-                if let maxItem = self.weekdayWidgetTotals.max(by: { $0.amount < $1.amount }) {
-                    Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                .frame(maxHeight: .infinity)
+            }
+        }
+    }
+
+    // MARK: Widget orchestration
+    private func widgetItems(for summary: BudgetSummary) -> [WidgetItem] {
+        var items: [WidgetItem] = [
+            WidgetItem(id: .income, span: WidgetSpan(width: 1, height: 1), view: AnyView(incomeWidget(for: summary)), title: "Income", kind: .income),
+            WidgetItem(id: .expenseToIncome, span: WidgetSpan(width: 1, height: 1), view: AnyView(expenseRatioWidget(for: summary)), title: "Expense to Income", kind: .budgets),
+            WidgetItem(id: .savings, span: WidgetSpan(width: 1, height: 1), view: AnyView(savingsWidget(for: summary)), title: "Savings Outlook", kind: .budgets),
+            WidgetItem(id: .nextPlanned, span: WidgetSpan(width: 1, height: 1), view: AnyView(nextPlannedExpenseWidget(for: summary)), title: "Next Planned Expense", kind: .cards),
+            WidgetItem(id: .categorySpotlight, span: WidgetSpan(width: 1, height: 2), view: AnyView(categorySpotlightWidget(for: summary)), title: "Category Spotlight", kind: .presets),
+            WidgetItem(id: .dayOfWeek, span: WidgetSpan(width: 1, height: 2), view: AnyView(weekdayWidget(for: summary)), title: "Day of Week Spend", kind: .dayOfWeek),
+            WidgetItem(id: .caps, span: WidgetSpan(width: 1, height: 1), view: AnyView(capsWidget(for: summary)), title: "Caps & Alerts", kind: .caps),
+            WidgetItem(id: .availability, span: WidgetSpan(width: 1, height: 3), view: AnyView(categoryAvailabilityWidget(for: summary)), title: "Category Availability", kind: .availability)
+        ]
+
+        for card in cardWidgets {
+            let cardID = WidgetID.card(card.id)
+            items.append(
+                WidgetItem(
+                    id: cardID,
+                    span: WidgetSpan(width: 1, height: 2),
+                    view: AnyView(cardWidget(card: card, summary: summary)),
+                    title: card.name,
+                    kind: .cards
+                )
+            )
+        }
+
+        return items
+    }
+
+    private func orderedVisibleItems(from items: [WidgetItem]) -> [WidgetItem] {
+        let lookup = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
+        let available = items.map(\.id)
+        let order = normalize(order: widgetOrder, available: available)
+        let pinnedSet = Set(pinnedIDs)
+        return order.compactMap { id in
+            guard pinnedSet.contains(id) else { return nil }
+            return lookup[id]
+        }
+    }
+
+    @ViewBuilder
+    private func widgetCell(for item: WidgetItem) -> some View {
+        let base = item.view
+            .layoutValue(key: WidgetSpanKey.self, value: item.span)
+            .overlay(alignment: .topTrailing) {
+                if isEditing {
+                    pinToggle(for: item.id, isPinned: pinnedIDs.contains(item.id))
                 }
+            }
+            .opacity(draggingID == item.id ? 0.65 : 1)
+            .scaleEffect(draggingID == item.id ? 0.98 : 1)
+
+        if isEditing {
+            base
+                .onDrag {
+                    draggingID = item.id
+                    return NSItemProvider(object: item.id.storageKey as NSString)
+                }
+                .onDrop(of: [UTType.text], delegate: WidgetDropDelegate(target: item.id, order: $widgetOrder, dragging: $draggingID, persist: persistOrder))
+        } else {
+            base
+        }
+    }
+
+    @ViewBuilder
+    private func pinToggle(for id: WidgetID, isPinned: Bool) -> some View {
+        Button {
+            if isPinned {
+                unpinWidget(id)
+            } else {
+                pinWidget(id)
+            }
+        } label: {
+            Image(systemName: isPinned ? "pin.slash.fill" : "pin.fill")
+                .font(.footnote.weight(.bold))
+                .padding(8)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .padding(6)
+    }
+
+    private func pinWidget(_ id: WidgetID) {
+        if !pinnedIDs.contains(id) {
+            pinnedIDs.append(id)
+        }
+        if !widgetOrder.contains(id) {
+            widgetOrder.append(id)
+        }
+        persistPinned()
+        persistOrder()
+    }
+
+    private func unpinWidget(_ id: WidgetID) {
+        pinnedIDs.removeAll { $0 == id }
+        persistPinned()
+    }
+
+    private func initializeLayoutStateIfNeeded(with items: [WidgetItem]) {
+        let available = items.map(\.id)
+        if pinnedIDs.isEmpty {
+            let decoded = decodeIDs(from: pinnedStorage).filter { available.contains($0) }
+            let defaults = available
+            pinnedIDs = decoded.isEmpty ? defaults : decoded
+        } else {
+            pinnedIDs = pinnedIDs.filter { available.contains($0) }
+        }
+
+        // Auto-add any newly discovered cards so they surface without manual pinning.
+        let cardIDs = available.filter {
+            if case .card = $0 { return true }
+            return false
+        }
+        for cardID in cardIDs where !pinnedIDs.contains(cardID) {
+            pinnedIDs.append(cardID)
+        }
+
+        if widgetOrder.isEmpty {
+            let decoded = decodeIDs(from: orderStorage)
+            widgetOrder = normalize(order: decoded.isEmpty ? available : decoded, available: available)
+        } else {
+            widgetOrder = normalize(order: widgetOrder, available: available)
+        }
+
+        persistPinned()
+        persistOrder()
+    }
+
+    private func normalize(order: [WidgetID], available: [WidgetID]) -> [WidgetID] {
+        var normalized = order.filter { available.contains($0) }
+        for id in available where !normalized.contains(id) {
+            normalized.append(id)
+        }
+        return normalized
+    }
+
+    private func decodeIDs(from raw: String) -> [WidgetID] {
+        raw
+            .split(separator: "|")
+            .compactMap { WidgetID.fromStorage(String($0)) }
+    }
+
+    private func encodeIDs(_ ids: [WidgetID]) -> String {
+        ids.map { $0.storageKey }.joined(separator: "|")
+    }
+
+    private func persistPinned() {
+        pinnedStorage = encodeIDs(pinnedIDs)
+    }
+
+    private func persistOrder() {
+        var unique: [WidgetID] = []
+        for id in widgetOrder where !unique.contains(id) {
+            unique.append(id)
+        }
+        widgetOrder = unique
+        orderStorage = encodeIDs(unique)
+    }
+
+    private struct WidgetDropDelegate: DropDelegate {
+        let target: WidgetID
+        @Binding var order: [WidgetID]
+        @Binding var dragging: WidgetID?
+        let persist: () -> Void
+
+        func validateDrop(info: DropInfo) -> Bool {
+            dragging != nil
+        }
+
+        func dropEntered(info: DropInfo) {
+            reorderIfNeeded()
+        }
+
+        func dropUpdated(info: DropInfo) -> DropProposal? {
+            DropProposal(operation: .move)
+        }
+
+        func performDrop(info: DropInfo) -> Bool {
+            dragging = nil
+            persist()
+            return true
+        }
+
+        private func reorderIfNeeded() {
+            guard let dragging else { return }
+            guard dragging != target else { return }
+            guard let fromIndex = order.firstIndex(of: dragging),
+                  let toIndex = order.firstIndex(of: target) else { return }
+            var mutableOrder = order
+            let item = mutableOrder.remove(at: fromIndex)
+            let destination = toIndex > fromIndex ? toIndex - 1 : toIndex
+            mutableOrder.insert(item, at: destination)
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                order = mutableOrder
             }
         }
     }
@@ -392,7 +859,7 @@ struct HomeView: View {
     private func capsWidget(for summary: BudgetSummary) -> some View {
         let overCount = capStatuses.filter { $0.over }.count
         let nearCount = capStatuses.filter { $0.near && !$0.over }.count
-        return widgetLink(title: "Caps & Alerts", subtitle: widgetRangeLabel, kind: .caps, size: .small, summary: summary, capStatuses: capStatuses) {
+        return widgetLink(title: "Caps & Alerts", subtitle: widgetRangeLabel, kind: .caps, span: WidgetSpan(width: 1, height: 1), summary: summary, capStatuses: capStatuses) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Circle().fill(Color.red.opacity(0.15)).frame(width: 10, height: 10)
@@ -413,73 +880,82 @@ struct HomeView: View {
 
     private func categoryAvailabilityWidget(for summary: BudgetSummary) -> some View {
         let items = categoryAvailability(for: summary)
-        let pageSize = 3
         let rowHeight: CGFloat = 60
-        let pages = stride(from: 0, to: items.count, by: pageSize).map { idx in
-            Array(items[idx..<min(idx + pageSize, items.count)])
-        }
-        let selection = Binding(
-            get: { min(availabilityPage, max(pages.count - 1, 0)) },
-            set: { availabilityPage = $0 }
-        )
         let remainingIncome = max(summary.actualIncomeTotal - (summary.plannedExpensesActualTotal + summary.variableExpensesTotal), 0)
 
-        return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, kind: .availability, size: .large, summary: summary) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Label("Remaining Income", systemImage: "banknote")
-                        .font(.ubCaption)
-                    Spacer()
-                    Text(formatCurrency(remainingIncome))
-                        .font(.ubDetailLabel.weight(.bold))
+        return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, kind: .availability, span: WidgetSpan(width: 1, height: 3), summary: summary) {
+            GeometryReader { geo in
+                // Estimate rows that fit the available space.
+                let headerHeight: CGFloat = 32
+                let controlHeight: CGFloat = 24
+                let availableHeight = max(0, geo.size.height - headerHeight - controlHeight)
+                let rows = max(3, Int(floor(availableHeight / rowHeight)))
+                let pageSize = max(3, min(rows, 6))
+                let pages = stride(from: 0, to: items.count, by: pageSize).map { idx in
+                    Array(items[idx..<min(idx + pageSize, items.count)])
                 }
-                if pages.isEmpty {
-                    Text("No categories yet.")
-                        .foregroundStyle(.secondary)
-                        .font(.ubCaption)
-                } else {
-                    TabView(selection: selection) {
-                        ForEach(Array(pages.enumerated()), id: \.offset) { idx, page in
-                            VStack(spacing: 8) {
-                                ForEach(page) { item in
-                                    CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
-                                }
-                            }
-                            .padding(.horizontal, 2)
-                            .tag(idx)
-                        }
+                let selection = Binding(
+                    get: { min(availabilityPage, max(pages.count - 1, 0)) },
+                    set: { availabilityPage = $0 }
+                )
+
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label("Remaining Income", systemImage: "banknote")
+                            .font(.ubCaption)
+                        Spacer()
+                        Text(formatCurrency(remainingIncome))
+                            .font(.ubDetailLabel.weight(.bold))
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .frame(height: rowHeight * CGFloat(min(pageSize, items.count)) + 12)
-                    if pages.count > 1 {
-                        HStack {
-                            Button {
-                                availabilityPage = max(0, availabilityPage - 1)
-                            } label: {
-                                Image(systemName: "chevron.left")
-                            }
-                            .disabled(availabilityPage == 0)
-
-                            Spacer()
-                            HStack(spacing: 6) {
-                                ForEach(0..<pages.count, id: \.self) { idx in
-                                    Circle()
-                                        .fill(idx == availabilityPage ? Color.primary.opacity(0.8) : Color.primary.opacity(0.3))
-                                        .frame(width: 6, height: 6)
+                    if pages.isEmpty {
+                        Text("No categories yet.")
+                            .foregroundStyle(.secondary)
+                            .font(.ubCaption)
+                    } else {
+                        TabView(selection: selection) {
+                            ForEach(Array(pages.enumerated()), id: \.offset) { idx, page in
+                                VStack(spacing: 8) {
+                                    ForEach(page) { item in
+                                        CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
+                                    }
                                 }
+                                .padding(.horizontal, 2)
+                                .tag(idx)
                             }
-                            Spacer()
-
-                            Button {
-                                availabilityPage = min(pages.count - 1, availabilityPage + 1)
-                            } label: {
-                                Image(systemName: "chevron.right")
-                            }
-                            .disabled(availabilityPage >= pages.count - 1)
                         }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                        .padding(.top, 14) // prevent first row from clipping
+                        .frame(height: rowHeight * CGFloat(min(pageSize, items.count)) + 30)
+                        if pages.count > 1 {
+                            HStack {
+                                Button {
+                                    availabilityPage = max(0, availabilityPage - 1)
+                                } label: {
+                                    Image(systemName: "chevron.left")
+                                }
+                                .disabled(availabilityPage == 0)
+
+                                Spacer()
+                                HStack(spacing: 6) {
+                                    ForEach(0..<pages.count, id: \.self) { idx in
+                                        Circle()
+                                            .fill(idx == availabilityPage ? Color.primary.opacity(0.8) : Color.primary.opacity(0.3))
+                                            .frame(width: 6, height: 6)
+                                    }
+                                }
+                                Spacer()
+
+                                Button {
+                                    availabilityPage = min(pages.count - 1, availabilityPage + 1)
+                                } label: {
+                                    Image(systemName: "chevron.right")
+                                }
+                                .disabled(availabilityPage >= pages.count - 1)
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                        }
                     }
                 }
             }
@@ -492,7 +968,7 @@ struct HomeView: View {
         title: String,
         subtitle: String? = nil,
         kind: HomeWidgetKind,
-        size: HomeWidgetSize,
+        span: WidgetSpan,
         summary: BudgetSummary,
         snapshot: PlannedExpenseSnapshot? = nil,
         topCategory: BudgetSummary.CategorySpending? = nil,
@@ -510,35 +986,38 @@ struct HomeView: View {
                 capStatuses: capStatuses
             )
         } label: {
-            widgetCard(title: title, subtitle: subtitle, kind: kind, size: size, content: content)
+            widgetCard(title: title, subtitle: subtitle, kind: kind, span: span, content: content)
         }
         .buttonStyle(.plain)
-        .gridCellColumns(size.columnSpan)
     }
 
-    private func widgetCard<Content: View>(title: String, subtitle: String? = nil, kind: HomeWidgetKind, size: HomeWidgetSize, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.ubWidgetTitle)
-                        .foregroundStyle(kind.titleColor)
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.ubWidgetSubtitle)
-                            .foregroundStyle(.secondary)
+    private func widgetCard<Content: View>(title: String, subtitle: String? = nil, kind: HomeWidgetKind, span: WidgetSpan, @ViewBuilder content: () -> Content) -> some View {
+        let body = content()
+        return GeometryReader { geo in
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.ubWidgetTitle)
+                            .foregroundStyle(kind.titleColor)
+                        if let subtitle {
+                            Text(subtitle)
+                                .font(.ubWidgetSubtitle)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                body
+                Spacer(minLength: 0)
             }
-            content()
+            .padding(16)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: size.minHeight, alignment: .topLeading)
+        .frame(minHeight: CGFloat(max(span.height, 1)) * gridRowHeight, alignment: .topLeading)
         .background(cardBackground(kind: kind))
     }
 
@@ -626,7 +1105,7 @@ struct HomeView: View {
         let summary = primarySummary
         await loadNextPlannedExpense(for: summary)
         await loadWeekdayTotals(for: summary)
-        await loadCards(for: summary)
+        await loadAllCards()
         await loadCaps(for: summary)
     }
 
@@ -634,7 +1113,7 @@ struct HomeView: View {
         let summary = primarySummary
         await loadNextPlannedExpense(for: summary)
         await loadWeekdayTotals(for: summary)
-        await loadCards(for: summary)
+        await loadAllCards()
         await loadCaps(for: summary)
     }
 
@@ -835,6 +1314,39 @@ struct HomeView: View {
             .map { CardItem(from: $0) }
             .sorted { $0.name < $1.name }
         await MainActor.run { cardWidgets = sorted }
+    }
+
+    @MainActor
+    private func loadAllCards() async {
+        let range = currentRange
+        let ctx = CoreDataService.shared.viewContext
+        let req = NSFetchRequest<Card>(entityName: "Card")
+        req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
+        let fetched = (try? ctx.fetch(req)) ?? []
+        let items: [CardItem] = fetched.map { card in
+            var item = CardItem(from: card)
+            // Aggregate unplanned + planned actual expenses in the current range as balance.
+            let expenseReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
+            expenseReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "card == %@", card),
+                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+            ])
+            if let expenses = try? ctx.fetch(expenseReq) {
+                let variableTotal = expenses.reduce(0) { $0 + $1.amount }
+                var plannedTotal: Double = 0
+                if let cardUUID = card.value(forKey: "id") as? UUID {
+                    let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+                    plannedReq.predicate = NSPredicate(format: "card.id == %@ AND isGlobal == NO AND transactionDate >= %@ AND transactionDate <= %@",
+                                                       cardUUID as CVarArg, range.lowerBound as NSDate, range.upperBound as NSDate)
+                    if let planned = try? ctx.fetch(plannedReq) {
+                        plannedTotal = planned.reduce(0) { $0 + $1.actualAmount }
+                    }
+                }
+                item.balance = variableTotal + plannedTotal
+            }
+            return item
+        }
+        cardWidgets = items
     }
 
     private func loadCaps(for summary: BudgetSummary?) async {

@@ -14,7 +14,11 @@ struct SettingsView: View {
     @AppStorage("appLockEnabled") private var isLockEnabled: Bool = true
     @State private var showResetAlert = false
     @State private var showMergeConfirm = false
+    @State private var showForceReuploadConfirm = false
+    @State private var showForceReuploadResult = false
+    @State private var forceReuploadMessage: String = ""
     @State private var isMerging = false
+    @State private var isForceReuploading = false
     @State private var showMergeDone = false
     @State private var showDisableCloudOptions = false
     @State private var isReconfiguringStores = false
@@ -104,6 +108,22 @@ struct SettingsView: View {
                     }
                 }
 
+                SettingsCard(
+                    iconSystemName: "square.grid.2x2",
+                    title: "Presets",
+                    subtitle: "Organize saved expense templates."
+                ) {
+                    VStack(spacing: 0) {
+                        NavigationLink(destination: PresetsView()
+                            .environment(\.managedObjectContext, viewContext)) {
+                            SettingsRow(title: "Manage Presets", detail: "Open", showsTopDivider: false) {
+                                Image(systemName: "chevron.right").foregroundStyle(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
                 // Onboarding
                 SettingsCard(
                     iconSystemName: "questionmark.circle",
@@ -162,13 +182,24 @@ struct SettingsView: View {
         } message: {
             Text("Your data has been merged. If you still see duplicates, you can run the merge again or contact support.")
         }
+        .alert("Force iCloud Sync Refresh?", isPresented: $showForceReuploadConfirm) {
+            Button("Run Refresh", role: .destructive) { forceReupload() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will mark all budgets, incomes, and expenses as updated so they re-export to iCloud. Use for troubleshooting only.")
+        }
+        .alert("Sync Refresh Finished", isPresented: $showForceReuploadResult) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(forceReuploadMessage)
+        }
         .overlay(alignment: .center) {
-            if isMerging || isReconfiguringStores {
+            if let overlayLabel = overlayStatusLabel {
                 ZStack {
                     Color.black.opacity(0.3).ignoresSafeArea()
                     VStack(spacing: 12) {
                         ProgressView()
-                        Text(isMerging ? "Merging data…" : "Reconfiguring storage…").foregroundStyle(.secondary)
+                        Text(overlayLabel).foregroundStyle(.secondary)
                     }
                     .padding(16)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -235,6 +266,21 @@ private extension SettingsView {
                 }
                 // Budget Period sync is handled via Core Data (Workspace) when Cloud is enabled.
 
+                Divider().padding(.horizontal, 16)
+
+                Button(action: { showForceReuploadConfirm = true }) {
+                    SettingsRow(
+                        title: "Force iCloud Sync Refresh",
+                        detail: "Re-upload all data",
+                        showsTopDivider: false
+                    ) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .foregroundStyle(vm.enableCloudSync ? .primary : .secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(!vm.enableCloudSync || isForceReuploading || isReconfiguringStores)
+
             }
         }
     }
@@ -262,6 +308,33 @@ private extension SettingsView {
                 }
             }
         )
+    }
+
+    var overlayStatusLabel: String? {
+        if isMerging { return "Merging data…" }
+        if isReconfiguringStores { return "Reconfiguring storage…" }
+        if isForceReuploading { return "Refreshing iCloud sync…" }
+        return nil
+    }
+
+    /// Force a CloudKit re-export by "touching" all syncable entities.
+    /// Uses ForceReuploadHelper to create history entries without user-visible changes.
+    private func forceReupload() {
+        isForceReuploading = true
+        Task { @MainActor in
+            defer { isForceReuploading = false }
+            do {
+                let result = try await ForceReuploadHelper.forceReuploadAll(reason: "settings-button")
+                let summary = result.updatedCounts
+                    .sorted(by: { $0.key < $1.key })
+                    .map { "\($0.key): \($0.value)" }
+                    .joined(separator: ", ")
+                forceReuploadMessage = "Updated \(result.totalUpdated) records. \(summary.isEmpty ? "" : "Details: \(summary)")"
+            } catch {
+                forceReuploadMessage = "Failed to refresh: \(error.localizedDescription)"
+            }
+            showForceReuploadResult = true
+        }
     }
 
     // Removed: Store Mode and Container Reachable rows for a cleaner UI

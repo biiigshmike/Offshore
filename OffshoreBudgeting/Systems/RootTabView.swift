@@ -31,7 +31,6 @@ struct RootTabView: View {
         case budgets
         case income
         case cards
-        case presets
         case settings
     }
 
@@ -57,7 +56,6 @@ struct RootTabView: View {
                 tabViewItem(for: .budgets)
                 tabViewItem(for: .income)
                 tabViewItem(for: .cards)
-                tabViewItem(for: .presets)
                 tabViewItem(for: .settings)
             }
             .onAppear { applyStartTabIfNeeded() }
@@ -73,7 +71,6 @@ struct RootTabView: View {
             tabViewItem(for: .budgets)
             tabViewItem(for: .income)
             tabViewItem(for: .cards)
-            tabViewItem(for: .presets)
             tabViewItem(for: .settings)
         }
         .onAppear { applyStartTabIfNeeded() }
@@ -145,9 +142,6 @@ struct RootTabView: View {
         case .cards:
             CardsView()
                 .id(dataRevision)
-        case .presets:
-            PresetsView()
-                .id(dataRevision)
         case .settings:
             SettingsView()
         }
@@ -180,8 +174,6 @@ extension RootTabView.Tab {
             return "Income"
         case .cards:
             return "Cards"
-        case .presets:
-            return "Presets"
         case .settings:
             return "Settings"
         }
@@ -198,8 +190,6 @@ extension RootTabView.Tab {
             return "calendar"
         case .cards:
             return "creditcard"
-        case .presets:
-            return "list.bullet.rectangle"
         case .settings:
             return "gear"
         }
@@ -212,7 +202,6 @@ extension RootTabView.Tab {
         case .budgets: return "tab_budgets"
         case .income: return "tab_income"
         case .cards: return "tab_cards"
-        case .presets: return "tab_presets"
         case .settings: return "tab_settings"
         }
     }
@@ -234,7 +223,6 @@ private extension RootTabView {
         case "budgets": return .budgets
         case "income": return .income
         case "cards": return .cards
-        case "presets": return .presets
         case "settings": return .settings
         default: return nil
         }

@@ -31,20 +31,40 @@ struct BudgetsView: View {
         if isLoading {
             ProgressView("Loading Budgets…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        } else if activeBudgets.isEmpty {
+        } else if activeBudgets.isEmpty && upcomingBudgets.isEmpty && pastBudgets.isEmpty {
             UBEmptyState(
                 iconSystemName: "chart.pie",
-                title: "No Active Budgets",
+                title: "No Budgets",
                 message: "Create a budget to get started."
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .sheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
         } else {
             List {
-                Section("Active Budgets") {
-                    ForEach(activeBudgets, id: \.objectID) { budget in
-                        NavigationLink(destination: BudgetDetailsView(budgetID: budget.objectID)) {
-                            BudgetRow(budget: budget)
+                if !pastBudgets.isEmpty {
+                    Section("Past Budgets") {
+                        ForEach(pastBudgets, id: \.objectID) { budget in
+                            NavigationLink(destination: BudgetDetailsView(budgetID: budget.objectID)) {
+                                BudgetRow(budget: budget)
+                            }
+                        }
+                    }
+                }
+                if !activeBudgets.isEmpty {
+                    Section("Active Budgets") {
+                        ForEach(activeBudgets, id: \.objectID) { budget in
+                            NavigationLink(destination: BudgetDetailsView(budgetID: budget.objectID)) {
+                                BudgetRow(budget: budget)
+                            }
+                        }
+                    }
+                }
+                if !upcomingBudgets.isEmpty {
+                    Section("Upcoming Budgets") {
+                        ForEach(upcomingBudgets, id: \.objectID) { budget in
+                            NavigationLink(destination: BudgetDetailsView(budgetID: budget.objectID)) {
+                                BudgetRow(budget: budget)
+                            }
                         }
                     }
                 }
@@ -76,6 +96,20 @@ struct BudgetsView: View {
     private var activeBudgets: [Budget] {
         let now = Date()
         return budgets.filter { isActive($0, on: now) }
+    }
+
+    private var pastBudgets: [Budget] {
+        let now = Date()
+        return budgets
+            .filter { ($0.endDate ?? .distantFuture) < now }
+            .sorted { ($0.endDate ?? .distantPast) > ($1.endDate ?? .distantPast) }
+    }
+
+    private var upcomingBudgets: [Budget] {
+        let now = Date()
+        return budgets
+            .filter { ($0.startDate ?? .distantFuture) > now }
+            .sorted { ($0.startDate ?? .distantFuture) < ($1.startDate ?? .distantFuture) }
     }
 
     // MARK: Data Loading

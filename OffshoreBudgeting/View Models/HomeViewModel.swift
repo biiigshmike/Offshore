@@ -154,6 +154,7 @@ final class HomeViewModel: ObservableObject {
     }
     @Published private(set) var customDateRange: ClosedRange<Date>? = nil
     @Published private(set) var state: BudgetLoadState = .initial
+    @Published private(set) var loadedBudgetIDs: [NSManagedObjectID] = []
     @Published var alert: HomeViewAlert?
 
     // MARK: Dependencies
@@ -246,7 +247,7 @@ final class HomeViewModel: ObservableObject {
             requestedRange = start...end
         }
 
-        let summaries = await loadSummaries(period: requestedPeriod, dateRange: requestedRange)
+        let (summaries, budgetIDs) = await loadSummaries(period: requestedPeriod, dateRange: requestedRange)
         AppLog.viewModel.debug("HomeViewModel.refresh() finished fetching summaries – count: \(summaries.count)")
 
         // Even if this task was cancelled (for example, by a rapid burst of
@@ -264,6 +265,7 @@ final class HomeViewModel: ObservableObject {
         } else {
             let newState: BudgetLoadState = summaries.isEmpty ? .empty : .loaded(summaries)
             emitStateDebounced(newState)
+            self.loadedBudgetIDs = budgetIDs
         }
 
         isRefreshing = false
@@ -338,7 +340,7 @@ final class HomeViewModel: ObservableObject {
         cancellables.forEach { $0.cancel() }
     }
 
-    private func loadSummaries(period: BudgetPeriod, dateRange: ClosedRange<Date>) async -> [BudgetSummary] {
+    private func loadSummaries(period: BudgetPeriod, dateRange: ClosedRange<Date>) async -> (summaries: [BudgetSummary], budgetIDs: [NSManagedObjectID]) {
         await withCheckedContinuation { continuation in
             let backgroundContext = CoreDataService.shared.newBackgroundContext()
             backgroundContext.perform {
@@ -348,11 +350,16 @@ final class HomeViewModel: ObservableObject {
                 let budgets = Self.fetchBudgets(overlapping: dateRange, in: backgroundContext)
 
                 let summaries: [BudgetSummary] = budgets.compactMap { budget -> BudgetSummary? in
-                    guard let startDate = budget.startDate, let endDate = budget.endDate else { return nil }
+                    // Use the intersection between the selected range and the budget itself
+                    let budgetStart = budget.startDate ?? dateRange.lowerBound
+                    let budgetEnd = budget.endDate ?? dateRange.upperBound
+                    let rangeStart = max(budgetStart, dateRange.lowerBound)
+                    let rangeEnd = min(budgetEnd, dateRange.upperBound)
+                    guard rangeStart <= rangeEnd else { return nil }
                     return Self.buildSummary(
                         for: budget,
-                        periodStart: startDate,
-                        periodEnd: endDate,
+                        periodStart: rangeStart,
+                        periodEnd: rangeEnd,
                         in: backgroundContext
                     )
                 }
@@ -360,8 +367,9 @@ final class HomeViewModel: ObservableObject {
                     (first.periodStart, first.budgetName) < (second.periodStart, second.budgetName)
                 }
 
+                let budgetIDs = budgets.map { $0.objectID }
                 backgroundContext.reset()
-                continuation.resume(returning: summaries)
+                continuation.resume(returning: (summaries: summaries, budgetIDs: budgetIDs))
             }
         }
     }

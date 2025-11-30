@@ -258,8 +258,9 @@ struct BudgetDetailsView: View {
         let expenseValue = segment == .planned ? summary.plannedExpensesActualTotal : summary.variableExpensesTotal
         let cardBackground = Color(.systemBackground)
         let cardSpacing: CGFloat = 12
+        let columns = [GridItem(.adaptive(minimum: 150), spacing: cardSpacing)]
 
-        HStack(alignment: .top, spacing: cardSpacing) {
+        LazyVGrid(columns: columns, alignment: .center, spacing: cardSpacing) {
             statCard(
                 title: "Income",
                 color: HomeView.HomePalette.income,

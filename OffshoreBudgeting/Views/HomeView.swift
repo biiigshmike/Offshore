@@ -184,6 +184,8 @@ struct HomeView: View {
     @State private var startDateSelection: Date = Date()
     @State private var endDateSelection: Date = Date()
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
 
     @AppStorage("homePinnedWidgetIDs") private var pinnedStorage: String = ""
@@ -198,10 +200,12 @@ struct HomeView: View {
     @State private var isEditing: Bool = false
     @State private var draggingID: WidgetID?
 
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-
     private let gridSpacing: CGFloat = 18
     private let gridRowHeight: CGFloat = 170
+
+    private var isCompactDateRow: Bool {
+        horizontalSizeClass == .compact
+    }
 
     private var columnCount: Int {
         #if os(macOS)
@@ -350,24 +354,46 @@ struct HomeView: View {
     @ViewBuilder
     private var dateRow: some View {
         let applyDisabled = startDateSelection > endDateSelection
-        HStack(spacing: 12) {
-            Text(rangeDescription(currentRange))
-                .font(.headline.weight(.semibold))
-            Spacer()
-            HStack(spacing: 8) {
-                DatePicker("Start date", selection: $startDateSelection, displayedComponents: [.date])
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                DatePicker("End date", selection: $endDateSelection, displayedComponents: [.date])
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                applyButton(applyDisabled)
-                periodMenu
+        let rangeLabel = Text(rangeDescription(currentRange))
+            .font(.headline.weight(.semibold))
+            .lineLimit(isCompactDateRow ? 2 : 1)
+            .minimumScaleFactor(0.75)
+            .multilineTextAlignment(.leading)
+
+        let controls = dateRowControls(disabled: applyDisabled)
+
+        Group {
+            if isCompactDateRow {
+                VStack(alignment: .leading, spacing: 12) {
+                    rangeLabel
+                    controls
+                }
+            } else {
+                HStack(spacing: 12) {
+                    rangeLabel
+                    Spacer()
+                    controls
+                }
             }
         }
         .padding(12)
+        .frame(maxWidth: .infinity)
         .background(glassRowBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func dateRowControls(disabled: Bool) -> some View {
+        HStack(spacing: 8) {
+            DatePicker("Start date", selection: $startDateSelection, displayedComponents: [.date])
+                .labelsHidden()
+                .datePickerStyle(.compact)
+            DatePicker("End date", selection: $endDateSelection, displayedComponents: [.date])
+                .labelsHidden()
+                .datePickerStyle(.compact)
+            applyButton(disabled)
+            periodMenu
+        }
     }
 
     private var glassRowBackground: some View {
@@ -880,17 +906,21 @@ struct HomeView: View {
 
     private func categoryAvailabilityWidget(for summary: BudgetSummary) -> some View {
         let items = categoryAvailability(for: summary)
-        let rowHeight: CGFloat = 60
+        let rowHeight: CGFloat = 64
+        let rowSpacing: CGFloat = 8
+        let maxRowsPerPage: Int = 6
+        let tabPadding: CGFloat = 12
         let remainingIncome = max(summary.actualIncomeTotal - (summary.plannedExpensesActualTotal + summary.variableExpensesTotal), 0)
 
         return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, kind: .availability, span: WidgetSpan(width: 1, height: 3), summary: summary) {
             GeometryReader { geo in
-                // Estimate rows that fit the available space.
-                let headerHeight: CGFloat = 32
-                let controlHeight: CGFloat = 24
-                let availableHeight = max(0, geo.size.height - headerHeight - controlHeight)
-                let rows = max(3, Int(floor(availableHeight / rowHeight)))
-                let pageSize = max(3, min(rows, 6))
+                // Estimate rows that fit the available space and cap to a max page size to avoid clipping.
+                let headerAllowance: CGFloat = 32
+                let controlsAllowance: CGFloat = 36
+                let availableHeight = max(0, geo.size.height - headerAllowance - controlsAllowance)
+                let slotHeight = rowHeight + rowSpacing
+                let rowsThatFit = max(3, Int(floor((availableHeight + rowSpacing) / slotHeight)))
+                let pageSize = max(3, min(rowsThatFit, maxRowsPerPage))
                 let pages = stride(from: 0, to: items.count, by: pageSize).map { idx in
                     Array(items[idx..<min(idx + pageSize, items.count)])
                 }
@@ -898,68 +928,109 @@ struct HomeView: View {
                     get: { min(availabilityPage, max(pages.count - 1, 0)) },
                     set: { availabilityPage = $0 }
                 )
+                let maxRowsOnPage = pages.map(\.count).max() ?? 0
+                let tabHeight = max(0, CGFloat(maxRowsOnPage) * rowHeight + CGFloat(max(maxRowsOnPage - 1, 0)) * rowSpacing + tabPadding * 2)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 8) {
                         Label("Remaining Income", systemImage: "banknote")
-                            .font(.ubCaption)
+                            .font(.ubCaption.weight(.semibold))
                         Spacer()
                         Text(formatCurrency(remainingIncome))
                             .font(.ubDetailLabel.weight(.bold))
                     }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+
+                    Divider()
+                        .padding(.horizontal, 14)
+                        .opacity(0.35)
+
                     if pages.isEmpty {
                         Text("No categories yet.")
                             .foregroundStyle(.secondary)
                             .font(.ubCaption)
+                            .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
+                            .padding(.vertical, tabPadding)
                     } else {
                         TabView(selection: selection) {
                             ForEach(Array(pages.enumerated()), id: \.offset) { idx, page in
-                                VStack(spacing: 8) {
+                                VStack(spacing: rowSpacing) {
                                     ForEach(page) { item in
                                         CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
                                     }
                                 }
-                                .padding(.horizontal, 2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, tabPadding)
                                 .tag(idx)
                             }
                         }
                         .tabViewStyle(.page(indexDisplayMode: .never))
-                        .padding(.top, 14) // prevent first row from clipping
-                        .frame(height: rowHeight * CGFloat(min(pageSize, items.count)) + 30)
-                        if pages.count > 1 {
-                            HStack {
-                                Button {
-                                    availabilityPage = max(0, availabilityPage - 1)
-                                } label: {
-                                    Image(systemName: "chevron.left")
-                                }
-                                .disabled(availabilityPage == 0)
+                        .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .never))
+                        .frame(height: min(tabHeight, availableHeight), alignment: .top)
+                    }
 
-                                Spacer()
-                                HStack(spacing: 6) {
+                    if !pages.isEmpty && pages.count > 1 {
+                        Divider()
+                            .padding(.horizontal, 14)
+                            .opacity(0.35)
+
+                        HStack {
+                            Spacer(minLength: 0)
+                            HStack(spacing: 12) {
+                                availabilityNavButton("chevron.left", isDisabled: availabilityPage == 0) {
+                                    availabilityPage = max(0, availabilityPage - 1)
+                                }
+
+                                HStack(spacing: 8) {
                                     ForEach(0..<pages.count, id: \.self) { idx in
-                                        Circle()
-                                            .fill(idx == availabilityPage ? Color.primary.opacity(0.8) : Color.primary.opacity(0.3))
-                                            .frame(width: 6, height: 6)
+                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                            .fill(idx == availabilityPage ? Color.primary.opacity(0.9) : Color.primary.opacity(0.35))
+                                            .frame(width: idx == availabilityPage ? 20 : 9, height: 7)
                                     }
                                 }
-                                Spacer()
 
-                                Button {
+                                availabilityNavButton("chevron.right", isDisabled: availabilityPage >= pages.count - 1) {
                                     availabilityPage = min(pages.count - 1, availabilityPage + 1)
-                                } label: {
-                                    Image(systemName: "chevron.right")
                                 }
-                                .disabled(availabilityPage >= pages.count - 1)
                             }
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            Spacer(minLength: 0)
                         }
                     }
                 }
+                .padding(.top, 6)
             }
         }
+    }
+
+    @ViewBuilder
+    private func availabilityNavButton(_ systemName: String, isDisabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 32, height: 32)
+                .background(
+                    Group {
+                        if #available(iOS 26.0, macCatalyst 26.0, *) {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .glassEffect(.regular, in: .rect(cornerRadius: 16))
+                        } else {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.primary.opacity(0.08))
+                        }
+                    }
+                    .opacity(isDisabled ? 0.45 : 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .opacity(isDisabled ? 0.45 : 1)
+        .disabled(isDisabled)
     }
 
 
@@ -1573,7 +1644,7 @@ private struct MetricDetailView: View {
                 ForEach(capStatuses) { cap in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Circle().fill(cap.color.opacity(0.3)).frame(width: 10, height: 10)
+                            Circle().fill(cap.color).frame(width: 10, height: 10)
                             Text(cap.name)
                                 .font(.ubDetailLabel.weight(.semibold))
                             Spacer()
@@ -1798,7 +1869,7 @@ private struct MetricDetailView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 HStack(spacing: 6) {
-                    Circle().fill(item.color.opacity(0.8)).frame(width: 10, height: 10)
+                    Circle().fill(item.color).frame(width: 10, height: 10)
                     Text(item.name)
                 }
                     .font(.ubDetailLabel.weight(.semibold))
@@ -1869,7 +1940,7 @@ private func scenarioSlices(items: [CategoryAvailability], savings: Double) -> [
 }
 
 private func scenarioGradient(for items: [CategoryAvailability]) -> AngularGradient? {
-    let colors = items.map { $0.color.opacity(0.9) }
+    let colors = items.map { $0.color }
     let limited = Array(colors.prefix(6))
     guard limited.count >= 2 else { return nil }
     return AngularGradient(gradient: Gradient(colors: limited), center: .center)
@@ -1971,13 +2042,34 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
     private func heatmapCategoryButton(title: String, action: @escaping () -> Void) -> some View {
         let shape26 = Capsule()
         let shapeLegacy = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        let gradient = categoryHeatmapGradient
-        let background = Group {
-            if let gradient {
-                gradient.opacity(0.35)
-            } else {
-                Color.accentColor.opacity(0.15)
+        let gradientColors = categoryHeatmapColors
+
+        @ViewBuilder
+        func heatmapBackground<S: Shape>(for shape: S) -> some View {
+            ZStack {
+                Color.primary.opacity(0.03)
+                if let gradientColors {
+                    LinearGradient(
+                        gradient: Gradient(colors: gradientColors),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .opacity(0.35)
+                    AngularGradient(
+                        gradient: Gradient(colors: gradientColors),
+                        center: .center,
+                        startAngle: .degrees(-90),
+                        endAngle: .degrees(270)
+                    )
+                    .blendMode(.screen)
+                    .opacity(0.35)
+                    .blur(radius: 16)
+                    .scaleEffect(1.1)
+                } else {
+                    Color.accentColor.opacity(0.18)
+                }
             }
+            .clipShape(shape)
         }
 
         let label = Text(title)
@@ -1993,23 +2085,23 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
                 }
                 .buttonStyle(.glassProminent)
                 .tint(.clear)
-                .background(background.clipShape(shape26))
+                .background(heatmapBackground(for: shape26))
             } else {
                 Button(action: action) {
                     label
                 }
                 .buttonStyle(.plain)
-                .background(background.clipShape(shapeLegacy))
+                .background(heatmapBackground(for: shapeLegacy))
                 .overlay(shapeLegacy.stroke(Color.primary.opacity(0.08), lineWidth: 1))
             }
         }
     }
 
-    private var categoryHeatmapGradient: LinearGradient? {
+    private var categoryHeatmapColors: [Color]? {
         let colors = summary.categoryBreakdown.compactMap { UBColorFromHex($0.hexColor) }
         let limited = Array(colors.prefix(12))
         guard !limited.isEmpty else { return nil }
-        return LinearGradient(colors: limited, startPoint: .leading, endPoint: .trailing)
+        return limited
     }
 
     @ViewBuilder
@@ -2800,7 +2892,7 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
         let color = UBColorFromHex(cat.hexColor) ?? HomeView.HomePalette.presets
         let share = max(min(cat.amount / max(total, 1), 1), 0)
         return HStack {
-            Circle().fill(color.opacity(0.35)).frame(width: 10, height: 10)
+            Circle().fill(color).frame(width: 10, height: 10)
             Text(cat.categoryName)
                 .font(.subheadline.weight(.semibold))
             Spacer()
@@ -3186,7 +3278,7 @@ private struct CategoryTopRow: View {
         let share = max(min(slice.amount / max(total, 1), 1), 0)
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Circle().fill(slice.color.opacity(0.35)).frame(width: 10, height: 10)
+                Circle().fill(slice.color).frame(width: 10, height: 10)
                 Text(slice.name)
                     .font(.subheadline.weight(.semibold))
                 Spacer()

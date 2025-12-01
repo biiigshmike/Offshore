@@ -19,9 +19,10 @@ struct OffshoreBudgetingApp: App {
     @State private var cardPickerStore: CardPickerStore?
     @State private var coreDataReady = false
     @State private var dataReady = false
-    @State private var isSyncing = false
     @State private var dataRevision: Int = 0
     @State private var dataChangeObserver: NSObjectProtocol?
+    @State private var homeContentReady = false
+    @State private var homeDataObserver: NSObjectProtocol?
     private let platformCapabilities = PlatformCapabilities.current
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
@@ -49,20 +50,12 @@ struct OffshoreBudgetingApp: App {
             configuredScene {
                 ResponsiveLayoutReader { _ in
                     ZStack {
-                        // Base content (only when Core Data + stores are ready)
-                        if coreDataReady, cardPickerStore != nil {
-                            if didCompleteOnboarding {
-                                RootTabView()
-                                    .environment(\.dataRevision, dataRevision)
-                                    .transition(.opacity)
-                            } else {
-                                CloudSyncGateView()
-                                    .transition(.opacity)
-                            }
-                        }
-                        // Glass setup overlay while preparing/syncing
-                        if !dataReady || !coreDataReady || cardPickerStore == nil {
-                            WorkspaceSetupView(isSyncing: isSyncing)
+                        if didCompleteOnboarding {
+                            RootTabView(isWorkspaceReady: workspaceReady)
+                                .environment(\.dataRevision, dataRevision)
+                                .transition(.opacity)
+                        } else {
+                            CloudSyncGateView()
                                 .transition(.opacity)
                         }
 
@@ -72,8 +65,6 @@ struct OffshoreBudgetingApp: App {
                                 .transition(.opacity)
                         }
                     }
-                    .animation(.easeInOut(duration: 0.25), value: dataReady)
-                    .animation(.easeInOut(duration: 0.25), value: coreDataReady)
                 }
             }
         }
@@ -143,6 +134,7 @@ struct OffshoreBudgetingApp: App {
                     coreDataReady = true
                     startDataReadinessFlow()
                     startObservingDataChanges()
+                    startObservingHomeReadiness()
                     CloudSyncAccelerator.shared.nudgeOnForeground()
                     #if DEBUG
                     if ProcessInfo.processInfo.environment["INIT_CLOUDKIT_SCHEMA"] == "1" {
@@ -202,11 +194,6 @@ struct OffshoreBudgetingApp: App {
         return base
     }
 
-    private var syncPlaceholderText: String {
-        let cloudOn = UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
-        return cloudOn ? (isSyncing ? "Syncing from iCloud…" : "Loading…") : "Loading…"
-    }
-
     @MainActor
     private func startDataReadinessFlow() {
         let cloudOn = UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
@@ -215,12 +202,10 @@ struct OffshoreBudgetingApp: App {
             return
         }
         dataReady = false
-        isSyncing = true
         Task { @MainActor in
             let remoteHas = await CloudDataRemoteProbe().hasAnyRemoteData(timeout: 4.0)
             if !remoteHas {
                 dataReady = true
-                isSyncing = false
                 return
             }
             async let importDone: Bool = CloudSyncMonitor.shared.awaitInitialImport(timeout: 10.0)
@@ -229,10 +214,13 @@ struct OffshoreBudgetingApp: App {
             let b = await localData
             let ok = a || b
             dataReady = ok
-            isSyncing = false
             if ok { dataRevision &+= 1 }
             if ok { CloudSyncAccelerator.shared.nudgeOnForeground() }
         }
+    }
+
+    private var workspaceReady: Bool {
+        coreDataReady && cardPickerStore != nil
     }
 
     @MainActor
@@ -243,8 +231,24 @@ struct OffshoreBudgetingApp: App {
             object: nil,
             queue: .main
         ) { _ in
-            if !dataReady {
+            if !dataReady && !homeContentReady {
                 dataRevision &+= 1
+            }
+        }
+    }
+
+    @MainActor
+    private func startObservingHomeReadiness() {
+        guard homeDataObserver == nil else { return }
+        homeDataObserver = NotificationCenter.default.addObserver(
+            forName: .homeViewInitialDataLoaded,
+            object: nil,
+            queue: .main
+        ) { _ in
+            self.homeContentReady = true
+            if let observer = self.homeDataObserver {
+                NotificationCenter.default.removeObserver(observer)
+                self.homeDataObserver = nil
             }
         }
     }

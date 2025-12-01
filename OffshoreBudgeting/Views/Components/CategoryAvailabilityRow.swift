@@ -12,7 +12,7 @@ struct CategoryAvailabilityRow: View {
             return item.available
         }()
 
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Circle().fill(item.color.opacity(0.75)).frame(width: 12, height: 12)
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.name)
@@ -45,6 +45,6 @@ struct CategoryAvailabilityRow: View {
                 }
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
     }
 }

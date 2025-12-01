@@ -168,6 +168,7 @@ final class HomeViewModel: ObservableObject {
     private var needsAnotherRefresh = false
     private var pendingApply: DispatchWorkItem?
     private var lastLoadedAt: Date? = nil
+    private var hasPostedInitialDataNotification = false
 
     // MARK: init()
     /// - Parameter context: The Core Data context to use (defaults to main viewContext).
@@ -329,6 +330,16 @@ final class HomeViewModel: ObservableObject {
                 default:
                     break
                 }
+
+                if !self.hasPostedInitialDataNotification {
+                    switch newState {
+                    case .loaded, .empty:
+                        self.hasPostedInitialDataNotification = true
+                        NotificationCenter.default.post(name: .homeViewInitialDataLoaded, object: nil)
+                    default:
+                        break
+                    }
+                }
             }
         }
         pendingApply = work
@@ -348,6 +359,8 @@ final class HomeViewModel: ObservableObject {
                 // require exact period alignment so empty or partial budgets
                 // still appear on Home and do not cause empty/loaded flapping.
                 let budgets = Self.fetchBudgets(overlapping: dateRange, in: backgroundContext)
+                let allCategories = Self.fetchAllCategories(in: backgroundContext)
+                let allIncomes = Self.fetchIncomes(overlapping: dateRange, in: backgroundContext)
 
                 let summaries: [BudgetSummary] = budgets.compactMap { budget -> BudgetSummary? in
                     // Use the intersection between the selected range and the budget itself
@@ -360,6 +373,8 @@ final class HomeViewModel: ObservableObject {
                         for: budget,
                         periodStart: rangeStart,
                         periodEnd: rangeEnd,
+                        allCategories: allCategories,
+                        allIncomes: allIncomes,
                         in: backgroundContext
                     )
                 }
@@ -475,6 +490,18 @@ final class HomeViewModel: ObservableObject {
         do { return try context.fetch(req) } catch { return [] }
     }
 
+    private nonisolated static func fetchAllCategories(in context: NSManagedObjectContext) -> [ExpenseCategory] {
+        let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+        req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+        return (try? context.fetch(req)) ?? []
+    }
+
+    private nonisolated static func fetchIncomes(overlapping range: ClosedRange<Date>, in context: NSManagedObjectContext) -> [Income] {
+        let req = NSFetchRequest<Income>(entityName: "Income")
+        req.predicate = NSPredicate(format: "date >= %@ AND date <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+        return (try? context.fetch(req)) ?? []
+    }
+
     // MARK: buildSummary(for:periodStart:periodEnd:)
     /// Computes totals and category breakdown for a single budget.
     /// - Parameters:
@@ -486,6 +513,8 @@ final class HomeViewModel: ObservableObject {
         for budget: Budget,
         periodStart: Date,
         periodEnd: Date,
+        allCategories: [ExpenseCategory],
+        allIncomes: [Income],
         in context: NSManagedObjectContext
     ) -> BudgetSummary {
         // MARK: Planned Expenses (attached to budget)
@@ -508,10 +537,10 @@ final class HomeViewModel: ObservableObject {
         let plannedExpensesActualTotal  = plannedExpenses.reduce(0.0) { $0 + $1.actualAmount }
 
         // MARK: Income (DATE-ONLY; no relationship)
-        // Income events exist globally on the calendar; we include any whose date falls within the budget window.
-        let incomeFetch = NSFetchRequest<Income>(entityName: "Income")
-        incomeFetch.predicate = NSPredicate(format: "date >= %@ AND date <= %@", periodStart as NSDate, periodEnd as NSDate)
-        let incomes: [Income] = (try? context.fetch(incomeFetch)) ?? []
+        let incomes: [Income] = allIncomes.filter { income in
+            guard let date = income.date else { return false }
+            return date >= periodStart && date <= periodEnd
+        }
         let potentialIncomeTotal = incomes.filter { $0.isPlanned }.reduce(0.0) { $0 + $1.amount }
         let actualIncomeTotal    = incomes.filter { !$0.isPlanned }.reduce(0.0) { $0 + $1.amount }
 
@@ -555,9 +584,6 @@ final class HomeViewModel: ObservableObject {
         }
 
         // Union with all categories to include zero-amount chips
-        let allCategoriesFetch = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
-        allCategoriesFetch.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
-        let allCategories: [ExpenseCategory] = (try? context.fetch(allCategoriesFetch)) ?? []
         for cat in allCategories {
             let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             if plannedCatMap[cat.objectID] == nil { plannedCatMap[cat.objectID] = (name: name, hex: cat.color, total: 0) }

@@ -22,6 +22,7 @@ struct RootTabView: View {
     // background/chrome appearance via compatibility modifiers.
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dataRevision) private var dataRevision
+    let isWorkspaceReady: Bool
 
     // MARK: Tabs
     /// Logical destinations in the root tab bar. The order here matches the
@@ -129,10 +130,18 @@ struct RootTabView: View {
     /// Returns the root view for the given tab without additional decoration.
     /// - Parameter tab: Logical tab identifier.
     private func tabContent(for tab: Tab) -> some View {
+        if isWorkspaceReady {
+            readyTabContent(for: tab)
+        } else {
+            loadingPlaceholder()
+        }
+    }
+
+    @ViewBuilder
+    private func readyTabContent(for tab: Tab) -> some View {
         switch tab {
         case .home:
             HomeView()
-                .id(dataRevision)
         case .budgets:
             BudgetsView()
                 .id(dataRevision)
@@ -158,6 +167,12 @@ struct RootTabView: View {
             NavigationView { content() }
                 .navigationViewStyle(StackNavigationViewStyle())
         }
+    }
+
+    private func loadingPlaceholder() -> some View {
+        Color.clear
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityHidden(true)
     }
 }
 

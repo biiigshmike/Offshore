@@ -10,11 +10,22 @@ import AppKit
 #endif
 
 // MARK: - Shared Models
-private struct WeekdayTotal: Identifiable {
+/// Generic spend bucket used across widget + detail charts.
+private struct SpendBucket: Identifiable {
     let id = UUID()
-    let weekday: Int
     let label: String
+    let start: Date
+    let end: Date
     let amount: Double
+    let categoryHexColors: [String]
+}
+
+/// Represents a chart section (e.g., a week or month) containing spend buckets.
+private struct SpendChartSection: Identifiable {
+    let id = UUID()
+    let title: String
+    let subtitle: String?
+    let buckets: [SpendBucket]
 }
 
 struct CapStatus: Identifiable {
@@ -178,7 +189,8 @@ struct HomeView: View {
     @StateObject private var vm = HomeViewModel()
 
     @State private var nextPlannedSnapshot: PlannedExpenseSnapshot?
-    @State private var weekdayWidgetTotals: [WeekdayTotal] = []
+    @State private var widgetBuckets: [SpendBucket] = []
+    @State private var widgetRangeOverride: ClosedRange<Date>? = nil
     @State private var capStatuses: [CapStatus] = []
     @State private var availabilityPage: Int = 0
     @State private var startDateSelection: Date = Date()
@@ -506,6 +518,7 @@ struct HomeView: View {
         let income = max(max(summary.actualIncomeTotal, summary.potentialIncomeTotal), 1)
         let ratio = expenses / income
         let percent = ratio * 100
+        let clampedRatio = min(ratio, 1)
         return widgetLink(title: "Expense to Income", subtitle: widgetRangeLabel, kind: .budgets, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("\(percent, specifier: "%.0f")% of income spent")
@@ -513,17 +526,17 @@ struct HomeView: View {
                 Text("Expenses: \(formatCurrency(expenses))")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                Gauge(value: min(ratio, 1.5), in: 0...1.5) {
+                Gauge(value: clampedRatio, in: 0...1) {
                     EmptyView()
                 } currentValueLabel: {
-                    Text(ratio >= 1 ? "Over target" : "On track")
+                    Text(ratio >= 1 ? "At max" : "On track")
                         .font(.footnote.weight(.semibold))
                 } minimumValueLabel: {
                     Text("0%")
                 } maximumValueLabel: {
-                    Text("150%")
+                    Text("100%")
                 }
-                .tint(Gradient(colors: [.orange.opacity(0.3), .orange]))
+                .tint(Gradient(colors: [.orange.opacity(0.3), ratio >= 1 ? .red : .orange]))
             }
         }
     }
@@ -621,7 +634,7 @@ struct HomeView: View {
         } label: {
             widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, span: WidgetSpan(width: 1, height: 2)) {
                 VStack(alignment: .leading, spacing: 8) {
-                    CardTileView(card: card, isInteractive: false, showsBaseShadow: false)
+                    CardTileView(card: card, isInteractive: false, enableMotionShine: true, showsBaseShadow: false)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if let balance = card.balance {
                         Text("\(formatCurrency(balance))")
@@ -636,24 +649,26 @@ struct HomeView: View {
 
     private func weekdayWidget(for summary: BudgetSummary) -> some View {
         return widgetLink(title: "Day of Week Spend", subtitle: widgetRangeLabel, kind: .dayOfWeek, span: WidgetSpan(width: 1, height: 2), summary: summary) {
-            if self.weekdayWidgetTotals.isEmpty {
+            if self.widgetBuckets.isEmpty {
                 Text("No spending yet.")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                let gradientColors = weekdayGradientColors(for: summary)
+                let fallbackGradient = weekdayGradientColors(for: summary)
                 GeometryReader { geo in
-                    let maxAmount = max(self.weekdayWidgetTotals.map(\.amount).max() ?? 1, 1)
+                    let maxAmount = max(self.widgetBuckets.map(\.amount).max() ?? 1, 1)
                     let spacing: CGFloat = 8
-                    let barWidth = max((geo.size.width - spacing * 6) / 7, 10)
+                    let count = max(self.widgetBuckets.count, 1)
+                    let barWidth = max((geo.size.width - spacing * CGFloat(count - 1)) / CGFloat(count), 10)
                     // Leave room for the footer label; let bars fill the rest.
                     let footerHeight: CGFloat = 28
                     let barAreaHeight = max(70, geo.size.height - footerHeight)
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .bottom, spacing: spacing) {
-                            ForEach(self.weekdayWidgetTotals) { item in
+                            ForEach(self.widgetBuckets) { item in
                                 let norm = max(min(item.amount / maxAmount, 1), 0)
+                                let gradientColors = weekdayGradientColors(for: item, summary: summary, fallback: fallbackGradient)
                                 let barColor = LinearGradient(
                                     colors: gradientColors.map { $0.opacity(0.35 + 0.35 * norm) },
                                     startPoint: .top,
@@ -671,7 +686,7 @@ struct HomeView: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: barAreaHeight, maxHeight: barAreaHeight, alignment: .bottomLeading)
 
-                        if let maxItem = self.weekdayWidgetTotals.max(by: { $0.amount < $1.amount }) {
+                        if let maxItem = self.widgetBuckets.max(by: { $0.amount < $1.amount }) {
                             Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -1051,6 +1066,7 @@ struct HomeView: View {
                 title: title,
                 kind: kind,
                 range: currentRange,
+                period: vm.period,
                 summary: summary,
                 nextExpense: snapshot,
                 topCategory: topCategory,
@@ -1139,7 +1155,12 @@ struct HomeView: View {
         return summaries.first
     }
 
-    private var widgetRangeLabel: String { rangeDescription(currentRange) }
+    private var widgetRangeLabel: String {
+        if let override = widgetRangeOverride {
+            return rangeDescription(override)
+        }
+        return rangeDescription(currentRange)
+    }
 
     private var heatmapBackground: some View {
         LinearGradient(
@@ -1175,7 +1196,7 @@ struct HomeView: View {
         vm.startIfNeeded()
         let summary = primarySummary
         await loadNextPlannedExpense(for: summary)
-        await loadWeekdayTotals(for: summary)
+        await loadWidgetBuckets(for: summary)
         await loadAllCards()
         await loadCaps(for: summary)
     }
@@ -1183,7 +1204,7 @@ struct HomeView: View {
     private func stateDidChange() async {
         let summary = primarySummary
         await loadNextPlannedExpense(for: summary)
-        await loadWeekdayTotals(for: summary)
+        await loadWidgetBuckets(for: summary)
         await loadAllCards()
         await loadCaps(for: summary)
     }
@@ -1322,54 +1343,58 @@ struct HomeView: View {
         await MainActor.run { nextPlannedSnapshot = snapshot }
     }
 
-    private func loadWeekdayTotals(for summary: BudgetSummary?) async {
+    private func loadWidgetBuckets(for summary: BudgetSummary?) async {
         guard let summary else {
-            await MainActor.run { weekdayWidgetTotals = [] }
+            await MainActor.run {
+                widgetBuckets = []
+                widgetRangeOverride = nil
+            }
             return
         }
         let range = currentRange
-        let ctx = CoreDataService.shared.newBackgroundContext()
-        let totals: [WeekdayTotal] = await ctx.perform {
-            guard let budget = try? ctx.existingObject(with: summary.id) as? Budget else { return [] }
+        let selectedDate = vm.selectedDate
+        let period = resolvedPeriod(vm.period, range: range)
 
-            var weekdayTotals: [Int: Double] = [:]
-            // Planned expenses
-            let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-            plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                NSPredicate(format: "budget == %@", budget),
-                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
-            ])
-            if let planned = try? ctx.fetch(plannedReq) {
-                for exp in planned {
-                    let wd = Calendar.current.component(.weekday, from: exp.transactionDate ?? range.lowerBound)
-                    weekdayTotals[wd, default: 0] += exp.actualAmount
-                }
-            }
+        let dayTotals = await daySpendTotals(for: summary, in: range)
 
-            // Variable expenses (cards)
-            if let cards = budget.cards as? Set<Card>, !cards.isEmpty {
-                let varReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
-                varReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                    NSPredicate(format: "card IN %@", cards as NSSet),
-                    NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
-                ])
-                if let vars = try? ctx.fetch(varReq) {
-                    for exp in vars {
-                        let wd = Calendar.current.component(.weekday, from: exp.transactionDate ?? range.lowerBound)
-                        weekdayTotals[wd, default: 0] += exp.amount
-                    }
-                }
-            }
-
-            let symbols = Calendar.current.shortWeekdaySymbols
-            let ordered = (1...7).map { wd -> WeekdayTotal in
-                let idx = max(min(wd - 1, symbols.count - 1), 0)
-                let label = symbols.indices.contains(idx) ? symbols[idx] : "Day \(wd)"
-                return WeekdayTotal(weekday: wd, label: label, amount: weekdayTotals[wd] ?? 0)
-            }
-            return ordered
+        func clamp(_ source: ClosedRange<Date>, to bounds: ClosedRange<Date>) -> ClosedRange<Date> {
+            let lower = max(source.lowerBound, bounds.lowerBound)
+            let upper = min(source.upperBound, bounds.upperBound)
+            return lower...upper
         }
-        await MainActor.run { weekdayWidgetTotals = totals }
+
+        let buckets: [SpendBucket]
+        var displayRange = range
+        switch period {
+        case .daily:
+            buckets = bucketsForDays(in: range, dayTotals: dayTotals)
+        case .weekly:
+            buckets = bucketsForDays(in: range, dayTotals: dayTotals)
+        case .biWeekly:
+            let weekRange = BudgetPeriod.weekly.range(containing: selectedDate)
+            let bounded = clamp(weekRange.start...weekRange.end, to: range)
+            displayRange = bounded
+            buckets = bucketsForDays(in: bounded, dayTotals: dayTotals)
+        case .monthly:
+            let weekRange = BudgetPeriod.weekly.range(containing: selectedDate)
+            let bounded = clamp(weekRange.start...weekRange.end, to: range)
+            displayRange = bounded
+            buckets = bucketsForDays(in: bounded, dayTotals: dayTotals)
+        case .quarterly:
+            let monthRange = BudgetPeriod.monthly.range(containing: selectedDate)
+            let bounded = clamp(monthRange.start...monthRange.end, to: range)
+            displayRange = bounded
+            buckets = bucketsForWeeks(in: bounded, dayTotals: dayTotals)
+        case .yearly:
+            buckets = bucketsForMonths(in: range, dayTotals: dayTotals)
+        case .custom:
+            buckets = bucketsForDays(in: range, dayTotals: dayTotals)
+        }
+
+        await MainActor.run {
+            widgetBuckets = buckets
+            widgetRangeOverride = displayRange
+        }
     }
 
     private func loadCards(for summary: BudgetSummary?) async {
@@ -1475,6 +1500,7 @@ private struct MetricDetailView: View {
     let title: String
     let kind: HomeView.HomeWidgetKind
     let range: ClosedRange<Date>
+    let period: BudgetPeriod
     let summary: BudgetSummary
     let nextExpense: HomeView.PlannedExpenseSnapshot?
     let topCategory: BudgetSummary.CategorySpending?
@@ -1496,13 +1522,25 @@ private struct MetricDetailView: View {
     @State private var latestIncomeID: NSManagedObjectID?
     @State private var showAddIncomeSheet = false
     @State private var editingIncomeBox: ManagedIDBox?
-    @State private var weekdaySpending: [WeekdayTotal] = []
+    @State private var spendSections: [SpendChartSection] = []
     @State private var scenarioAllocations: [String: Double] = [:]
 
-    private var rangeText: String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        return "\(f.string(from: range.lowerBound)) – \(f.string(from: range.upperBound))"
+    private func condensedReceivedSeries() -> [DatedValue] {
+        guard !incomeTimeline.isEmpty else { return [] }
+        var events: [DatedValue] = []
+        let start = DatedValue(date: range.lowerBound, value: 0)
+        events.append(start)
+        var lastValue: Double = 0
+        for point in incomeTimeline.sorted(by: { $0.date < $1.date }) {
+            if point.value != lastValue {
+                events.append(point)
+                lastValue = point.value
+            }
+        }
+        if let last = events.last, last.date < range.upperBound {
+            events.append(DatedValue(date: range.upperBound, value: last.value))
+        }
+        return events
     }
 
     private struct DatedValue: Identifiable {
@@ -1599,38 +1637,50 @@ private struct MetricDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Day-of-Week Spend")
                 .font(.headline)
-            if weekdaySpending.isEmpty {
+            if spendSections.isEmpty {
                 Text("No spending in this range.")
                     .foregroundStyle(.secondary)
             } else {
-                let gradientColors = weekdayGradientColors(for: summary)
-                Chart(weekdaySpending) { item in
-                    BarMark(
-                        x: .value("Day", item.label),
-                        y: .value("Amount", item.amount)
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: gradientColors.map { $0.opacity(0.85) },
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        if let val = value.as(Double.self) {
-                            AxisGridLine()
-                            AxisTick()
-                            AxisValueLabel(formatCurrency(val))
+                let fallbackGradient = weekdayGradientColors(for: summary)
+                ForEach(spendSections) { section in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(section.title)
+                            .font(.subheadline.weight(.semibold))
+                        if let subtitle = section.subtitle {
+                            Text(subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Chart(section.buckets) { item in
+                            let gradientColors = weekdayGradientColors(for: item, summary: summary, fallback: fallbackGradient)
+                            BarMark(
+                                x: .value("Period", item.label),
+                                y: .value("Amount", item.amount)
+                            )
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: gradientColors.map { $0.opacity(0.85) },
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                        }
+                        .chartYAxis {
+                            AxisMarks(position: .leading) { value in
+                                if let val = value.as(Double.self) {
+                                    AxisGridLine()
+                                    AxisTick()
+                                    AxisValueLabel(formatCurrency(val))
+                                }
+                            }
+                        }
+                        .frame(height: 200)
+                        if let maxItem = section.buckets.max(by: { $0.amount < $1.amount }) {
+                            Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                }
-                .frame(height: 200)
-                if let maxItem = weekdaySpending.max(by: { $0.amount < $1.amount }) {
-                    Text("Highest spend: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -2047,24 +2097,30 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
         @ViewBuilder
         func heatmapBackground<S: Shape>(for shape: S) -> some View {
             ZStack {
-                Color.primary.opacity(0.03)
+                Color.primary.opacity(0.02)
                 if let gradientColors {
                     LinearGradient(
                         gradient: Gradient(colors: gradientColors),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
-                    .opacity(0.35)
+                    .opacity(0.24)
                     AngularGradient(
-                        gradient: Gradient(colors: gradientColors),
+                        gradient: Gradient(colors: gradientColors.reversed()),
                         center: .center,
-                        startAngle: .degrees(-90),
-                        endAngle: .degrees(270)
+                        startAngle: .degrees(-80),
+                        endAngle: .degrees(280)
                     )
-                    .blendMode(.screen)
-                    .opacity(0.35)
-                    .blur(radius: 16)
-                    .scaleEffect(1.1)
+                    .opacity(0.14)
+                    .blur(radius: 14)
+                    .scaleEffect(1.05)
+                    RadialGradient(
+                        gradient: Gradient(colors: gradientColors.map { $0.opacity(0.35) }),
+                        center: .center,
+                        startRadius: 4,
+                        endRadius: 140
+                    )
+                    .opacity(0.12)
                 } else {
                     Color.accentColor.opacity(0.18)
                 }
@@ -2098,10 +2154,40 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
     }
 
     private var categoryHeatmapColors: [Color]? {
-        let colors = summary.categoryBreakdown.compactMap { UBColorFromHex($0.hexColor) }
-        let limited = Array(colors.prefix(12))
+        let rawColors = summary.categoryBreakdown.compactMap { UBColorFromHex($0.hexColor) }
+        let limited = Array(rawColors.prefix(12))
         guard !limited.isEmpty else { return nil }
-        return limited
+        return softenedHeatmapColors(from: limited)
+    }
+
+    private func softenedHeatmapColors(from colors: [Color]) -> [Color] {
+        colors.map(softenHeatmapColor)
+    }
+
+    private func softenHeatmapColor(_ color: Color) -> Color {
+        #if canImport(UIKit)
+        let ui = UIColor(color)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        if ui.getRed(&r, green: &g, blue: &b, alpha: &a) {
+            let mix: CGFloat = 0.30 // blend toward a light neutral to reduce harshness
+            let nr = r * (1 - mix) + mix
+            let ng = g * (1 - mix) + mix
+            let nb = b * (1 - mix) + mix
+            let na = a * 0.9
+            return Color(red: Double(nr), green: Double(ng), blue: Double(nb), opacity: Double(na))
+        }
+        #elseif os(macOS)
+        if let ns = NSColor(color).usingColorSpace(.sRGB) {
+            let r = ns.redComponent, g = ns.greenComponent, b = ns.blueComponent, a = ns.alphaComponent
+            let mix: CGFloat = 0.30
+            let nr = r * (1 - mix) + mix
+            let ng = g * (1 - mix) + mix
+            let nb = b * (1 - mix) + mix
+            let na = a * 0.9
+            return Color(red: Double(nr), green: Double(ng), blue: Double(nb), opacity: Double(na))
+        }
+        #endif
+        return color.opacity(0.85)
     }
 
     @ViewBuilder
@@ -2111,84 +2197,99 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
                 .foregroundStyle(.secondary)
         } else {
             let receivedColor = HomeView.HomePalette.income
-            let expectedColor = HomeView.HomePalette.presets.opacity(0.8)
-            let expectedSeries = expectedTimeline.isEmpty ? incomeTimeline : expectedTimeline
-            let maxVal = max((incomeTimeline.map(\.value).max() ?? 0), (expectedSeries.map(\.value).max() ?? 0), 1)
+            let expectedColor = Color.gray
+
+            let receivedSeries = condensedReceivedSeries()
+            let expectedSeries: [DatedValue] = [
+                DatedValue(date: range.lowerBound, value: 0),
+                DatedValue(date: range.upperBound, value: summary.potentialIncomeTotal)
+            ]
+
+            let maxVal = max((receivedSeries.map(\.value).max() ?? 0), (expectedSeries.map(\.value).max() ?? 0), 1)
             let domain: ClosedRange<Double> = 0...(maxVal * 1.1)
-            Chart {
-                ForEach(expectedSeries) { point in
-                    LineMark(
-                        x: .value("Date", point.date),
-                        y: .value("Expected", point.value)
-                    )
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(expectedColor)
-                }
-                ForEach(incomeTimeline) { point in
-                    LineMark(
-                        x: .value("Date", point.date),
-                        y: .value("Received", point.value)
-                    )
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(receivedColor)
-                    PointMark(
-                        x: .value("Date", point.date),
-                        y: .value("Received", point.value)
-                    )
-                    .symbolSize(point.id == timelineSelection?.id ? 30 : 18)
-                }
-                if let selected = timelineSelection {
-                    RuleMark(x: .value("Selected", selected.date))
-                        .foregroundStyle(.gray.opacity(0.35))
-                        .annotation(position: .topLeading) {
-                            Text(formatCurrency(selected.value))
-                                .font(.caption2)
-                        }
-                }
-            }
-            .chartYScale(domain: domain)
-            .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 3))
-            }
-            .chartYAxis {
-                AxisMarks(position: .leading) { value in
-                    if let val = value.as(Double.self) {
-                        AxisGridLine()
-                        AxisTick()
-                        AxisValueLabel(formatCurrency(val))
+            VStack(alignment: .leading, spacing: 8) {
+                Chart {
+                    ForEach(expectedSeries) { point in
+                        LineMark(
+                            x: .value("Date", point.date),
+                            y: .value("Expected", point.value)
+                        )
+                        .interpolationMethod(.linear)
+                        .foregroundStyle(expectedColor.opacity(0.9))
+                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, dash: [6, 4]))
+                    }
+                    ForEach(receivedSeries) { point in
+                        LineMark(
+                            x: .value("Date", point.date),
+                            y: .value("Received", point.value)
+                        )
+                        .interpolationMethod(.monotone)
+                        .foregroundStyle(receivedColor)
+                        .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                        PointMark(
+                            x: .value("Date", point.date),
+                            y: .value("Received", point.value)
+                        )
+                        .symbolSize(point.id == timelineSelection?.id ? 28 : 16)
+                        .foregroundStyle(receivedColor)
+                    }
+                    if let selected = timelineSelection {
+                        RuleMark(x: .value("Selected", selected.date))
+                            .foregroundStyle(.gray.opacity(0.35))
+                            .annotation(position: .topLeading) {
+                                Text(formatCurrency(selected.value))
+                                    .font(.caption2)
+                            }
                     }
                 }
-            }
-            .frame(height: 220)
-            .chartOverlay { proxy in
-                GeometryReader { geo in
-                    Rectangle().fill(.clear).contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { gesture in
-                                    let origin = geo[proxy.plotAreaFrame].origin
-                                    let locationX = gesture.location.x - origin.x
-                                    if let date: Date = proxy.value(atX: locationX) {
-                                        timelineSelection = nearestPoint(in: incomeTimeline, to: date)
-                                    }
-                                }
-                                .onEnded { _ in timelineSelection = nil }
-                        )
+                .chartYScale(domain: domain)
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 3))
                 }
-            }
-            if let selected = timelineSelection {
-                Text("\(dateString(selected.date)) • \(formatCurrency(selected.value))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                HStack(spacing: 12) {
-                    Label("Received", systemImage: "circle.fill")
-                        .foregroundStyle(receivedColor)
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        if let val = value.as(Double.self) {
+                            AxisGridLine()
+                            AxisTick()
+                            AxisValueLabel(formatCurrency(val))
+                        }
+                    }
+                }
+                .frame(height: 220)
+                .chartOverlay { proxy in
+                    GeometryReader { geo in
+                        Rectangle().fill(.clear).contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { gesture in
+                                        let origin = geo[proxy.plotAreaFrame].origin
+                                        let locationX = gesture.location.x - origin.x
+                                        if let date: Date = proxy.value(atX: locationX) {
+                                            timelineSelection = nearestPoint(in: receivedSeries, to: date)
+                                        }
+                                    }
+                                    .onEnded { _ in timelineSelection = nil }
+                            )
+                    }
+                }
+
+                if let selected = timelineSelection {
+                    Text("\(dateString(selected.date)) • \(formatCurrency(selected.value))")
                         .font(.caption)
-                    Label("Expected", systemImage: "circle.fill")
-                        .foregroundStyle(expectedColor)
-                        .font(.caption)
-                        .labelStyle(.titleAndIcon)
+                        .foregroundStyle(.secondary)
+                } else {
+                    HStack(spacing: 12) {
+                        Label("Received", systemImage: "circle.fill")
+                            .foregroundStyle(receivedColor)
+                            .font(.caption)
+                        Label("Expected", systemImage: "circlebadge.fill")
+                            .foregroundStyle(expectedColor.opacity(0.9))
+                            .font(.caption)
+                            .labelStyle(.titleAndIcon)
+                        Text("Above expected = ahead")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
@@ -2391,10 +2492,11 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
     private func loadSeriesIfNeeded() async {
         let series = await computeDailySeries()
         let income = await computeIncomeTimeline()
+        let sections = await computeSpendSections()
         await MainActor.run {
             self.expenseIncomeSeries = series.ratioPoints
             self.savingsSeries = series.savingsPoints
-            self.weekdaySpending = series.weekdayTotals
+            self.spendSections = sections
             self.incomeTimeline = income.received
             self.expectedTimeline = income.expected
             self.incomeBuckets = income.buckets
@@ -2405,7 +2507,6 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
     private struct DailySeriesResult {
         let ratioPoints: [DatedValue]
         let savingsPoints: [SavingsPoint]
-        let weekdayTotals: [WeekdayTotal]
     }
 
     private struct IncomeTimelineResult {
@@ -2422,8 +2523,7 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
                 let projected = summary.potentialIncomeTotal - summary.plannedExpensesPlannedTotal - summary.variableExpensesTotal
                 return DailySeriesResult(
                     ratioPoints: fallbackRatioSeries(expenses: summary.plannedExpensesActualTotal + summary.variableExpensesTotal, income: max(summary.actualIncomeTotal, 1)),
-                    savingsPoints: fallbackSavingsSeries(projected: projected, actual: summary.actualSavingsTotal),
-                    weekdayTotals: []
+                    savingsPoints: fallbackSavingsSeries(projected: projected, actual: summary.actualSavingsTotal)
                 )
             }
 
@@ -2432,14 +2532,12 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
                 let projected = summary.potentialIncomeTotal - summary.plannedExpensesPlannedTotal - summary.variableExpensesTotal
                 return DailySeriesResult(
                     ratioPoints: fallbackRatioSeries(expenses: summary.plannedExpensesActualTotal + summary.variableExpensesTotal, income: max(summary.actualIncomeTotal, 1)),
-                    savingsPoints: fallbackSavingsSeries(projected: projected, actual: summary.actualSavingsTotal),
-                    weekdayTotals: []
+                    savingsPoints: fallbackSavingsSeries(projected: projected, actual: summary.actualSavingsTotal)
                 )
             }
 
             var incomeDaily: [Date: Double] = [:]
             var expenseDaily: [Date: Double] = [:]
-
             // Incomes (actual)
             let incomeReq = NSFetchRequest<Income>(entityName: "Income")
             incomeReq.predicate = NSPredicate(format: "date >= %@ AND date <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
@@ -2486,7 +2584,6 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
 
             let projectedTotalExpense = summary.plannedExpensesPlannedTotal + summary.variableExpensesTotal
             let daysCount = max(dates.count, 1)
-            var weekdayTotals: [Int: Double] = [:]
 
             for (idx, day) in dates.enumerated() {
                 cumulativeIncome += incomeDaily[day] ?? 0
@@ -2501,8 +2598,6 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
                 let actualNet = cumulativeIncome - cumulativeExpense
                 savingsPoints.append(SavingsPoint(date: day, actual: actualNet, projected: projectedNet))
 
-                let wd = Calendar.current.component(.weekday, from: day)
-                weekdayTotals[wd, default: 0] += (expenseDaily[day] ?? 0)
             }
 
             if ratioPoints.count == 1, let first = ratioPoints.first {
@@ -2512,18 +2607,65 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
                 savingsPoints.append(SavingsPoint(date: range.upperBound, actual: first.actual, projected: first.projected))
             }
 
-            let symbols = Calendar.current.shortWeekdaySymbols
-            let weekdayList: [WeekdayTotal] = (1...7).map { wd in
-                let idx = max(min(wd - 1, symbols.count - 1), 0)
-                let label = symbols.indices.contains(idx) ? symbols[idx] : "Day \(wd)"
-                return WeekdayTotal(weekday: wd, label: label, amount: weekdayTotals[wd] ?? 0)
-            }
-
             return DailySeriesResult(
                 ratioPoints: ratioPoints,
-                savingsPoints: savingsPoints,
-                weekdayTotals: weekdayList
+                savingsPoints: savingsPoints
             )
+        }
+    }
+
+    private func computeSpendSections() async -> [SpendChartSection] {
+        let resolved = resolvedPeriod(period, range: range)
+        let dayTotals = await daySpendTotals(for: summary, in: range)
+
+        let dayFormatter = DateFormatter()
+        dayFormatter.dateFormat = "MMM d"
+        let monthFormatter = DateFormatter()
+        monthFormatter.dateFormat = "LLLL yyyy"
+        let yearFormatter = DateFormatter()
+        yearFormatter.dateFormat = "yyyy"
+
+        func weekTitle(_ r: ClosedRange<Date>) -> String {
+            let start = dayFormatter.string(from: r.lowerBound)
+            let end = dayFormatter.string(from: r.upperBound)
+            return "\(start) – \(end)"
+        }
+
+        switch resolved {
+        case .daily:
+            let buckets = bucketsForDays(in: range, dayTotals: dayTotals)
+            return [SpendChartSection(title: dayFormatter.string(from: range.lowerBound), subtitle: nil, buckets: buckets)]
+        case .weekly:
+            let buckets = bucketsForDays(in: range, dayTotals: dayTotals)
+            return [SpendChartSection(title: weekTitle(range), subtitle: nil, buckets: buckets)]
+        case .biWeekly:
+            let weeks = weeksInRange(range)
+            return weeks.map { week in
+                let buckets = bucketsForDays(in: week, dayTotals: dayTotals)
+                return SpendChartSection(title: weekTitle(week), subtitle: dayFormatter.string(from: week.lowerBound) + " – " + dayFormatter.string(from: week.upperBound), buckets: buckets)
+            }
+        case .monthly:
+            let weeks = weeksInRange(range)
+            let monthTitle = monthFormatter.string(from: range.lowerBound)
+            return weeks.enumerated().map { idx, week in
+                let buckets = bucketsForDays(in: week, dayTotals: dayTotals)
+                let title = "\(monthTitle) • Week \(idx + 1)"
+                return SpendChartSection(title: title, subtitle: dayFormatter.string(from: week.lowerBound) + " – " + dayFormatter.string(from: week.upperBound), buckets: buckets)
+            }
+        case .quarterly:
+            let months = monthsInRange(range)
+            return months.map { monthRange in
+                let weekBuckets = bucketsForWeeks(in: monthRange, dayTotals: dayTotals)
+                let title = monthFormatter.string(from: monthRange.lowerBound)
+                return SpendChartSection(title: title, subtitle: nil, buckets: weekBuckets)
+            }
+        case .yearly:
+            let monthBuckets = bucketsForMonths(in: range, dayTotals: dayTotals)
+            let title = yearFormatter.string(from: range.lowerBound)
+            return [SpendChartSection(title: title, subtitle: nil, buckets: monthBuckets)]
+        case .custom:
+            let buckets = bucketsForDays(in: range, dayTotals: dayTotals)
+            return [SpendChartSection(title: dayFormatter.string(from: range.lowerBound) + " – " + dayFormatter.string(from: range.upperBound), subtitle: nil, buckets: buckets)]
         }
     }
 
@@ -3038,6 +3180,11 @@ private struct CategorySlice: Identifiable {
     let color: Color
 }
 
+private struct DaySpendTotal {
+    var total: Double
+    var categoryTotals: [String: Double]
+}
+
 private func categorySlices(from categories: [BudgetSummary.CategorySpending], limit: Int) -> [CategorySlice] {
     guard !categories.isEmpty else { return [] }
     let positive = categories.filter { $0.amount > 0 }
@@ -3050,6 +3197,186 @@ private func categorySlices(from categories: [BudgetSummary.CategorySpending], l
             color: UBColorFromHex($0.hexColor) ?? HomeView.HomePalette.presets
         )
     }
+}
+
+private func resolvedPeriod(_ period: BudgetPeriod, range: ClosedRange<Date>) -> BudgetPeriod {
+    if period != .custom { return period }
+    let cal = Calendar.current
+    let start = cal.startOfDay(for: range.lowerBound)
+    let end = cal.startOfDay(for: range.upperBound)
+    let spanDays = (cal.dateComponents([.day], from: start, to: end).day ?? 0) + 1
+    switch spanDays {
+    case ...1: return .daily
+    case 2...7: return .weekly
+    case 8...14: return .biWeekly
+    case 15...45: return .monthly
+    case 46...120: return .quarterly
+    default: return .yearly
+    }
+}
+
+private func daysInRange(_ range: ClosedRange<Date>) -> [Date] {
+    var dates: [Date] = []
+    let cal = Calendar.current
+    var current = cal.startOfDay(for: range.lowerBound)
+    let end = cal.startOfDay(for: range.upperBound)
+    while current <= end {
+        dates.append(current)
+        guard let next = cal.date(byAdding: .day, value: 1, to: current) else { break }
+        current = next
+    }
+    return dates
+}
+
+private func weeksInRange(_ range: ClosedRange<Date>) -> [ClosedRange<Date>] {
+    var ranges: [ClosedRange<Date>] = []
+    let cal = Calendar.current
+    var cursor = BudgetPeriod.weekly.start(of: range.lowerBound)
+    let end = range.upperBound
+    while cursor <= end {
+        let weekRange = BudgetPeriod.weekly.range(containing: cursor)
+        let boundedStart = max(weekRange.start, range.lowerBound)
+        let boundedEnd = min(weekRange.end, end)
+        ranges.append(boundedStart...boundedEnd)
+        guard let next = cal.date(byAdding: .day, value: 7, to: cursor) else { break }
+        cursor = next
+    }
+    return ranges
+}
+
+private func monthsInRange(_ range: ClosedRange<Date>) -> [ClosedRange<Date>] {
+    var ranges: [ClosedRange<Date>] = []
+    let cal = Calendar.current
+    var cursor = BudgetPeriod.monthly.start(of: range.lowerBound)
+    let end = range.upperBound
+    while cursor <= end {
+        let monthRange = BudgetPeriod.monthly.range(containing: cursor)
+        let boundedStart = max(monthRange.start, range.lowerBound)
+        let boundedEnd = min(monthRange.end, end)
+        ranges.append(boundedStart...boundedEnd)
+        guard let next = cal.date(byAdding: .month, value: 1, to: cursor) else { break }
+        cursor = next
+    }
+    return ranges
+}
+
+private func daySpendTotals(for summary: BudgetSummary, in range: ClosedRange<Date>) async -> [Date: DaySpendTotal] {
+    let ctx = CoreDataService.shared.newBackgroundContext()
+    let cal = Calendar.current
+    return await ctx.perform {
+        guard let budget = try? ctx.existingObject(with: summary.id) as? Budget else { return [:] }
+
+        var totals: [Date: DaySpendTotal] = [:]
+
+        func add(amount: Double, date: Date?, category: ExpenseCategory?) {
+            let day = cal.startOfDay(for: date ?? range.lowerBound)
+            var entry = totals[day] ?? DaySpendTotal(total: 0, categoryTotals: [:])
+            entry.total += amount
+            if amount > 0,
+               let hex = category?.color?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !hex.isEmpty {
+                entry.categoryTotals[hex, default: 0] += amount
+            }
+            totals[day] = entry
+        }
+
+        // Planned expenses
+        let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+        plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "budget == %@", budget),
+            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+        ])
+        if let planned = try? ctx.fetch(plannedReq) {
+            for exp in planned {
+                add(amount: exp.actualAmount, date: exp.transactionDate, category: exp.expenseCategory)
+            }
+        }
+
+        // Variable expenses (cards)
+        if let cards = budget.cards as? Set<Card>, !cards.isEmpty {
+            let varReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
+            varReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "card IN %@", cards as NSSet),
+                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+            ])
+            if let vars = try? ctx.fetch(varReq) {
+                for exp in vars {
+                    add(amount: exp.amount, date: exp.transactionDate, category: exp.expenseCategory)
+                }
+            }
+        }
+
+        return totals
+    }
+}
+
+private func bucketsForDays(in range: ClosedRange<Date>, dayTotals: [Date: DaySpendTotal]) -> [SpendBucket] {
+    let cal = Calendar.current
+    let weekdays = cal.shortWeekdaySymbols
+    let dates = daysInRange(range)
+    return dates.map { day in
+        let entry = dayTotals[day] ?? DaySpendTotal(total: 0, categoryTotals: [:])
+        let weekdayIndex = cal.component(.weekday, from: day) - 1
+        let dayLabel = weekdays.indices.contains(weekdayIndex) ? weekdays[weekdayIndex] : "Day"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        let label = dates.count == 1 ? formatter.string(from: day) : dayLabel
+        let sortedHexes = entry.categoryTotals.sorted { $0.value > $1.value }.map(\.key)
+        return SpendBucket(label: label, start: day, end: day, amount: entry.total, categoryHexColors: sortedHexes)
+    }
+}
+
+private func bucketsForWeeks(in range: ClosedRange<Date>, dayTotals: [Date: DaySpendTotal]) -> [SpendBucket] {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "MMM d"
+    return weeksInRange(range).map { weekRange in
+        let days = daysInRange(weekRange)
+        var total = 0.0
+        var catTotals: [String: Double] = [:]
+        for day in days {
+            let entry = dayTotals[day] ?? DaySpendTotal(total: 0, categoryTotals: [:])
+            total += entry.total
+            for (hex, amt) in entry.categoryTotals {
+                catTotals[hex, default: 0] += amt
+            }
+        }
+        let startLabel = formatter.string(from: weekRange.lowerBound)
+        let endLabel = formatter.string(from: weekRange.upperBound)
+        let label = "\(startLabel) – \(endLabel)"
+        let sortedHexes = catTotals.sorted { $0.value > $1.value }.map(\.key)
+        return SpendBucket(label: label, start: weekRange.lowerBound, end: weekRange.upperBound, amount: total, categoryHexColors: sortedHexes)
+    }
+}
+
+private func bucketsForMonths(in range: ClosedRange<Date>, dayTotals: [Date: DaySpendTotal]) -> [SpendBucket] {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "MMM"
+    return monthsInRange(range).map { monthRange in
+        let days = daysInRange(monthRange)
+        var total = 0.0
+        var catTotals: [String: Double] = [:]
+        for day in days {
+            let entry = dayTotals[day] ?? DaySpendTotal(total: 0, categoryTotals: [:])
+            total += entry.total
+            for (hex, amt) in entry.categoryTotals {
+                catTotals[hex, default: 0] += amt
+            }
+        }
+        let label = formatter.string(from: monthRange.lowerBound)
+        let sortedHexes = catTotals.sorted { $0.value > $1.value }.map(\.key)
+        return SpendBucket(label: label, start: monthRange.lowerBound, end: monthRange.upperBound, amount: total, categoryHexColors: sortedHexes)
+    }
+}
+
+private func weekdayGradientColors(for item: SpendBucket, summary: BudgetSummary, fallback: [Color]? = nil) -> [Color] {
+    let resolved = item.categoryHexColors.compactMap { UBColorFromHex($0) }
+    if !resolved.isEmpty {
+        if resolved.count == 1, let first = resolved.first { return [first, first] }
+        return resolved
+    }
+    let fallbackColors = fallback ?? weekdayGradientColors(for: summary)
+    if fallbackColors.count == 1, let first = fallbackColors.first { return [first, first] }
+    return fallbackColors
 }
 
 private func weekdayGradientColors(for summary: BudgetSummary) -> [Color] {

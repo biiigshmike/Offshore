@@ -4,6 +4,12 @@ import CoreData
 // MARK: - PresetsView
 /// Simplified presets list with swipe to edit/delete and glass add button on iOS 26.
 struct PresetsView: View {
+    private let header: AnyView?
+
+    init(header: AnyView? = nil) {
+        self.header = header
+    }
+
     // MARK: Env
     @Environment(\.managedObjectContext) private var viewContext
     
@@ -26,7 +32,11 @@ struct PresetsView: View {
         Group {
             if vm.items.isEmpty {
                 ScrollView {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 16) {
+                        if let header {
+                            header
+                                .padding(.horizontal, 16)
+                        }
                         Image(systemName: "list.bullet.rectangle")
                             .font(.system(size: 42))
                             .foregroundStyle(.secondary)
@@ -39,9 +49,13 @@ struct PresetsView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .top)
             } else {
+                let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
                 List {
-                    let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
-                    //let firstID = vm.items.first?.id
+                    if let header {
+                        header
+                            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                            .listRowSeparator(.hidden)
+                    }
 
                     ForEach(vm.items) { item in
                         PresetRowView(item: item) { template in sheetTemplateToAssign = template }
@@ -57,7 +71,7 @@ struct PresetsView: View {
                                 }
                             }
                         )
-                        
+
                     }
                     .onDelete { indexSet in
                         let targets = indexSet.compactMap { vm.items[safe: $0]?.template }

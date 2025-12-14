@@ -92,6 +92,7 @@ final class BudgetDetailsViewModel: ObservableObject {
 
         // Build per‑segment category breakdowns (exclude Uncategorized)
         var plannedCatMap: [String: (hex: String?, total: Double)] = [:]
+        var plannedCapDefaults: [String: Double] = [:]
         var variableCatMap: [String: (hex: String?, total: Double)] = [:]
 
         for e in plannedExpenses {
@@ -100,6 +101,8 @@ final class BudgetDetailsViewModel: ObservableObject {
             let hex = e.expenseCategory?.color
             let existing = plannedCatMap[name] ?? (hex: hex, total: 0)
             plannedCatMap[name] = (hex: hex ?? existing.hex, total: existing.total + amt)
+            let norm = BudgetDetailsViewModel.normalizedCategoryName(name)
+            plannedCapDefaults[norm, default: 0] += e.plannedAmount
         }
 
         for e in unplannedExpenses {
@@ -155,12 +158,17 @@ final class BudgetDetailsViewModel: ObservableObject {
             categoryBreakdown: categoryBreakdown,
             plannedCategoryBreakdown: plannedBreakdown,
             variableCategoryBreakdown: variableBreakdown,
+            plannedCategoryDefaultCaps: plannedCapDefaults,
             variableExpensesTotal: variableTotal,
             plannedExpensesPlannedTotal: plannedPlanned,
             plannedExpensesActualTotal: plannedActual,
             potentialIncomeTotal: incomeTotals.planned,
             actualIncomeTotal: incomeTotals.actual
         )
+    }
+
+    private static func normalizedCategoryName(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
     // MARK: Derived filtered/sorted

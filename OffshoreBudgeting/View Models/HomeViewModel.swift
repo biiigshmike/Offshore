@@ -71,6 +71,8 @@ struct BudgetSummary: Identifiable, Equatable, Sendable {
     // New: per‑segment breakdowns so UI can respect the selected segment
     let plannedCategoryBreakdown: [CategorySpending]
     let variableCategoryBreakdown: [CategorySpending]
+    /// Default max caps derived from planned amounts per category (normalized name).
+    let plannedCategoryDefaultCaps: [String: Double]
     let variableExpensesTotal: Double
 
     // MARK: Planned Expenses (line items attached to budget)
@@ -108,6 +110,10 @@ extension BudgetSummary.CategorySpending {
         let uri = URL(string: "offshore-local://category/\(encoded)") ?? URL(string: "offshore-local://category/unknown")!
         self.init(categoryURI: uri, categoryName: categoryName, hexColor: hexColor, amount: amount)
     }
+}
+
+private func normalizedCategoryName(_ name: String) -> String {
+    name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 }
 
 // MARK: - Month (Helper)
@@ -414,6 +420,7 @@ final class HomeViewModel: ObservableObject {
         return lower...upper
     }
 
+
     // MARK: updateBudgetPeriod(to:)
     /// Updates the budget period preference and triggers a refresh.
     /// - Parameter newPeriod: The newly selected budget period.
@@ -547,6 +554,7 @@ final class HomeViewModel: ObservableObject {
         // MARK: Expense Categories – separate maps (exclude Uncategorized) and include zero-amount categories
         // Key by NSManagedObjectID to avoid ambiguity when names are not unique
         var plannedCatMap: [NSManagedObjectID: (name: String, hex: String?, total: Double)] = [:]
+        var plannedCapDefaults: [String: Double] = [:]
         var variableCatMap: [NSManagedObjectID: (name: String, hex: String?, total: Double)] = [:]
 
         for e in plannedExpenses {
@@ -558,6 +566,10 @@ final class HomeViewModel: ObservableObject {
             plannedCatMap[cat.objectID] = (name: existing.name.isEmpty ? name : existing.name,
                                            hex: hex ?? existing.hex,
                                            total: existing.total + amt)
+            if let catName = cat.name {
+                let norm = normalizedCategoryName(catName)
+                plannedCapDefaults[norm, default: 0] += e.plannedAmount
+            }
         }
 
         let cards = (budget.cards as? Set<Card>) ?? []
@@ -631,6 +643,7 @@ final class HomeViewModel: ObservableObject {
             categoryBreakdown: categoryBreakdown,
             plannedCategoryBreakdown: plannedBreakdown,
             variableCategoryBreakdown: variableBreakdown,
+            plannedCategoryDefaultCaps: plannedCapDefaults,
             variableExpensesTotal: variableTotal,
             plannedExpensesPlannedTotal: plannedExpensesPlannedTotal,
             plannedExpensesActualTotal: plannedExpensesActualTotal,

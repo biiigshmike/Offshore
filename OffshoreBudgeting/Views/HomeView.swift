@@ -36,6 +36,7 @@ struct CapStatus: Identifiable {
     let color: Color
     let near: Bool
     let over: Bool
+    let segment: CategoryAvailabilitySegment
 }
 
 struct CategoryAvailability: Identifiable {
@@ -58,6 +59,22 @@ struct CategoryAvailability: Identifiable {
             formatter.currencyCode = Locale.current.currencyCode ?? "USD"
         }
         return formatter.string(from: value as NSNumber) ?? String(format: "%.2f", value)
+    }
+}
+
+enum CategoryAvailabilitySegment: String, CaseIterable, Identifiable {
+    case combined
+    case planned
+    case variable
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .combined: return "All"
+        case .planned: return "Planned"
+        case .variable: return "Variable"
+        }
     }
 }
 
@@ -190,7 +207,7 @@ struct HomeView: View {
 
     @State private var nextPlannedSnapshot: PlannedExpenseSnapshot?
     @State private var widgetBuckets: [SpendBucket] = []
-    @State private var widgetRangeOverride: ClosedRange<Date>? = nil
+    @State private var weekdayRangeOverride: ClosedRange<Date>? = nil
     @State private var capStatuses: [CapStatus] = []
     @State private var availabilityPage: Int = 0
     @State private var startDateSelection: Date = Date()
@@ -202,6 +219,7 @@ struct HomeView: View {
 
     @AppStorage("homePinnedWidgetIDs") private var pinnedStorage: String = ""
     @AppStorage("homeWidgetOrderIDs") private var orderStorage: String = ""
+    @AppStorage("homeAvailabilitySegment") private var availabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
 
     private static let defaultWidgets: [WidgetID] = [
         .income, .expenseToIncome, .savings, .nextPlanned, .categorySpotlight, .dayOfWeek, .caps, .availability
@@ -229,6 +247,15 @@ struct HomeView: View {
             return 3
         }
         #endif
+    }
+    private var availabilitySegment: CategoryAvailabilitySegment {
+        CategoryAvailabilitySegment(rawValue: availabilitySegmentRawValue) ?? .combined
+    }
+    private var availabilitySegmentBinding: Binding<CategoryAvailabilitySegment> {
+        Binding(
+            get: { availabilitySegment },
+            set: { availabilitySegmentRawValue = $0.rawValue }
+        )
     }
     @State private var cardWidgets: [CardItem] = []
 
@@ -515,38 +542,71 @@ struct HomeView: View {
 
     private func expenseRatioWidget(for summary: BudgetSummary) -> some View {
         let expenses = summary.plannedExpensesActualTotal + summary.variableExpensesTotal
-        let income = max(max(summary.actualIncomeTotal, summary.potentialIncomeTotal), 1)
-        let ratio = expenses / income
-        let percent = ratio * 100
-        let clampedRatio = min(ratio, 1)
+        let metrics = BudgetMetrics.expenseToIncome(
+            expenses: expenses,
+            expectedIncome: summary.potentialIncomeTotal,
+            receivedIncome: summary.actualIncomeTotal
+        )
+        let receivedPercent = metrics.percentOfReceived ?? metrics.percentOfExpected
+        let gaugeValue = min(receivedPercent / 100, 1)
+        let overReceived = (metrics.percentOfReceived ?? 0) > 100
+        let tint: Color = overReceived ? .red : .green
         return widgetLink(title: "Expense to Income", subtitle: widgetRangeLabel, kind: .budgets, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("\(percent, specifier: "%.0f")% of income spent")
+                Text("\(metrics.percentOfExpected, specifier: "%.0f")% of expected income spent")
                     .font(.headline)
-                Text("Expenses: \(formatCurrency(expenses))")
+                Text("Expenses: \(formatCurrency(metrics.expenses))")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                Gauge(value: clampedRatio, in: 0...1) {
-                    EmptyView()
-                } currentValueLabel: {
-                    Text(ratio >= 1 ? "At max" : "On track")
-                        .font(.footnote.weight(.semibold))
-                } minimumValueLabel: {
+                HStack(spacing: 8) {
                     Text("0%")
-                } maximumValueLabel: {
-                    Text("100%")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Gauge(value: gaugeValue, in: 0...1) {
+                        EmptyView()
+                    }
+                    .gaugeStyle(.accessoryLinear)
+                    .tint(Gradient(colors: [tint.opacity(0.25), tint]))
+                    .frame(maxWidth: .infinity)
+                    Text("\(receivedPercent, specifier: "%.0f")%")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(overReceived ? .red : .primary)
                 }
-                .tint(Gradient(colors: [.orange.opacity(0.3), ratio >= 1 ? .red : .orange]))
             }
         }
     }
 
     private func savingsWidget(for summary: BudgetSummary) -> some View {
-        let projected = summary.potentialIncomeTotal - summary.plannedExpensesPlannedTotal - summary.variableExpensesTotal
-        let actual = summary.actualSavingsTotal
-        let clampedActual = max(actual, 0) // ProgressView must be non-negative
-        let clampedProjected = max(projected, 0)
-        let progressTotal = max(max(clampedProjected, clampedActual), 1)
+        let outlook = BudgetMetrics.savingsOutlook(
+            actualSavings: summary.actualSavingsTotal,
+            expectedIncome: summary.potentialIncomeTotal,
+            incomeReceived: summary.actualIncomeTotal,
+            plannedExpensesPlanned: summary.plannedExpensesPlannedTotal,
+            plannedExpensesActual: summary.plannedExpensesActualTotal
+        )
+        let projected = outlook.projected
+        let actual = outlook.actual
+        let projectedPositive = projected > 0
+        let percentOfProjected = projectedPositive ? (actual / projected) * 100 : nil
+        let progressValue = projectedPositive ? min(max(actual / projected, 0), 1) : 0
+        let percentLabel: String = {
+            guard let percent = percentOfProjected else { return "--" }
+            if percent > 999 { return ">999%" }
+            return String(format: "%.0f%%", percent)
+        }()
+        let statusTint: Color = {
+            if actual < 0 && projectedPositive { return .red }
+            if let percent = percentOfProjected, percent >= 100 { return .green }
+            return .orange
+        }()
+        let deficitTarget = projectedPositive ? 0 : abs(projected)
+        let deficitRecovery = projectedPositive ? 0 : min(max((deficitTarget - abs(actual)) / max(deficitTarget, 1), 0), 1)
+        let deficitLabel = String(format: "%.0f%%", deficitRecovery * 100)
+        let deficitTint: Color = {
+            if deficitRecovery >= 1 { return .green }
+            if deficitRecovery >= 0.5 { return .orange }
+            return .red
+        }()
         return widgetLink(title: "Savings Outlook", subtitle: widgetRangeLabel, kind: .budgets, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -564,11 +624,40 @@ struct HomeView: View {
                             .foregroundStyle(.secondary)
                         Text(formatCurrency(actual))
                             .font(.headline)
-                            .foregroundStyle(actual >= 0 ? .green : .red)
+                            .foregroundStyle(statusTint)
                     }
                 }
-                ProgressView(value: clampedActual, total: progressTotal)
-                    .tint(actual >= 0 ? .green : .red)
+                if projectedPositive {
+                    HStack(spacing: 8) {
+                        Text("0%")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Gauge(value: progressValue, in: 0...1) {
+                            EmptyView()
+                        }
+                        .gaugeStyle(.accessoryLinear)
+                        .tint(Gradient(colors: [statusTint.opacity(0.25), statusTint]))
+                        .frame(maxWidth: .infinity)
+                        Text(percentLabel)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(statusTint)
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        Text("-100%")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Gauge(value: deficitRecovery, in: 0...1) {
+                            EmptyView()
+                        }
+                        .gaugeStyle(.accessoryLinear)
+                        .tint(Gradient(colors: [deficitTint.opacity(0.25), deficitTint]))
+                        .frame(maxWidth: .infinity)
+                        Text(deficitLabel)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(deficitTint)
+                    }
+                }
             }
         }
     }
@@ -576,19 +665,25 @@ struct HomeView: View {
 
     private func nextPlannedExpenseWidget(for summary: BudgetSummary) -> some View {
         let snapshot = (nextPlannedSnapshot?.budgetID == summary.id) ? nextPlannedSnapshot : nil
-        return widgetLink(title: "Next Planned Expense", subtitle: widgetRangeLabel, kind: .cards, span: WidgetSpan(width: 1, height: 1), summary: summary, snapshot: snapshot) {
-            if let snapshot {
-                PresetExpenseRowView(
-                    title: snapshot.title,
-                    amountText: "Planned: \(formatCurrency(snapshot.plannedAmount)) • Actual: \(formatCurrency(snapshot.actualAmount))",
-                    dateText: shortDate(snapshot.date)
-                )
-            } else {
-                Text("No planned expenses in this range.")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        return NavigationLink {
+            NextPlannedPresetsView(summaryID: summary.id, nextExpense: snapshot)
+                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+        } label: {
+            widgetCard(title: "Next Planned Expense", subtitle: widgetRangeLabel, kind: .cards, span: WidgetSpan(width: 1, height: 1)) {
+                if let snapshot {
+                    PresetExpenseRowView(
+                        title: snapshot.title,
+                        amountText: "Planned: \(formatCurrency(snapshot.plannedAmount)) • Actual: \(formatCurrency(snapshot.actualAmount))",
+                        dateText: shortDate(snapshot.date)
+                    )
+                } else {
+                    Text("No planned expenses in this range.")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
+        .buttonStyle(.plain)
     }
 
     private func categorySpotlightWidget(for summary: BudgetSummary) -> some View {
@@ -648,7 +743,7 @@ struct HomeView: View {
     }
 
     private func weekdayWidget(for summary: BudgetSummary) -> some View {
-        return widgetLink(title: "Day of Week Spend", subtitle: widgetRangeLabel, kind: .dayOfWeek, span: WidgetSpan(width: 1, height: 2), summary: summary) {
+        return widgetLink(title: "Day of Week Spend", subtitle: weekdayRangeLabel, kind: .dayOfWeek, span: WidgetSpan(width: 1, height: 2), summary: summary) {
             if self.widgetBuckets.isEmpty {
                 Text("No spending yet.")
                     .foregroundStyle(.secondary)
@@ -898,29 +993,40 @@ struct HomeView: View {
     }
 
     private func capsWidget(for summary: BudgetSummary) -> some View {
-        let overCount = capStatuses.filter { $0.over }.count
-        let nearCount = capStatuses.filter { $0.near && !$0.over }.count
+        let segment = availabilitySegment
+        let statuses = capStatuses.filter { $0.segment == segment }
+        let overCount = statuses.filter { $0.over }.count
+        let nearCount = statuses.filter { $0.near && !$0.over }.count
         return widgetLink(title: "Caps & Alerts", subtitle: widgetRangeLabel, kind: .caps, span: WidgetSpan(width: 1, height: 1), summary: summary, capStatuses: capStatuses) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Circle().fill(Color.red.opacity(0.15)).frame(width: 10, height: 10)
-                    Text("Over: \(overCount)")
+            VStack(alignment: .leading, spacing: 8) {
+                PillSegmentedControl(selection: availabilitySegmentBinding) {
+                    ForEach(CategoryAvailabilitySegment.allCases) { segment in
+                        Text(segment.title).tag(segment)
+                    }
                 }
-                .font(.ubCaption)
-                HStack {
-                    Circle().fill(Color.orange.opacity(0.2)).frame(width: 10, height: 10)
-                    Text("Near: \(nearCount)")
-                }
-                .font(.ubCaption)
-                Text("Tap to see category caps.")
+                .ubSegmentedGlassStyle()
+                .padding(.bottom, 2)
+                if statuses.isEmpty {
+                    Text("No caps for \(segment.title).")
+                        .font(.ubCaption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    HStack {
+                        Circle().fill(Color.red.opacity(0.15)).frame(width: 10, height: 10)
+                        Text("Over: \(overCount)")
+                    }
                     .font(.ubCaption)
-                    .foregroundStyle(.secondary)
+                    HStack {
+                        Circle().fill(Color.orange.opacity(0.2)).frame(width: 10, height: 10)
+                        Text("Near: \(nearCount)")
+                    }
+                    .font(.ubCaption)
+                }
             }
         }
     }
 
     private func categoryAvailabilityWidget(for summary: BudgetSummary) -> some View {
-        let items = categoryAvailability(for: summary)
         let rowHeight: CGFloat = 64
         let rowSpacing: CGFloat = 8
         let maxRowsPerPage: Int = 6
@@ -929,9 +1035,10 @@ struct HomeView: View {
 
         return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, kind: .availability, span: WidgetSpan(width: 1, height: 3), summary: summary) {
             GeometryReader { geo in
-                // Estimate rows that fit the available space and cap to a max page size to avoid clipping.
+                let segment = availabilitySegment
+                let items = categoryAvailability(for: summary, segment: segment)
                 let headerAllowance: CGFloat = 32
-                let controlsAllowance: CGFloat = 36
+                let controlsAllowance: CGFloat = 64
                 let availableHeight = max(0, geo.size.height - headerAllowance - controlsAllowance)
                 let slotHeight = rowHeight + rowSpacing
                 let rowsThatFit = max(3, Int(floor((availableHeight + rowSpacing) / slotHeight)))
@@ -939,7 +1046,7 @@ struct HomeView: View {
                 let pages = stride(from: 0, to: items.count, by: pageSize).map { idx in
                     Array(items[idx..<min(idx + pageSize, items.count)])
                 }
-                let selection = Binding(
+                let pageSelection = Binding(
                     get: { min(availabilityPage, max(pages.count - 1, 0)) },
                     set: { availabilityPage = $0 }
                 )
@@ -957,6 +1064,15 @@ struct HomeView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
 
+                    PillSegmentedControl(selection: availabilitySegmentBinding) {
+                        ForEach(CategoryAvailabilitySegment.allCases) { segment in
+                            Text(segment.title).tag(segment)
+                        }
+                    }
+                    .ubSegmentedGlassStyle()
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 10)
+
                     Divider()
                         .padding(.horizontal, 14)
                         .opacity(0.35)
@@ -968,7 +1084,7 @@ struct HomeView: View {
                             .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
                             .padding(.vertical, tabPadding)
                     } else {
-                        TabView(selection: selection) {
+                        TabView(selection: pageSelection) {
                             ForEach(Array(pages.enumerated()), id: \.offset) { idx, page in
                                 VStack(spacing: rowSpacing) {
                                     ForEach(page) { item in
@@ -1018,6 +1134,7 @@ struct HomeView: View {
                     }
                 }
                 .padding(.top, 6)
+                .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
             }
         }
     }
@@ -1156,10 +1273,14 @@ struct HomeView: View {
     }
 
     private var widgetRangeLabel: String {
-        if let override = widgetRangeOverride {
+        return rangeDescription(currentRange)
+    }
+
+    private var weekdayRangeLabel: String {
+        if let override = weekdayRangeOverride {
             return rangeDescription(override)
         }
-        return rangeDescription(currentRange)
+        return widgetRangeLabel
     }
 
     private var heatmapBackground: some View {
@@ -1318,6 +1439,8 @@ struct HomeView: View {
             return
         }
         let range = currentRange
+        let selectedDate = await MainActor.run { vm.selectedDate }
+        let anchorDate = nextExpenseAnchorDate(for: range, selectedDate: selectedDate)
         let bgContext = CoreDataService.shared.newBackgroundContext()
         let snapshot: PlannedExpenseSnapshot? = await bgContext.perform {
             guard let budget = try? bgContext.existingObject(with: summary.id) as? Budget else { return nil }
@@ -1327,8 +1450,13 @@ struct HomeView: View {
                 NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
             ])
             fetch.sortDescriptors = [NSSortDescriptor(key: "transactionDate", ascending: true)]
-            fetch.fetchLimit = 1
-            guard let next = try? bgContext.fetch(fetch).first else { return nil }
+            fetch.fetchLimit = 25
+            guard let expenses = try? bgContext.fetch(fetch), !expenses.isEmpty else { return nil }
+            let next = expenses.first(where: { expense in
+                let date = expense.transactionDate ?? range.upperBound
+                return date >= anchorDate
+            }) ?? expenses.last
+            guard let next else { return nil }
             let title = HomeView.readPlannedDescription(next) ?? "Expense"
             let date = next.transactionDate ?? range.upperBound
             return PlannedExpenseSnapshot(
@@ -1343,16 +1471,42 @@ struct HomeView: View {
         await MainActor.run { nextPlannedSnapshot = snapshot }
     }
 
+    private func nextExpenseAnchorDate(for range: ClosedRange<Date>, selectedDate: Date) -> Date {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        if range.contains(today) {
+            return today
+        }
+        let normalizedSelection = calendar.startOfDay(for: selectedDate)
+        if range.contains(normalizedSelection) {
+            return normalizedSelection
+        }
+        return calendar.startOfDay(for: range.lowerBound)
+    }
+
+    private func preferredFocusDate(in range: ClosedRange<Date>, selectedDate: Date) -> Date {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        if range.contains(today) {
+            return today
+        }
+        if range.contains(selectedDate) {
+            return calendar.startOfDay(for: selectedDate)
+        }
+        return calendar.startOfDay(for: range.lowerBound)
+    }
+
     private func loadWidgetBuckets(for summary: BudgetSummary?) async {
         guard let summary else {
             await MainActor.run {
                 widgetBuckets = []
-                widgetRangeOverride = nil
+                weekdayRangeOverride = nil
             }
             return
         }
         let range = currentRange
         let selectedDate = vm.selectedDate
+        let focusDate = preferredFocusDate(in: range, selectedDate: selectedDate)
         let period = resolvedPeriod(vm.period, range: range)
 
         let dayTotals = await daySpendTotals(for: summary, in: range)
@@ -1371,17 +1525,17 @@ struct HomeView: View {
         case .weekly:
             buckets = bucketsForDays(in: range, dayTotals: dayTotals)
         case .biWeekly:
-            let weekRange = BudgetPeriod.weekly.range(containing: selectedDate)
+            let weekRange = BudgetPeriod.weekly.range(containing: focusDate)
             let bounded = clamp(weekRange.start...weekRange.end, to: range)
             displayRange = bounded
             buckets = bucketsForDays(in: bounded, dayTotals: dayTotals)
         case .monthly:
-            let weekRange = BudgetPeriod.weekly.range(containing: selectedDate)
+            let weekRange = BudgetPeriod.weekly.range(containing: focusDate)
             let bounded = clamp(weekRange.start...weekRange.end, to: range)
             displayRange = bounded
             buckets = bucketsForDays(in: bounded, dayTotals: dayTotals)
         case .quarterly:
-            let monthRange = BudgetPeriod.monthly.range(containing: selectedDate)
+            let monthRange = BudgetPeriod.monthly.range(containing: focusDate)
             let bounded = clamp(monthRange.start...monthRange.end, to: range)
             displayRange = bounded
             buckets = bucketsForWeeks(in: bounded, dayTotals: dayTotals)
@@ -1393,7 +1547,7 @@ struct HomeView: View {
 
         await MainActor.run {
             widgetBuckets = buckets
-            widgetRangeOverride = displayRange
+            weekdayRangeOverride = displayRange
         }
     }
 
@@ -1454,8 +1608,8 @@ struct HomeView: View {
         await MainActor.run { capStatuses = caps }
     }
 
-    private func categoryAvailability(for summary: BudgetSummary) -> [CategoryAvailability] {
-        computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary))
+    private func categoryAvailability(for summary: BudgetSummary, segment: CategoryAvailabilitySegment) -> [CategoryAvailability] {
+        computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary), segment: segment)
     }
 
     private static func readPlannedDescription(_ object: NSManagedObject) -> String? {
@@ -1524,6 +1678,17 @@ private struct MetricDetailView: View {
     @State private var editingIncomeBox: ManagedIDBox?
     @State private var spendSections: [SpendChartSection] = []
     @State private var scenarioAllocations: [String: Double] = [:]
+    @State private var scenarioWidth: CGFloat = 0
+    @AppStorage("homeAvailabilitySegment") private var detailAvailabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
+    private var detailAvailabilitySegment: CategoryAvailabilitySegment {
+        CategoryAvailabilitySegment(rawValue: detailAvailabilitySegmentRawValue) ?? .combined
+    }
+    private var detailAvailabilitySegmentBinding: Binding<CategoryAvailabilitySegment> {
+        Binding(
+            get: { detailAvailabilitySegment },
+            set: { detailAvailabilitySegmentRawValue = $0.rawValue }
+        )
+    }
 
     private func condensedReceivedSeries() -> [DatedValue] {
         guard !incomeTimeline.isEmpty else { return [] }
@@ -1687,11 +1852,23 @@ private struct MetricDetailView: View {
     }
 
     private var capsContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let segment = detailAvailabilitySegment
+        let filtered = (capStatuses ?? []).filter { $0.segment == segment }
+        return VStack(alignment: .leading, spacing: 12) {
             Text("Category Caps & Alerts")
                 .font(.ubSectionTitle)
-            if let capStatuses, !capStatuses.isEmpty {
-                ForEach(capStatuses) { cap in
+            PillSegmentedControl(selection: detailAvailabilitySegmentBinding) {
+                ForEach(CategoryAvailabilitySegment.allCases) { segment in
+                    Text(segment.title).tag(segment)
+                }
+            }
+            .ubSegmentedGlassStyle()
+            .padding(.trailing, 6)
+            if filtered.isEmpty {
+                Text("No caps found for this range.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(filtered) { cap in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Circle().fill(cap.color).frame(width: 10, height: 10)
@@ -1725,9 +1902,6 @@ private struct MetricDetailView: View {
                         }
                     }
                 }
-            } else {
-                Text("No caps found for this range.")
-                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -1823,7 +1997,8 @@ private struct MetricDetailView: View {
     }
 
     private var availabilityContent: some View {
-        let items = computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary))
+        let segment = detailAvailabilitySegment
+        let items = computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary), segment: segment)
         let remainingIncome = max(summary.actualIncomeTotal - (summary.plannedExpensesActualTotal + summary.variableExpensesTotal), 0)
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -1833,6 +2008,13 @@ private struct MetricDetailView: View {
                 Text(formatCurrency(remainingIncome))
                     .font(.ubMetricValue)
             }
+            PillSegmentedControl(selection: detailAvailabilitySegmentBinding) {
+                ForEach(CategoryAvailabilitySegment.allCases) { segment in
+                    Text(segment.title).tag(segment)
+                }
+            }
+            .ubSegmentedGlassStyle()
+            .padding(.trailing, 6)
             if items.isEmpty {
                 Text("No categories or caps available.")
                     .font(.ubBody)
@@ -1842,17 +2024,20 @@ private struct MetricDetailView: View {
                     ForEach(items) { item in
                         CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
                     }
-                    scenarioPlanner(items: items, remainingIncome: remainingIncome)
+                    scenarioPlanner(items: items, remainingIncome: remainingIncome, segment: segment)
                 }
             }
+        }
+        .onChange(of: detailAvailabilitySegmentRawValue) { _ in
+            scenarioAllocations.removeAll()
         }
     }
 
     @ViewBuilder
-    private func scenarioPlanner(items: [CategoryAvailability], remainingIncome: Double) -> some View {
-        let totalAllocated = items.reduce(0) { $0 + allocationValue(for: $1) }
+    private func scenarioPlanner(items: [CategoryAvailability], remainingIncome: Double, segment: CategoryAvailabilitySegment) -> some View {
+        let totalAllocated = items.reduce(0) { $0 + allocationValue(for: $1, segment: segment) }
         let potentialSavings = remainingIncome - totalAllocated
-        let slices = scenarioSlices(items: items, savings: potentialSavings)
+        let slices = scenarioSlices(items: items, savings: potentialSavings, segment: segment)
         let savingsGradient = potentialSavings >= 0 ? scenarioGradient(for: items) : nil
         let savingsColor = potentialSavings >= 0
             ? (savingsGradient == nil ? HomeView.HomePalette.income : scenarioAverageColor(for: items))
@@ -1877,44 +2062,47 @@ private struct MetricDetailView: View {
                     .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
             }
 
+            let width = scenarioWidth > 0 ? scenarioWidth : scenarioPlannerDefaultWidth()
+            let donutSize = min(max(width * 0.38, 180), 320)
+            let listWidth = max(width - donutSize - 16, width * 0.48)
+
             HStack(alignment: .top, spacing: 16) {
-                GeometryReader { geo in
-                    let width = geo.size.width
-                    let donutSize = min(max(width * 0.38, 180), 320)
-                    let listWidth = max(width - donutSize - 16, width * 0.48)
+                CategoryDonutView(
+                    slices: slices,
+                    total: max(slices.map(\.amount).reduce(0, +), 1),
+                    centerTitle: potentialSavings >= 0 ? "Potential Savings" : "Deficit",
+                    centerValue: formatCurrency(potentialSavings),
+                    savingsGradient: savingsGradient,
+                    centerValueGradient: savingsTextStyle
+                )
+                .frame(width: donutSize, height: donutSize)
+                .frame(minWidth: 0, alignment: .leading)
 
-                    HStack(alignment: .top, spacing: 16) {
-                        CategoryDonutView(
-                            slices: slices,
-                            total: max(slices.map(\.amount).reduce(0, +), 1),
-                            centerTitle: potentialSavings >= 0 ? "Potential Savings" : "Deficit",
-                            centerValue: formatCurrency(potentialSavings),
-                            savingsGradient: savingsGradient,
-                            centerValueGradient: savingsTextStyle
-                        )
-                        .frame(width: donutSize, height: donutSize)
-                        .frame(minWidth: 0, alignment: .leading)
-
-                        VStack(spacing: 10) {
-                            ForEach(items) { item in
-                                scenarioAllocationRow(item: item)
-                            }
-                        }
-                        .frame(width: listWidth, alignment: .leading)
+                VStack(spacing: 10) {
+                    ForEach(items) { item in
+                        scenarioAllocationRow(item: item, segment: segment)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(height: 300)
+                .frame(width: listWidth, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: 300, alignment: .top)
+            .background(
+                GeometryReader { geo in
+                    Color.clear
+                        .preference(key: ScenarioPlannerWidthPreferenceKey.self, value: geo.size.width)
+                }
+            )
+            .onPreferenceChange(ScenarioPlannerWidthPreferenceKey.self) { scenarioWidth = $0 }
         }
-        .onAppear { ensureScenarioDefaults(items: items) }
-        .onChange(of: items.map { normalizeCategoryName($0.name) }) { _ in
-            ensureScenarioDefaults(items: items)
+        .onAppear { ensureScenarioDefaults(items: items, segment: segment) }
+        .onChange(of: items.map { scenarioKey(for: $0, segment: segment) }) { _ in
+            ensureScenarioDefaults(items: items, segment: segment)
         }
     }
 
-    private func scenarioAllocationRow(item: CategoryAvailability) -> some View {
-        let binding = allocationBinding(for: item)
+    private func scenarioAllocationRow(item: CategoryAvailability, segment: CategoryAvailabilitySegment) -> some View {
+        let binding = allocationBinding(for: item, segment: segment)
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
@@ -1937,40 +2125,69 @@ private struct MetricDetailView: View {
         }
     }
 
-    private func ensureScenarioDefaults(items: [CategoryAvailability]) {
+    private func ensureScenarioDefaults(items: [CategoryAvailability], segment: CategoryAvailabilitySegment) {
         var next = scenarioAllocations
-        let keys = items.map { normalizeCategoryName($0.name) }
+        let keys = items.map { scenarioKey(for: $0, segment: segment) }
+        let keySet = Set(keys)
         for item in items {
-            let key = normalizeCategoryName(item.name)
+            let key = scenarioKey(for: item, segment: segment)
             if next[key] == nil {
                 next[key] = max(item.available, 0)
             }
         }
-        // Drop stale keys
-        next = next.filter { keys.contains($0.key) }
+        let prefix = scenarioKeyPrefix(for: segment)
+        next = next.filter { entry in
+            guard entry.key.hasPrefix(prefix) else { return true }
+            return keySet.contains(entry.key)
+        }
         if next != scenarioAllocations {
             scenarioAllocations = next
         }
     }
 
-    private func allocationValue(for item: CategoryAvailability) -> Double {
-        let key = normalizeCategoryName(item.name)
+    private func scenarioKey(for item: CategoryAvailability, segment: CategoryAvailabilitySegment) -> String {
+        scenarioKeyPrefix(for: segment) + normalizeCategoryName(item.name)
+    }
+
+    private func scenarioKeyPrefix(for segment: CategoryAvailabilitySegment) -> String {
+        "\(segment.rawValue)|"
+    }
+
+    private func allocationValue(for item: CategoryAvailability, segment: CategoryAvailabilitySegment) -> Double {
+        let key = scenarioKey(for: item, segment: segment)
         return scenarioAllocations[key] ?? item.available
     }
 
-    private func allocationBinding(for item: CategoryAvailability) -> Binding<Double> {
-        let key = normalizeCategoryName(item.name)
+    private func allocationBinding(for item: CategoryAvailability, segment: CategoryAvailabilitySegment) -> Binding<Double> {
+        let key = scenarioKey(for: item, segment: segment)
         return Binding(
-            get: { allocationValue(for: item) },
+            get: { allocationValue(for: item, segment: segment) },
             set: { newValue in
                 scenarioAllocations[key] = max(newValue, 0)
             }
         )
     }
 
-private func scenarioSlices(items: [CategoryAvailability], savings: Double) -> [CategorySlice] {
+    private func scenarioPlannerDefaultWidth() -> CGFloat {
+        #if canImport(UIKit)
+        return UIScreen.main.bounds.width - 48
+        #elseif os(macOS)
+        return NSScreen.main?.frame.width ?? 900
+        #else
+        return 600
+        #endif
+    }
+
+    private struct ScenarioPlannerWidthPreferenceKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = nextValue()
+        }
+    }
+
+private func scenarioSlices(items: [CategoryAvailability], savings: Double, segment: CategoryAvailabilitySegment) -> [CategorySlice] {
     var slices: [CategorySlice] = items.compactMap { item in
-        let amount = allocationValue(for: item)
+        let amount = allocationValue(for: item, segment: segment)
         guard amount > 0 else { return nil }
         return CategorySlice(
             name: item.name,
@@ -3172,6 +3389,124 @@ private func shortDate(_ date: Date) -> String {
     return f.string(from: date)
 }
 
+// MARK: - Next Planned + Presets Detail
+private struct NextPlannedPresetsView: View {
+    let summaryID: NSManagedObjectID
+    let nextExpense: HomeView.PlannedExpenseSnapshot?
+
+    @State private var hasDeletedNextExpense = false
+    @State private var editingExpenseBox: ExpenseBox?
+    @Environment(\.managedObjectContext) private var viewContext
+
+    private struct ExpenseBox: Identifiable {
+        let id: NSManagedObjectID
+    }
+
+    var body: some View {
+        PresetsView(header: headerView)
+            .sheet(item: $editingExpenseBox) { box in
+                AddPlannedExpenseView(
+                    plannedExpenseID: box.id,
+                    preselectedBudgetID: summaryID,
+                    onSaved: {
+                        editingExpenseBox = nil
+                    }
+                )
+                .environment(\.managedObjectContext, viewContext)
+            }
+    }
+
+    private var headerView: AnyView? {
+        guard let nextExpense, !hasDeletedNextExpense else { return nil }
+        let expense = fetchPlannedExpense(from: nextExpense.expenseURI)
+        let colors = nextExpenseGradientColors(for: expense)
+        let gradient = LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+        let shadowColor = colors.last ?? HomeView.HomePalette.cards
+        return AnyView(
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Next Planned Expense")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(HomeView.HomePalette.cards)
+                NextPlannedDetailRow(
+                    snapshot: nextExpense,
+                    expense: expense,
+                    onEdit: { presentEditor(for: nextExpense) },
+                    onDelete: {
+                        deletePlannedExpense(for: nextExpense)
+                        withAnimation { hasDeletedNextExpense = true }
+                    }
+                )
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(gradient)
+                        .opacity(0.35)
+                }
+                .shadow(color: shadowColor.opacity(0.18), radius: 18, x: 0, y: 12)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(gradient, lineWidth: 1)
+                    .opacity(0.7)
+            )
+        )
+    }
+
+    private func presentEditor(for snapshot: HomeView.PlannedExpenseSnapshot) {
+        guard let expense = fetchPlannedExpense(from: snapshot.expenseURI) else { return }
+        editingExpenseBox = ExpenseBox(id: expense.objectID)
+    }
+
+    private func deletePlannedExpense(for snapshot: HomeView.PlannedExpenseSnapshot) {
+        guard let expense = fetchPlannedExpense(from: snapshot.expenseURI) else { return }
+        let ctx = CoreDataService.shared.viewContext
+        ctx.perform {
+            ctx.delete(expense)
+            try? ctx.save()
+        }
+    }
+
+    private func fetchPlannedExpense(from uri: URL) -> PlannedExpense? {
+        let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
+        guard let id = coordinator.managedObjectID(forURIRepresentation: uri) else { return nil }
+        return try? CoreDataService.shared.viewContext.existingObject(with: id) as? PlannedExpense
+    }
+
+    private func nextExpenseGradientColors(for expense: PlannedExpense?) -> [Color] {
+        var palette: [Color] = []
+        if
+            let hex = expense?.expenseCategory?.color,
+            let color = UBColorFromHex(hex)
+        {
+            palette.append(color)
+        }
+        if let theme = cardTheme(from: expense?.card) {
+            let (top, bottom) = theme.colors
+            palette.append(contentsOf: [top, bottom])
+        }
+        if palette.isEmpty {
+            palette = [HomeView.HomePalette.cards, HomeView.HomePalette.presets]
+        } else if palette.count == 1, let first = palette.first {
+            palette.append(first.opacity(0.9))
+        }
+        return Array(palette.prefix(2))
+    }
+
+    private func cardTheme(from card: Card?) -> CardTheme? {
+        guard
+            let card,
+            card.entity.attributesByName["theme"] != nil,
+            let raw = card.value(forKey: "theme") as? String
+        else { return nil }
+        return CardTheme(rawValue: raw)
+    }
+}
+
 // MARK: - Category Spotlight Helpers
 private struct CategorySlice: Identifiable {
     let id = UUID()
@@ -3387,65 +3722,10 @@ private func weekdayGradientColors(for summary: BudgetSummary) -> [Color] {
 }
 
 private func fetchCapStatuses(for summary: BudgetSummary) async -> [CapStatus] {
-    let ctx = CoreDataService.shared.viewContext
-    let categories = summary.categoryBreakdown
-    guard !categories.isEmpty else { return [] }
-
-    func resolveCategory(_ cat: BudgetSummary.CategorySpending) -> ExpenseCategory? {
-        let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
-        if cat.categoryURI.scheme == "x-coredata",
-           let catID = coordinator.managedObjectID(forURIRepresentation: cat.categoryURI),
-           let category = try? ctx.existingObject(with: catID) as? ExpenseCategory {
-            return category
-        }
-        let name = cat.categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return nil }
-        let fetch = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
-        fetch.predicate = NSPredicate(format: "name ==[cd] %@", name)
-        fetch.fetchLimit = 1
-        return try? ctx.fetch(fetch).first
+    let caps = categoryCaps(for: summary)
+    return CategoryAvailabilitySegment.allCases.flatMap {
+        computeCapStatuses(summary: summary, caps: caps, segment: $0)
     }
-
-    func capAmount(for category: ExpenseCategory, segment: String) -> Double? {
-        let key = capsPeriodKey(start: summary.periodStart, end: summary.periodEnd, segment: segment)
-        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
-        fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "category == %@", category),
-            NSPredicate(format: "period == %@", key),
-            NSPredicate(format: "expenseType == %@", "max")
-        ])
-        fetch.fetchLimit = 1
-        guard
-            let cap = try? ctx.fetch(fetch).first,
-            let amount = cap.value(forKey: "amount") as? Double,
-            amount > 0
-        else { return nil }
-        return amount
-    }
-
-    var results: [CapStatus] = []
-
-    for cat in categories {
-        guard let category = resolveCategory(cat) else { continue }
-        let plannedCap = capAmount(for: category, segment: "planned") ?? 0
-        let variableCap = capAmount(for: category, segment: "variable") ?? 0
-        let totalCap = plannedCap + variableCap
-        guard totalCap > 0 else { continue }
-
-        let color = UBColorFromHex(cat.hexColor) ?? HomeView.HomePalette.presets
-        let near = cat.amount >= totalCap * 0.85 && cat.amount < totalCap
-        let over = cat.amount >= totalCap
-        results.append(CapStatus(
-            name: cat.categoryName,
-            amount: cat.amount,
-            cap: totalCap,
-            color: color,
-            near: near,
-            over: over
-        ))
-    }
-
-    return results.sorted { ($0.over ? 1 : 0, $0.amount / max($0.cap, 1)) > ($1.over ? 1 : 0, $1.amount / max($1.cap, 1)) }
 }
 
 private func capsPeriodKey(start: Date, end: Date, segment: String) -> String {
@@ -3490,23 +3770,45 @@ fileprivate func categoryCaps(for summary: BudgetSummary) -> [String: (planned: 
     return map
 }
 
-fileprivate func computeCategoryAvailability(summary: BudgetSummary, caps: [String: (planned: Double?, variable: Double?)]) -> [CategoryAvailability] {
+fileprivate func computeCategoryAvailability(summary: BudgetSummary, caps: [String: (planned: Double?, variable: Double?)], segment: CategoryAvailabilitySegment) -> [CategoryAvailability] {
     let remainingIncome = max(summary.actualIncomeTotal - (summary.plannedExpensesActualTotal + summary.variableExpensesTotal), 0)
+    let breakdown: [BudgetSummary.CategorySpending]
+    switch segment {
+    case .combined:
+        breakdown = summary.categoryBreakdown
+    case .planned:
+        breakdown = summary.plannedCategoryBreakdown
+    case .variable:
+        breakdown = summary.variableCategoryBreakdown
+    }
 
-    let availabilities: [CategoryAvailability] = summary.categoryBreakdown.map { cat in
+    let availabilities: [CategoryAvailability] = breakdown.map { cat in
         let norm = normalizeCategoryName(cat.categoryName)
         let capTuple = caps[norm]
-        let combinedCap = (capTuple?.planned ?? 0) + (capTuple?.variable ?? 0)
-        let hasCap = combinedCap > 0
-        let capRemaining = hasCap ? max(combinedCap - cat.amount, 0) : remainingIncome
-        let available = min(capRemaining, remainingIncome)
+        let plannedDefault = summary.plannedCategoryDefaultCaps[norm]
+        let capValue: Double?
+        switch segment {
+        case .combined:
+            let plannedCap = capTuple?.planned ?? plannedDefault
+            let variableCap = capTuple?.variable
+            let combined = (plannedCap ?? 0) + (variableCap ?? 0)
+            capValue = combined > 0 ? combined : nil
+        case .planned:
+            capValue = capTuple?.planned ?? plannedDefault
+        case .variable:
+            capValue = capTuple?.variable
+        }
+        let hasCap = capValue != nil
+        let capAmount = capValue ?? 0
+        let capRemaining = max(capAmount - cat.amount, 0)
+        let available = hasCap ? capRemaining : remainingIncome
         let color = UBColorFromHex(cat.hexColor) ?? Color.accentColor
-        let over = hasCap && cat.amount >= combinedCap
-        let near = hasCap && cat.amount >= combinedCap * 0.85 && cat.amount < combinedCap
+        let over = hasCap && cat.amount >= capAmount
+        let near = hasCap && cat.amount >= capAmount * 0.85 && cat.amount < capAmount
         return CategoryAvailability(
             name: cat.categoryName,
             spent: cat.amount,
-            cap: hasCap ? combinedCap : nil,
+            cap: capValue,
             available: available,
             color: color,
             over: over,
@@ -3519,6 +3821,61 @@ fileprivate func computeCategoryAvailability(summary: BudgetSummary, caps: [Stri
             if lhs.spent == rhs.spent { return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending }
             return lhs.spent > rhs.spent
         }
+}
+
+fileprivate func computeCapStatuses(summary: BudgetSummary, caps: [String: (planned: Double?, variable: Double?)], segment: CategoryAvailabilitySegment) -> [CapStatus] {
+    let breakdown: [BudgetSummary.CategorySpending]
+    switch segment {
+    case .combined:
+        breakdown = summary.categoryBreakdown
+    case .planned:
+        breakdown = summary.plannedCategoryBreakdown
+    case .variable:
+        breakdown = summary.variableCategoryBreakdown
+    }
+
+    let statuses: [CapStatus] = breakdown.compactMap { cat in
+        let norm = normalizeCategoryName(cat.categoryName)
+        let overrides = caps[norm]
+        let plannedDefault = summary.plannedCategoryDefaultCaps[norm]
+        let plannedComponent = max((overrides?.planned ?? plannedDefault ?? 0), 0)
+        let variableComponent = max(overrides?.variable ?? 0, 0)
+
+        let capAmount: Double
+        switch segment {
+        case .combined:
+            capAmount = plannedComponent + variableComponent
+        case .planned:
+            capAmount = plannedComponent
+        case .variable:
+            capAmount = variableComponent
+        }
+
+        guard capAmount > 0 else { return nil }
+        let color = UBColorFromHex(cat.hexColor) ?? HomeView.HomePalette.presets
+        let over = cat.amount >= capAmount
+        let near = !over && cat.amount >= capAmount * 0.85
+
+        return CapStatus(
+            name: cat.categoryName,
+            amount: cat.amount,
+            cap: capAmount,
+            color: color,
+            near: near,
+            over: over,
+            segment: segment
+        )
+    }
+
+    return statuses.sorted { lhs, rhs in
+        if lhs.over != rhs.over { return lhs.over && !rhs.over }
+        let lhsRatio = lhs.cap > 0 ? lhs.amount / lhs.cap : 0
+        let rhsRatio = rhs.cap > 0 ? rhs.amount / rhs.cap : 0
+        if lhsRatio == rhsRatio {
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+        return lhsRatio > rhsRatio
+    }
 }
 
 // MARK: - Typography Helpers
@@ -3810,6 +4167,51 @@ struct PlannedRowsList: View {
             formatter.currencyCode = Locale.current.currencyCode ?? "USD"
             return formatter.string(from: amount as NSNumber) ?? String(format: "%.2f", amount)
         }
+    }
+}
+
+private struct SegmentedGlassStyleModifier: ViewModifier {
+    var cornerRadius: CGFloat = 18
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .background(background)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var background: some View {
+        if #available(iOS 26.0, macOS 15.0, macCatalyst 26.0, *) {
+            Color.clear
+                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+        } else {
+            #if canImport(UIKit)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color(UIColor.secondarySystemBackground).opacity(0.95))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+                )
+            #elseif os(macOS)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color(NSColor.windowBackgroundColor).opacity(0.92))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(Color.primary.opacity(0.12), lineWidth: 0.8)
+                )
+            #else
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color.white.opacity(0.15))
+            #endif
+        }
+    }
+}
+
+fileprivate extension View {
+    func ubSegmentedGlassStyle(cornerRadius: CGFloat = 18) -> some View {
+        modifier(SegmentedGlassStyleModifier(cornerRadius: cornerRadius))
     }
 }
 

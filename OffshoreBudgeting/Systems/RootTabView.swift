@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import CoreData
 
 // MARK: - Overview
 /// Root tab container for the application. Hosts all primary sections and
@@ -21,7 +20,6 @@ import CoreData
 struct RootTabView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dataRevision) private var dataRevision
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let isWorkspaceReady: Bool
 
     // MARK: Tabs
@@ -33,37 +31,10 @@ struct RootTabView: View {
         case settings
     }
 
-    // MARK: Destinations
-    enum Destination: Hashable {
-        case tab(Tab)
-
-        // Sidebar-only action destinations
-        case addPlannedExpense
-        case addVariableExpense
-        case manageCategories
-        case managePresets
-
-        // Sidebar-only dynamic destinations
-        case activeBudget(NSManagedObjectID)
-    }
-
     // MARK: State
     @Environment(\.startTabIdentifier) private var startTabIdentifier
-    @State private var selectedDestination: Destination = .tab(.home)
-    @State private var lastPrimaryTab: Tab = .home
+    @State private var selectedTab: Tab = .home
     @State private var appliedStartTab: Bool = false
-
-    @State private var isPresentingAddPlannedExpense = false
-    @State private var isPresentingAddVariableExpense = false
-    @State private var isPresentingManageCategories = false
-    @State private var isPresentingManagePresets = false
-
-    @Environment(\.managedObjectContext) private var viewContext
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Budget.startDate, ascending: false)],
-        animation: .default
-    )
-    private var budgets: FetchedResults<Budget>
 
     var body: some View {
         tabViewBody
@@ -73,169 +44,56 @@ struct RootTabView: View {
     @ViewBuilder
     private var tabViewBody: some View {
         if #available(iOS 18.0, macCatalyst 18.0, macOS 15.0, *) {
-            TabView(selection: $selectedDestination) {
-
-                // MARK: Primary tabs (always present)
-
-                SwiftUI.Tab(Tab.home.title, systemImage: Tab.home.systemImage, value: Destination.tab(.home)) {
-                    tabNavigationContainer {
-                        decoratedTabContent(for: .home)
-                    }
-                }
-                .accessibilityIdentifier(Tab.home.accessibilityID)
-
-                SwiftUI.Tab(Tab.budgets.title, systemImage: Tab.budgets.systemImage, value: Destination.tab(.budgets)) {
-                    tabNavigationContainer {
-                        decoratedTabContent(for: .budgets)
-                    }
-                }
-                .accessibilityIdentifier(Tab.budgets.accessibilityID)
-
-                SwiftUI.Tab(Tab.income.title, systemImage: Tab.income.systemImage, value: Destination.tab(.income)) {
-                    tabNavigationContainer {
-                        decoratedTabContent(for: .income)
-                    }
-                }
-                .accessibilityIdentifier(Tab.income.accessibilityID)
-
-                SwiftUI.Tab(Tab.cards.title, systemImage: Tab.cards.systemImage, value: Destination.tab(.cards)) {
-                    tabNavigationContainer {
-                        decoratedTabContent(for: .cards)
-                    }
-                }
-                .accessibilityIdentifier(Tab.cards.accessibilityID)
-
-                SwiftUI.Tab(Tab.settings.title, systemImage: Tab.settings.systemImage, value: Destination.tab(.settings)) {
-                    tabNavigationContainer {
-                        decoratedTabContent(for: .settings)
-                    }
-                }
-                .accessibilityIdentifier(Tab.settings.accessibilityID)
-
-                // MARK: Sidebar-only sections
-                //
-                // These use `.tabPlacement(.sidebarOnly)` to stay out of compact tab bars.
-
-                // MARK: Add Expenses
-                TabSection {
-                    SwiftUI.Tab(
-                        "+ Add Planned Expense",
-                        systemImage: "calendar.badge.plus",
-                        value: Destination.addPlannedExpense
-                    ) {
-                        sidebarActionTab {
-                            isPresentingAddPlannedExpense = true
-                        }
-                    }
-                    .tabPlacement(.sidebarOnly)
-                    .defaultVisibility(.hidden, for: .tabBar)
-
-                    SwiftUI.Tab(
-                        "+ Add Variable Expense",
-                        systemImage: "plus.circle",
-                        value: Destination.addVariableExpense
-                    ) {
-                        sidebarActionTab {
-                            isPresentingAddVariableExpense = true
-                        }
-                    }
-                    .tabPlacement(.sidebarOnly)
-                    .defaultVisibility(.hidden, for: .tabBar)
-                } header: {
-                    Label("Add Expenses", systemImage: "plus")
-                }
-                .tabPlacement(.sidebarOnly)
-                .defaultVisibility(.hidden, for: .tabBar)
-                .customizationBehavior(.disabled, for: .tabBar)
-
-                // MARK: Active Budgets
-                TabSection {
-                    ForEach(activeBudgets, id: \.objectID) { budget in
-                        SwiftUI.Tab(
-                            activeBudgetTitle(for: budget),
-                            systemImage: "chart.pie",
-                            value: Destination.activeBudget(budget.objectID)
-                        ) {
-                            tabNavigationContainer {
-                                BudgetDetailsView(budgetID: budget.objectID)
-                            }
-                        }
-                        .tabPlacement(.sidebarOnly)
-                        .defaultVisibility(.hidden, for: .tabBar)
-                    }
-                } header: {
-                    Label("Active Budgets", systemImage: "calendar")
-                }
-                .tabPlacement(.sidebarOnly)
-                .defaultVisibility(.hidden, for: .tabBar)
-                .customizationBehavior(.disabled, for: .tabBar)
-
-                // MARK: Quick Links
-                TabSection {
-                    SwiftUI.Tab(
-                        "Manage Categories",
-                        systemImage: "folder",
-                        value: Destination.manageCategories
-                    ) {
-                        sidebarActionTab {
-                            isPresentingManageCategories = true
-                        }
-                    }
-                    .tabPlacement(.sidebarOnly)
-                    .defaultVisibility(.hidden, for: .tabBar)
-
-                    SwiftUI.Tab(
-                        "Manage Presets",
-                        systemImage: "slider.horizontal.3",
-                        value: Destination.managePresets
-                    ) {
-                        sidebarActionTab {
-                            isPresentingManagePresets = true
-                        }
-                    }
-                    .tabPlacement(.sidebarOnly)
-                    .defaultVisibility(.hidden, for: .tabBar)
-                } header: {
-                    Label("Quick Links", systemImage: "link")
-                }
-                .tabPlacement(.sidebarOnly)
-                .defaultVisibility(.hidden, for: .tabBar)
-                .customizationBehavior(.disabled, for: .tabBar)
-            }
-            .onAppear { applyStartTabIfNeeded() }
-            .onChange(of: selectedDestination) { updateLastPrimaryTab(for: $0) }
-            .onChange(of: horizontalSizeClass) { _ in enforcePrimarySelectionIfCompact() }
-            .tabViewStyle(.sidebarAdaptable)
-            .defaultAdaptableTabBarPlacement(.tabBar)
-
-            // Sheets for your actions
-            .sheet(isPresented: $isPresentingAddPlannedExpense) {
-                AddPlannedExpenseView(onSaved: { isPresentingAddPlannedExpense = false })
-                    .environment(\.managedObjectContext, viewContext)
-            }
-            .sheet(isPresented: $isPresentingAddVariableExpense) {
-                AddUnplannedExpenseView(onSaved: { isPresentingAddVariableExpense = false })
-                    .environment(\.managedObjectContext, viewContext)
-            }
-            .sheet(isPresented: $isPresentingManageCategories) {
-                navigationContainer {
-                    ExpenseCategoryManagerView()
-                        .environment(\.managedObjectContext, viewContext)
-                }
-            }
-            .sheet(isPresented: $isPresentingManagePresets) {
-                navigationContainer {
-                    PresetsView()
-                        .environment(\.managedObjectContext, viewContext)
-                }
-            }
+            adaptiveTabView
         } else {
             baseTabView
         }
     }
 
+    @available(iOS 18.0, macCatalyst 18.0, macOS 15.0, *)
+    @ViewBuilder
+    private var adaptiveTabView: some View {
+        TabView(selection: $selectedTab) {
+            SwiftUI.Tab(Tab.home.title, systemImage: Tab.home.systemImage, value: Tab.home) {
+                navigationContainer {
+                    decoratedTabContent(for: .home)
+                }
+            }
+            .accessibilityIdentifier(Tab.home.accessibilityID)
+
+            SwiftUI.Tab(Tab.budgets.title, systemImage: Tab.budgets.systemImage, value: Tab.budgets) {
+                navigationContainer {
+                    decoratedTabContent(for: .budgets)
+                }
+            }
+            .accessibilityIdentifier(Tab.budgets.accessibilityID)
+
+            SwiftUI.Tab(Tab.income.title, systemImage: Tab.income.systemImage, value: Tab.income) {
+                navigationContainer {
+                    decoratedTabContent(for: .income)
+                }
+            }
+            .accessibilityIdentifier(Tab.income.accessibilityID)
+
+            SwiftUI.Tab(Tab.cards.title, systemImage: Tab.cards.systemImage, value: Tab.cards) {
+                navigationContainer {
+                    decoratedTabContent(for: .cards)
+                }
+            }
+            .accessibilityIdentifier(Tab.cards.accessibilityID)
+
+            SwiftUI.Tab(Tab.settings.title, systemImage: Tab.settings.systemImage, value: Tab.settings) {
+                navigationContainer {
+                    decoratedTabContent(for: .settings)
+                }
+            }
+            .accessibilityIdentifier(Tab.settings.accessibilityID)
+        }
+        .onAppear { applyStartTabIfNeeded() }
+    }
+
     private var baseTabView: some View {
-        TabView(selection: $selectedDestination) {
+        TabView(selection: $selectedTab) {
             legacyTabViewItem(for: .home)
             legacyTabViewItem(for: .budgets)
             legacyTabViewItem(for: .income)
@@ -243,8 +101,6 @@ struct RootTabView: View {
             legacyTabViewItem(for: .settings)
         }
         .onAppear { applyStartTabIfNeeded() }
-        .onChange(of: selectedDestination) { updateLastPrimaryTab(for: $0) }
-        .onChange(of: horizontalSizeClass) { _ in enforcePrimarySelectionIfCompact() }
     }
 
     // MARK: - Legacy Tab Items
@@ -258,7 +114,7 @@ struct RootTabView: View {
             Label(tab.title, systemImage: tab.systemImage)
                 .accessibilityIdentifier(tab.accessibilityID)
         }
-        .tag(Destination.tab(tab))
+        .tag(tab)
     }
 
     // MARK: - Decoration & Navigation Containers
@@ -321,30 +177,9 @@ struct RootTabView: View {
         }
     }
 
-    @ViewBuilder
-    private func tabNavigationContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        navigationContainer { content() }
-    }
-
     private func loadingPlaceholder() -> some View {
         Color.clear
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .accessibilityHidden(true)
-    }
-
-    // MARK: - Sidebar-only behavior
-
-    /// Content for a sidebar-only "action tab" that immediately triggers a sheet,
-    /// then returns selection to the last primary tab so the user isn't left on
-    /// a blank destination.
-    @ViewBuilder
-    private func sidebarActionTab(trigger: @escaping () -> Void) -> some View {
-        Color.clear
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .onAppear {
-                trigger()
-                selectedDestination = .tab(lastPrimaryTab)
-            }
             .accessibilityHidden(true)
     }
 
@@ -388,8 +223,7 @@ private extension RootTabView {
     func applyStartTabIfNeeded() {
         guard !appliedStartTab, let key = startTabIdentifier else { return }
         if let target = mapStartTab(key: key) {
-            selectedDestination = .tab(target)
-            lastPrimaryTab = target
+            selectedTab = target
             appliedStartTab = true
         }
     }
@@ -404,42 +238,4 @@ private extension RootTabView {
         default: return nil
         }
     }
-}
-
-// MARK: - Sidebar Data
-private extension RootTabView {
-    var activeBudgets: [Budget] {
-        let now = Date()
-        return budgets.filter { isActive($0, on: now) }
-    }
-
-    func isActive(_ budget: Budget, on date: Date) -> Bool {
-        guard let start = budget.startDate, let end = budget.endDate else { return false }
-        return start <= date && end >= date
-    }
-
-    func activeBudgetTitle(for budget: Budget) -> String {
-        let raw = budget.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return raw.isEmpty ? "Untitled Budget" : raw
-    }
-}
-
-// MARK: - Selection Tracking
-private extension RootTabView {
-    func updateLastPrimaryTab(for destination: Destination) {
-        if case let .tab(tab) = destination {
-            lastPrimaryTab = tab
-        }
-    }
-
-    func enforcePrimarySelectionIfCompact() {
-        guard horizontalSizeClass == .compact else { return }
-        if case .tab = selectedDestination { return }
-        selectedDestination = .tab(lastPrimaryTab)
-    }
-}
-
-// MARK: - NSManagedObjectID as Identifiable for sheet(item:)
-private extension NSManagedObjectID {
-    var id: URL { uriRepresentation() }
 }

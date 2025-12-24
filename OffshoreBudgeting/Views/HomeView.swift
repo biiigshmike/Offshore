@@ -709,10 +709,14 @@ struct HomeView: View {
         } label: {
             widgetCard(title: "Next Planned Expense", subtitle: widgetRangeLabel, kind: .cards, span: WidgetSpan(width: 1, height: 1)) {
                 if let snapshot {
-                    PresetExpenseRowView(
+                    let expense = fetchPlannedExpense(from: snapshot.expenseURI)
+                    let cardItem = detachedCardItem(from: expense?.card)
+                    NextPlannedExpenseWidgetRow(
+                        cardItem: cardItem,
                         title: snapshot.title,
-                        amountText: "Planned: \(formatCurrency(snapshot.plannedAmount)) • Actual: \(formatCurrency(snapshot.actualAmount))",
-                        dateText: shortDate(snapshot.date)
+                        dateText: shortDate(snapshot.date),
+                        plannedText: "Planned: \(formatCurrency(snapshot.plannedAmount))",
+                        actualText: "Actual: \(formatCurrency(snapshot.actualAmount))"
                     )
                 } else {
                     Text("No planned expenses in this range.")
@@ -722,6 +726,18 @@ struct HomeView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Next Planned Expense Helpers
+    private func fetchPlannedExpense(from uri: URL) -> PlannedExpense? {
+        let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
+        guard let id = coordinator.managedObjectID(forURIRepresentation: uri) else { return nil }
+        return try? CoreDataService.shared.viewContext.existingObject(with: id) as? PlannedExpense
+    }
+
+    private func detachedCardItem(from card: Card?) -> CardItem? {
+        guard let card else { return nil }
+        return CardItem(from: card)
     }
 
     private func categorySpotlightWidget(for summary: BudgetSummary) -> some View {
@@ -2670,6 +2686,12 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
         return try? CoreDataService.shared.viewContext.existingObject(with: id) as? PlannedExpense
     }
 
+    // MARK: - Card Preview Helpers
+    private func detachedCardItem(from card: Card?) -> CardItem? {
+        guard let card else { return nil }
+        return CardItem(from: card)
+    }
+
     private func deletePlannedExpense(_ expense: PlannedExpense?) {
         guard let expense else { return }
         let ctx = CoreDataService.shared.viewContext
@@ -3485,6 +3507,53 @@ private struct PresetExpenseRowView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Next Planned Expense Widget Row
+private struct NextPlannedExpenseWidgetRow: View {
+    let cardItem: CardItem?
+    let title: String
+    let dateText: String
+    let plannedText: String
+    let actualText: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            cardPreview
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text(dateText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(plannedText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(actualText)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var cardPreview: some View {
+        if let cardItem {
+            CardTileView(card: cardItem, isInteractive: false, enableMotionShine: true, showsBaseShadow: false)
+                .frame(width: 120)
+        } else {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.secondary.opacity(0.12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                )
+                .frame(width: 120, height: 76)
+        }
     }
 }
 

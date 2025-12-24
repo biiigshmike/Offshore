@@ -505,8 +505,17 @@ final class HomeViewModel: ObservableObject {
 
     private nonisolated static func fetchIncomes(overlapping range: ClosedRange<Date>, in context: NSManagedObjectContext) -> [Income] {
         let req = NSFetchRequest<Income>(entityName: "Income")
-        req.predicate = NSPredicate(format: "date >= %@ AND date <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+        req.predicate = incomeDatePredicate(for: range)
         return (try? context.fetch(req)) ?? []
+    }
+
+    // MARK: Income Date Range Helpers
+    private nonisolated static func incomeDatePredicate(for range: ClosedRange<Date>) -> NSPredicate {
+        let calendar = Calendar.current
+        let startDay = calendar.startOfDay(for: range.lowerBound)
+        let endDay = calendar.startOfDay(for: range.upperBound)
+        let endExclusive = calendar.date(byAdding: .day, value: 1, to: endDay) ?? range.upperBound
+        return NSPredicate(format: "date >= %@ AND date < %@", startDay as NSDate, endExclusive as NSDate)
     }
 
     // MARK: buildSummary(for:periodStart:periodEnd:)
@@ -516,7 +525,7 @@ final class HomeViewModel: ObservableObject {
     ///   - periodStart: Inclusive start date for calculations.
     ///   - periodEnd: Inclusive end date for calculations.
     /// - Returns: A `BudgetSummary` for display.
-    private nonisolated static func buildSummary(
+    nonisolated static func buildSummary(
         for budget: Budget,
         periodStart: Date,
         periodEnd: Date,
@@ -544,9 +553,13 @@ final class HomeViewModel: ObservableObject {
         let plannedExpensesActualTotal  = plannedExpenses.reduce(0.0) { $0 + $1.actualAmount }
 
         // MARK: Income (DATE-ONLY; no relationship)
+        let calendar = Calendar.current
+        let incomeStartDay = calendar.startOfDay(for: periodStart)
+        let incomeEndDay = calendar.startOfDay(for: periodEnd)
+        let incomeEndExclusive = calendar.date(byAdding: .day, value: 1, to: incomeEndDay) ?? periodEnd
         let incomes: [Income] = allIncomes.filter { income in
             guard let date = income.date else { return false }
-            return date >= periodStart && date <= periodEnd
+            return date >= incomeStartDay && date < incomeEndExclusive
         }
         let potentialIncomeTotal = incomes.filter { $0.isPlanned }.reduce(0.0) { $0 + $1.amount }
         let actualIncomeTotal    = incomes.filter { !$0.isPlanned }.reduce(0.0) { $0 + $1.amount }

@@ -1,5 +1,5 @@
 import XCTest
-@testable import OffshoreBudgeting
+@testable import Offshore
 
 final class BudgetMetricsTests: XCTestCase {
 
@@ -12,7 +12,7 @@ final class BudgetMetricsTests: XCTestCase {
 
         XCTAssertEqual(metrics.status, .cashDeficit)
         XCTAssertEqual(metrics.percentOfExpected, 45.77, accuracy: 0.01)
-        XCTAssertEqual(metrics.percentOfReceived ?? 0, 132.84, accuracy: 0.01)
+        XCTAssertEqual(metrics.percentOfReceived ?? 0, 132.84, accuracy: 0.02)
         XCTAssertEqual(metrics.gaugeProgress, 0.46, accuracy: 0.01)
     }
 

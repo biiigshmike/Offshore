@@ -528,14 +528,39 @@ struct HomeView: View {
     private func incomeWidget(for summary: BudgetSummary) -> some View {
         widgetLink(title: "Income", subtitle: widgetRangeLabel, kind: .income, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
-                let total = max(max(summary.potentialIncomeTotal, summary.actualIncomeTotal), 1)
-                Text(formatCurrency(summary.actualIncomeTotal))
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                Text("Received of \(formatCurrency(summary.potentialIncomeTotal)) expected")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                ProgressView(value: summary.actualIncomeTotal, total: total)
-                    .tint(.green)
+                let total = max(summary.potentialIncomeTotal, 1)
+                let percent = min(max(summary.actualIncomeTotal / total, 0), 1)
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Actual Income")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Text(formatCurrency(summary.actualIncomeTotal))
+                            .font(.headline)
+                    }
+                    Spacer()
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Planned Income")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Text(formatCurrency(summary.potentialIncomeTotal))
+                            .font(.headline)
+                    }
+                }
+                HStack(spacing: 8) {
+                    Text("0%")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Gauge(value: percent, in: 0...1) {
+                        EmptyView()
+                    }
+                    .gaugeStyle(.accessoryLinear)
+                    .tint(Gradient(colors: [HomeView.HomePalette.income.opacity(0.25), HomeView.HomePalette.income]))
+                    .frame(maxWidth: .infinity)
+                    Text(String(format: "%.0f%%", percent * 100))
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
             }
         }
     }
@@ -547,17 +572,30 @@ struct HomeView: View {
             expectedIncome: summary.potentialIncomeTotal,
             receivedIncome: summary.actualIncomeTotal
         )
-        let receivedPercent = metrics.percentOfReceived ?? metrics.percentOfExpected
-        let gaugeValue = min(receivedPercent / 100, 1)
+        let hasReceived = metrics.percentOfReceived != nil
+        let receivedPercent = metrics.percentOfReceived ?? 0
+        let gaugeValue = hasReceived ? min(receivedPercent / 100, 1) : (metrics.expenses > 0 ? 1 : 0)
         let overReceived = (metrics.percentOfReceived ?? 0) > 100
         let tint: Color = overReceived ? .red : .green
         return widgetLink(title: "Expense to Income", subtitle: widgetRangeLabel, kind: .budgets, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("\(metrics.percentOfExpected, specifier: "%.0f")% of expected income spent")
-                    .font(.headline)
-                Text("Expenses: \(formatCurrency(metrics.expenses))")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Expenses")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Text(formatCurrency(metrics.expenses))
+                            .font(.headline)
+                    }
+                    Spacer()
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Actual Income")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Text(formatCurrency(summary.actualIncomeTotal))
+                            .font(.headline)
+                    }
+                }
                 HStack(spacing: 8) {
                     Text("0%")
                         .font(.footnote)
@@ -568,7 +606,7 @@ struct HomeView: View {
                     .gaugeStyle(.accessoryLinear)
                     .tint(Gradient(colors: [tint.opacity(0.25), tint]))
                     .frame(maxWidth: .infinity)
-                    Text("\(receivedPercent, specifier: "%.0f")%")
+                    Text(hasReceived ? String(format: "%.0f%%", receivedPercent) : "—")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(overReceived ? .red : .primary)
                 }
@@ -611,7 +649,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Projected")
+                        Text("Projected Savings")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                         Text(formatCurrency(projected))
@@ -619,7 +657,7 @@ struct HomeView: View {
                     }
                     Spacer()
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Actual")
+                        Text("Actual Savings")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                         Text(formatCurrency(actual))
@@ -638,14 +676,14 @@ struct HomeView: View {
                         .gaugeStyle(.accessoryLinear)
                         .tint(Gradient(colors: [statusTint.opacity(0.25), statusTint]))
                         .frame(maxWidth: .infinity)
-                        Text(percentLabel)
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(statusTint)
-                    }
-                } else {
-                    HStack(spacing: 8) {
-                        Text("-100%")
-                            .font(.footnote)
+                    Text(percentLabel)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(statusTint)
+                }
+            } else {
+                HStack(spacing: 8) {
+                    Text("-100%")
+                        .font(.footnote)
                             .foregroundStyle(.secondary)
                         Gauge(value: deficitRecovery, in: 0...1) {
                             EmptyView()
@@ -653,13 +691,13 @@ struct HomeView: View {
                         .gaugeStyle(.accessoryLinear)
                         .tint(Gradient(colors: [deficitTint.opacity(0.25), deficitTint]))
                         .frame(maxWidth: .infinity)
-                        Text(deficitLabel)
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(deficitTint)
-                    }
+                    Text(deficitLabel)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(deficitTint)
                 }
             }
         }
+    }
     }
 
 
@@ -2278,7 +2316,7 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
             timelineChart
             HStack(spacing: 12) {
                 metricRow(label: "Received", value: formatCurrency(summary.actualIncomeTotal))
-                metricRow(label: "Expected", value: formatCurrency(summary.potentialIncomeTotal))
+                metricRow(label: "Planned", value: formatCurrency(summary.potentialIncomeTotal))
             }
         }
     }
@@ -2287,7 +2325,7 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
         let dates = allDates(in: range)
         let daysElapsed = dates.filter { $0 <= startOfDay(Date()) }.count
         let progress = Double(daysElapsed) / Double(max(dates.count, 1))
-        let expectedSoFar = summary.potentialIncomeTotal * progress
+        let expectedSoFar = expectedIncomeSoFar(progressFallback: progress, on: Date())
         let status: String
         if summary.actualIncomeTotal >= expectedSoFar * 1.02 {
             status = "Ahead"
@@ -2413,42 +2451,43 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
             Text("No income in this range.")
                 .foregroundStyle(.secondary)
         } else {
-            let receivedColor = HomeView.HomePalette.income
-            let expectedColor = Color.gray
+            let plannedLineColor = HomeView.HomePalette.income
+            let actualLineColor = Color.gray
+            let receiptColor = Color.green
 
-            let receivedSeries = condensedReceivedSeries()
-            let expectedSeries: [DatedValue] = [
-                DatedValue(date: range.lowerBound, value: 0),
-                DatedValue(date: range.upperBound, value: summary.potentialIncomeTotal)
-            ]
+            let plannedSeries = expectedTimeline.isEmpty ? fallbackExpectedSeries() : expectedTimeline
+            let receiptPoints = receiptPoints(from: incomeTimeline)
+            let actualLineSeries = actualIncomeLineSeries(from: receiptPoints)
 
-            let maxVal = max((receivedSeries.map(\.value).max() ?? 0), (expectedSeries.map(\.value).max() ?? 0), 1)
+            let maxVal = max((actualLineSeries.map(\.value).max() ?? 0), (plannedSeries.map(\.value).max() ?? 0), 1)
             let domain: ClosedRange<Double> = 0...(maxVal * 1.1)
             VStack(alignment: .leading, spacing: 8) {
                 Chart {
-                    ForEach(expectedSeries) { point in
+                    ForEach(plannedSeries) { point in
                         LineMark(
                             x: .value("Date", point.date),
-                            y: .value("Expected", point.value)
+                            y: .value("Planned Income", point.value)
                         )
                         .interpolationMethod(.linear)
-                        .foregroundStyle(expectedColor.opacity(0.9))
-                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, dash: [6, 4]))
+                        .foregroundStyle(by: .value("Series", "Planned Income"))
+                        .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
                     }
-                    ForEach(receivedSeries) { point in
+                    ForEach(actualLineSeries) { point in
                         LineMark(
                             x: .value("Date", point.date),
-                            y: .value("Received", point.value)
+                            y: .value("Actual Income", point.value)
                         )
-                        .interpolationMethod(.monotone)
-                        .foregroundStyle(receivedColor)
-                        .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .interpolationMethod(.linear)
+                        .foregroundStyle(by: .value("Series", "Actual Income"))
+                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, dash: [6, 4]))
+                    }
+                    ForEach(receiptPoints) { point in
                         PointMark(
                             x: .value("Date", point.date),
                             y: .value("Received", point.value)
                         )
-                        .symbolSize(point.id == timelineSelection?.id ? 28 : 16)
-                        .foregroundStyle(receivedColor)
+                        .symbolSize(18)
+                        .foregroundStyle(receiptColor)
                     }
                     if let selected = timelineSelection {
                         RuleMark(x: .value("Selected", selected.date))
@@ -2460,6 +2499,11 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
                     }
                 }
                 .chartYScale(domain: domain)
+                .chartLegend(.hidden)
+                .chartForegroundStyleScale([
+                    "Planned Income": plannedLineColor,
+                    "Actual Income": actualLineColor.opacity(0.9)
+                ])
                 .chartXAxis {
                     AxisMarks(values: .automatic(desiredCount: 3))
                 }
@@ -2482,7 +2526,7 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
                                         let origin = geo[proxy.plotAreaFrame].origin
                                         let locationX = gesture.location.x - origin.x
                                         if let date: Date = proxy.value(atX: locationX) {
-                                            timelineSelection = nearestPoint(in: receivedSeries, to: date)
+                                            timelineSelection = nearestPoint(in: actualLineSeries, to: date)
                                         }
                                     }
                                     .onEnded { _ in timelineSelection = nil }
@@ -2495,17 +2539,13 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    HStack(spacing: 12) {
-                        Label("Received", systemImage: "circle.fill")
-                            .foregroundStyle(receivedColor)
+                    HStack(spacing: 16) {
+                        Label("Planned Income", systemImage: "circle.fill")
+                            .foregroundStyle(plannedLineColor)
                             .font(.caption)
-                        Label("Expected", systemImage: "circlebadge.fill")
-                            .foregroundStyle(expectedColor.opacity(0.9))
+                        Label("Actual Income", systemImage: "circle.fill")
+                            .foregroundStyle(actualLineColor.opacity(0.9))
                             .font(.caption)
-                            .labelStyle(.titleAndIcon)
-                        Text("Above expected = ahead")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -2662,6 +2702,51 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
         return [start, end]
     }
 
+    // MARK: Timeline & Pace Helpers
+    private func receiptPoints(from timeline: [DatedValue]) -> [DatedValue] {
+        let sorted = timeline.sorted { $0.date < $1.date }
+        var points: [DatedValue] = []
+        var lastValue = 0.0
+        for point in sorted {
+            if point.value > lastValue {
+                points.append(point)
+            }
+            lastValue = point.value
+        }
+        return points
+    }
+
+    private func actualIncomeLineSeries(from receiptPoints: [DatedValue]) -> [DatedValue] {
+        guard let start = receiptPoints.first else {
+            return [DatedValue(date: range.lowerBound, value: 0)]
+        }
+        var series: [DatedValue] = [DatedValue(date: range.lowerBound, value: 0)]
+        series.append(contentsOf: receiptPoints)
+        if start.date < range.lowerBound {
+            series[0] = DatedValue(date: range.lowerBound, value: start.value)
+        }
+        return series
+    }
+
+    // MARK: Income Pace Helpers
+    private func expectedIncomeSoFar(progressFallback: Double, on date: Date) -> Double {
+        guard !expectedTimeline.isEmpty else {
+            return summary.potentialIncomeTotal * progressFallback
+        }
+        let day = startOfDay(date)
+        if let expected = expectedTimeline.last(where: { $0.date <= day }) {
+            return expected.value
+        }
+        return expectedTimeline.first?.value ?? 0
+    }
+
+    private func fallbackExpectedSeries() -> [DatedValue] {
+        [
+            DatedValue(date: range.lowerBound, value: 0),
+            DatedValue(date: range.upperBound, value: summary.potentialIncomeTotal)
+        ]
+    }
+
     private func nearestPoint(in points: [DatedValue], to date: Date) -> DatedValue? {
         points.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) })
     }
@@ -2757,7 +2842,10 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
             var expenseDaily: [Date: Double] = [:]
             // Incomes (actual)
             let incomeReq = NSFetchRequest<Income>(entityName: "Income")
-            incomeReq.predicate = NSPredicate(format: "date >= %@ AND date <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+            let incomeStart = startOfDay(range.lowerBound)
+            let incomeEndDay = startOfDay(range.upperBound)
+            let incomeEndExclusive = Calendar.current.date(byAdding: .day, value: 1, to: incomeEndDay) ?? range.upperBound
+            incomeReq.predicate = NSPredicate(format: "date >= %@ AND date < %@", incomeStart as NSDate, incomeEndExclusive as NSDate)
             if let incomes = try? ctx.fetch(incomeReq) {
                 for inc in incomes where inc.isPlanned == false {
                     let day = startOfDay(inc.date ?? range.lowerBound)
@@ -2916,13 +3004,21 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
         return await ctx.perform {
             let dates = allDates(in: range)
             var incomeDaily: [Date: Double] = [:]
+            var expectedDaily: [Date: Double] = [:]
             let incomeReq = NSFetchRequest<Income>(entityName: "Income")
-            incomeReq.predicate = NSPredicate(format: "date >= %@ AND date <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+            let incomeStart = startOfDay(range.lowerBound)
+            let incomeEndDay = startOfDay(range.upperBound)
+            let incomeEndExclusive = Calendar.current.date(byAdding: .day, value: 1, to: incomeEndDay) ?? range.upperBound
+            incomeReq.predicate = NSPredicate(format: "date >= %@ AND date < %@", incomeStart as NSDate, incomeEndExclusive as NSDate)
             incomeReq.sortDescriptors = [NSSortDescriptor(key: "date", ascending: true)]
             let incomes = (try? ctx.fetch(incomeReq)) ?? []
             for inc in incomes where inc.isPlanned == false {
                 let day = startOfDay(inc.date ?? range.lowerBound)
                 incomeDaily[day, default: 0] += inc.amount
+            }
+            for inc in incomes where inc.isPlanned == true {
+                let day = startOfDay(inc.date ?? range.lowerBound)
+                expectedDaily[day, default: 0] += inc.amount
             }
             var received: [DatedValue] = []
             var cumulative = 0.0
@@ -2933,9 +3029,18 @@ private func scenarioAverageColor(for items: [CategoryAvailability]) -> Color {
             if received.count == 1, let first = received.first {
                 received.append(DatedValue(date: range.upperBound, value: first.value))
             }
-            let expected: [DatedValue] = dates.enumerated().map { idx, day in
-                let fraction = Double(idx + 1) / Double(max(dates.count, 1))
-                return DatedValue(date: day, value: summary.potentialIncomeTotal * fraction)
+            let expected: [DatedValue]
+            if expectedDaily.isEmpty {
+                expected = dates.enumerated().map { idx, day in
+                    let fraction = Double(idx + 1) / Double(max(dates.count, 1))
+                    return DatedValue(date: day, value: summary.potentialIncomeTotal * fraction)
+                }
+            } else {
+                var expectedCumulative = 0.0
+                expected = dates.map { day in
+                    expectedCumulative += expectedDaily[day] ?? 0
+                    return DatedValue(date: day, value: expectedCumulative)
+                }
             }
             let buckets = computeIncomeBuckets(using: ctx, period: comparisonPeriod)
             let latestIncomeID = incomes.last?.objectID

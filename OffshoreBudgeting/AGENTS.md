@@ -23,7 +23,7 @@ Validate clarity and infer missing context where possible
 Check for ambiguity, logical gaps, or conflicting instructions
 Assess complexity and choose internal optimization mode:
 Codex only requests clarification when the ambiguity would materially affect correctness or safety. Otherwise, it proceeds using best-fit defaults derived from prior context.
-Codex always references the folder "Apple Documentation" for references, instructions, and sample code and then translates the "Apple Documentation" into the project "Offshore"'s existing codebase.
+
 
 3. ARCHITECT
 Map dependencies and modular structure
@@ -75,7 +75,6 @@ Deliver short summary of reasoning and actionable steps
 - Avoid hard-coded device checks when layout modifiers can adapt.
 - Ensure that iOS 26/iPadOS26/macOS 26 Liquid Glass is prioritized and provide legacy fallback for older OSes. The app supports as low as iOS/iPadOS/macOS 16. iOS/iPadOS latest version is 16.6 and macOS latest version is 16.6; due to this, Liquid Glass should only be for OS 26 and then older, legacy OS versions have their UI elements that are consistent with their current OS.
 - I prefer my legacy members to only see plain text buttons while I prefer my iOS26 users to see Liquid Glass buttons.
-- Always reference the Apple Documentation folder, especially when making adjustments to Liquid Glass elements throughout the app. It's very important you do this each time you are coding that you constantly refresh yourself on Apple's official documentation on Liquid Glass.
 
 ## Core Data and model notes
 
@@ -99,7 +98,6 @@ Offshore.xcodeproj/
 OffshoreBudgeting/
   AGENTS.md
   AppIcon.icon/
-  Apple Documentation/
   Assets.xcassets/
   ContentView.swift
   Info.plist

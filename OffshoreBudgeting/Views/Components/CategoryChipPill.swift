@@ -4,6 +4,7 @@ import SwiftUI
 // Provides a simple rounded rectangle pill with configurable colors.
 struct CategoryChipPill<Label: View>: View {
     let isSelected: Bool
+    let glassTint: Color?
     let glassTextColor: Color
     let fallbackTextColor: Color
     let fallbackFill: Color
@@ -24,7 +25,7 @@ struct CategoryChipPill<Label: View>: View {
         @ViewBuilder label: @escaping () -> Label
     ) {
         self.isSelected = isSelected
-        _ = glassTint
+        self.glassTint = glassTint
         self.glassTextColor = glassTextColor
         self.fallbackTextColor = fallbackTextColor
         self.fallbackFill = fallbackFill
@@ -37,17 +38,41 @@ struct CategoryChipPill<Label: View>: View {
     var body: some View {
         label()
             .font(.footnote.weight(.semibold))
-            .foregroundStyle(fallbackTextColor)
+            .foregroundStyle(textColor)
             .padding(.horizontal, 12)
             .frame(height: 33)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(fallbackFill)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(fallbackStrokeColor, lineWidth: fallbackStrokeLineWidth)
-            )
+            .background(backgroundView)
+            .overlay(overlayView)
+            .clipShape(Capsule())
             .contentShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var textColor: Color {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *), glassTint != nil {
+            return glassTextColor
+        }
+        return fallbackTextColor
+    }
+
+    @ViewBuilder
+    private var backgroundView: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *), let glassTint {
+            shape
+                .fill(glassTint)
+                .glassEffect(.regular, in: .rect(cornerRadius: 16))
+        } else {
+            shape.fill(fallbackFill)
+        }
+    }
+
+    @ViewBuilder
+    private var overlayView: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *), glassTint != nil {
+            shape.stroke(Color.primary.opacity(0.12), lineWidth: 0.8)
+        } else {
+            shape.stroke(fallbackStrokeColor, lineWidth: fallbackStrokeLineWidth)
+        }
     }
 }

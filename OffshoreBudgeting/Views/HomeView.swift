@@ -1551,7 +1551,10 @@ struct HomeView: View {
 
     private func loadNextPlannedExpense(for summary: BudgetSummary?) async {
         guard let summary else {
-            await MainActor.run { nextPlannedSnapshot = nil }
+            await MainActor.run {
+                nextPlannedSnapshot = nil
+                updateNextPlannedExpenseWidget(snapshot: nil)
+            }
             return
         }
         let range = currentRange
@@ -1584,7 +1587,55 @@ struct HomeView: View {
                 date: date
             )
         }
-        await MainActor.run { nextPlannedSnapshot = snapshot }
+        await MainActor.run {
+            nextPlannedSnapshot = snapshot
+            updateNextPlannedExpenseWidget(snapshot: snapshot)
+        }
+    }
+
+    private func updateNextPlannedExpenseWidget(snapshot: PlannedExpenseSnapshot?) {
+        guard let snapshot else {
+            WidgetSharedStore.clearNextPlannedExpenseSnapshot()
+            return
+        }
+        let expense = fetchPlannedExpense(from: snapshot.expenseURI)
+        let cardItem = detachedCardItem(from: expense?.card)
+        let themeColors = cardItem?.theme.colors
+        let primaryHex = themeColors.flatMap { colorToHex($0.0) }
+        let secondaryHex = themeColors.flatMap { colorToHex($0.1) }
+        let widgetSnapshot = WidgetSharedStore.NextPlannedExpenseSnapshot(
+            title: snapshot.title,
+            plannedAmount: snapshot.plannedAmount,
+            actualAmount: snapshot.actualAmount,
+            date: snapshot.date,
+            cardName: cardItem?.name,
+            cardThemeName: cardItem?.theme.rawValue,
+            cardPrimaryHex: primaryHex,
+            cardSecondaryHex: secondaryHex,
+            cardPattern: nil,
+            rangeLabel: widgetRangeLabel,
+            updatedAt: Date()
+        )
+        WidgetSharedStore.writeNextPlannedExpenseSnapshot(widgetSnapshot)
+    }
+
+    private func colorToHex(_ color: Color) -> String? {
+        #if canImport(UIKit)
+        let uiColor = UIColor(color)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return nil }
+        return String(
+            format: "#%02X%02X%02X",
+            Int(red * 255),
+            Int(green * 255),
+            Int(blue * 255)
+        )
+        #else
+        return nil
+        #endif
     }
 
     private func nextExpenseAnchorDate(for range: ClosedRange<Date>, selectedDate: Date) -> Date {

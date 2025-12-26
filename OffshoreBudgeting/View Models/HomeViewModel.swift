@@ -292,6 +292,12 @@ final class HomeViewModel: ObservableObject {
                 await self?.refresh()
             }
         }
+
+        Task { [weak self] in
+            await self?.updateIncomeWidgetsForAllPeriods(referenceDate: requestedDate)
+            await self?.updateExpenseToIncomeWidgetsForAllPeriods(referenceDate: requestedDate)
+            await self?.updateSavingsOutlookWidgetsForAllPeriods(referenceDate: requestedDate)
+        }
     }
 
     // MARK: - Debounced state emission
@@ -333,6 +339,11 @@ final class HomeViewModel: ObservableObject {
                 case .loaded:
                     AppLog.viewModel.debug("HomeViewModel.refresh() transitioning to .loaded state")
                     self.lastLoadedAt = Date()
+                    if case .loaded(let summaries) = newState {
+                        self.updateIncomeWidget(from: summaries, period: self.period)
+                        self.updateExpenseToIncomeWidget(from: summaries, period: self.period)
+                        self.updateSavingsOutlookWidget(from: summaries, period: self.period)
+                    }
                 default:
                     break
                 }
@@ -350,6 +361,89 @@ final class HomeViewModel: ObservableObject {
         }
         pendingApply = work
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delayMS), execute: work)
+    }
+
+    private func updateIncomeWidget(from summaries: [BudgetSummary], period: BudgetPeriod) {
+        guard let summary = summaries.first else { return }
+        let planned = max(summary.potentialIncomeTotal, 0)
+        let actual = max(summary.actualIncomeTotal, 0)
+        let percent = planned > 0 ? min(max(actual / planned, 0), 1) : 0
+        let rangeLabel = summary.periodString
+        let snapshot = WidgetSharedStore.IncomeSnapshot(
+            actualIncome: actual,
+            plannedIncome: planned,
+            percentReceived: percent,
+            rangeLabel: rangeLabel,
+            updatedAt: Date()
+        )
+        WidgetSharedStore.writeIncomeSnapshot(snapshot, periodRaw: period.rawValue)
+    }
+
+    private func updateExpenseToIncomeWidget(from summaries: [BudgetSummary], period: BudgetPeriod) {
+        guard let summary = summaries.first else { return }
+        let expenses = max(summary.plannedExpensesActualTotal + summary.variableExpensesTotal, 0)
+        let actualIncome = max(summary.actualIncomeTotal, 0)
+        let rangeLabel = summary.periodString
+        let snapshot = WidgetSharedStore.ExpenseToIncomeSnapshot(
+            expenses: expenses,
+            actualIncome: actualIncome,
+            rangeLabel: rangeLabel,
+            updatedAt: Date()
+        )
+        WidgetSharedStore.writeExpenseToIncomeSnapshot(snapshot, periodRaw: period.rawValue)
+    }
+
+    private func updateSavingsOutlookWidget(from summaries: [BudgetSummary], period: BudgetPeriod) {
+        guard let summary = summaries.first else { return }
+        let outlook = BudgetMetrics.savingsOutlook(
+            actualSavings: summary.actualSavingsTotal,
+            expectedIncome: summary.potentialIncomeTotal,
+            incomeReceived: summary.actualIncomeTotal,
+            plannedExpensesPlanned: summary.plannedExpensesPlannedTotal,
+            plannedExpensesActual: summary.plannedExpensesActualTotal
+        )
+        let rangeLabel = summary.periodString
+        let snapshot = WidgetSharedStore.SavingsOutlookSnapshot(
+            actualSavings: outlook.actual,
+            projectedSavings: outlook.projected,
+            rangeLabel: rangeLabel,
+            updatedAt: Date()
+        )
+        WidgetSharedStore.writeSavingsOutlookSnapshot(snapshot, periodRaw: period.rawValue)
+    }
+
+
+    private func updateIncomeWidgetsForAllPeriods(referenceDate: Date) async {
+        let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
+        WidgetSharedStore.writeIncomeDefaultPeriod(defaultPeriod.rawValue)
+        for period in BudgetPeriod.selectableCases {
+            let range = period.range(containing: referenceDate)
+            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+            guard !summaries.isEmpty else { continue }
+            updateIncomeWidget(from: summaries, period: period)
+        }
+    }
+
+    private func updateExpenseToIncomeWidgetsForAllPeriods(referenceDate: Date) async {
+        let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
+        WidgetSharedStore.writeExpenseToIncomeDefaultPeriod(defaultPeriod.rawValue)
+        for period in BudgetPeriod.selectableCases {
+            let range = period.range(containing: referenceDate)
+            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+            guard !summaries.isEmpty else { continue }
+            updateExpenseToIncomeWidget(from: summaries, period: period)
+        }
+    }
+
+    private func updateSavingsOutlookWidgetsForAllPeriods(referenceDate: Date) async {
+        let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
+        WidgetSharedStore.writeSavingsOutlookDefaultPeriod(defaultPeriod.rawValue)
+        for period in BudgetPeriod.selectableCases {
+            let range = period.range(containing: referenceDate)
+            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+            guard !summaries.isEmpty else { continue }
+            updateSavingsOutlookWidget(from: summaries, period: period)
+        }
     }
 
     deinit {

@@ -297,6 +297,7 @@ final class HomeViewModel: ObservableObject {
             await self?.updateIncomeWidgetsForAllPeriods(referenceDate: requestedDate)
             await self?.updateExpenseToIncomeWidgetsForAllPeriods(referenceDate: requestedDate)
             await self?.updateSavingsOutlookWidgetsForAllPeriods(referenceDate: requestedDate)
+            await self?.updateCategorySpotlightWidgetsForAllPeriods(referenceDate: requestedDate)
         }
     }
 
@@ -343,6 +344,7 @@ final class HomeViewModel: ObservableObject {
                         self.updateIncomeWidget(from: summaries, period: self.period)
                         self.updateExpenseToIncomeWidget(from: summaries, period: self.period)
                         self.updateSavingsOutlookWidget(from: summaries, period: self.period)
+                        self.updateCategorySpotlightWidget(from: summaries, period: self.period)
                     }
                 default:
                     break
@@ -412,6 +414,25 @@ final class HomeViewModel: ObservableObject {
         WidgetSharedStore.writeSavingsOutlookSnapshot(snapshot, periodRaw: period.rawValue)
     }
 
+    private func updateCategorySpotlightWidget(from summaries: [BudgetSummary], period: BudgetPeriod) {
+        guard let summary = summaries.first else { return }
+        let categories = summary.categoryBreakdown
+            .filter { $0.amount > 0 }
+            .map {
+                WidgetSharedStore.CategorySpotlightSnapshot.CategoryItem(
+                    name: $0.categoryName,
+                    amount: $0.amount,
+                    hexColor: $0.hexColor
+                )
+            }
+        let snapshot = WidgetSharedStore.CategorySpotlightSnapshot(
+            categories: categories,
+            rangeLabel: summary.periodString,
+            updatedAt: Date()
+        )
+        WidgetSharedStore.writeCategorySpotlightSnapshot(snapshot, periodRaw: period.rawValue)
+    }
+
 
     private func updateIncomeWidgetsForAllPeriods(referenceDate: Date) async {
         let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
@@ -443,6 +464,17 @@ final class HomeViewModel: ObservableObject {
             let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
             guard !summaries.isEmpty else { continue }
             updateSavingsOutlookWidget(from: summaries, period: period)
+        }
+    }
+
+    private func updateCategorySpotlightWidgetsForAllPeriods(referenceDate: Date) async {
+        let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
+        WidgetSharedStore.writeCategorySpotlightDefaultPeriod(defaultPeriod.rawValue)
+        for period in BudgetPeriod.selectableCases {
+            let range = period.range(containing: referenceDate)
+            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+            guard !summaries.isEmpty else { continue }
+            updateCategorySpotlightWidget(from: summaries, period: period)
         }
     }
 

@@ -15,6 +15,9 @@ enum WidgetSharedStore {
     private static let savingsOutlookKeyPrefix = "widget.savingsOutlook.snapshot."
     private static let savingsOutlookDefaultPeriodKey = "widget.savingsOutlook.defaultPeriod"
     static let savingsOutlookWidgetKind = "com.mb.offshore.savingsOutlook.widget"
+    private static let categorySpotlightKeyPrefix = "widget.categorySpotlight.snapshot."
+    private static let categorySpotlightDefaultPeriodKey = "widget.categorySpotlight.defaultPeriod"
+    static let categorySpotlightWidgetKind = "com.mb.offshore.categorySpotlight.widget"
 
     struct IncomeSnapshot: Codable, Equatable {
         let actualIncome: Double
@@ -48,6 +51,18 @@ enum WidgetSharedStore {
         let cardPrimaryHex: String?
         let cardSecondaryHex: String?
         let cardPattern: String?
+        let rangeLabel: String
+        let updatedAt: Date
+    }
+
+    struct CategorySpotlightSnapshot: Codable, Equatable {
+        struct CategoryItem: Codable, Equatable {
+            let name: String
+            let amount: Double
+            let hexColor: String?
+        }
+
+        let categories: [CategoryItem]
         let rangeLabel: String
         let updatedAt: Date
     }
@@ -137,6 +152,35 @@ enum WidgetSharedStore {
     static func readSavingsOutlookDefaultPeriod() -> String? {
         guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
         return defaults.string(forKey: savingsOutlookDefaultPeriodKey)
+    }
+
+    static func writeCategorySpotlightSnapshot(_ snapshot: CategorySpotlightSnapshot, periodRaw: String) {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(snapshot) else { return }
+        defaults.set(data, forKey: categorySpotlightKeyPrefix + periodRaw)
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadTimelines(ofKind: categorySpotlightWidgetKind)
+        #endif
+    }
+
+    static func writeCategorySpotlightDefaultPeriod(_ periodRaw: String) {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        defaults.set(periodRaw, forKey: categorySpotlightDefaultPeriodKey)
+    }
+
+    static func readCategorySpotlightSnapshot(periodRaw: String) -> CategorySpotlightSnapshot? {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let data = defaults.data(forKey: categorySpotlightKeyPrefix + periodRaw) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(CategorySpotlightSnapshot.self, from: data)
+    }
+
+    static func readCategorySpotlightDefaultPeriod() -> String? {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        return defaults.string(forKey: categorySpotlightDefaultPeriodKey)
     }
 
     private static let nextPlannedKey = "widget.nextPlannedExpense.snapshot"

@@ -103,9 +103,10 @@ struct CategorySpotlightWidgetView: View {
         let content = VStack(alignment: .leading, spacing: 8) {
             Text("Category Spotlight")
                 .font(family == .systemSmall ? .subheadline.weight(.semibold) : .headline)
-                .lineLimit(2)
-                .minimumScaleFactor(family == .systemSmall ? 0.6 : 0.85)
+                .lineLimit(family == .systemSmall ? 1 : 2)
+                .minimumScaleFactor(family == .systemSmall ? 0.5 : 0.85)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .multilineTextAlignment(.leading)
             if family != .systemSmall, !range.isEmpty {
                 Text(range)
                     .font(.caption)
@@ -122,7 +123,7 @@ struct CategorySpotlightWidgetView: View {
                     let topCategories = Array(categories.prefix(3))
                     let topTotal = topCategories.map(\.amount).reduce(0, +)
                     donutView(categories: topCategories, total: topTotal, size: 72, includeRemainder: false)
-                        .padding(.top, 2)
+                        .padding(.top, 6)
                         .frame(maxWidth: .infinity, alignment: .center)
                 case .systemMedium:
                     let topCategories = Array(categories.prefix(3))
@@ -131,7 +132,7 @@ struct CategorySpotlightWidgetView: View {
                         donutView(categories: topCategories, total: topTotal, size: 82, includeRemainder: false)
                         categoryList(categories: topCategories, total: total, font: .caption, maxCount: 3)
                     }
-                    .padding(.top, 2)
+                    .padding(.top, 4)
                 default:
                     VStack(alignment: .leading, spacing: 8) {
                         donutView(categories: categories, total: total, size: 132, includeRemainder: false)

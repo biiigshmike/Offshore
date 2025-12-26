@@ -298,6 +298,7 @@ final class HomeViewModel: ObservableObject {
             await self?.updateExpenseToIncomeWidgetsForAllPeriods(referenceDate: requestedDate)
             await self?.updateSavingsOutlookWidgetsForAllPeriods(referenceDate: requestedDate)
             await self?.updateCategorySpotlightWidgetsForAllPeriods(referenceDate: requestedDate)
+            await self?.updateDayOfWeekWidgetsForAllPeriods(referenceDate: Date())
         }
     }
 
@@ -345,6 +346,9 @@ final class HomeViewModel: ObservableObject {
                         self.updateExpenseToIncomeWidget(from: summaries, period: self.period)
                         self.updateSavingsOutlookWidget(from: summaries, period: self.period)
                         self.updateCategorySpotlightWidget(from: summaries, period: self.period)
+                        Task { [weak self] in
+                            await self?.updateDayOfWeekWidget(from: summaries, period: self?.period ?? .monthly, referenceDate: Date())
+                        }
                     }
                 default:
                     break
@@ -433,6 +437,23 @@ final class HomeViewModel: ObservableObject {
         WidgetSharedStore.writeCategorySpotlightSnapshot(snapshot, periodRaw: period.rawValue)
     }
 
+    private func updateDayOfWeekWidget(from summaries: [BudgetSummary], period: BudgetPeriod, referenceDate: Date) async {
+        guard let summary = summaries.first else { return }
+        let displayRange = rangeForWidgetPeriod(period, referenceDate: referenceDate)
+        let dayTotals = await daySpendTotalsForWidget(summaryID: summary.id, in: displayRange)
+        let buckets = widgetBuckets(for: period, range: displayRange, dayTotals: dayTotals)
+        let fallbackHexes = widgetFallbackHexes(from: dayTotals)
+        let snapshot = WidgetSharedStore.DayOfWeekSnapshot(
+            buckets: buckets.map {
+                WidgetSharedStore.DayOfWeekSnapshot.Bucket(label: $0.label, amount: $0.amount, hexColors: $0.hexColors)
+            },
+            rangeLabel: widgetRangeLabel(for: displayRange),
+            fallbackHexes: fallbackHexes,
+            updatedAt: Date()
+        )
+        WidgetSharedStore.writeDayOfWeekSnapshot(snapshot, periodRaw: period.rawValue)
+    }
+
 
     private func updateIncomeWidgetsForAllPeriods(referenceDate: Date) async {
         let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
@@ -476,6 +497,316 @@ final class HomeViewModel: ObservableObject {
             guard !summaries.isEmpty else { continue }
             updateCategorySpotlightWidget(from: summaries, period: period)
         }
+    }
+
+    private func updateDayOfWeekWidgetsForAllPeriods(referenceDate: Date) async {
+        let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
+        WidgetSharedStore.writeDayOfWeekDefaultPeriod(defaultPeriod.rawValue)
+        for period in BudgetPeriod.selectableCases {
+            let displayRange = rangeForWidgetPeriod(period, referenceDate: referenceDate)
+            let (summaries, _) = await loadSummaries(period: period, dateRange: displayRange)
+            guard !summaries.isEmpty else { continue }
+            await updateDayOfWeekWidget(from: summaries, period: period, referenceDate: referenceDate)
+        }
+    }
+
+    private struct CategorySpendKey: Hashable {
+        let name: String
+        let hex: String
+    }
+
+    private struct DaySpendTotal {
+        var total: Double
+        var categoryTotals: [CategorySpendKey: Double]
+    }
+
+    private struct WidgetSpendBucket {
+        let label: String
+        let amount: Double
+        let hexColors: [String]
+    }
+
+    private func daySpendTotalsForWidget(summaryID: NSManagedObjectID, in range: ClosedRange<Date>) async -> [Date: DaySpendTotal] {
+        await withCheckedContinuation { continuation in
+            let ctx = CoreDataService.shared.newBackgroundContext()
+            ctx.perform {
+                guard let budget = try? ctx.existingObject(with: summaryID) as? Budget else {
+                    continuation.resume(returning: [:])
+                    return
+                }
+                let cal = Calendar.current
+                var totals: [Date: DaySpendTotal] = [:]
+
+                func add(amount: Double, date: Date?, category: ExpenseCategory?) {
+                    guard let date else { return }
+                    let day = cal.startOfDay(for: date)
+                    var entry = totals[day] ?? DaySpendTotal(total: 0, categoryTotals: [:])
+                    entry.total += amount
+                    if amount > 0 {
+                        let name = category?.name?.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let safeName = name?.isEmpty == false ? name! : "Uncategorized"
+                        let hex = category?.color?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        let key = CategorySpendKey(name: safeName, hex: hex)
+                        entry.categoryTotals[key, default: 0] += amount
+                    }
+                    totals[day] = entry
+                }
+
+                let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+                plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                    NSPredicate(format: "budget == %@", budget),
+                    NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+                ])
+                if let planned = try? ctx.fetch(plannedReq) {
+                    for exp in planned {
+                        add(amount: exp.actualAmount, date: exp.transactionDate, category: exp.expenseCategory)
+                    }
+                }
+
+                if let cards = budget.cards as? Set<Card>, !cards.isEmpty {
+                    let varReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
+                    varReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                        NSPredicate(format: "card IN %@", cards as NSSet),
+                        NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+                    ])
+                    if let vars = try? ctx.fetch(varReq) {
+                        for exp in vars {
+                            add(amount: exp.amount, date: exp.transactionDate, category: exp.expenseCategory)
+                        }
+                    }
+                }
+
+                continuation.resume(returning: totals)
+            }
+        }
+    }
+
+    private func widgetBuckets(for period: BudgetPeriod, range: ClosedRange<Date>, dayTotals: [Date: DaySpendTotal]) -> [WidgetSpendBucket] {
+        switch period {
+        case .daily:
+            return bucketsForDays(range: range, dayTotals: dayTotals, labelMode: .date)
+        case .weekly:
+            return bucketsForDays(range: range, dayTotals: dayTotals, labelMode: .weekdayInitial)
+        case .biWeekly:
+            let weekRanges = splitRange(range, daysPerBucket: 7)
+            return bucketsForRanges(weekRanges, dayTotals: dayTotals, labelMode: .biWeeklyWeek)
+        case .monthly:
+            let weekRanges = splitRange(range, daysPerBucket: 7)
+            return bucketsForRanges(weekRanges, dayTotals: dayTotals, labelMode: .dayRange)
+        case .quarterly:
+            return bucketsForMonths(range: range, dayTotals: dayTotals)
+        case .yearly:
+            return bucketsForMonths(range: range, dayTotals: dayTotals)
+        case .custom:
+            return bucketsForDays(range: range, dayTotals: dayTotals, labelMode: .date)
+        }
+    }
+
+    private enum DayLabelMode {
+        case weekdayInitial
+        case date
+        case dayRange
+        case biWeeklyWeek
+    }
+
+    private func bucketsForDays(range: ClosedRange<Date>, dayTotals: [Date: DaySpendTotal], labelMode: DayLabelMode) -> [WidgetSpendBucket] {
+        let cal = Calendar.current
+        let weekdaySymbols = cal.shortWeekdaySymbols
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        let dates = daysInRange(range)
+        return dates.map { day in
+            let entry = dayTotals[day] ?? DaySpendTotal(total: 0, categoryTotals: [:])
+        let label: String
+        switch labelMode {
+        case .weekdayInitial:
+            let weekdayIndex = cal.component(.weekday, from: day) - 1
+            let symbol = weekdaySymbols.indices.contains(weekdayIndex) ? weekdaySymbols[weekdayIndex] : "D"
+            label = String(symbol.prefix(1))
+        case .date:
+            label = formatter.string(from: day)
+        case .dayRange:
+            label = formatter.string(from: day)
+        case .biWeeklyWeek:
+            label = formatter.string(from: day)
+        }
+            let hexes = hexesForCategoryTotals(entry.categoryTotals)
+            return WidgetSpendBucket(label: label, amount: entry.total, hexColors: hexes)
+        }
+    }
+
+    private func bucketsForRanges(_ ranges: [ClosedRange<Date>], dayTotals: [Date: DaySpendTotal], labelMode: DayLabelMode) -> [WidgetSpendBucket] {
+        let cal = Calendar.current
+        let rangeFormatter = DateFormatter()
+        rangeFormatter.dateFormat = "MMM d"
+        return ranges.map { range in
+            let days = daysInRange(range)
+            var total = 0.0
+            var catTotals: [CategorySpendKey: Double] = [:]
+            for day in days {
+                let entry = dayTotals[day] ?? DaySpendTotal(total: 0, categoryTotals: [:])
+                total += entry.total
+                for (key, amt) in entry.categoryTotals {
+                    catTotals[key, default: 0] += amt
+                }
+            }
+            let label: String
+            switch labelMode {
+            case .dayRange:
+                label = dayRangeLabel(for: range)
+            case .biWeeklyWeek:
+                let weekIndex = ranges.firstIndex(where: { $0.lowerBound == range.lowerBound }) ?? 0
+                label = "W\(weekIndex + 1)"
+            case .weekdayInitial:
+                let weekdayIndex = cal.component(.weekday, from: range.lowerBound) - 1
+                let symbol = cal.shortWeekdaySymbols.indices.contains(weekdayIndex) ? cal.shortWeekdaySymbols[weekdayIndex] : "D"
+                label = String(symbol.prefix(1))
+            case .date:
+                let startLabel = rangeFormatter.string(from: range.lowerBound)
+                let endLabel = rangeFormatter.string(from: range.upperBound)
+                label = "\(startLabel)–\(endLabel)"
+            }
+            let hexes = hexesForCategoryTotals(catTotals)
+            return WidgetSpendBucket(label: label, amount: total, hexColors: hexes)
+        }
+    }
+
+    private func bucketsForMonths(range: ClosedRange<Date>, dayTotals: [Date: DaySpendTotal]) -> [WidgetSpendBucket] {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM"
+        return monthsInRange(range).map { monthRange in
+            let days = daysInRange(monthRange)
+            var total = 0.0
+            var catTotals: [CategorySpendKey: Double] = [:]
+            for day in days {
+                let entry = dayTotals[day] ?? DaySpendTotal(total: 0, categoryTotals: [:])
+                total += entry.total
+                for (key, amt) in entry.categoryTotals {
+                    catTotals[key, default: 0] += amt
+                }
+            }
+            let label = formatter.string(from: monthRange.lowerBound)
+            let hexes = hexesForCategoryTotals(catTotals)
+            return WidgetSpendBucket(label: label, amount: total, hexColors: hexes)
+        }
+    }
+
+    private func widgetRangeLabel(for range: ClosedRange<Date>) -> String {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        let cal = Calendar.current
+        if cal.isDate(range.lowerBound, inSameDayAs: range.upperBound) {
+            return f.string(from: range.lowerBound)
+        }
+        return "\(f.string(from: range.lowerBound)) – \(f.string(from: range.upperBound))"
+    }
+
+    private func rangeForWidgetPeriod(_ period: BudgetPeriod, referenceDate: Date) -> ClosedRange<Date> {
+        let cal = Calendar(identifier: .gregorian)
+        switch period {
+        case .daily:
+            let start = cal.startOfDay(for: referenceDate)
+            let end = cal.date(byAdding: .day, value: 1, to: start)?.addingTimeInterval(-1) ?? start
+            return start...end
+        case .weekly:
+            return sundayWeekRange(containing: referenceDate)
+        case .biWeekly:
+            let weekStart = sundayWeekRange(containing: referenceDate).lowerBound
+            let end = cal.date(byAdding: .day, value: 14, to: weekStart)?.addingTimeInterval(-1) ?? weekStart
+            return weekStart...end
+        case .monthly, .quarterly, .yearly:
+            let r = period.range(containing: referenceDate)
+            return r.start...r.end
+        case .custom:
+            let start = cal.startOfDay(for: referenceDate)
+            let end = cal.date(byAdding: .day, value: 1, to: start)?.addingTimeInterval(-1) ?? start
+            return start...end
+        }
+    }
+
+    private func sundayWeekRange(containing date: Date) -> ClosedRange<Date> {
+        var cal = Calendar(identifier: .gregorian)
+        cal.firstWeekday = 1
+        let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+        let start = cal.date(from: comps) ?? cal.startOfDay(for: date)
+        let end = cal.date(byAdding: .day, value: 7, to: start)?.addingTimeInterval(-1) ?? start
+        return start...end
+    }
+
+    private func splitRange(_ range: ClosedRange<Date>, daysPerBucket: Int) -> [ClosedRange<Date>] {
+        var ranges: [ClosedRange<Date>] = []
+        let cal = Calendar.current
+        var cursor = cal.startOfDay(for: range.lowerBound)
+        let end = cal.startOfDay(for: range.upperBound)
+        while cursor <= end {
+            let next = cal.date(byAdding: .day, value: daysPerBucket - 1, to: cursor) ?? cursor
+            let bucketEnd = min(next, end)
+            ranges.append(cursor...bucketEnd)
+            guard let advance = cal.date(byAdding: .day, value: daysPerBucket, to: cursor) else { break }
+            cursor = advance
+        }
+        return ranges
+    }
+
+    private func dayRangeLabel(for range: ClosedRange<Date>) -> String {
+        let cal = Calendar.current
+        let startDay = cal.component(.day, from: range.lowerBound)
+        let endDay = cal.component(.day, from: range.upperBound)
+        let sameMonth = cal.isDate(range.lowerBound, equalTo: range.upperBound, toGranularity: .month)
+        if sameMonth {
+            return "\(startDay)–\(endDay)"
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        let startLabel = formatter.string(from: range.lowerBound)
+        let endLabel = formatter.string(from: range.upperBound)
+        return "\(startLabel)–\(endLabel)"
+    }
+
+    private func daysInRange(_ range: ClosedRange<Date>) -> [Date] {
+        var dates: [Date] = []
+        let cal = Calendar.current
+        var current = cal.startOfDay(for: range.lowerBound)
+        let end = cal.startOfDay(for: range.upperBound)
+        while current <= end {
+            dates.append(current)
+            guard let next = cal.date(byAdding: .day, value: 1, to: current) else { break }
+            current = next
+        }
+        return dates
+    }
+
+    private func monthsInRange(_ range: ClosedRange<Date>) -> [ClosedRange<Date>] {
+        var ranges: [ClosedRange<Date>] = []
+        let cal = Calendar.current
+        var cursor = BudgetPeriod.monthly.start(of: range.lowerBound)
+        let end = range.upperBound
+        while cursor <= end {
+            let monthRange = BudgetPeriod.monthly.range(containing: cursor)
+            let boundedStart = max(monthRange.start, range.lowerBound)
+            let boundedEnd = min(monthRange.end, end)
+            ranges.append(boundedStart...boundedEnd)
+            guard let next = cal.date(byAdding: .month, value: 1, to: cursor) else { break }
+            cursor = next
+        }
+        return ranges
+    }
+
+    private func hexesForCategoryTotals(_ totals: [CategorySpendKey: Double]) -> [String] {
+        let sorted = totals.sorted { $0.value > $1.value }.map(\.key)
+        let hexes = sorted.map(\.hex).filter { !$0.isEmpty }
+        return hexes
+    }
+
+    private func widgetFallbackHexes(from dayTotals: [Date: DaySpendTotal]) -> [String] {
+        var totals: [CategorySpendKey: Double] = [:]
+        for entry in dayTotals.values {
+            for (key, amt) in entry.categoryTotals {
+                totals[key, default: 0] += amt
+            }
+        }
+        let hexes = totals.sorted { $0.value > $1.value }.map(\.key.hex).filter { !$0.isEmpty }
+        return Array(hexes.prefix(2))
     }
 
     deinit {

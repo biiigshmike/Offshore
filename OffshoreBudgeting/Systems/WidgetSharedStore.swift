@@ -18,6 +18,9 @@ enum WidgetSharedStore {
     private static let categorySpotlightKeyPrefix = "widget.categorySpotlight.snapshot."
     private static let categorySpotlightDefaultPeriodKey = "widget.categorySpotlight.defaultPeriod"
     static let categorySpotlightWidgetKind = "com.mb.offshore.categorySpotlight.widget"
+    private static let dayOfWeekKeyPrefix = "widget.dayOfWeek.snapshot."
+    private static let dayOfWeekDefaultPeriodKey = "widget.dayOfWeek.defaultPeriod"
+    static let dayOfWeekWidgetKind = "com.mb.offshore.dayOfWeek.widget"
 
     struct IncomeSnapshot: Codable, Equatable {
         let actualIncome: Double
@@ -64,6 +67,19 @@ enum WidgetSharedStore {
 
         let categories: [CategoryItem]
         let rangeLabel: String
+        let updatedAt: Date
+    }
+
+    struct DayOfWeekSnapshot: Codable, Equatable {
+        struct Bucket: Codable, Equatable {
+            let label: String
+            let amount: Double
+            let hexColors: [String]
+        }
+
+        let buckets: [Bucket]
+        let rangeLabel: String
+        let fallbackHexes: [String]
         let updatedAt: Date
     }
 
@@ -181,6 +197,35 @@ enum WidgetSharedStore {
     static func readCategorySpotlightDefaultPeriod() -> String? {
         guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
         return defaults.string(forKey: categorySpotlightDefaultPeriodKey)
+    }
+
+    static func writeDayOfWeekSnapshot(_ snapshot: DayOfWeekSnapshot, periodRaw: String) {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(snapshot) else { return }
+        defaults.set(data, forKey: dayOfWeekKeyPrefix + periodRaw)
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadTimelines(ofKind: dayOfWeekWidgetKind)
+        #endif
+    }
+
+    static func writeDayOfWeekDefaultPeriod(_ periodRaw: String) {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        defaults.set(periodRaw, forKey: dayOfWeekDefaultPeriodKey)
+    }
+
+    static func readDayOfWeekSnapshot(periodRaw: String) -> DayOfWeekSnapshot? {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let data = defaults.data(forKey: dayOfWeekKeyPrefix + periodRaw) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(DayOfWeekSnapshot.self, from: data)
+    }
+
+    static func readDayOfWeekDefaultPeriod() -> String? {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        return defaults.string(forKey: dayOfWeekDefaultPeriodKey)
     }
 
     private static let nextPlannedKey = "widget.nextPlannedExpense.snapshot"

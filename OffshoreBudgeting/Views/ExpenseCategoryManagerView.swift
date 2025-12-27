@@ -138,11 +138,11 @@ struct ExpenseCategoryManagerView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
                 List {
-                    Text("These categories appear when adding expenses. Colors help visually group spending.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+//                    Text("These categories appear when adding expenses. Colors help visually group spending.")
+//                        .font(.footnote)
+//                        .foregroundStyle(.secondary)
                     
-                    Section(header: Text("All Categories")) {
+                    Section() {
                         let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
 
                         ForEach(categories, id: \.objectID) { category in

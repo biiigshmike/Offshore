@@ -8,6 +8,7 @@ struct BudgetDetailsView: View {
     let budgetID: NSManagedObjectID
     @StateObject private var vm: BudgetDetailsViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var segment: BudgetDetailsViewModel.Segment = .planned
     @State private var sort: BudgetDetailsViewModel.SortOption = .dateNewOld
@@ -258,7 +259,10 @@ struct BudgetDetailsView: View {
         let expenseValue = segment == .planned ? summary.plannedExpensesActualTotal : summary.variableExpensesTotal
         let cardBackground = Color(.systemBackground)
         let cardSpacing: CGFloat = 12
-        let columns = [GridItem(.adaptive(minimum: 150), spacing: cardSpacing)]
+        let isRegularWidth = horizontalSizeClass == .regular || horizontalSizeClass == nil
+        let columns = isRegularWidth
+            ? Array(repeating: GridItem(.flexible(), spacing: cardSpacing), count: 4)
+            : [GridItem(.adaptive(minimum: 150), spacing: cardSpacing)]
 
         LazyVGrid(columns: columns, alignment: .center, spacing: cardSpacing) {
             statCard(

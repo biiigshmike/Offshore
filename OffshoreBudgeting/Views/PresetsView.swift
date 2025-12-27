@@ -57,32 +57,34 @@ struct PresetsView: View {
                             .listRowSeparator(.hidden)
                     }
 
-                    ForEach(vm.items) { item in
-                        PresetRowView(item: item) { template in sheetTemplateToAssign = template }
-                        .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-                        .unifiedSwipeActions(
-                            swipeConfig,
-                            onEdit: { editingTemplate = item.template },
-                            onDelete: {
-                                if confirmBeforeDelete {
-                                    templateToDelete = item.template
-                                } else {
-                                    delete(template: item.template)
-                                }
-                            }
-                        )
+                    Section {
+                        ForEach(vm.items) { item in
+                            PresetRowView(item: item) { template in sheetTemplateToAssign = template }
+                                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                                .unifiedSwipeActions(
+                                    swipeConfig,
+                                    onEdit: { editingTemplate = item.template },
+                                    onDelete: {
+                                        if confirmBeforeDelete {
+                                            templateToDelete = item.template
+                                        } else {
+                                            delete(template: item.template)
+                                        }
+                                    }
+                                )
 
-                    }
-                    .onDelete { indexSet in
-                        let targets = indexSet.compactMap { vm.items[safe: $0]?.template }
-                        if confirmBeforeDelete, let first = targets.first {
-                            templateToDelete = first
-                        } else {
-                            targets.forEach(delete(template:))
+                        }
+                        .onDelete { indexSet in
+                            let targets = indexSet.compactMap { vm.items[safe: $0]?.template }
+                            if confirmBeforeDelete, let first = targets.first {
+                                templateToDelete = first
+                            } else {
+                                targets.forEach(delete(template:))
+                            }
                         }
                     }
                 }
-                .listStyle(.plain)
+                .listStyle(.insetGrouped)
             }
         }
         .navigationTitle("Presets")

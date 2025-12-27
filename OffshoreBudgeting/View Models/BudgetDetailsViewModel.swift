@@ -91,16 +91,17 @@ final class BudgetDetailsViewModel: ObservableObject {
         var variableTotal: Double = 0
 
         // Build per‑segment category breakdowns (exclude Uncategorized)
-        var plannedCatMap: [String: (hex: String?, total: Double)] = [:]
+        var plannedCatMap: [String: (hex: String?, total: Double, uri: URL?)] = [:]
         var plannedCapDefaults: [String: Double] = [:]
-        var variableCatMap: [String: (hex: String?, total: Double)] = [:]
+        var variableCatMap: [String: (hex: String?, total: Double, uri: URL?)] = [:]
 
         for e in plannedExpenses {
             let amt = e.actualAmount
             guard let name = (e.expenseCategory?.name?.trimmingCharacters(in: .whitespacesAndNewlines)), !name.isEmpty else { continue }
             let hex = e.expenseCategory?.color
-            let existing = plannedCatMap[name] ?? (hex: hex, total: 0)
-            plannedCatMap[name] = (hex: hex ?? existing.hex, total: existing.total + amt)
+            let uri = e.expenseCategory?.objectID.uriRepresentation()
+            let existing = plannedCatMap[name] ?? (hex: hex, total: 0, uri: uri)
+            plannedCatMap[name] = (hex: hex ?? existing.hex, total: existing.total + amt, uri: existing.uri ?? uri)
             let norm = BudgetDetailsViewModel.normalizedCategoryName(name)
             plannedCapDefaults[norm, default: 0] += e.plannedAmount
         }
@@ -110,8 +111,9 @@ final class BudgetDetailsViewModel: ObservableObject {
             variableTotal += amt
             guard let name = (e.expenseCategory?.name?.trimmingCharacters(in: .whitespacesAndNewlines)), !name.isEmpty else { continue }
             let hex = e.expenseCategory?.color
-            let existing = variableCatMap[name] ?? (hex: hex, total: 0)
-            variableCatMap[name] = (hex: hex ?? existing.hex, total: existing.total + amt)
+            let uri = e.expenseCategory?.objectID.uriRepresentation()
+            let existing = variableCatMap[name] ?? (hex: hex, total: 0, uri: uri)
+            variableCatMap[name] = (hex: hex ?? existing.hex, total: existing.total + amt, uri: existing.uri ?? uri)
         }
 
         // Include zero-amount categories by unioning with all ExpenseCategory records
@@ -121,20 +123,45 @@ final class BudgetDetailsViewModel: ObservableObject {
         for cat in allCats {
             let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { continue }
-            if plannedCatMap[name] == nil { plannedCatMap[name] = (hex: cat.color, total: 0) }
-            if variableCatMap[name] == nil { variableCatMap[name] = (hex: cat.color, total: 0) }
+            let uri = cat.objectID.uriRepresentation()
+            if plannedCatMap[name] == nil {
+                plannedCatMap[name] = (hex: cat.color, total: 0, uri: uri)
+            } else if plannedCatMap[name]?.uri == nil {
+                plannedCatMap[name]?.uri = uri
+            }
+            if variableCatMap[name] == nil {
+                variableCatMap[name] = (hex: cat.color, total: 0, uri: uri)
+            } else if variableCatMap[name]?.uri == nil {
+                variableCatMap[name]?.uri = uri
+            }
         }
 
         // Sort by amount desc, tie-break by name A–Z
         let plannedBreakdown = plannedCatMap
-            .map { BudgetSummary.CategorySpending(categoryName: $0.key, hexColor: $0.value.hex, amount: $0.value.total) }
+            .map { entry in
+                let uri = entry.value.uri ?? Self.fallbackCategoryURI(for: entry.key)
+                return BudgetSummary.CategorySpending(
+                    categoryURI: uri,
+                    categoryName: entry.key,
+                    hexColor: entry.value.hex,
+                    amount: entry.value.total
+                )
+            }
             .sorted { lhs, rhs in
                 if lhs.amount == rhs.amount { return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending }
                 return lhs.amount > rhs.amount
             }
 
         let variableBreakdown = variableCatMap
-            .map { BudgetSummary.CategorySpending(categoryName: $0.key, hexColor: $0.value.hex, amount: $0.value.total) }
+            .map { entry in
+                let uri = entry.value.uri ?? Self.fallbackCategoryURI(for: entry.key)
+                return BudgetSummary.CategorySpending(
+                    categoryURI: uri,
+                    categoryName: entry.key,
+                    hexColor: entry.value.hex,
+                    amount: entry.value.total
+                )
+            }
             .sorted { lhs, rhs in
                 if lhs.amount == rhs.amount { return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending }
                 return lhs.amount > rhs.amount
@@ -145,7 +172,12 @@ final class BudgetDetailsViewModel: ObservableObject {
             .reduce(into: [String: BudgetSummary.CategorySpending]()) { dict, item in
                 let existing = dict[item.categoryName]
                 let sum = (existing?.amount ?? 0) + item.amount
-                dict[item.categoryName] = BudgetSummary.CategorySpending(categoryName: item.categoryName, hexColor: existing?.hexColor ?? item.hexColor, amount: sum)
+                dict[item.categoryName] = BudgetSummary.CategorySpending(
+                    categoryURI: existing?.categoryURI ?? item.categoryURI,
+                    categoryName: item.categoryName,
+                    hexColor: existing?.hexColor ?? item.hexColor,
+                    amount: sum
+                )
             }
             .values
             .sorted { $0.amount > $1.amount }
@@ -169,6 +201,11 @@ final class BudgetDetailsViewModel: ObservableObject {
 
     private static func normalizedCategoryName(_ name: String) -> String {
         name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private static func fallbackCategoryURI(for name: String) -> URL {
+        let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? UUID().uuidString
+        return URL(string: "offshore-local://category/\(encoded)") ?? URL(string: "offshore-local://category/unknown")!
     }
 
     // MARK: Derived filtered/sorted

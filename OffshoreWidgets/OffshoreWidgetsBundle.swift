@@ -18,5 +18,8 @@ struct OffshoreWidgetsBundle: WidgetBundle {
         NextPlannedExpenseWidget()
         CategorySpotlightWidget()
         DayOfWeekSpendWidget()
+        CategoryAvailabilitySmallWidget()
+        CategoryAvailabilityWidget()
+        CardWidget()
     }
 }

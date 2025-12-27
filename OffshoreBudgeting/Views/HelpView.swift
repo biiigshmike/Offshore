@@ -6,6 +6,8 @@ import UIKit
 /// explore the same hierarchy developers see.
 struct HelpView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
+    @State private var showOnboardingAlert = false
 
     var body: some View {
         Group {
@@ -37,23 +39,89 @@ struct HelpView: View {
         List {
             // MARK: Getting Started
             Section("Getting Started") {
-                NavigationLink("Introduction") { intro }
-                NavigationLink("Onboarding") { onboarding }
+                NavigationLink {
+                    intro
+                } label: {
+                    HelpRowLabel(
+                        iconSystemName: "exclamationmark.bubble",
+                        title: "Introduction",
+                        iconStyle: .blue
+                    )
+                }
+            }
+
+            Section {
+                repeatOnboardingButton
             }
 
             // MARK: Core Screens
             Section("Core Screens") {
-                NavigationLink("Home") { home }
-                NavigationLink("Income") { income }
-                NavigationLink("Cards") { cards }
-                NavigationLink("Presets") { presets }
-                NavigationLink("Settings") { settings }
+                NavigationLink {
+                    home
+                } label: {
+                    HelpRowLabel(
+                        iconSystemName: "house.fill",
+                        title: "Home",
+                        iconStyle: .purple
+                    )
+                }
+                NavigationLink {
+                    budgets
+                } label: {
+                    HelpRowLabel(
+                        iconSystemName: "chart.pie.fill",
+                        title: "Budgets",
+                        iconStyle: .blue
+                    )
+                }
+                NavigationLink {
+                    income
+                } label: {
+                    HelpRowLabel(
+                        iconSystemName: "calendar",
+                        title: "Income",
+                        iconStyle: .red
+                    )
+                }
+                NavigationLink {
+                    cards
+                } label: {
+                    HelpRowLabel(
+                        iconSystemName: "creditcard.fill",
+                        title: "Cards",
+                        iconStyle: .green
+                    )
+                }
+                NavigationLink {
+                    presets
+                } label: {
+                    HelpRowLabel(
+                        iconSystemName: "list.number.badge.ellipsis",
+                        title: "Presets",
+                        iconStyle: .orange
+                    )
+                }
+                NavigationLink {
+                    settings
+                } label: {
+                    HelpRowLabel(
+                        iconSystemName: "gear",
+                        title: "Settings",
+                        iconStyle: .gray
+                    )
+                }
             }
 
             // MARK: Tips & Tricks
 //            Section("Tips & Tricks") {
 //                NavigationLink("Shortcuts & Gestures") { tips }
 //            }
+        }
+        .alert("Repeat Onboarding?", isPresented: $showOnboardingAlert) {
+            Button("Go", role: .destructive) { didCompleteOnboarding = false }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You can restart onboarding at any time.")
         }
     }
 
@@ -113,6 +181,20 @@ struct HelpView: View {
             }
             .padding()
             .navigationTitle("Onboarding")
+        }
+    }
+
+    private var budgets: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Budget overview and management:")
+                    .font(.title3).bold()
+                Text("• Review planned and actual amounts for each period.")
+                Text("• Tap a budget to view details, planned expenses, and variable expenses.")
+                Text("• Use the ellipsis menu to edit, manage cards, or delete a budget.")
+            }
+            .padding()
+            .navigationTitle("Budgets")
         }
     }
 
@@ -195,6 +277,50 @@ struct HelpView: View {
         }
     }
 
+    @ViewBuilder
+    private var repeatOnboardingButton: some View {
+        let label = Text("Repeat Onboarding")
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 44, maxHeight: 44)
+
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button {
+                showOnboardingAlert = true
+            } label: {
+                label
+            }
+            .buttonStyle(.glassProminent)
+            .tint(.blue)
+            .listRowInsets(EdgeInsets())
+        } else {
+            Button {
+                showOnboardingAlert = true
+            } label: {
+                label
+            }
+            .buttonStyle(.plain)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(
+                        {
+                            #if canImport(UIKit)
+                            return Color(UIColor.systemBlue)
+                            #elseif canImport(AppKit)
+                            return Color(nsColor: NSColor.systemBlue)
+                            #else
+                            return Color.blue
+                            #endif
+                        }()
+                    )
+            )
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .listRowInsets(EdgeInsets())
+        }
+    }
+
 //    private var tips: some View {
 //        ScrollView {
 //            VStack(alignment: .leading, spacing: 12) {
@@ -214,5 +340,100 @@ struct HelpView_Previews: PreviewProvider {
     static var previews: some View {
         HelpView()
             .environmentObject(ThemeManager())
+    }
+}
+
+private enum HelpIconStyle {
+    case gray
+    case blue
+    case blueOnWhite
+    case purple
+    case red
+    case green
+    case orange
+
+    var tint: Color {
+        switch self {
+        case .gray:
+            return Color(.systemGray)
+        case .blue, .blueOnWhite:
+            return Color(.systemBlue)
+        case .purple:
+            return Color(.systemPurple)
+        case .red:
+            return Color(.systemRed)
+        case .green:
+            return Color(.systemGreen)
+        case .orange:
+            return Color(.systemOrange)
+        }
+    }
+
+    var background: Color {
+        switch self {
+        case .gray:
+            return Color(.systemGray5)
+        case .blue:
+            return Color(.systemBlue).opacity(0.2)
+        case .blueOnWhite:
+            return Color(.systemBackground)
+        case .purple:
+            return Color(.systemPurple).opacity(0.22)
+        case .red:
+            return Color(.systemRed).opacity(0.2)
+        case .green:
+            return Color(.systemGreen).opacity(0.2)
+        case .orange:
+            return Color(.systemOrange).opacity(0.2)
+        }
+    }
+
+    var usesStroke: Bool {
+        switch self {
+        case .blueOnWhite:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
+private struct HelpRowLabel: View {
+    let iconSystemName: String
+    let title: String
+    let iconStyle: HelpIconStyle
+
+    var body: some View {
+        HStack(spacing: 12) {
+            HelpIconTile(
+                systemName: iconSystemName,
+                style: iconStyle
+            )
+            Text(title)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct HelpIconTile: View {
+    let systemName: String
+    let style: HelpIconStyle
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(style.background)
+            Image(systemName: systemName)
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(style.tint)
+        }
+        .frame(width: 28, height: 28)
+        .overlay(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .stroke(style.tint.opacity(style.usesStroke ? 0.25 : 0), lineWidth: 0.5)
+        )
     }
 }

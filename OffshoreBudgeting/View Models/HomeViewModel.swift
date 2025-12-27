@@ -116,6 +116,17 @@ private func normalizedCategoryName(_ name: String) -> String {
     name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 }
 
+private func capsPeriodKey(start: Date, end: Date, segment: String) -> String {
+    let f = DateFormatter()
+    f.calendar = Calendar(identifier: .gregorian)
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = TimeZone(secondsFromGMT: 0)
+    f.dateFormat = "yyyy-MM-dd"
+    let s = f.string(from: start)
+    let e = f.string(from: end)
+    return "\(s)|\(e)|\(segment)"
+}
+
 // MARK: - Month (Helper)
 /// Utilities for deriving month ranges.
 enum Month {
@@ -298,7 +309,9 @@ final class HomeViewModel: ObservableObject {
             await self?.updateExpenseToIncomeWidgetsForAllPeriods(referenceDate: requestedDate)
             await self?.updateSavingsOutlookWidgetsForAllPeriods(referenceDate: requestedDate)
             await self?.updateCategorySpotlightWidgetsForAllPeriods(referenceDate: requestedDate)
+            await self?.updateCategoryAvailabilityWidgetsForAllPeriods(referenceDate: requestedDate)
             await self?.updateDayOfWeekWidgetsForAllPeriods(referenceDate: Date())
+            await self?.updateCardWidgetsForAllPeriods(referenceDate: requestedDate)
         }
     }
 
@@ -510,9 +523,276 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
+    private func updateCategoryAvailabilityWidgetsForAllPeriods(referenceDate: Date) async {
+        let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
+        WidgetSharedStore.writeCategoryAvailabilityDefaultPeriod(defaultPeriod.rawValue)
+        WidgetSharedStore.writeCategoryAvailabilityDefaultSegment(CategoryAvailabilitySegment.combined.rawValue)
+        WidgetSharedStore.writeCategoryAvailabilityDefaultSort("alphabetical")
+
+        var categoryNames: Set<String> = []
+        for period in BudgetPeriod.selectableCases {
+            let range = period.range(containing: referenceDate)
+            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+            guard let summary = summaries.first else { continue }
+            let caps = categoryCapsWidget(for: summary)
+            for segment in CategoryAvailabilitySegment.allCases {
+                let items = computeCategoryAvailabilityWidget(summary: summary, caps: caps, segment: segment)
+                let snapshot = WidgetSharedStore.CategoryAvailabilitySnapshot(
+                    items: items,
+                    rangeLabel: summary.periodString,
+                    updatedAt: Date()
+                )
+                WidgetSharedStore.writeCategoryAvailabilitySnapshot(snapshot, periodRaw: period.rawValue, segmentRaw: segment.rawValue)
+                if segment == .combined {
+                    categoryNames.formUnion(items.map(\.name))
+                }
+            }
+        }
+        let sortedNames = categoryNames.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        WidgetSharedStore.writeCategoryAvailabilityCategories(sortedNames)
+    }
+
+    private struct CardWidgetExpense {
+        let name: String
+        let amount: Double
+        let date: Date?
+        let hexColor: String?
+    }
+
+    private func updateCardWidgetsForAllPeriods(referenceDate: Date) async {
+        let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
+        WidgetSharedStore.writeCardWidgetDefaultPeriod(defaultPeriod.rawValue)
+
+        let cardService = CardService()
+        let plannedService = PlannedExpenseService()
+        let unplannedService = UnplannedExpenseService()
+        let context = CoreDataService.shared.viewContext
+
+        var cardsForPicker: [WidgetSharedStore.CardWidgetCard] = []
+        for period in BudgetPeriod.selectableCases {
+            let range = period.range(containing: referenceDate)
+            let interval = DateInterval(start: range.start, end: range.end)
+            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+            guard let summary = summaries.first else { continue }
+
+            guard let budgetUUID = resolveBudgetUUID(for: summary.id, context: context) else { continue }
+            let cards = (try? cardService.fetchCards(forBudgetID: budgetUUID)) ?? []
+            if cardsForPicker.isEmpty, !cards.isEmpty {
+                cardsForPicker = cards.compactMap { card in
+                    guard let uuid = resolveCardUUID(for: card, context: context) else { return nil }
+                    let cardItem = CardItem(from: card)
+                    let themeColors = cardItem.theme.colors
+                    let primaryHex = colorToHex(themeColors.0)
+                    let secondaryHex = colorToHex(themeColors.1)
+                    return WidgetSharedStore.CardWidgetCard(
+                        id: uuid.uuidString,
+                        name: cardItem.name,
+                        themeName: cardItem.theme.rawValue,
+                        primaryHex: primaryHex,
+                        secondaryHex: secondaryHex,
+                        patternName: nil
+                    )
+                }
+            }
+
+            for card in cards {
+                guard let uuid = resolveCardUUID(for: card, context: context) else { continue }
+                let cardItem = CardItem(from: card)
+                let themeColors = cardItem.theme.colors
+                let primaryHex = colorToHex(themeColors.0)
+                let secondaryHex = colorToHex(themeColors.1)
+
+                let unplanned = (try? unplannedService.fetchForCard(uuid, in: interval, sortedByDateAscending: false)) ?? []
+                let planned = (try? plannedService.fetchForCard(uuid, in: interval, sortedByDateAscending: false)) ?? []
+
+                let mappedUnplanned: [CardWidgetExpense] = unplanned.map { exp in
+                    let desc = (exp.value(forKey: "descriptionText") as? String)
+                        ?? (exp.value(forKey: "title") as? String) ?? ""
+                    let cat = exp.value(forKey: "expenseCategory") as? ExpenseCategory
+                    return CardWidgetExpense(
+                        name: desc,
+                        amount: exp.value(forKey: "amount") as? Double ?? 0,
+                        date: exp.value(forKey: "transactionDate") as? Date,
+                        hexColor: cat?.color
+                    )
+                }
+
+                var seenPlannedKeys = Set<String>()
+                let plannedActuals: [CardWidgetExpense] = planned.compactMap { exp in
+                    guard exp.actualAmount != 0 else { return nil }
+                    if let templateID = exp.globalTemplateID, let budget = exp.budget {
+                        let dateKey = String(format: "%.0f", (exp.transactionDate ?? .distantPast).timeIntervalSince1970)
+                        let key = "\(templateID.uuidString)|\(budget.objectID.uriRepresentation().absoluteString)|\(dateKey)|\(exp.actualAmount)|\(exp.plannedAmount)"
+                        if seenPlannedKeys.contains(key) { return nil }
+                        seenPlannedKeys.insert(key)
+                    }
+                    let desc = (exp.value(forKey: "descriptionText") as? String)
+                        ?? (exp.value(forKey: "title") as? String) ?? ""
+                    return CardWidgetExpense(
+                        name: desc,
+                        amount: exp.actualAmount,
+                        date: exp.transactionDate,
+                        hexColor: exp.expenseCategory?.color
+                    )
+                }
+
+                let combined = mappedUnplanned + plannedActuals
+                let totalSpent = combined.reduce(0) { $0 + $1.amount }
+                let recent = combined.sorted {
+                    let lhs = $0.date ?? .distantPast
+                    let rhs = $1.date ?? .distantPast
+                    return lhs > rhs
+                }
+                let top = combined.sorted { $0.amount > $1.amount }
+
+                let recentTransactions = Array(recent.prefix(3)).map { expense in
+                    WidgetSharedStore.CardWidgetSnapshot.Transaction(
+                        name: expense.name,
+                        amount: expense.amount,
+                        date: expense.date ?? summary.periodStart,
+                        hexColor: expense.hexColor
+                    )
+                }
+                let topTransactions = Array(top.prefix(3)).map { expense in
+                    WidgetSharedStore.CardWidgetSnapshot.Transaction(
+                        name: expense.name,
+                        amount: expense.amount,
+                        date: expense.date ?? summary.periodStart,
+                        hexColor: expense.hexColor
+                    )
+                }
+
+                let snapshot = WidgetSharedStore.CardWidgetSnapshot(
+                    cardID: uuid.uuidString,
+                    cardName: cardItem.name,
+                    cardThemeName: cardItem.theme.rawValue,
+                    cardPrimaryHex: primaryHex,
+                    cardSecondaryHex: secondaryHex,
+                    cardPattern: nil,
+                    totalSpent: totalSpent,
+                    recentTransactions: recentTransactions,
+                    topTransactions: topTransactions,
+                    rangeLabel: summary.periodString,
+                    updatedAt: Date()
+                )
+                WidgetSharedStore.writeCardWidgetSnapshot(snapshot, periodRaw: period.rawValue, cardID: uuid.uuidString)
+            }
+        }
+
+        WidgetSharedStore.writeCardWidgetCards(cardsForPicker)
+    }
+
+    private func resolveCardUUID(for card: Card, context: NSManagedObjectContext) -> UUID? {
+        if let existing = card.value(forKey: "id") as? UUID { return existing }
+        let newID = UUID()
+        card.setValue(newID, forKey: "id")
+        try? context.save()
+        return newID
+    }
+
+    private func resolveBudgetUUID(for budgetID: NSManagedObjectID, context: NSManagedObjectContext) -> UUID? {
+        guard let budget = try? context.existingObject(with: budgetID) as? Budget else { return nil }
+        if let existing = budget.value(forKey: "id") as? UUID { return existing }
+        let newID = UUID()
+        budget.setValue(newID, forKey: "id")
+        try? context.save()
+        return newID
+    }
+
+    private func colorToHex(_ color: Color) -> String? {
+        #if canImport(UIKit)
+        let uiColor = UIColor(color)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return nil }
+        return String(
+            format: "#%02X%02X%02X",
+            Int(red * 255),
+            Int(green * 255),
+            Int(blue * 255)
+        )
+        #else
+        return nil
+        #endif
+    }
+
     private struct CategorySpendKey: Hashable {
         let name: String
         let hex: String
+    }
+
+    private func categoryCapsWidget(for summary: BudgetSummary) -> [String: (planned: Double?, variable: Double?)] {
+        let ctx = CoreDataService.shared.viewContext
+        var map: [String: (planned: Double?, variable: Double?)] = [:]
+
+        func fetchCaps(segment: String) {
+            let key = capsPeriodKey(start: summary.periodStart, end: summary.periodEnd, segment: segment)
+            let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+            fetch.predicate = NSPredicate(format: "period == %@", key)
+            let results = (try? ctx.fetch(fetch)) ?? []
+            for cap in results {
+                guard let category = cap.category,
+                      let name = category.name else { continue }
+                let norm = normalizedCategoryName(name)
+                var entry = map[norm] ?? (planned: nil, variable: nil)
+                if (cap.expenseType ?? "").lowercased() == "max" {
+                    if segment == "planned" { entry.planned = cap.amount } else { entry.variable = cap.amount }
+                    map[norm] = entry
+                }
+            }
+        }
+
+        fetchCaps(segment: "planned")
+        fetchCaps(segment: "variable")
+        return map
+    }
+
+    private func computeCategoryAvailabilityWidget(summary: BudgetSummary, caps: [String: (planned: Double?, variable: Double?)], segment: CategoryAvailabilitySegment) -> [WidgetSharedStore.CategoryAvailabilitySnapshot.Item] {
+        let remainingIncome = max(summary.actualIncomeTotal - (summary.plannedExpensesActualTotal + summary.variableExpensesTotal), 0)
+        let breakdown: [BudgetSummary.CategorySpending]
+        switch segment {
+        case .combined:
+            breakdown = summary.categoryBreakdown
+        case .planned:
+            breakdown = summary.plannedCategoryBreakdown
+        case .variable:
+            breakdown = summary.variableCategoryBreakdown
+        }
+
+        let items = breakdown.map { cat -> WidgetSharedStore.CategoryAvailabilitySnapshot.Item in
+            let norm = normalizedCategoryName(cat.categoryName)
+            let capTuple = caps[norm]
+            let plannedDefault = summary.plannedCategoryDefaultCaps[norm]
+            let capValue: Double?
+            switch segment {
+            case .combined:
+                let plannedCap = capTuple?.planned ?? plannedDefault
+                let variableCap = capTuple?.variable
+                let combined = (plannedCap ?? 0) + (variableCap ?? 0)
+                capValue = combined > 0 ? combined : nil
+            case .planned:
+                capValue = capTuple?.planned ?? plannedDefault
+            case .variable:
+                capValue = capTuple?.variable
+            }
+            let hasCap = capValue != nil
+            let capAmount = capValue ?? 0
+            let capRemaining = max(capAmount - cat.amount, 0)
+            let available = hasCap ? capRemaining : remainingIncome
+            return WidgetSharedStore.CategoryAvailabilitySnapshot.Item(
+                name: cat.categoryName,
+                spent: cat.amount,
+                cap: capValue,
+                available: available,
+                hexColor: cat.hexColor
+            )
+        }
+
+        return items.sorted { lhs, rhs in
+            lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
     }
 
     private struct DaySpendTotal {

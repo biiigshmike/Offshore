@@ -1,5 +1,11 @@
 import SwiftUI
 import CoreData
+import LocalAuthentication
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 // MARK: - SettingsView
 /// Simplified Settings screen using plain SwiftUI containers.
@@ -10,7 +16,6 @@ struct SettingsView: View {
     
     // MARK: State
     @StateObject private var vm = SettingsViewModel()
-    @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
     @AppStorage("appLockEnabled") private var isLockEnabled: Bool = true
     @State private var showResetAlert = false
     @State private var showMergeConfirm = false
@@ -30,132 +35,109 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var settingsContent: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // General
-                SettingsCard(
-                    iconSystemName: "gearshape",
-                    title: "General",
-                    subtitle: "Manage default behaviors."
-                ) {
-                    VStack(spacing: 0) {
-                        SettingsRow(title: "Confirm Before Deleting", showsTopDivider: false) {
-                            Toggle("", isOn: $vm.confirmBeforeDelete).labelsHidden()
-                        }
-                        SettingsRow(title: "Default Budget Period") {
-                            Picker("",
-                                   selection: Binding<BudgetPeriod>(
-                                       get: { WorkspaceService.shared.currentBudgetPeriod(in: viewContext) },
-                                       set: { WorkspaceService.shared.setBudgetPeriod($0, in: viewContext) }
-                                   )
-                            ) {
-                                ForEach(BudgetPeriod.selectableCases) { Text($0.displayName).tag($0) }
-                            }
-                            .labelsHidden()
-                        }
-                    }
-                }
-                
-                SettingsCard(
-                    iconSystemName: "hand.raised.fill",
-                    title: "Touch ID / Face ID",
-                    subtitle: "Lock the app when inactive and unlock on return."
-                ) {
-                    VStack(spacing: 0) {
-                            SettingsRow(title: "Enable Touch ID / Face ID", showsTopDivider: false) {
-                                Toggle("", isOn: $isLockEnabled).labelsHidden()
-                            }
-                    }
-                }
-                
-
-                // Expense Categories
-                SettingsCard(
-                    iconSystemName: "tag",
-                    title: "Expense Categories",
-                    subtitle: "Manage expense categories for Variable Expenses."
-                ) {
-                    VStack(spacing: 0) {
-                        NavigationLink {
-                            ExpenseCategoryManagerView()
-                                .environment(\.managedObjectContext, viewContext)
-                        } label: {
-                            SettingsRow(title: "Manage Categories", detail: "Open", showsTopDivider: false) {
-                                Image(systemName: "chevron.right").foregroundStyle(.secondary)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                
-                // iCloud Sync
-                iCloudCard
-                
-
-                // Help
-                SettingsCard(
-                    iconSystemName: "book",
-                    title: "Help",
-                    subtitle: "Open the in-app guide."
-                ) {
-                    VStack(spacing: 0) {
-                        NavigationLink(destination: HelpView()) {
-                            SettingsRow(title: "View Help", detail: "Open", showsTopDivider: false) {
-                                Image(systemName: "chevron.right").foregroundStyle(.secondary)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
+        List {
+            Section {
+                NavigationLink {
+                    AppInfoView(
+                        appName: appDisplayName,
+                        appIconGraphic: appIconGraphic,
+                        appStoreURL: appStoreURL,
+                        developerURL: developerURL
+                    )
+                } label: {
+                    AppInfoRow(
+                        appName: appDisplayName,
+                        appIconGraphic: appIconGraphic
+                    )
                 }
 
-                SettingsCard(
-                    iconSystemName: "square.grid.2x2",
-                    title: "Presets",
-                    subtitle: "Organize saved expense templates."
-                ) {
-                    VStack(spacing: 0) {
-                        NavigationLink(destination: PresetsView()
-                            .environment(\.managedObjectContext, viewContext)) {
-                            SettingsRow(title: "Manage Presets", detail: "Open", showsTopDivider: false) {
-                                Image(systemName: "chevron.right").foregroundStyle(.secondary)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
+                NavigationLink(destination: HelpView()) {
+                    SettingsRowLabel(
+                        iconSystemName: "questionmark.circle",
+                        title: "Help",
+                        showsChevron: false,
+                        iconStyle: .gray
+                    )
                 }
 
-                // Onboarding
-                SettingsCard(
-                    iconSystemName: "questionmark.circle",
-                    title: "Onboarding",
-                    subtitle: "Replay the initial setup flow."
-                ) {
-                    VStack(spacing: 0) {
-                        Button(action: { didCompleteOnboarding = false }) {
-                            SettingsRow(title: "Repeat Onboarding Process", showsTopDivider: false) { EmptyView() }
-                        }
-                        .buttonStyle(.plain)
-                    }
+            }
+
+            Section {
+                NavigationLink {
+                    GeneralSettingsView(
+                        vm: vm,
+                        showResetAlert: $showResetAlert
+                    )
+                } label: {
+                    SettingsRowLabel(
+                        iconSystemName: "gear",
+                        title: "General",
+                        showsChevron: false,
+                        iconStyle: .gray
+                    )
                 }
 
-                // Reset
-                SettingsCard(
-                    iconSystemName: "trash",
-                    title: "Reset",
-                    subtitle: "Clear all stored data."
-                ) {
-                    VStack(spacing: 0) {
-                        Button(role: .destructive, action: { showResetAlert = true }) {
-                            SettingsRow(title: "Erase All Data", showsTopDivider: false) { EmptyView() }
-                        }
-                        .buttonStyle(.plain)
-                    }
+                NavigationLink {
+                    PrivacySettingsView(
+                        biometricName: biometricName,
+                        biometricIconName: biometricIconName,
+                        isLockEnabled: $isLockEnabled
+                    )
+                } label: {
+                    SettingsRowLabel(
+                        iconSystemName: biometricIconName,
+                        title: "Privacy",
+                        showsChevron: false,
+                        iconStyle: .blue
+                    )
+                }
+
+                NavigationLink {
+                    ICloudSettingsView(
+                        cloudToggle: cloudToggleBinding,
+                        isForceReuploading: isForceReuploading,
+                        isReconfiguringStores: isReconfiguringStores,
+                        onForceRefresh: { showForceReuploadConfirm = true }
+                    )
+                } label: {
+                    SettingsRowLabel(
+                        iconSystemName: "icloud",
+                        title: "iCloud",
+                        showsChevron: false,
+                        iconStyle: .blueOnWhite
+                    )
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
+
+            Section {
+                NavigationLink {
+                    ExpenseCategoryManagerView()
+                        .environment(\.managedObjectContext, viewContext)
+                } label: {
+                    SettingsRowLabel(
+                        iconSystemName: "tag",
+                        title: "Manage Categories",
+                        showsChevron: false,
+                        iconStyle: .lightPurple
+                    )
+                }
+            }
+
+            Section {
+                NavigationLink {
+                    PresetsView()
+                        .environment(\.managedObjectContext, viewContext)
+                } label: {
+                    SettingsRowLabel(
+                        iconSystemName: "list.number.badge.ellipsis",
+                        title: "Manage Presets",
+                        showsChevron: false,
+                        iconStyle: .orange
+                    )
+                }
+            }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle("Settings")
         .task { await cloudDiag.refresh() }
         .confirmationDialog("Turn Off iCloud Sync?", isPresented: $showDisableCloudOptions, titleVisibility: .visible) {
@@ -166,7 +148,7 @@ struct SettingsView: View {
             Text("Choose what to do with your data on this device.")
         }
         .alert("Erase All Data?", isPresented: $showResetAlert) {
-            Button("Erase", role: .destructive) { performDataWipe() }
+            Button("Reset", role: .destructive) { performDataWipe() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will remove all budgets, cards, incomes, and expenses. This action cannot be undone.")
@@ -253,38 +235,6 @@ struct SettingsView: View {
 }
 
 private extension SettingsView {
-    @ViewBuilder
-    var iCloudCard: some View {
-        SettingsCard(
-            iconSystemName: "icloud",
-            title: "iCloud",
-            subtitle: "Manage CloudKit sync and status."
-        ) {
-            VStack(spacing: 0) {
-                SettingsRow(title: "Enable iCloud Sync", showsTopDivider: false) {
-                    Toggle("", isOn: cloudToggleBinding).labelsHidden()
-                }
-                // Budget Period sync is handled via Core Data (Workspace) when Cloud is enabled.
-
-                Divider().padding(.horizontal, 16)
-
-                Button(action: { showForceReuploadConfirm = true }) {
-                    SettingsRow(
-                        title: "Force iCloud Sync Refresh",
-                        detail: "Re-upload all data",
-                        showsTopDivider: false
-                    ) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .foregroundStyle(vm.enableCloudSync ? .primary : .secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-                .disabled(!vm.enableCloudSync || isForceReuploading || isReconfiguringStores)
-
-            }
-        }
-    }
-
     var cloudToggleBinding: Binding<Bool> {
         Binding<Bool>(
             get: { vm.enableCloudSync },
@@ -341,3 +291,396 @@ private extension SettingsView {
 }
 
 // Intentionally empty: SettingsRow is defined in SettingsViewModel.swift
+
+private extension SettingsView {
+    var biometricType: LABiometryType {
+        BiometricAuthenticationManager.shared.supportedBiometryType()
+    }
+
+    var biometricName: String {
+        if biometricType == .touchID { return "Touch ID" }
+        if biometricType == .faceID { return "Face ID" }
+        return "Biometrics"
+    }
+
+    var biometricIconName: String {
+        if biometricType == .touchID { return "touchid" }
+        if biometricType == .faceID { return "faceid" }
+        return "lock"
+    }
+
+    var appDisplayName: String {
+        let info = Bundle.main.infoDictionary
+        let name = info?["CFBundleDisplayName"] as? String
+        let bundleName = info?["CFBundleName"] as? String
+        return name ?? bundleName ?? "App"
+    }
+
+    var appIconGraphic: AppIconGraphic {
+        AppIconProvider.currentIconGraphic ?? .system(name: "square.fill")
+    }
+
+    var appStoreURL: URL {
+        URL(string: "https://apple.com")!
+    }
+
+    var developerURL: URL {
+        URL(string: "https://offshore-budgeting.notion.site/Offshore-Budgeting-295b42cd2e6c80cf817dd73a5761bb7e")!
+    }
+}
+
+private struct SettingsRowLabel: View {
+    let iconSystemName: String
+    let title: String
+    var showsChevron: Bool = true
+    var iconStyle: SettingsIconStyle = .gray
+
+    var body: some View {
+        HStack(spacing: 12) {
+            SettingsIconTile(
+                systemName: iconSystemName,
+                style: iconStyle
+            )
+            Text(title)
+            Spacer()
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+private enum SettingsIconStyle {
+    case gray
+    case blue
+    case blueOnWhite
+    case lightPurple
+    case orange
+
+    var tint: Color {
+        switch self {
+        case .gray:
+            return Color(.systemGray)
+        case .blue, .blueOnWhite:
+            return Color(.systemBlue)
+        case .lightPurple:
+            return Color(.systemPurple)
+        case .orange:
+            return Color(.systemOrange)
+        }
+    }
+
+    var background: Color {
+        switch self {
+        case .gray:
+            return Color(.systemGray5)
+        case .blue:
+            return Color(.systemBlue).opacity(0.2)
+        case .blueOnWhite:
+            return Color(.systemBackground)
+        case .lightPurple:
+            return Color(.systemPurple).opacity(0.2)
+        case .orange:
+            return Color(.systemOrange).opacity(0.2)
+        }
+    }
+
+    var usesStroke: Bool {
+        switch self {
+        case .blueOnWhite:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
+private struct SettingsIconTile: View {
+    let systemName: String
+    let style: SettingsIconStyle
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(style.background)
+            Image(systemName: systemName)
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(style.tint)
+        }
+        .frame(width: 28, height: 28)
+        .overlay(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .stroke(style.tint.opacity(style.usesStroke ? 0.25 : 0), lineWidth: 0.5)
+        )
+    }
+}
+
+private struct AppInfoRow: View {
+    let appName: String
+    let appIconGraphic: AppIconGraphic
+
+    var body: some View {
+        HStack(spacing: 14) {
+            AppIconImageView(
+                graphic: appIconGraphic,
+                size: 75,
+                shape: .circle
+            )
+            VStack(alignment: .leading, spacing: 4) {
+                Text(appName)
+                    .font(.headline)
+                Text("App Info")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+}
+
+private struct AppInfoView: View {
+    let appName: String
+    let appIconGraphic: AppIconGraphic
+    let appStoreURL: URL
+    let developerURL: URL
+
+    var body: some View {
+        List {
+            Section {
+                VStack(spacing: 12) {
+                    AppIconImageView(
+                        graphic: appIconGraphic,
+                        size: appInfoIconSize,
+                        shape: .squircle
+                    )
+                    Text(appName)
+                        .font(.title2).bold()
+                    Text(appVersionLine)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 16)
+                .listRowInsets(EdgeInsets())
+            }
+
+            Section {
+                Link(destination: appStoreURL) {
+                    SettingsRowLabel(
+                        iconSystemName: "arrow.up.right.square",
+                        title: "View in App Store"
+                    )
+                }
+
+                Link(destination: developerURL) {
+                    SettingsRowLabel(
+                        iconSystemName: "safari",
+                        title: "Developer Website"
+                    )
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle("App Info")
+    }
+
+    private var appVersionLine: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "-"
+        let build = info?["CFBundleVersion"] as? String ?? "-"
+        return "Version \(version) (\(build))"
+    }
+
+    private var appInfoIconSize: CGFloat {
+        #if os(iOS)
+        let width = UIScreen.main.bounds.width
+        #elseif os(macOS)
+        let width = NSScreen.main?.frame.width ?? 480
+        #else
+        let width: CGFloat = 480
+        #endif
+        let scaled = min(width * 0.36, 200)
+        return max(120, scaled)
+    }
+}
+
+private struct GeneralSettingsView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @ObservedObject var vm: SettingsViewModel
+    @Binding var showResetAlert: Bool
+
+    var body: some View {
+        List {
+            Section {
+                Toggle("Confirm Before Deleting", isOn: $vm.confirmBeforeDelete)
+                Picker("Default Budget Period", selection: budgetPeriodBinding) {
+                    ForEach(BudgetPeriod.selectableCases) { Text($0.displayName).tag($0) }
+                }
+            }
+
+            Section {
+                let label = Text("Reset")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 44, maxHeight: 44)
+
+                if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+                    Button(role: .destructive) {
+                        showResetAlert = true
+                    } label: {
+                        label
+                    }
+                    .buttonStyle(.glassProminent)
+                    .tint(.red)
+                    .listRowInsets(EdgeInsets())
+                } else {
+                    Button(role: .destructive) {
+                        showResetAlert = true
+                    } label: {
+                        label
+                    }
+                    .buttonStyle(.plain)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(
+                                {
+                                    #if canImport(UIKit)
+                                    return Color(UIColor { traits in
+                                        traits.userInterfaceStyle == .dark ? UIColor(white: 0.18, alpha: 1) : UIColor(white: 0.94, alpha: 1)
+                                    })
+                                    #elseif canImport(AppKit)
+                                    return Color(nsColor: NSColor.windowBackgroundColor)
+                                    #else
+                                    return Color.gray.opacity(0.2)
+                                    #endif
+                                }()
+                            )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .listRowInsets(EdgeInsets())
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle("General")
+    }
+
+    private var budgetPeriodBinding: Binding<BudgetPeriod> {
+        Binding(
+            get: { WorkspaceService.shared.currentBudgetPeriod(in: viewContext) },
+            set: { WorkspaceService.shared.setBudgetPeriod($0, in: viewContext) }
+        )
+    }
+}
+
+private struct PrivacySettingsView: View {
+    let biometricName: String
+    let biometricIconName: String
+    @Binding var isLockEnabled: Bool
+
+    var body: some View {
+        List {
+            Section {
+                Toggle("Enable \(biometricName)", isOn: $isLockEnabled)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(biometricName)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 8) {
+                    Image(systemName: biometricIconName)
+                    Text(biometricName)
+                }
+            }
+        }
+    }
+}
+
+private struct ICloudSettingsView: View {
+    @Binding var cloudToggle: Bool
+    let isForceReuploading: Bool
+    let isReconfiguringStores: Bool
+    let onForceRefresh: () -> Void
+
+    var body: some View {
+        List {
+            Section {
+                Toggle("Enable iCloud Sync", isOn: $cloudToggle)
+            }
+
+            Section {
+                Button {
+                    onForceRefresh()
+                } label: {
+                    SettingsRowLabel(
+                        iconSystemName: "arrow.triangle.2.circlepath",
+                        title: "Force iCloud Sync Refresh",
+                        showsChevron: true
+                    )
+                }
+                .disabled(!cloudToggle || isForceReuploading || isReconfiguringStores)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle("iCloud")
+    }
+}
+
+private enum AppIconShape {
+    case circle
+    case squircle
+}
+
+private struct AppIconImageView: View {
+    let graphic: AppIconGraphic
+    let size: CGFloat
+    let shape: AppIconShape
+
+    @ViewBuilder
+    var body: some View {
+        let image = graphic.image
+        switch shape {
+        case .circle:
+            image
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fill)
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.primary.opacity(0.08), lineWidth: 1))
+        case .squircle:
+            let mask = RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
+            image
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: size, height: size)
+                .clipShape(mask)
+                .overlay(mask.stroke(Color.primary.opacity(0.08), lineWidth: 1))
+        }
+    }
+}
+
+private enum AppIconProvider {
+    static var currentIconGraphic: AppIconGraphic? {
+        .asset(name: "SettingsAppIcon")
+    }
+}
+
+private enum AppIconGraphic {
+    case asset(name: String)
+    case system(name: String)
+
+    var image: Image {
+        switch self {
+        case .asset(let name):
+            return Image(name)
+        case .system(let name):
+            return Image(systemName: name)
+        }
+    }
+}

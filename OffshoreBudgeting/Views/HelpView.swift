@@ -130,16 +130,17 @@ struct HelpView: View {
     private var intro: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Welcome to Offshore Budgeting — a privacy-first budgeting app. All data is processed on your device, and you’ll never be asked to connect a bank account. This guide introduces the core building blocks and explains exactly how totals are calculated across the app.")
+                Text("Welcome to Offshore Budgeting: a privacy-first budgeting app. All data is processed on your device, and you’ll never be asked to connect a bank account. This guide introduces the core building blocks and explains exactly how totals are calculated across the app.")
 
                 Text("The Building Blocks")
                     .font(.title3).bold()
                 Divider()
-                Text("Cards, Categories, Presets, and Budgets are the foundation:")
+                Text("Cards, Income, Expense Categories, Presets, and Budgets are the foundation:")
                 Text("• Cards hold your expenses and let you analyze spending by card.")
-                Text("• Categories describe what the expense was for (groceries, rent, fuel).")
+                Text("• Income is tracked via planned or actual income. Use planned income to help gauge savings and actual income for income you actually received to get your actual savings.")
+                Text("• Expense Categories describe what the expense was for (groceries, rent, fuel).")
                 Text("• Presets are reusable planned expenses for recurring bills.")
-                Text("• Budgets group a date range so the app can summarize income, expenses, and savings for that period.")
+                Text("• Budgets group a date range so the app can summarize income, expenses, and savings for that period, such as Daily, Monthly, Quarterly, or Yearly. Budget in a way that makese sense to you!")
 
                 Text("Planned Expenses")
                     .font(.title3).bold()
@@ -173,9 +174,9 @@ struct HelpView: View {
                     .font(.title3).bold()
                 Divider()
                 Text("Everything in Offshore is basic math, and here's how it all breaks down:")
-                Text("• Planned expenses total = sum of planned amounts for expenses in the budget.")
-                Text("• Actual planned expenses total = sum of actual amounts for those planned expenses.")
-                Text("• Variable expenses total = sum of unplanned expenses in the budget period.")
+                Text("• Planned expenses total = sum of the planned amounts for planned expenses in the budget period.")
+                Text("• Actual planned expenses total = sum of the actual amounts for those planned expenses.")
+                Text("• Variable expenses total = sum of unplanned/variable expenses in the budget period.")
                 Text("• Planned income total = sum of income entries marked Planned in the period.")
                 Text("• Actual income total = sum of income entries marked Actual in the period.")
                 Text("• Potential savings = planned income total - planned expenses planned total.")
@@ -186,29 +187,12 @@ struct HelpView: View {
         }
     }
 
-//    private var onboarding: some View {
-//        ScrollView {
-//            VStack(alignment: .leading, spacing: 12) {
-//                Text("Quick setup on first launch:")
-//                    .font(.title3).bold()
-//                Text("• Welcome")
-//                Text("• Create initial expense categories")
-//                Text("• Add cards you’ll use for spending")
-//                Text("• Add preset planned expenses (optional)")
-//                Text("• Finish setup and open the app")
-//                Text("You can replay this flow anytime from Settings → Onboarding.")
-//            }
-//            .padding()
-//            .navigationTitle("Onboarding")
-//        }
-//    }
-
     private var budgets: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 DeviceScreenshotPlaceholders(sectionTitle: "Budgets")
 
-                Text("Budgets: the place where the actual budgeting happens.")
+                Text("Budgets: the place where the actual budgeting magic happens.")
                     .font(.title3).bold()
                 Divider()
                 Text("This screen lists Past, Active, and Upcoming budgets. Tap any budget to open its details and do the real work: add expenses, assign cards, and monitor totals.")
@@ -229,7 +213,7 @@ struct HelpView: View {
                 Divider()
                 Text("Category chips sit above the list. Tap a category to filter the list to that category; tap again to clear the filter.")
                 Text("Sorting controls apply within the active filter and let you order by title, amount, or date.")
-                Text("Long-press a category chip to set caps and see how close you are to that category limit.")
+                Text("Long-press a category chip to set spending minimums and maximums for that category and also to see how close you are to that category limit.")
 
                 Text("How Budget Totals Are Calculated")
                     .font(.title3).bold()
@@ -259,15 +243,14 @@ struct HelpView: View {
                 Text("Home is your dashboard for the selected date range.")
                     .font(.title3).bold()
                 Divider()
-                Text("Use the date row to set your range. You can pick a custom start/end date, apply it, or jump using the period menu. The selected range controls every widget on the screen.")
-                Text("If no budget exists for the selected range, use the menu to create one.")
+                Text("By default, Home loads using your default budgeting preference from Settings. You can pick your own custom start and end date, or use the pre-defined ranges in the period menu by pressing on the calendar icon. The selected range controls every widget on the screen.")
 
                 Text("Widgets Overview")
                     .font(.title3).bold()
                 Divider()
                 Text("Home is made of widgets. Tap any widget to open its detail page.")
-                Text("• Income: shows Actual vs Planned income, and the percent received (actual / planned).")
-                Text("• Expense to Income: expenses = planned actual + variable. Shows % of planned and % of received.")
+                Text("• Income: shows Actual vs Planned income, and the percent received (actual versus planned).")
+                Text("• Expense to Income: expenses = planned expenses actual amount + variable expenses amount. Shows % of planned and % of received income.")
                 Text("• Savings Outlook: projected savings = actual savings + remaining income - remaining planned expenses.")
                 Text("• Next Planned Expense: next upcoming planned expense with planned and actual values.")
                 Text("• Category Spotlight: top categories by total spend (planned actual + variable).")
@@ -287,7 +270,7 @@ struct HelpView: View {
                     .font(.title3).bold()
                 Divider()
                 Text("Home calculations mirror your budget math:")
-                Text("• Actual savings = actual income - (planned expenses actual + variable expenses).")
+                Text("• Actual savings = actual income - (planned expenses actual amount + variable expenses total amount).")
                 Text("• Remaining income = actual income - expenses.")
                 Text("• Category availability uses caps when set; otherwise it uses remaining income.")
                 Text("• Expense to Income uses planned totals and actual totals to show pacing.")
@@ -308,7 +291,7 @@ struct HelpView: View {
                     .font(.title3).bold()
                 Divider()
                 Text("The calendar shows planned and actual income totals per day. Tap a day to see its income entries and weekly totals.")
-                Text("Use the navigation controls to move between days and months. Tap + to add income, then edit or delete with swipe actions.")
+                Text("Use the navigation controls to move between days and months. Tap + to add income, then edit or delete with swipe actions in the Seleted Day Income section.")
 
                 Text("Planned vs Actual Income")
                     .font(.title3).bold()
@@ -352,9 +335,9 @@ struct HelpView: View {
                 Text("The detail view is a focused spending console:")
                 Text("• Date range controls scope which expenses are included.")
                 Text("• Category chips filter the list. Tap again to clear.")
-                Text("• Segment control switches Planned, Variable, or Unified views.")
+                Text("• Segment control switches expenses between Planned, Variable, or Unified views.")
                 Text("• Sorting orders results by title, amount, or date.")
-                Text("• Search finds expenses by title, date, or category.")
+                Text("• Search to find expenses by title, date, or category.")
 
                 DeviceScreenshotPlaceholders(sectionTitle: "Cards")
 
@@ -476,20 +459,6 @@ struct HelpView: View {
             .listRowInsets(EdgeInsets())
         }
     }
-
-//    private var tips: some View {
-//        ScrollView {
-//            VStack(alignment: .leading, spacing: 12) {
-//                Text("Power-user hints:")
-//                Text("• Press ⌘? on macOS to open this help window.")
-//                Text("• Double‑click a date in the Income calendar on macOS to create an entry instantly.")
-//                Text("• Most lists support swipe actions for editing or deleting items and pull to refresh for reloading.")
-//                Text("• Look for tooltips on buttons and menus for additional keyboard shortcuts.")
-//            }
-//            .padding()
-//            .navigationTitle("Shortcuts & Gestures")
-//        }
-//    }
 }
 
 struct HelpView_Previews: PreviewProvider {

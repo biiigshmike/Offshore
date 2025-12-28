@@ -713,59 +713,80 @@ struct BudgetDetailsView: View {
         }
 
         var body: some View {
-            NavigationStack {
-                VStack(alignment: .leading, spacing: 16) {
-                    Gauge(
-                        value: clamp(data.current, min: lowerBound, max: upperBound),
-                        in: lowerBound...upperBound
-                    ) {
-                        EmptyView()
-                    } currentValueLabel: {
-                        Text(formatCurrency(data.current))
-                    }
-                    .tint(
-                        LinearGradient(
-                            colors: [data.color.opacity(0.35), data.color],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-
-                    HStack {
-                        Text(formatCurrency(lowerBound)).foregroundStyle(.secondary)
-                        Spacer()
-                        Text(maxLabelString)
-                            .foregroundStyle(.secondary)
-                            .opacity(editedMax != nil ? 1 : 0.7)
-                    }
-                    .font(.footnote)
-
-                    HStack {
-                        Text("Current: \(formatCurrency(data.current))").foregroundStyle(.secondary)
-                        Spacer()
-                        Text("Range: \(formatCurrency(lowerBound)) – \(editedMax.map { formatCurrency($0) } ?? "No max")")
-                            .foregroundStyle(.secondary)
-                    }
-                    .font(.footnote)
-
-                    capEditor
-
-                    Spacer()
-                }
-                .padding()
-                .navigationTitle(data.category.categoryName)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel", action: onDismiss)
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button(isSaving ? "Saving…" : "Save") {
-                            Task { await handleSave() }
+            navigationContainer {
+                content
+                    .navigationTitle(data.category.categoryName)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel", action: onDismiss)
                         }
-                        .disabled(isSaveDisabled)
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button(isSaving ? "Saving…" : "Save") {
+                                Task { await handleSave() }
+                            }
+                            .disabled(isSaveDisabled)
+                        }
                     }
+            }
+            .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
+        }
+
+        private var content: some View {
+            Form {
+                Section {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Gauge(
+                            value: clamp(data.current, min: lowerBound, max: upperBound),
+                            in: lowerBound...upperBound
+                        ) {
+                            EmptyView()
+                        } currentValueLabel: {
+                            Text(formatCurrency(data.current))
+                        }
+                        .tint(
+                            LinearGradient(
+                                colors: [data.color.opacity(0.35), data.color],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+
+                        HStack {
+                            Text(formatCurrency(lowerBound)).foregroundStyle(.secondary)
+                            Spacer()
+                            Text(maxLabelString)
+                                .foregroundStyle(.secondary)
+                                .opacity(editedMax != nil ? 1 : 0.7)
+                        }
+                        .font(.footnote)
+
+                        HStack {
+                            Text("Current: \(formatCurrency(data.current))").foregroundStyle(.secondary)
+                            Spacer()
+                            Text("Range: \(formatCurrency(lowerBound)) – \(editedMax.map { formatCurrency($0) } ?? "No max")")
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(.footnote)
+                    }
+                    .padding(.vertical, 4)
                 }
+
+                Section {
+                    capEditor
+                        .padding(.vertical, 4)
+                }
+            }
+            .listStyle(.insetGrouped)
+            .scrollIndicators(.hidden)
+        }
+
+        @ViewBuilder
+        private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
+            if #available(iOS 16.0, macCatalyst 16.0, *) {
+                NavigationStack { content() }
+            } else {
+                NavigationView { content() }
             }
         }
 
@@ -778,18 +799,46 @@ struct BudgetDetailsView: View {
                     Text("Minimum")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    TextField("0.00", text: $minText)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(.roundedBorder)
+                    if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                        TextField("0.00", text: $minText)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(.plain)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                Color.clear.glassEffect(
+                                    .regular.tint(.clear).interactive(true),
+                                    in: .capsule
+                                )
+                            )
+                    } else {
+                        TextField("0.00", text: $minText)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(.roundedBorder)
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Maximum")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    TextField("Leave Empty for No Maximum Amount", text: $maxText)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(.roundedBorder)
+                    if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                        TextField("Leave Empty for No Maximum Amount", text: $maxText)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(.plain)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                Color.clear.glassEffect(
+                                    .regular.tint(.clear).interactive(true),
+                                    in: .capsule
+                                )
+                            )
+                    } else {
+                        TextField("Leave Empty for No Maximum Amount", text: $maxText)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(.roundedBorder)
+                    }
                 }
             }
         }

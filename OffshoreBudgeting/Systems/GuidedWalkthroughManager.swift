@@ -355,27 +355,7 @@ struct TipsAndHintsSheet: View {
 
     @ViewBuilder
     private var closeButton: some View {
-        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 44, height: 44)
-                    .glassEffect(.regular.tint(.clear).interactive(true))
-            }
-            .buttonStyle(.plain)
-            .buttonBorderShape(.circle)
-        } else {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.plain)
-        }
+        Buttons.toolbarIconGlassPreferred("xmark") { dismiss() }
     }
 }
 

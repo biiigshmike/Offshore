@@ -587,7 +587,7 @@ private struct GeneralSettingsView: View {
                 label
             }
             .buttonStyle(.glassProminent)
-            .tint(.blue)
+            .tint(.orange)
             .listRowInsets(EdgeInsets())
         } else {
             Button {

@@ -190,7 +190,7 @@ struct HelpView: View {
     private var budgets: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                DeviceScreenshotPlaceholders(sectionTitle: "Budgets")
+                DeviceScreenshotPlaceholders(sectionTitle: "Budgets", slot: 1)
 
                 Text("Budgets: the place where the actual budgeting magic happens.")
                     .font(.title3).bold()
@@ -206,7 +206,7 @@ struct HelpView: View {
                 Text("You can add Planned or Variable expenses from the toolbar. Use Manage Cards and Manage Presets to keep the budget clean and accurate.")
                 Text("Tip: having Cards and Categories defined first makes budgeting faster and keeps totals accurate.")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Budgets")
+                DeviceScreenshotPlaceholders(sectionTitle: "Budgets", slot: 2)
 
                 Text("Filters, Sorting, and Category Chips")
                     .font(.title3).bold()
@@ -214,6 +214,8 @@ struct HelpView: View {
                 Text("Category chips sit above the list. Tap a category to filter the list to that category; tap again to clear the filter.")
                 Text("Sorting controls apply within the active filter and let you order by title, amount, or date.")
                 Text("Long-press a category chip to set spending minimums and maximums for that category and also to see how close you are to that category limit.")
+                
+                DeviceScreenshotPlaceholders(sectionTitle: "Budgets", slot: 3)
 
                 Text("How Budget Totals Are Calculated")
                     .font(.title3).bold()
@@ -227,8 +229,7 @@ struct HelpView: View {
                 Text("• Projected savings = planned income - planned expenses (planned) - variable expenses.")
                 Text("• Max savings = planned income - planned expenses (planned).")
                 Text("• Actual savings = actual income - (planned expenses actual + variable expenses).")
-
-                DeviceScreenshotPlaceholders(sectionTitle: "Budgets")
+                
             }
             .padding()
             .navigationTitle("Budgets")
@@ -238,7 +239,7 @@ struct HelpView: View {
     private var home: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                DeviceScreenshotPlaceholders(sectionTitle: "Home")
+                DeviceScreenshotPlaceholders(sectionTitle: "Home", slot: 1)
 
                 Text("Home is your dashboard for the selected date range.")
                     .font(.title3).bold()
@@ -258,8 +259,9 @@ struct HelpView: View {
                 Text("• Category Availability: caps and remaining amounts by category, segmented into All, Planned, or Variable.")
                 Text("• What If?: a scenario planner that uses actual savings as the remaining pool.")
                 Text("• Card widgets: every card can appear as a widget with its balance preview.")
+                Text("• Tip: The same widgets can be added to your Home Screen! Long press on your Home Screen, press Edit in the upper left corner, choose Add Widget, search or find Offshore in the list of available Apps with Widgets, and pin metrics to your Home Screen so you can have a quick glance at your budget data!")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Home")
+                DeviceScreenshotPlaceholders(sectionTitle: "Home", slot: 2)
 
                 Text("Editing Widgets")
                     .font(.title3).bold()
@@ -274,8 +276,9 @@ struct HelpView: View {
                 Text("• Remaining income = actual income - expenses.")
                 Text("• Category availability uses caps when set; otherwise it uses remaining income.")
                 Text("• Expense to Income uses planned totals and actual totals to show pacing.")
+                Text("• Try using your Actual Savings in the What If? Scenario Planner to see how much you can still save.")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Home")
+                DeviceScreenshotPlaceholders(sectionTitle: "Home", slot: 3)
             }
             .padding()
             .navigationTitle("Home")
@@ -285,7 +288,7 @@ struct HelpView: View {
     private var income: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                DeviceScreenshotPlaceholders(sectionTitle: "Income")
+                DeviceScreenshotPlaceholders(sectionTitle: "Income", slot: 1)
 
                 Text("Income is your calendar-based income tracker.")
                     .font(.title3).bold()
@@ -299,7 +302,7 @@ struct HelpView: View {
                 Text("If your paycheck is consistent, create a recurring Actual Income entry. If it varies, use Planned Income to estimate, then log Actual Income when it arrives.")
                 Text("Planned income keeps forecasts realistic. Actual income powers your real totals and savings.")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Income")
+                DeviceScreenshotPlaceholders(sectionTitle: "Income", slot: 2)
 
                 Text("How Income Feeds the App")
                     .font(.title3).bold()
@@ -312,7 +315,7 @@ struct HelpView: View {
                 Text("• Expense to Income uses actual income to show how much you have left.")
                 Text("• Savings Outlook and Actual Savings use actual income.")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Income")
+                DeviceScreenshotPlaceholders(sectionTitle: "Income", slot: 3)
             }
             .padding()
             .navigationTitle("Income")
@@ -322,7 +325,7 @@ struct HelpView: View {
     private var cards: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                DeviceScreenshotPlaceholders(sectionTitle: "Cards")
+                DeviceScreenshotPlaceholders(sectionTitle: "Cards", slot: 1)
 
                 Text("Cards is your full gallery of saved cards.")
                     .font(.title3).bold()
@@ -339,7 +342,7 @@ struct HelpView: View {
                 Text("• Sorting orders results by title, amount, or date.")
                 Text("• Search to find expenses by title, date, or category.")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Cards")
+                DeviceScreenshotPlaceholders(sectionTitle: "Cards", slot: 2)
 
                 Text("Card Calculations")
                     .font(.title3).bold()
@@ -348,7 +351,7 @@ struct HelpView: View {
                 Text("Planned expenses only count once they have an actual amount. Variable expenses always count as actual.")
                 Text("Category totals and chips are derived from the filtered list, so filters always change the totals.")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Cards")
+                DeviceScreenshotPlaceholders(sectionTitle: "Cards", slot: 3)
             }
             .padding()
             .navigationTitle("Cards")
@@ -358,7 +361,7 @@ struct HelpView: View {
     private var presets: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                DeviceScreenshotPlaceholders(sectionTitle: "Presets")
+                DeviceScreenshotPlaceholders(sectionTitle: "Presets", slot: 1)
 
                 Text("Presets are reusable planned expense templates.")
                     .font(.title3).bold()
@@ -366,7 +369,7 @@ struct HelpView: View {
                 Text("Use presets for fixed bills (rent, subscriptions, insurance). Each preset includes Planned and Actual amounts so you can track changes over time.")
                 Text("Tap + to create a new preset. Swipe to edit or delete. Assign presets to budgets to speed up setup.")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Presets")
+                DeviceScreenshotPlaceholders(sectionTitle: "Presets", slot: 2)
 
                 Text("How Presets Affect Totals")
                     .font(.title3).bold()
@@ -376,7 +379,7 @@ struct HelpView: View {
                 Text("• Actual amount contributes to actual planned expenses totals once entered.")
                 Text("Differences between planned and actual act as a signal when a vendor changes pricing.")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Presets")
+                DeviceScreenshotPlaceholders(sectionTitle: "Presets", slot: 3)
             }
             .padding()
             .navigationTitle("Presets")
@@ -386,7 +389,7 @@ struct HelpView: View {
     private var settings: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                DeviceScreenshotPlaceholders(sectionTitle: "Settings")
+                DeviceScreenshotPlaceholders(sectionTitle: "Settings", slot: 1)
 
                 Text("Settings is where you configure the app.")
                     .font(.title3).bold()
@@ -400,7 +403,7 @@ struct HelpView: View {
                 Text("• Manage Categories: add or edit expense categories used across budgets and cards.")
                 Text("• Manage Presets: maintain planned expense templates.")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Settings")
+                DeviceScreenshotPlaceholders(sectionTitle: "Settings", slot: 2)
 
                 Text("How Settings Affect Calculations")
                     .font(.title3).bold()
@@ -409,7 +412,7 @@ struct HelpView: View {
                 Text("Categories you create appear as chips and determine how totals are grouped and filtered.")
                 Text("Presets you manage are pulled into budgets as planned expenses.")
 
-                DeviceScreenshotPlaceholders(sectionTitle: "Settings")
+                DeviceScreenshotPlaceholders(sectionTitle: "Settings", slot: 3)
             }
             .padding()
             .navigationTitle("Settings")
@@ -595,7 +598,13 @@ private enum HelpDeviceFrame: String, CaseIterable, Identifiable {
 
 private struct DeviceScreenshotPlaceholders: View {
     let sectionTitle: String
+    let slot: Int
     @Environment(\.responsiveLayoutContext) private var layoutContext
+
+    private var assetName: String {
+        let sanitizedSection = sectionTitle.replacingOccurrences(of: " ", with: "")
+        return "Help-\(sanitizedSection)-\(slot)"
+    }
 
     private var resolvedDevice: HelpDeviceFrame {
         #if targetEnvironment(macCatalyst)
@@ -621,6 +630,7 @@ private struct DeviceScreenshotPlaceholders: View {
     var body: some View {
         HelpScreenshotPlaceholder(
             title: "\(sectionTitle) - \(resolvedDevice.rawValue)",
+            assetName: assetName,
             device: resolvedDevice,
             isLandscape: shouldUseLandscape
         )
@@ -630,28 +640,55 @@ private struct DeviceScreenshotPlaceholders: View {
 
 private struct HelpScreenshotPlaceholder: View {
     let title: String
+    let assetName: String
     let device: HelpDeviceFrame
     let isLandscape: Bool
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(Color.primary.opacity(0.04))
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .stroke(Color.primary.opacity(0.18), lineWidth: 1)
-            VStack(spacing: 6) {
-                Image(systemName: "iphone")
-                    .font(.system(size: 24, weight: .regular))
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Text("Screenshot placeholder")
-                    .font(.caption)
+        if let screenshot = screenshotImage {
+            screenshot
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .stroke(Color.primary.opacity(0.18), lineWidth: 1)
+                )
+                .padding(.vertical, 6)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .fill(Color.primary.opacity(0.04))
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .stroke(Color.primary.opacity(0.18), lineWidth: 1)
+                VStack(spacing: 6) {
+                    Image(systemName: "iphone")
+                        .font(.system(size: 24, weight: .regular))
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                    Text("Screenshot placeholder")
+                        .font(.caption)
+                }
+                .foregroundStyle(.secondary)
             }
-            .foregroundStyle(.secondary)
+            .aspectRatio(device.aspectRatio(isLandscape: isLandscape), contentMode: .fit)
+            .frame(maxWidth: device.maxWidth)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
         }
-        .aspectRatio(device.aspectRatio(isLandscape: isLandscape), contentMode: .fit)
-        .frame(maxWidth: device.maxWidth)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
+    }
+
+    private var screenshotImage: Image? {
+        #if canImport(UIKit)
+        if let image = UIImage(named: assetName) {
+            return Image(uiImage: image)
+        }
+        #elseif canImport(AppKit)
+        if let image = NSImage(named: assetName) {
+            return Image(nsImage: image)
+        }
+        #endif
+        return nil
     }
 }

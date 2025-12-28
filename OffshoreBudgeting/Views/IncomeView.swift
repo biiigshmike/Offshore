@@ -39,73 +39,31 @@ struct IncomeView: View {
             vm.reloadForSelectedDay(forceMonthReload: true)
             calendarScrollDate = normalize(Date())
         }
+        .onChange(of: layoutContext.isLandscape) { _ in
+            calendarScrollDate = normalize(vm.selectedDate ?? Date())
+        }
+        .tipsAndHintsOverlay(for: .income)
         
     }
 
     @ViewBuilder
     private var incomeContent: some View {
-        List {
-            // Calendar section as a single row
-            VStack(alignment: .leading, spacing: 12) {
-                calendarNav
-                calendarView
-            }
-            .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
-
-            // Selected Day Income section
-            Section {
-                if vm.incomesForDay.isEmpty {
-                    let date = vm.selectedDate ?? Date()
-                    Text("No income for \(format(date)).")
-                        .foregroundStyle(.secondary)
-                        .font(.subheadline)
-                        .padding(.vertical, 4)
-                } else {
-                    ForEach(vm.incomesForDay, id: \.objectID) { income in
-                        incomeRow(income)
-                            .unifiedSwipeActions(
-                                UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
-                                onEdit: { editingIncome = income },
-                                onDelete: { requestDelete(income: income) }
-                            )
-                    }
+        Group {
+            if useSplitLayout {
+                ZStack {
+                    splitPageBackground.ignoresSafeArea()
+                    splitIncomeContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
-            } header: {
-                let date = vm.selectedDate ?? Date()
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Selected Day Income").font(.headline)
-                    Text(DateFormatter.localizedString(from: date, dateStyle: .full, timeStyle: .none))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .textCase(nil)
-            }
-
-            // Weekly totals section
-            Section {
-                let (start, end) = weekBounds(for: vm.selectedDate ?? Date())
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .lastTextBaseline) {
-                        totalsColumn(label: "Planned", amount: vm.plannedTotalForSelectedWeek, color: DS.Colors.plannedIncome)
-                        Spacer(minLength: 0)
-                        totalsColumn(label: "Actual", amount: vm.actualTotalForSelectedWeek, color: DS.Colors.actualIncome)
-                    }
-                    Text("\(format(start)) – \(format(end))")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 4)
-            } header: {
-                Text("Week Total Income").font(.headline).textCase(nil)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            } else {
+                listIncomeContent
             }
         }
         .navigationTitle("Income")
         .toolbar { toolbarContent }
         .refreshable {
-            // Pull-to-refresh: nudge CloudKit and reload the selected day
-            CloudSyncAccelerator.shared.nudgeOnForeground()
-            vm.reloadForSelectedDay(forceMonthReload: true)
+            refreshSelectedDay()
         }
         .onChange(of: vm.selectedDate) { _ in
             vm.reloadForSelectedDay(forceMonthReload: false)
@@ -243,7 +201,8 @@ struct IncomeView: View {
                         selectedDate: selectedDate,
                         selectedRange: selectedRange,
                         summary: vm.summary(for: date),
-                        selectedOverride: vm.selectedDate
+                        selectedOverride: vm.selectedDate,
+                        scale: calendarSizing.dayScale
                     )
                 }
                 .firstWeekday(.sunday)
@@ -259,40 +218,179 @@ struct IncomeView: View {
 
             return resolved
         }
-        .frame(height: calendarHeight)
+        .frame(height: calendarSizing.height)
+        .frame(maxWidth: calendarSizing.maxWidth)
+        .frame(maxWidth: .infinity, alignment: .center)
         .transaction { t in t.animation = nil; t.disablesAnimations = true }
     }
 
-    private var calendarHeight: CGFloat {
-        let containerWidth = layoutContext.containerSize.width
-        guard containerWidth.isFinite, containerWidth > 0 else { return 335 }
-        
-        let horizontalInsets: CGFloat = 40
-        let availableWidth = max(0, containerWidth - horizontalInsets)
-        let dayDimension = max(35, (availableWidth / 7).rounded(.down))
-        //let monthLabelHeight: CGFloat = 10
-        let computedHeight = dayDimension * 4 //+ monthLabelHeight
-        
-        return max(335, computedHeight)
+    private struct CalendarSizing {
+        let maxWidth: CGFloat
+        let height: CGFloat
+        let dayScale: CGFloat
     }
 
-    // MARK: Selected Day Section
-    private var selectedDaySection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            let date = vm.selectedDate ?? Date()
-            Text("Selected Day Income")
-                .font(.headline)
-            Text(DateFormatter.localizedString(from: date, dateStyle: .full, timeStyle: .none))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+    private var calendarSizing: CalendarSizing {
+        let container = layoutContext.containerSize
+        guard container.width.isFinite, container.width > 0, container.height.isFinite, container.height > 0 else {
+            return CalendarSizing(maxWidth: .infinity, height: 335, dayScale: 1)
+        }
 
-            if vm.incomesForDay.isEmpty {
-                Text("No income for \(format(date)).")
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
-                    .padding(.vertical, 4)
-            } else {
-                LazyVStack(alignment: .leading, spacing: 12) {
+        if isPhonePortraitLayout {
+            let horizontalInsets: CGFloat = 40
+            let availableWidth = max(0, container.width - horizontalInsets)
+            let dayDimension = max(35, (availableWidth / 7).rounded(.down))
+            let computedHeight = dayDimension * 4
+            return CalendarSizing(
+                maxWidth: availableWidth,
+                height: max(335, computedHeight),
+                dayScale: 1
+            )
+        }
+
+        let panelWidth = calendarPanelWidth(in: container)
+        let targetHeight = targetCalendarHeight(in: container)
+        let headerHeight: CGFloat = 64
+        let dayDimension = max(28, min(panelWidth / 7, (targetHeight - headerHeight) / 6))
+        let calendarWidth = min(panelWidth, dayDimension * 7)
+        let calendarHeight = max(minCalendarHeight, dayDimension * 6 + headerHeight)
+        let scale = min(1.0, max(0.75, dayDimension / 46))
+
+        return CalendarSizing(maxWidth: calendarWidth, height: calendarHeight, dayScale: scale)
+    }
+
+    private var minCalendarHeight: CGFloat {
+        layoutContext.verticalSizeClass == .compact ? 260 : 320
+    }
+
+    private func calendarPanelWidth(in container: CGSize) -> CGFloat {
+        let horizontalInsets: CGFloat = useSplitLayout ? 20 : 40
+        let spacing = useSplitLayout ? splitPanelSpacing : 0
+        let available = max(0, container.width - horizontalInsets * 2 - spacing)
+        return useSplitLayout ? available / 2 : available
+    }
+
+    private func targetCalendarHeight(in container: CGSize) -> CGFloat {
+        let isMac = layoutContext.idiom == .mac
+        let splitRatio: CGFloat = isMac ? 0.72 : 0.58
+        let base = container.height * (useSplitLayout ? splitRatio : 0.52)
+        let maxHeight: CGFloat = useSplitLayout ? (isMac ? 760 : 520) : 560
+        return min(max(base, minCalendarHeight), maxHeight)
+    }
+
+    private var splitPanelSpacing: CGFloat { 16 }
+    private var splitPanelHeight: CGFloat {
+        guard useSplitLayout else { return calendarSizing.height }
+        let topPadding: CGFloat = 12
+        let navHeight: CGFloat = 44
+        let spacing: CGFloat = 8
+        return calendarSizing.height + topPadding + navHeight + spacing
+    }
+    private var useSplitLayout: Bool {
+        guard layoutContext.isLandscape else { return false }
+        if layoutContext.idiom == .mac { return true }
+        if layoutContext.verticalSizeClass == .compact { return true }
+        return layoutContext.horizontalSizeClass == .regular
+    }
+
+    private var isPhonePortraitLayout: Bool {
+        !layoutContext.isLandscape
+            && layoutContext.horizontalSizeClass == .compact
+            && layoutContext.verticalSizeClass == .regular
+    }
+
+    // MARK: Layout Variants
+    private var listIncomeContent: some View {
+        List {
+            // Calendar section as a single row
+            VStack(alignment: .leading, spacing: 12) {
+                calendarNav
+                calendarView
+            }
+            .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
+
+            // Selected Day Income section
+            Section {
+                if vm.incomesForDay.isEmpty {
+                    let date = vm.selectedDate ?? Date()
+                    Text("No income for \(format(date)).")
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                        .padding(.vertical, 4)
+                } else {
+                    ForEach(vm.incomesForDay, id: \.objectID) { income in
+                        incomeRow(income)
+                            .unifiedSwipeActions(
+                                UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
+                                onEdit: { editingIncome = income },
+                                onDelete: { requestDelete(income: income) }
+                            )
+                    }
+                }
+            } header: {
+                selectedDayHeaderView
+            }
+
+            // Weekly totals section
+            Section {
+                let (start, end) = weekBounds(for: vm.selectedDate ?? Date())
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .lastTextBaseline) {
+                        totalsColumn(label: "Planned", amount: vm.plannedTotalForSelectedWeek, color: DS.Colors.plannedIncome)
+                        Spacer(minLength: 0)
+                        totalsColumn(label: "Actual", amount: vm.actualTotalForSelectedWeek, color: DS.Colors.actualIncome)
+                    }
+                    Text("\(format(start)) – \(format(end))")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 4)
+            } header: {
+                Text("Week Total Income").font(.headline).textCase(nil)
+            }
+        }
+    }
+
+    private var splitIncomeContent: some View {
+        VStack(spacing: 12) {
+            HStack(alignment: .top, spacing: splitPanelSpacing) {
+                calendarPanel
+                    .frame(height: splitPanelHeight)
+                    .modifier(IncomeSplitCellModifier(background: splitCellBackground))
+                selectedDayPanel
+                    .frame(height: splitPanelHeight)
+                    .modifier(IncomeSplitCellModifier(background: splitCellBackground))
+            }
+            .frame(maxWidth: .infinity, alignment: .top)
+
+            weeklyTotalsSection
+                .modifier(IncomeSplitCellModifier(background: splitCellBackground))
+        }
+        .frame(maxWidth: .infinity, alignment: .top)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    private var calendarPanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            calendarNav
+                .padding(.top, useSplitLayout ? 12 : 0)
+            calendarView
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var selectedDayPanel: some View {
+        List {
+            Section(header: selectedDayHeaderView) {
+                if vm.incomesForDay.isEmpty {
+                    let date = vm.selectedDate ?? Date()
+                    Text("No income for \(format(date)).")
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                        .padding(.vertical, 4)
+                } else {
                     ForEach(vm.incomesForDay, id: \.objectID) { income in
                         incomeRow(income)
                             .unifiedSwipeActions(
@@ -304,6 +402,52 @@ struct IncomeView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
+        .scrollIndicators(.hidden)
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollContentBackground(.hidden)
+        .refreshable {
+            refreshSelectedDay()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private struct IncomeSplitCellModifier: ViewModifier {
+        let background: Color
+
+        func body(content: Content) -> some View {
+            content
+                .padding(12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(
+                    RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                        .fill(background)
+                )
+        }
+    }
+
+    private var splitCellBackground: Color {
+        Color(UIColor.systemBackground)
+    }
+
+    private var splitPageBackground: Color {
+        if #available(iOS 13.0, macCatalyst 13.0, *) {
+            return Color(UIColor.systemGroupedBackground)
+        } else {
+            return Color(UIColor(white: 0.94, alpha: 1.0))
+        }
+    }
+
+    // MARK: Selected Day Header
+    private var selectedDayHeaderView: some View {
+        let date = vm.selectedDate ?? Date()
+        return VStack(alignment: .leading, spacing: 2) {
+            Text("Selected Day Income").font(.headline)
+            Text(DateFormatter.localizedString(from: date, dateStyle: .full, timeStyle: .none))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .textCase(nil)
     }
 
     // MARK: Weekly Totals Section
@@ -359,6 +503,11 @@ struct IncomeView: View {
     private func goToPreviousDay() { adjustDay(by: -1) }
     private func goToNextDay() { adjustDay(by: 1) }
     private func goToToday() { calendarScrollDate = normalize(Date()); vm.selectedDate = normalize(Date()) }
+    private func refreshSelectedDay() {
+        // Pull-to-refresh: nudge CloudKit and reload the selected day
+        CloudSyncAccelerator.shared.nudgeOnForeground()
+        vm.reloadForSelectedDay(forceMonthReload: true)
+    }
 
     private func adjustDay(by delta: Int) {
         let base = vm.selectedDate ?? Date()

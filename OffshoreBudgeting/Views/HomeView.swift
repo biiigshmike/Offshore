@@ -225,6 +225,7 @@ struct HomeView: View {
     @State private var endDateSelection: Date = Date()
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.platformCapabilities) private var capabilities
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
 
@@ -232,21 +233,36 @@ struct HomeView: View {
     @AppStorage("homeWidgetOrderIDs") private var orderStorage: String = ""
     @AppStorage("homeAvailabilitySegment") private var availabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
     @AppStorage("homeScenarioAllocations") private var scenarioAllocationsRaw: String = ""
+    @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
+    @AppStorage(AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue) private var syncHomeWidgetsAcrossDevices: Bool = false
 
     private static let defaultWidgets: [WidgetID] = [
         .income, .expenseToIncome, .savings, .nextPlanned, .categorySpotlight, .dayOfWeek, .availability, .scenario
     ]
 
-    @State private var pinnedIDs: [WidgetID] = HomeView.defaultWidgets
-    @State private var widgetOrder: [WidgetID] = HomeView.defaultWidgets
+    private enum WidgetStorageKey {
+        static let pinnedLocal = "homePinnedWidgetIDs"
+        static let pinnedCloud = "homePinnedWidgetIDs.cloud"
+        static let orderLocal = "homeWidgetOrderIDs"
+        static let orderCloud = "homeWidgetOrderIDs.cloud"
+    }
+
+    @State private var pinnedIDs: [WidgetID] = []
+    @State private var widgetOrder: [WidgetID] = []
     @State private var isEditing: Bool = false
     @State private var draggingID: WidgetID?
+    @State private var ubiquitousObserver: NSObjectProtocol?
+    @State private var storageRefreshToken = UUID()
 
     private let gridSpacing: CGFloat = 18
     private let gridRowHeight: CGFloat = 170
 
     private var isCompactDateRow: Bool {
         horizontalSizeClass == .compact
+    }
+
+    private var shouldSyncWidgets: Bool {
+        enableCloudSync && syncHomeWidgetsAcrossDevices
     }
 
     private var columnCount: Int {
@@ -405,10 +421,13 @@ struct HomeView: View {
         .onChange(of: vm.selectedDate) { _ in syncPickers(with: vm.currentDateRange) }
         .onReceive(vm.$customDateRange) { _ in syncPickers(with: vm.currentDateRange) }
         .onChange(of: vm.state) { _ in Task { await stateDidChange() } }
+        .onChange(of: shouldSyncWidgets) { _ in handleWidgetSyncPreferenceChange() }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave, object: CoreDataService.shared.viewContext)) { _ in
             Task { await loadAllCards() }
         }
+        .onDisappear { stopObservingWidgetSync() }
         .alert(item: $vm.alert, content: alert(for:))
+        .tipsAndHintsOverlay(for: .home)
     }
 
     // MARK: Content
@@ -506,13 +525,7 @@ struct HomeView: View {
                 Text("Widgets")
                     .font(.headline.weight(.semibold))
                 Spacer()
-                Button(isEditing ? "Done" : "Edit") {
-                    withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
-                        isEditing.toggle()
-                        draggingID = nil
-                    }
-                }
-                .buttonStyle(.plain)
+                editWidgetsButton
             }
 
             if #available(iOS 16.0, macOS 13.0, macCatalyst 16.0, *) {
@@ -560,6 +573,33 @@ struct HomeView: View {
         .onAppear { initializeLayoutStateIfNeeded(with: items) }
         .onChange(of: items.map(\.id)) { _ in
             initializeLayoutStateIfNeeded(with: items)
+        }
+        .onChange(of: storageRefreshToken) { _ in
+            initializeLayoutStateIfNeeded(with: items)
+        }
+    }
+
+    @ViewBuilder
+    private var editWidgetsButton: some View {
+        if capabilities.supportsOS26Translucency,
+           #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            Button(isEditing ? "Done" : "Edit") {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                    isEditing.toggle()
+                    draggingID = nil
+                }
+            }
+            .buttonStyle(.glass)
+            .tint(.clear)
+            .foregroundStyle(.primary)
+        } else {
+            Button(isEditing ? "Done" : "Edit") {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                    isEditing.toggle()
+                    draggingID = nil
+                }
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -1064,29 +1104,43 @@ struct HomeView: View {
 
     private func initializeLayoutStateIfNeeded(with items: [WidgetItem]) {
         let available = items.map(\.id)
+        refreshWidgetStorageFromCloudIfNeeded()
+        let storedPinned = decodeIDs(from: pinnedStorage)
+        let storedOrder = decodeIDs(from: orderStorage)
+        let hasStoredPrefs = !storedPinned.isEmpty || !storedOrder.isEmpty
+
         if pinnedIDs.isEmpty {
-            let decoded = decodeIDs(from: pinnedStorage).filter { available.contains($0) }
-            let defaults = available
-            pinnedIDs = decoded.isEmpty ? defaults : decoded
+            let decoded = storedPinned.filter { available.contains($0) }
+            if decoded.isEmpty && !hasStoredPrefs {
+                pinnedIDs = HomeView.defaultWidgets.filter { available.contains($0) }
+            } else {
+                pinnedIDs = decoded
+            }
         } else {
             pinnedIDs = pinnedIDs.filter { available.contains($0) }
         }
 
         // Auto-add any newly discovered cards so they surface without manual pinning.
+        let knownOrder = Set(storedOrder)
         let cardIDs = available.filter {
             if case .card = $0 { return true }
             return false
         }
-        for cardID in cardIDs where !pinnedIDs.contains(cardID) {
+        for cardID in cardIDs where !knownOrder.contains(cardID) && !pinnedIDs.contains(cardID) {
             pinnedIDs.append(cardID)
         }
-        if available.contains(.scenario), !pinnedIDs.contains(.scenario) {
+        if available.contains(.scenario), !knownOrder.contains(.scenario), !pinnedIDs.contains(.scenario) {
             pinnedIDs.append(.scenario)
         }
 
         if widgetOrder.isEmpty {
-            let decoded = decodeIDs(from: orderStorage)
-            widgetOrder = normalize(order: decoded.isEmpty ? available : decoded, available: available)
+            let decoded = storedOrder.filter { available.contains($0) }
+            if decoded.isEmpty {
+                let seed = hasStoredPrefs ? pinnedIDs : HomeView.defaultWidgets
+                widgetOrder = normalize(order: seed, available: available)
+            } else {
+                widgetOrder = normalize(order: decoded, available: available)
+            }
         } else {
             widgetOrder = normalize(order: widgetOrder, available: available)
         }
@@ -1122,6 +1176,7 @@ struct HomeView: View {
 
     private func persistPinned() {
         pinnedStorage = encodeIDs(pinnedIDs)
+        syncWidgetStorageIfNeeded(pinnedStorage, cloudKey: WidgetStorageKey.pinnedCloud)
     }
 
     private func persistOrder() {
@@ -1131,6 +1186,74 @@ struct HomeView: View {
         }
         widgetOrder = unique
         orderStorage = encodeIDs(unique)
+        syncWidgetStorageIfNeeded(orderStorage, cloudKey: WidgetStorageKey.orderCloud)
+    }
+
+    private func refreshWidgetStorageFromCloudIfNeeded() {
+        guard shouldSyncWidgets else { return }
+        let pinned = loadSyncedString(localKey: WidgetStorageKey.pinnedLocal, cloudKey: WidgetStorageKey.pinnedCloud)
+        let order = loadSyncedString(localKey: WidgetStorageKey.orderLocal, cloudKey: WidgetStorageKey.orderCloud)
+        if pinnedStorage != pinned {
+            pinnedStorage = pinned
+        }
+        if orderStorage != order {
+            orderStorage = order
+        }
+    }
+
+    private func loadSyncedString(localKey: String, cloudKey: String) -> String {
+        let defaults = UserDefaults.standard
+        if shouldSyncWidgets {
+            let kv = NSUbiquitousKeyValueStore.default
+            if kv.object(forKey: cloudKey) != nil {
+                let value = kv.string(forKey: cloudKey) ?? ""
+                defaults.set(value, forKey: localKey)
+                return value
+            }
+            if defaults.object(forKey: localKey) != nil {
+                let value = defaults.string(forKey: localKey) ?? ""
+                kv.set(value, forKey: cloudKey)
+                kv.synchronize()
+                return value
+            }
+        }
+        return defaults.string(forKey: localKey) ?? ""
+    }
+
+    private func syncWidgetStorageIfNeeded(_ value: String, cloudKey: String) {
+        guard shouldSyncWidgets else { return }
+        let kv = NSUbiquitousKeyValueStore.default
+        kv.set(value, forKey: cloudKey)
+        kv.synchronize()
+    }
+
+    private func handleWidgetSyncPreferenceChange() {
+        if shouldSyncWidgets {
+            refreshWidgetStorageFromCloudIfNeeded()
+            startObservingWidgetSyncIfNeeded()
+            storageRefreshToken = UUID()
+        } else {
+            stopObservingWidgetSync()
+        }
+    }
+
+    private func startObservingWidgetSyncIfNeeded() {
+        guard shouldSyncWidgets, ubiquitousObserver == nil else { return }
+        ubiquitousObserver = NotificationCenter.default.addObserver(
+            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: NSUbiquitousKeyValueStore.default,
+            queue: .main
+        ) { _ in
+            refreshWidgetStorageFromCloudIfNeeded()
+            storageRefreshToken = UUID()
+        }
+    }
+
+    private func stopObservingWidgetSync() {
+        if let observer = ubiquitousObserver {
+            NotificationCenter.default.removeObserver(observer)
+            ubiquitousObserver = nil
+        }
     }
 
     private struct WidgetDropDelegate: DropDelegate {
@@ -1490,6 +1613,7 @@ struct HomeView: View {
 
     // MARK: Lifecycle helpers
     private func onAppearTask() async {
+        handleWidgetSyncPreferenceChange()
         syncPickers(with: currentRange)
         vm.startIfNeeded()
         let summary = primarySummary

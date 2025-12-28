@@ -24,6 +24,7 @@ struct CardDetailView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
     private var confirmBeforeDelete: Bool = true
     @State private var isSearchActive: Bool = false
@@ -147,6 +148,7 @@ struct CardDetailView: View {
             configuration: themeManager.glassConfiguration,
             ignoringSafeArea: .all
         )
+        .tipsAndHintsOverlay(for: .cardDetail)
         
 
     }
@@ -168,17 +170,8 @@ struct CardDetailView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
         case .empty:
-            VStack(spacing: 12) {
-                Image(systemName: "creditcard")
-                    .font(.system(size: 44, weight: .regular))
-                    .foregroundStyle(.secondary)
-                Text("No expenses yet")
-                    .font(.title3.weight(.semibold))
-                Text("Add an expense to see totals and categories here.")
-                    .font(.subheadline).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .padding()
+            let cardMaxWidth = resolvedCardMaxWidth(in: layoutContext)
+            detailsList(cardMaxWidth: cardMaxWidth)
         case .loaded:
             let cardMaxWidth = resolvedCardMaxWidth(in: layoutContext)
             detailsList(cardMaxWidth: cardMaxWidth)
@@ -198,27 +191,40 @@ struct CardDetailView: View {
 
             // Date Range + Presets
             Section {
-                HStack(spacing: 8) {
-                    DatePicker("Start", selection: $startDate, displayedComponents: .date)
-                        .labelsHidden()
-                    DatePicker("End", selection: $endDate, displayedComponents: .date)
-                        .labelsHidden()
-                    // Go button: liquid glass circular on OS 26, rounded rect legacy
-                    goButton
+                let rowMaxWidth = cardMaxWidth ?? resolvedDateRowMaxWidth(in: layoutContext)
+                HStack(spacing: 10) {
+                    HStack(spacing: 8) {
+                        DatePicker("Start", selection: $startDate, displayedComponents: .date)
+                            .labelsHidden()
+                        DatePicker("End", selection: $endDate, displayedComponents: .date)
+                            .labelsHidden()
+                    }
                     Spacer(minLength: 0)
-                    // Calendar menu: liquid glass circular on OS 26, plain legacy
-                    calendarMenu
+                    HStack(spacing: 8) {
+                        // Go button: liquid glass circular on OS 26, rounded rect legacy
+                        goButton
+                        // Calendar menu: liquid glass circular on OS 26, plain legacy
+                        calendarMenu
+                    }
                 }
+                .frame(maxWidth: rowMaxWidth)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
 
             Section {
-                VStack(alignment: .leading, spacing: 8) {
+                let row = VStack(alignment: .leading, spacing: 8) {
                     Text(viewModel.filteredTotal, format: .currency(code: currencyCode))
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 8)
+
+                if let colors = totalSpentHeatmapColors {
+                    row.listRowBackground(totalSpentHeatmapBackground(colors: colors))
+                } else {
+                    row
+                }
             } header: {
                 Text("TOTAL SPENT")
                     .font(.subheadline.weight(.semibold))
@@ -267,9 +273,13 @@ struct CardDetailView: View {
 
             Section {
                 let expenses = viewModel.filteredExpenses
+                let trimmedSearch = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
                 let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
                 if expenses.isEmpty {
-                    Text(viewModel.searchText.isEmpty ? "No expenses found." : "No results for “\(viewModel.searchText)”")
+                    let emptyMessage = trimmedSearch.isEmpty
+                        ? "No expenses yet for this date range."
+                        : "No results for “\(trimmedSearch)”"
+                    Text(emptyMessage)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -401,47 +411,7 @@ struct CardDetailView: View {
         #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
         #endif
-            .toolbar {
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    if isSearchActive {
-                        TextField("Search expenses", text: $viewModel.searchText)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(maxWidth: 200)
-                            .focused($isSearchFieldFocused)
-                        Button("Cancel") {
-                            withAnimation {
-                                isSearchActive = false
-                                viewModel.searchText = ""
-                                isSearchFieldFocused = false
-                            }
-                        }
-                    } else {
-                        IconOnlyButton(systemName: "magnifyingglass") {
-                            withAnimation { isSearchActive = true }
-                            isSearchFieldFocused = true
-                        }
-
-                        IconOnlyButton(systemName: "pencil") {
-                            isPresentingEditCard = true
-                        }
-                        // Add Expense menu (Planned or Variable) — rightmost control
-                        Menu {
-                            Button("Add Planned Expense") {
-                                isPresentingAddPlanned = true
-                            }
-                            Button("Add Variable Expense") {
-                                isPresentingAddExpense = true
-                            }
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 18, weight: .semibold))
-                                .symbolRenderingMode(.monochrome)
-                        }
-                        .accessibilityLabel("Add Expense")
-                        
-                    }
-                }
-            }
+            .toolbar { toolbarContent }
             .task {
                 // Initialize local start/end from the model's allowed interval
                 if let interval = viewModel.allowedInterval {
@@ -454,6 +424,131 @@ struct CardDetailView: View {
                     endDate = r.end
                 }
             }
+    }
+
+    // MARK: Toolbar
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            searchToolbarControl
+        }
+        ToolbarItemGroup(placement: .navigationBarTrailing) {
+            IconOnlyButton(systemName: "pencil") {
+                isPresentingEditCard = true
+            }
+            // Add Expense menu (Planned or Variable) — rightmost control
+            Menu {
+                Button("Add Planned Expense") {
+                    isPresentingAddPlanned = true
+                }
+                Button("Add Variable Expense") {
+                    isPresentingAddExpense = true
+                }
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 18, weight: .semibold))
+                    .symbolRenderingMode(.monochrome)
+            }
+            .accessibilityLabel("Add Expense")
+        }
+    }
+
+    // MARK: Toolbar Search
+    @ViewBuilder
+    private var searchToolbarControl: some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            searchToolbarControlGlass
+        } else {
+            searchToolbarControlLegacy
+        }
+    }
+
+    @available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *)
+    private var searchToolbarControlGlass: some View {
+        GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 6) {
+                if isSearchActive {
+                    Buttons.toolbarIcon("xmark") { closeSearch() }
+                    glassSearchField
+                } else {
+                    Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                }
+            }
+        }
+    }
+
+    private var searchToolbarControlLegacy: some View {
+        HStack(spacing: 6) {
+            if isSearchActive {
+                Buttons.toolbarIcon("xmark") { closeSearch() }
+                legacySearchField
+            } else {
+                Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+            }
+        }
+    }
+
+    @available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *)
+    private var glassSearchField: some View {
+        searchField
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.secondary.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.secondary.opacity(0.18), lineWidth: 0.5)
+            )
+    }
+
+    private var legacySearchField: some View {
+        searchField
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.secondary.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color.secondary.opacity(0.18), lineWidth: 0.5)
+            )
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            TextField("Search expenses", text: $viewModel.searchText)
+                .textFieldStyle(.plain)
+                .focused($isSearchFieldFocused)
+                .frame(minWidth: 140, maxWidth: 220)
+            if !viewModel.searchText.isEmpty {
+                Button(action: { viewModel.searchText = "" }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear Search")
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func openSearch() {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+            isSearchActive = true
+        }
+        isSearchFieldFocused = true
+    }
+
+    private func closeSearch() {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+            isSearchActive = false
+        }
+        viewModel.searchText = ""
+        isSearchFieldFocused = false
     }
 
     // MARK: Date Row Controls
@@ -546,9 +641,109 @@ struct CardDetailView: View {
         }
     }
 
+    private func resolvedDateRowMaxWidth(in context: ResponsiveLayoutContext) -> CGFloat? {
+        let availableWidth = max(context.containerSize.width - context.safeArea.leading - context.safeArea.trailing, 0)
+
+        switch context.idiom {
+        case .phone:
+            return nil
+        case .pad, .mac, .vision, .car:
+            return boundedCardWidth(for: availableWidth, upperBound: 560)
+        case .unspecified:
+            if context.horizontalSizeClass == .regular {
+                return boundedCardWidth(for: availableWidth, upperBound: 520)
+            } else {
+                return nil
+            }
+        }
+    }
+
     private func boundedCardWidth(for availableWidth: CGFloat, upperBound: CGFloat) -> CGFloat? {
         guard availableWidth > 0 else { return upperBound }
         return min(availableWidth, upperBound)
+    }
+
+    // MARK: Heatmap Helpers (Total Spent)
+    private var totalSpentHeatmapColors: [Color]? {
+        let rawColors = viewModel.filteredCategories.compactMap { UBColorFromHex($0.colorHex) }
+        let limited = Array(rawColors.prefix(12))
+        guard !limited.isEmpty else { return nil }
+        return softenedHeatmapColors(from: limited)
+    }
+
+    @ViewBuilder
+    private func totalSpentHeatmapBackground(colors: [Color]) -> some View {
+        let blobs = heatmapBlobs(from: colors)
+        ZStack {
+            Color.primary.opacity(colorScheme == .dark ? 0.06 : 0.02)
+            ForEach(blobs) { blob in
+                RadialGradient(
+                    gradient: Gradient(colors: [blob.color, .clear]),
+                    center: blob.center,
+                    startRadius: 0,
+                    endRadius: blob.radius
+                )
+                .opacity(blob.opacity)
+                .blur(radius: 18)
+            }
+        }
+    }
+
+    private struct HeatmapBlob: Identifiable {
+        let id = UUID()
+        let color: Color
+        let center: UnitPoint
+        let radius: CGFloat
+        let opacity: Double
+    }
+
+    private func heatmapBlobs(from colors: [Color]) -> [HeatmapBlob] {
+        let baseColors = colors.prefix(6)
+        let centers: [UnitPoint] = [
+            .topLeading, .topTrailing, .bottomLeading, .bottomTrailing, .center, .init(x: 0.2, y: 0.7)
+        ]
+        let radii: [CGFloat] = [180, 200, 160, 190, 220, 170]
+        let opacityBase: Double = colorScheme == .dark ? 0.28 : 0.22
+
+        return zip(baseColors, centers).enumerated().map { index, pair in
+            let (color, center) = pair
+            return HeatmapBlob(
+                color: color,
+                center: center,
+                radius: radii[index % radii.count],
+                opacity: opacityBase * (index % 2 == 0 ? 1.0 : 0.85)
+            )
+        }
+    }
+
+    private func softenedHeatmapColors(from colors: [Color]) -> [Color] {
+        colors.map(softenHeatmapColor)
+    }
+
+    private func softenHeatmapColor(_ color: Color) -> Color {
+        #if canImport(UIKit)
+        let ui = UIColor(color)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        if ui.getRed(&r, green: &g, blue: &b, alpha: &a) {
+            let mix: CGFloat = 0.30 // blend toward a light neutral to reduce harshness
+            let nr = r * (1 - mix) + mix
+            let ng = g * (1 - mix) + mix
+            let nb = b * (1 - mix) + mix
+            let na = a * 0.9
+            return Color(red: Double(nr), green: Double(ng), blue: Double(nb), opacity: Double(na))
+        }
+        #elseif os(macOS)
+        if let ns = NSColor(color).usingColorSpace(.sRGB) {
+            let r = ns.redComponent, g = ns.greenComponent, b = ns.blueComponent, a = ns.alphaComponent
+            let mix: CGFloat = 0.30
+            let nr = r * (1 - mix) + mix
+            let ng = g * (1 - mix) + mix
+            let nb = b * (1 - mix) + mix
+            let na = a * 0.9
+            return Color(red: Double(nr), green: Double(ng), blue: Double(nb), opacity: Double(na))
+        }
+        #endif
+        return color.opacity(0.85)
     }
 
     // MARK: Guided Walkthrough Helpers

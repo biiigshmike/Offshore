@@ -1,456 +1,390 @@
-//import SwiftUI
-//
-//// MARK: - Overlay Model
-///// Describes a walkthrough overlay for a top-level destination.
-//struct Overlay: Identifiable, Equatable {
-//    let id: GuidedWalkthroughManager.Screen
-//    let title: String
-//    let message: String
-//    let actionTitle: String
-//}
-//
-//// MARK: - Hint Model
-///// Lightweight data model for contextual hint bubbles.
-//struct HintBubble: Identifiable, Equatable {
-//    let id: GuidedWalkthroughManager.Hint
-//    let iconSystemName: String
-//    let message: String
-//}
-//
-//// MARK: - GuidedWalkthroughManager
-//@MainActor
-//final class GuidedWalkthroughManager: ObservableObject {
-//
-//    // MARK: Destinations & Hints
-//    enum Screen: String, CaseIterable, Identifiable {
-//        case home
-//        case income
-//        case cards
-//        case presets
-//        case settings
-//        case cardDetail
-//
-//        var id: String { rawValue }
-//    }
-//
-//    enum Hint: String, CaseIterable, Identifiable, Hashable {
-//        case homeThreeDots
-//        case homeCalendar
-//        case homeAddExpense
-//        case incomeAdd
-//        case incomeEdit
-//        case cardsAdd
-//        case cardsTile
-//        case cardDetailEdit
-//        case cardDetailSearch
-//        case cardDetailAddExpense
-//        case presetsNextDate
-//        case presetsAssignments
-//        case settingsGeneral
-//        case settingsCategories
-//        case settingsData
-//
-//        var id: String { rawValue }
-//    }
-//
-//    // MARK: Overlay Storage
-//    @AppStorage("guided.overlay.home")
-//    private var homeOverlaySeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.overlay.income")
-//    private var incomeOverlaySeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.overlay.cards")
-//    private var cardsOverlaySeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.overlay.presets")
-//    private var presetsOverlaySeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.overlay.settings")
-//    private var settingsOverlaySeen: Bool = false { willSet { objectWillChange.send() } }
-//
-//    // MARK: Hint Storage
-//    @AppStorage("guided.hint.home.threeDots")
-//    private var homeThreeDotsSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.home.calendar")
-//    private var homeCalendarSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.home.add")
-//    private var homeAddSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.income.add")
-//    private var incomeAddSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.income.edit")
-//    private var incomeEditSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.cards.add")
-//    private var cardsAddSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.cards.tile")
-//    private var cardsTileSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.cardDetail.edit")
-//    private var cardDetailEditSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.cardDetail.search")
-//    private var cardDetailSearchSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.cardDetail.add")
-//    private var cardDetailAddSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.presets.nextDate")
-//    private var presetsNextDateSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.presets.assignments")
-//    private var presetsAssignmentsSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.settings.general")
-//    private var settingsGeneralSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.settings.categories")
-//    private var settingsCategoriesSeen: Bool = false { willSet { objectWillChange.send() } }
-//    @AppStorage("guided.hint.settings.data")
-//    private var settingsDataSeen: Bool = false { willSet { objectWillChange.send() } }
-//
-//    // MARK: Content Catalog
-//    private let overlaysByScreen: [Screen: Overlay]
-//    private let hintsByScreen: [Screen: [HintBubble]]
-//
-//    init() {
-//        overlaysByScreen = [
-//            .home: Overlay(
-//                id: .home,
-//                title: "Home Overview",
-//                message: "Welcome to your budget hub! Use these controls to switch periods, add expenses, and manage budgets.",
-//                actionTitle: "Show hints"
-//            ),
-//            .income: Overlay(
-//                id: .income,
-//                title: "Income Overview",
-//                message: "Track planned versus actual income here. Browse days to compare and adjust entries.",
-//                actionTitle: "Show hints"
-//            ),
-//            .cards: Overlay(
-//                id: .cards,
-//                title: "Cards Overview",
-//                message: "Cards act like spending envelopes. Add cards and tap one to review its activity.",
-//                actionTitle: "Show hints"
-//            ),
-//            .presets: Overlay(
-//                id: .presets,
-//                title: "Presets Overview",
-//                message: "Preset expenses speed up budget creation. Add items once and reuse them anytime.",
-//                actionTitle: "Show hints"
-//            ),
-//            .settings: Overlay(
-//                id: .settings,
-//                title: "Settings Overview",
-//                message: "Adjust Offshore to fit your workflow, manage data, and replay onboarding here.",
-//                actionTitle: "Show hints"
-//            )
-//        ]
-//
-//        hintsByScreen = [
-//            .home: [
-//                HintBubble(
-//                    id: .homeThreeDots,
-//                    iconSystemName: "ellipsis",
-//                    message: "Open tools to edit the budget, manage cards, or presets."
-//                ),
-//                HintBubble(
-//                    id: .homeCalendar,
-//                    iconSystemName: "calendar",
-//                    message: "Jump between budget periods or pick a custom range."
-//                ),
-//                HintBubble(
-//                    id: .homeAddExpense,
-//                    iconSystemName: "plus",
-//                    message: "Add planned or variable expenses for this budget."
-//                )
-//            ],
-//            .income: [
-//                HintBubble(
-//                    id: .incomeAdd,
-//                    iconSystemName: "plus",
-//                    message: "Add a new income entry for the selected date."
-//                ),
-//                HintBubble(
-//                    id: .incomeEdit,
-//                    iconSystemName: "pencil",
-//                    message: "Edit this income entry."
-//                )
-//            ],
-//            .cards: [
-//                HintBubble(
-//                    id: .cardsAdd,
-//                    iconSystemName: "plus",
-//                    message: "Create a new spending card."
-//                ),
-//                HintBubble(
-//                    id: .cardsTile,
-//                    iconSystemName: "creditcard",
-//                    message: "Open card details to see category totals and expenses."
-//                )
-//            ],
-//            .cardDetail: [
-//                HintBubble(
-//                    id: .cardDetailEdit,
-//                    iconSystemName: "pencil",
-//                    message: "Rename or restyle this card."
-//                ),
-//                HintBubble(
-//                    id: .cardDetailSearch,
-//                    iconSystemName: "magnifyingglass",
-//                    message: "Filter expenses by keyword or category."
-//                ),
-//                HintBubble(
-//                    id: .cardDetailAddExpense,
-//                    iconSystemName: "plus",
-//                    message: "Add a variable expense to this card."
-//                )
-//            ],
-//            .presets: [
-//                HintBubble(
-//                    id: .presetsNextDate,
-//                    iconSystemName: "calendar.badge.clock",
-//                    message: "Shows the scheduled date applied when this preset is used."
-//                ),
-//                HintBubble(
-//                    id: .presetsAssignments,
-//                    iconSystemName: "tray.fill",
-//                    message: "See which budgets currently include this preset."
-//                )
-//            ],
-//            .settings: [
-//                HintBubble(
-//                    id: .settingsGeneral,
-//                    iconSystemName: "slider.horizontal.3",
-//                    message: "Change default budget period and confirmation prompts."
-//                ),
-//                HintBubble(
-//                    id: .settingsCategories,
-//                    iconSystemName: "tag",
-//                    message: "Manage the categories used for variable expenses."
-//                ),
-//                HintBubble(
-//                    id: .settingsData,
-//                    iconSystemName: "icloud",
-//                    message: "Handle sync preferences or clear stored data."
-//                )
-//            ]
-//        ]
-//    }
-//
-//    // MARK: Overlay API
-//    func overlay(for screen: Screen) -> Overlay? {
-//        overlaysByScreen[screen]
-//    }
-//
-//    func shouldShowOverlay(for screen: Screen) -> Bool {
-//        guard overlaysByScreen[screen] != nil else { return false }
-//        return !overlaySeen(for: screen)
-//    }
-//
-//    func markOverlaySeen(for screen: Screen) {
-//        setOverlay(seen: true, for: screen)
-//    }
-//
-//    // MARK: Hint API
-//    func hints(for screen: Screen) -> [HintBubble] {
-//        hintsByScreen[screen] ?? []
-//    }
-//
-//    func hint(for identifier: Hint) -> HintBubble? {
-//        hintsByScreen.values.flatMap { $0 }.first(where: { $0.id == identifier })
-//    }
-//
-//    func shouldShowHint(_ hint: Hint) -> Bool {
-//        guard hint(for: hint) != nil else { return false }
-//        return !hintSeen(hint)
-//    }
-//
-//    func markHintSeen(_ hint: Hint) {
-//        if !hintSeen(hint) {
-//            setHint(hint, seen: true)
-//        }
-//    }
-//
-//    // MARK: Overlay Persistence helpers
-//    private func overlaySeen(for screen: Screen) -> Bool {
-//        switch screen {
-//        case .home: return homeOverlaySeen
-//        case .income: return incomeOverlaySeen
-//        case .cards: return cardsOverlaySeen
-//        case .presets: return presetsOverlaySeen
-//        case .settings: return settingsOverlaySeen
-//        case .cardDetail: return true
-//        }
-//    }
-//
-//    private func setOverlay(seen: Bool, for screen: Screen) {
-//        switch screen {
-//        case .home: homeOverlaySeen = seen
-//        case .income: incomeOverlaySeen = seen
-//        case .cards: cardsOverlaySeen = seen
-//        case .presets: presetsOverlaySeen = seen
-//        case .settings: settingsOverlaySeen = seen
-//        case .cardDetail: break
-//        }
-//    }
-//
-//    // MARK: Hint Persistence helpers
-//    private func hintSeen(_ hint: Hint) -> Bool {
-//        switch hint {
-//        case .homeThreeDots: return homeThreeDotsSeen
-//        case .homeCalendar: return homeCalendarSeen
-//        case .homeAddExpense: return homeAddSeen
-//        case .incomeAdd: return incomeAddSeen
-//        case .incomeEdit: return incomeEditSeen
-//        case .cardsAdd: return cardsAddSeen
-//        case .cardsTile: return cardsTileSeen
-//        case .cardDetailEdit: return cardDetailEditSeen
-//        case .cardDetailSearch: return cardDetailSearchSeen
-//        case .cardDetailAddExpense: return cardDetailAddSeen
-//        case .presetsNextDate: return presetsNextDateSeen
-//        case .presetsAssignments: return presetsAssignmentsSeen
-//        case .settingsGeneral: return settingsGeneralSeen
-//        case .settingsCategories: return settingsCategoriesSeen
-//        case .settingsData: return settingsDataSeen
-//        }
-//    }
-//
-//    private func setHint(_ hint: Hint, seen: Bool) {
-//        switch hint {
-//        case .homeThreeDots: homeThreeDotsSeen = seen
-//        case .homeCalendar: homeCalendarSeen = seen
-//        case .homeAddExpense: homeAddSeen = seen
-//        case .incomeAdd: incomeAddSeen = seen
-//        case .incomeEdit: incomeEditSeen = seen
-//        case .cardsAdd: cardsAddSeen = seen
-//        case .cardsTile: cardsTileSeen = seen
-//        case .cardDetailEdit: cardDetailEditSeen = seen
-//        case .cardDetailSearch: cardDetailSearchSeen = seen
-//        case .cardDetailAddExpense: cardDetailAddSeen = seen
-//        case .presetsNextDate: presetsNextDateSeen = seen
-//        case .presetsAssignments: presetsAssignmentsSeen = seen
-//        case .settingsGeneral: settingsGeneralSeen = seen
-//        case .settingsCategories: settingsCategoriesSeen = seen
-//        case .settingsData: settingsDataSeen = seen
-//        }
-//    }
-//}
-//
-//// MARK: - GuidedOverlayView
-//struct GuidedOverlayView: View {
-//    let overlay: Overlay
-//    let onDismiss: () -> Void
-//    let nextAction: () -> Void
-//
-//    @Environment(\.platformCapabilities) private var capabilities
-//
-//    var body: some View {
-//        ZStack {
-//            Color.black.opacity(0.45)
-//                .ignoresSafeArea()
-//                .transition(.opacity)
-//
-//            VStack(spacing: 20) {
-//                Text(overlay.title)
-//                    .font(.system(size: 24, weight: .bold, design: .rounded))
-//                    .multilineTextAlignment(.center)
-//
-//                Text(overlay.message)
-//                    .font(.system(size: 17, weight: .regular, design: .rounded))
-//                    .multilineTextAlignment(.center)
-//                    .foregroundStyle(.primary)
-//
-//                actionButton
-//            }
-//            .padding(28)
-//            .frame(maxWidth: 420)
-//            .background(background)
-//            .padding(.horizontal, 24)
-//            .transition(.scale.combined(with: .opacity))
-//        }
-//    }
-//
-//    private func dismiss() {
-//        withAnimation(.easeInOut(duration: 0.3)) {
-//            onDismiss()
-//        }
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-//            nextAction()
-//        }
-//    }
-//
-//    @ViewBuilder
-//    private var actionButton: some View {
-//        if capabilities.supportsOS26Translucency,
-//           #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-//            GlassEffectContainer {
-//                Button(action: dismiss) {
-//                    Label(overlay.actionTitle, systemImage: "sparkles")
-//                        .font(.system(size: 17, weight: .semibold, design: .rounded))
-//                        .padding(.vertical, 12)
-//                        .padding(.horizontal, 28)
-//                        .glassEffect(.regular.tint(.clear).interactive(true))
-//                }
-//                .buttonStyle(.plain)
-//                .buttonBorderShape(.capsule)
-//            }
-//        } else {
-//            Button(action: dismiss) {
-//                Image(systemName: "xmark")
-//                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-//                    .foregroundStyle(.primary)
-//                    .frame(width: 36, height: 36)
-//                    .background(
-//                        Circle()
-//                            .fill(Color.primary.opacity(0.15))
-//                    )
-//            }
-//            .buttonStyle(.plain)
-//            .accessibilityLabel("Close")
-//        }
-//    }
-//
-//    @ViewBuilder
-//    private var background: some View {
-//        if capabilities.supportsOS26Translucency,
-//           #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-//            RoundedRectangle(cornerRadius: 6, style: .continuous)
-//                .fill(Color.clear)
-//                .glassEffect(.regular.tint(.clear).interactive(true))
-//        } else {
-//            RoundedRectangle(cornerRadius: 6, style: .continuous)
-//                .fill(Color(.secondarySystemBackground))
-//                .shadow(color: Color.black.opacity(0.25), radius: 18, x: 0, y: 10)
-//        }
-//    }
-//}
-//
-//// MARK: - HintBubbleView
-//struct HintBubbleView: View {
-//    let hint: HintBubble
-//
-//    @Environment(\.platformCapabilities) private var capabilities
-//
-//    var body: some View {
-//        HStack(alignment: .top, spacing: 10) {
-//            Image(systemName: hint.iconSystemName)
-//                .font(.system(size: 15, weight: .semibold))
-//                .foregroundStyle(.primary)
-//                .padding(.top, 2)
-//
-//            Text(hint.message)
-//                .font(.system(size: 15, weight: .regular, design: .rounded))
-//                .multilineTextAlignment(.leading)
-//                .foregroundStyle(.primary)
-//        }
-//        .padding(.vertical, 10)
-//        .padding(.horizontal, 14)
-//        .background(bubbleBackground)
-//        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-//        .shadow(color: Color.black.opacity(0.18), radius: 8, x: 0, y: 4)
-//        .allowsHitTesting(false)
-//        .transition(.opacity)
-//    }
-//
-//    @ViewBuilder
-//    private var bubbleBackground: some View {
-//        if capabilities.supportsOS26Translucency,
-//           #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-//            RoundedRectangle(cornerRadius: 6, style: .continuous)
-//                .fill(Color.clear)
-//                .glassEffect(.regular.tint(.clear).interactive(true))
-//        } else {
-//            RoundedRectangle(cornerRadius: 6, style: .continuous)
-//                .fill(Color.black.opacity(0.75))
-//        }
-//    }
-//}
+import SwiftUI
+
+// MARK: - Tips & Hints Models
+enum TipsScreen: String, CaseIterable, Identifiable {
+    case home
+    case budgets
+    case income
+    case cards
+    case cardDetail
+    case categories
+    case presets
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .home: return "Home"
+        case .budgets: return "Budgets"
+        case .income: return "Income"
+        case .cards: return "Cards"
+        case .cardDetail: return "Card Details"
+        case .categories: return "Categories"
+        case .presets: return "Presets"
+        }
+    }
+}
+
+enum TipsKind: String {
+    case walkthrough
+    case whatsNew
+}
+
+struct TipsItem: Identifiable, Equatable {
+    let id = UUID()
+    let symbolName: String
+    let title: String
+    let detail: String
+}
+
+struct TipsContent: Equatable {
+    let title: String
+    let items: [TipsItem]
+    let actionTitle: String
+}
+
+// MARK: - Tips Catalog
+enum TipsCatalog {
+    static func content(for screen: TipsScreen, kind: TipsKind = .walkthrough, versionToken: String? = nil) -> TipsContent? {
+        switch kind {
+        case .walkthrough:
+            return walkthroughContent(for: screen)
+        case .whatsNew:
+            return whatsNewContent(for: screen, versionToken: versionToken)
+        }
+    }
+
+    private static func walkthroughContent(for screen: TipsScreen) -> TipsContent? {
+        switch screen {
+        case .home:
+            return TipsContent(
+                title: "Welcome to Home",
+                items: [
+                    TipsItem(
+                        symbolName: "house.fill",
+                        title: "Landing Page",
+                        detail: "Welcome to your budget dashboard. This is the page you will see each time you open the app."
+                    ),
+                    TipsItem(
+                        symbolName: "widget.small",
+                        title: "Widgets",
+                        detail: #"Tap "Edit" to pin, reorder, or remove widgets so the view fits you."#
+                    )
+                ],
+                actionTitle: "Continue"
+            )
+        case .budgets:
+            return TipsContent(
+                title: "Budgets Overview",
+                items: [
+                    TipsItem(
+                        symbolName: "chart.pie.fill",
+                        title: "Budgets",
+                        detail: "Create, view, edit, or delete budgets here."
+                    ),
+                    TipsItem(
+                        symbolName: "list.triangle",
+                        title: "View & Sort",
+                        detail: "Active = happening now, Upcoming = starts later, Past = ended."
+                    ),
+                    TipsItem(
+                        symbolName: "magnifyingglass",
+                        title: "Search",
+                        detail: "Press the magnifying glass to search budgets by title or date."
+                    )
+                ],
+                actionTitle: "Continue"
+            )
+        case .income:
+            return TipsContent(
+                title: "Income Overview",
+                items: [
+                    TipsItem(
+                        symbolName: "calendar",
+                        title: "Income Calendar",
+                        detail: "View income in a calendar to visualize earnings like a timesheet."
+                    ),
+                    TipsItem(
+                        symbolName: "calendar.badge.plus",
+                        title: "Planned Income",
+                        detail: "Add income you expect but haven’t received yet."
+                    ),
+                    TipsItem(
+                        symbolName: "calendar.badge.checkmark",
+                        title: "Actual Income",
+                        detail: "Log income you’ve already received."
+                    ),
+                    TipsItem(
+                        symbolName: "calendar.badge.clock",
+                        title: "Recurring Income",
+                        detail: "Planned and actual income can repeat automatically."
+                    )
+                ],
+                actionTitle: "Continue"
+            )
+        case .cards:
+            return TipsContent(
+                title: "Cards Overview",
+                items: [
+                    TipsItem(
+                        symbolName: "creditcard.fill",
+                        title: "Cards",
+                        detail: "Browse stored cards and open one to filter or add expenses."
+                    )
+                ],
+                actionTitle: "Continue"
+            )
+        case .cardDetail:
+            return TipsContent(
+                title: "Card Detail Tips",
+                items: [
+                    TipsItem(
+                        symbolName: "list.bullet.below.rectangle",
+                        title: "Detailed Overview",
+                        detail: "Review expenses with advanced filtering."
+                    ),
+                    TipsItem(
+                        symbolName: "magnifyingglass",
+                        title: "Search for Expenses",
+                        detail: "Search by name or date from the top right."
+                    ),
+                    TipsItem(
+                        symbolName: "tag",
+                        title: "Categories",
+                        detail: "Tap a category to filter, then tap again to clear."
+                    )
+                ],
+                actionTitle: "Continue"
+            )
+        case .categories:
+            return TipsContent(
+                title: "Categories Management",
+                items: [
+                    TipsItem(
+                        symbolName: "tag",
+                        title: "Categories",
+                        detail: "Add categories to track spending. Swipe a row to edit or delete."
+                    )
+                ],
+                actionTitle: "Continue"
+            )
+        case .presets:
+            return TipsContent(
+                title: "Presets Overview",
+                items: [
+                    TipsItem(
+                        symbolName: "list.bullet.badge.ellipsis",
+                        title: "Presets",
+                        detail: "Save planned expenses you expect to reuse in future budgets."
+                    ),
+                    TipsItem(
+                        symbolName: "text.line.first.and.arrowtriangle.forward",
+                        title: "Planned Amount",
+                        detail: "Enter the minimum or target amount each month."
+                    ),
+                    TipsItem(
+                        symbolName: "text.line.last.and.arrowtriangle.forward",
+                        title: "Actual Amount",
+                        detail: "Track the real amount to compare planned versus actual."
+                    )
+                ],
+                actionTitle: "Continue"
+            )
+        }
+    }
+
+    // MARK: - What's New Hooks
+    /// Provide per-release content here and surface it by calling
+    /// `.tipsAndHintsOverlay(for:kind:versionToken:)` with `.whatsNew`.
+    private static func whatsNewContent(for screen: TipsScreen, versionToken: String?) -> TipsContent? {
+        _ = versionToken
+        return nil
+    }
+}
+
+// MARK: - Tips & Hints Store
+struct TipsAndHintsStore {
+    static let shared = TipsAndHintsStore()
+
+    private let defaults: UserDefaults
+    private let resetTokenKey = AppSettingsKeys.tipsHintsResetToken.rawValue
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    func shouldShowTips(for screen: TipsScreen, kind: TipsKind = .walkthrough, versionToken: String? = nil) -> Bool {
+        guard TipsCatalog.content(for: screen, kind: kind, versionToken: versionToken) != nil else { return false }
+        return !defaults.bool(forKey: seenKey(for: screen, kind: kind, versionToken: versionToken))
+    }
+
+    func markSeen(for screen: TipsScreen, kind: TipsKind = .walkthrough, versionToken: String? = nil) {
+        defaults.set(true, forKey: seenKey(for: screen, kind: kind, versionToken: versionToken))
+    }
+
+    func resetAllTips() {
+        defaults.set(UUID().uuidString, forKey: resetTokenKey)
+    }
+
+    private func seenKey(for screen: TipsScreen, kind: TipsKind, versionToken: String?) -> String {
+        let resolvedVersion = versionToken ?? appVersionToken()
+        let resetToken = ensureResetToken()
+        return "tips.seen.\(kind.rawValue).\(screen.rawValue).v\(resolvedVersion).r\(resetToken)"
+    }
+
+    private func ensureResetToken() -> String {
+        if let token = defaults.string(forKey: resetTokenKey) {
+            return token
+        }
+        let token = UUID().uuidString
+        defaults.set(token, forKey: resetTokenKey)
+        return token
+    }
+
+    private func appVersionToken() -> String {
+        let info = Bundle.main.infoDictionary
+        let shortVersion = info?["CFBundleShortVersionString"] as? String ?? "0"
+        let build = info?["CFBundleVersion"] as? String ?? "0"
+        return "\(shortVersion).\(build)"
+    }
+}
+
+// MARK: - Tips & Hints Overlay
+struct TipsAndHintsOverlayModifier: ViewModifier {
+    let screen: TipsScreen
+    var kind: TipsKind = .walkthrough
+    var versionToken: String? = nil
+
+    @State private var isPresented = false
+    @State private var didCheck = false
+
+    func body(content: Content) -> some View {
+        content
+            .task { maybeShow() }
+            .sheet(isPresented: $isPresented, onDismiss: markSeenOnDismiss) {
+                if let payload = TipsCatalog.content(for: screen, kind: kind, versionToken: versionToken) {
+                    TipsAndHintsSheet(content: payload, onContinue: dismiss)
+                }
+            }
+    }
+
+    private func maybeShow() {
+        guard !didCheck else { return }
+        didCheck = true
+        if TipsAndHintsStore.shared.shouldShowTips(for: screen, kind: kind, versionToken: versionToken) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isPresented = true
+            }
+        }
+    }
+
+    private func dismiss() {
+        TipsAndHintsStore.shared.markSeen(for: screen, kind: kind, versionToken: versionToken)
+        isPresented = false
+    }
+
+    private func markSeenOnDismiss() {
+        TipsAndHintsStore.shared.markSeen(for: screen, kind: kind, versionToken: versionToken)
+    }
+}
+
+extension View {
+    func tipsAndHintsOverlay(for screen: TipsScreen, kind: TipsKind = .walkthrough, versionToken: String? = nil) -> some View {
+        modifier(TipsAndHintsOverlayModifier(screen: screen, kind: kind, versionToken: versionToken))
+    }
+}
+
+// MARK: - Tips & Hints Sheet
+struct TipsAndHintsSheet: View {
+    let content: TipsContent
+    let onContinue: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text(content.title)
+                    .font(.title2.weight(.semibold))
+                    .multilineTextAlignment(.leading)
+                Spacer()
+                closeButton
+            }
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 16) {
+                    ForEach(content.items) { item in
+                        TipsItemRow(item: item)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            continueButton
+        }
+        .padding(20)
+    }
+
+    @ViewBuilder
+    private var continueButton: some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button {
+                onContinue()
+                dismiss()
+            } label: {
+                Text(content.actionTitle)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(.blue)
+        } else {
+            Button {
+                onContinue()
+                dismiss()
+            } label: {
+                Text(content.actionTitle)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.blue)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var closeButton: some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Buttons.toolbarIconGlassPreferred("xmark") {
+                dismiss()
+            }
+        } else {
+            Buttons.toolbarIcon("xmark") {
+                dismiss()
+            }
+        }
+    }
+}
+
+private struct TipsItemRow: View {
+    let item: TipsItem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: item.symbolName)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(Color(.systemRed))
+                .frame(width: 28, alignment: .center)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+                Text(item.detail)
+                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}

@@ -95,6 +95,7 @@ struct SettingsView: View {
                 NavigationLink {
                     ICloudSettingsView(
                         cloudToggle: cloudToggleBinding,
+                        widgetSyncToggle: $vm.syncHomeWidgetsAcrossDevices,
                         isForceReuploading: isForceReuploading,
                         isReconfiguringStores: isReconfiguringStores,
                         onForceRefresh: { showForceReuploadConfirm = true }
@@ -431,7 +432,7 @@ private struct AppInfoRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(appName)
                     .font(.headline)
-                Text("App Info")
+                Text("About")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -483,7 +484,7 @@ private struct AppInfoView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("App Info")
+        .navigationTitle("About")
     }
 
     private var appVersionLine: String {
@@ -518,6 +519,10 @@ private struct GeneralSettingsView: View {
                 Picker("Default Budget Period", selection: budgetPeriodBinding) {
                     ForEach(BudgetPeriod.selectableCases) { Text($0.displayName).tag($0) }
                 }
+            }
+
+            Section {
+                tipsResetButton
             }
 
             Section {
@@ -568,6 +573,33 @@ private struct GeneralSettingsView: View {
         .navigationTitle("General")
     }
 
+    @ViewBuilder
+    private var tipsResetButton: some View {
+        let label = Text("Reset Tips & Hints")
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 44, maxHeight: 44)
+
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button {
+                TipsAndHintsStore.shared.resetAllTips()
+            } label: {
+                label
+            }
+            .buttonStyle(.glassProminent)
+            .tint(.blue)
+            .listRowInsets(EdgeInsets())
+        } else {
+            Button {
+                TipsAndHintsStore.shared.resetAllTips()
+            } label: {
+                label
+            }
+            .buttonStyle(.plain)
+            .listRowInsets(EdgeInsets())
+        }
+    }
+
     private var budgetPeriodBinding: Binding<BudgetPeriod> {
         Binding(
             get: { WorkspaceService.shared.currentBudgetPeriod(in: viewContext) },
@@ -602,9 +634,11 @@ private struct PrivacySettingsView: View {
 
 private struct ICloudSettingsView: View {
     @Binding var cloudToggle: Bool
+    @Binding var widgetSyncToggle: Bool
     let isForceReuploading: Bool
     let isReconfiguringStores: Bool
     let onForceRefresh: () -> Void
+    @Environment(\.platformCapabilities) private var capabilities
 
     var body: some View {
         List {
@@ -613,20 +647,58 @@ private struct ICloudSettingsView: View {
             }
 
             Section {
-                Button {
-                    onForceRefresh()
-                } label: {
-                    SettingsRowLabel(
-                        iconSystemName: "arrow.triangle.2.circlepath",
-                        title: "Force iCloud Sync Refresh",
-                        showsChevron: true
-                    )
-                }
-                .disabled(!cloudToggle || isForceReuploading || isReconfiguringStores)
+                Toggle("Sync Home Widgets Across Devices", isOn: $widgetSyncToggle)
+                    .disabled(!cloudToggle)
+            }
+
+            Section {
+                forceRefreshButton
             }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("iCloud")
+    }
+
+    @ViewBuilder
+    private var forceRefreshButton: some View {
+        let isDisabled = isForceReuploading || isReconfiguringStores
+        let label = HStack(spacing: 10) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+            Text("Force iCloud Sync Refresh")
+                .font(.headline)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 44, maxHeight: 44)
+
+        if cloudToggle,
+           capabilities.supportsOS26Translucency,
+           #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            Button(action: onForceRefresh) {
+                label
+            }
+            .buttonStyle(.glassProminent)
+            .tint(.red)
+            .disabled(isDisabled)
+            .opacity(isDisabled ? 0.6 : 1)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } else if cloudToggle {
+            Button(action: onForceRefresh) {
+                label
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.red)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .disabled(isDisabled)
+            .opacity(isDisabled ? 0.6 : 1)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        }
     }
 }
 

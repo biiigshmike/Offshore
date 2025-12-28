@@ -10,4 +10,6 @@ enum AppSettingsKeys: String {
     case presetsDefaultUseInFutureBudgets
     case budgetPeriod
     case enableCloudSync
+    case syncHomeWidgetsAcrossDevices
+    case tipsHintsResetToken
 }

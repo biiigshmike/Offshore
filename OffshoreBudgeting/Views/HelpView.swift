@@ -130,68 +130,121 @@ struct HelpView: View {
     private var intro: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Welcome to Offshore Budgeting — a privacy‑first budgeting app. All data is processed on your device, and you’ll never be asked to connect a bank account. This guide introduces key concepts so you can quickly build budgets, track income, and log expenses across platforms.\n")
+                Text("Welcome to Offshore Budgeting — a privacy-first budgeting app. All data is processed on your device, and you’ll never be asked to connect a bank account. This guide introduces the core building blocks and explains exactly how totals are calculated across the app.")
+
+                Text("The Building Blocks")
+                    .font(.title3).bold()
+                Divider()
+                Text("Cards, Categories, Presets, and Budgets are the foundation:")
+                Text("• Cards hold your expenses and let you analyze spending by card.")
+                Text("• Categories describe what the expense was for (groceries, rent, fuel).")
+                Text("• Presets are reusable planned expenses for recurring bills.")
+                Text("• Budgets group a date range so the app can summarize income, expenses, and savings for that period.")
 
                 Text("Planned Expenses")
                     .font(.title3).bold()
                 Divider()
-                Text("Recurring or expected costs for a budget period (e.g., rent, subscriptions). You can create them once and optionally save as a Preset to reuse in future budgets. A planned expense does not have to be a preset, but saving it makes setup faster.\n")
+                Text("Expected or recurring costs for a budget period (rent, subscriptions). Planned expenses have two amounts:")
+                Text("• Planned amount: what you thought it would be.")
+                Text("• Actual amount: what actually posted.")
+                Text("Planned amounts build your plan. Actual amounts drive your real totals.")
 
                 Text("Variable Expenses")
                     .font(.title3).bold()
                 Divider()
-                Text("Unpredictable or one‑off costs during a budget period (e.g., fuel, dining). Log them as they happen and categorize them for later review.\n")
+                Text("Unpredictable, one-off costs during a budget period (fuel, dining). These are always treated as actual spending and are tracked by card and category.")
 
                 Text("Planned Income")
                     .font(.title3).bold()
                 Divider()
-                Text("Income you expect to receive (e.g., salary). The app allocates planned income to each budget period and estimates your planned savings.\n")
+                Text("Income you expect to receive (salary, deposits). Planned income is used for forecasts and potential savings.")
 
                 Text("Actual Income")
                     .font(.title3).bold()
                 Divider()
-                Text("Income you actually receive. The app totals actual income per budget period and shows your actual savings.\n")
+                Text("Income you actually receive. Actual income drives real totals, real savings, and the amount you can still spend safely.")
 
                 Text("Budgets & Periods")
                     .font(.title3).bold()
                 Divider()
-                Text("Budgets are organized by a period you choose in Settings (e.g., weekly, bi‑weekly, semi‑monthly, or monthly). Navigate periods on Home using the chevrons or the calendar button. If no budget exists for a period, create one from the ellipsis menu.\n")
+                Text("Budgets are organized by a period you choose in Settings (weekly, bi-weekly, semi-monthly, or monthly). Navigate periods on Home with the date row controls. If no budget exists for a period, create one from the Home menu or the Budgets screen.")
 
-                Text("Potential vs. Actual Savings")
+                Text("How Totals Are Calculated")
                     .font(.title3).bold()
                 Divider()
-                Text("Potential Savings = planned income − planned expenses for the period. Actual savings = actual income − actual expenses. Differences help you see whether you’re ahead or behind plan.\n")
+                Text("Everything in Offshore is basic math, and here's how it all breaks down:")
+                Text("• Planned expenses total = sum of planned amounts for expenses in the budget.")
+                Text("• Actual planned expenses total = sum of actual amounts for those planned expenses.")
+                Text("• Variable expenses total = sum of unplanned expenses in the budget period.")
+                Text("• Planned income total = sum of income entries marked Planned in the period.")
+                Text("• Actual income total = sum of income entries marked Actual in the period.")
+                Text("• Potential savings = planned income total - planned expenses planned total.")
+                Text("• Actual savings = actual income total - (planned expenses actual total + variable expenses total).")
             }
             .padding()
             .navigationTitle("Introduction")
         }
     }
 
-    private var onboarding: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Quick setup on first launch:")
-                    .font(.title3).bold()
-                Text("• Welcome")
-                Text("• Create initial expense categories")
-                Text("• Add cards you’ll use for spending")
-                Text("• Add preset planned expenses (optional)")
-                Text("• Finish setup and open the app")
-                Text("You can replay this flow anytime from Settings → Onboarding.")
-            }
-            .padding()
-            .navigationTitle("Onboarding")
-        }
-    }
+//    private var onboarding: some View {
+//        ScrollView {
+//            VStack(alignment: .leading, spacing: 12) {
+//                Text("Quick setup on first launch:")
+//                    .font(.title3).bold()
+//                Text("• Welcome")
+//                Text("• Create initial expense categories")
+//                Text("• Add cards you’ll use for spending")
+//                Text("• Add preset planned expenses (optional)")
+//                Text("• Finish setup and open the app")
+//                Text("You can replay this flow anytime from Settings → Onboarding.")
+//            }
+//            .padding()
+//            .navigationTitle("Onboarding")
+//        }
+//    }
 
     private var budgets: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Budget overview and management:")
+                DeviceScreenshotPlaceholders(sectionTitle: "Budgets")
+
+                Text("Budgets: the place where the actual budgeting happens.")
                     .font(.title3).bold()
-                Text("• Review planned and actual amounts for each period.")
-                Text("• Tap a budget to view details, planned expenses, and variable expenses.")
-                Text("• Use the ellipsis menu to edit, manage cards, or delete a budget.")
+                Divider()
+                Text("This screen lists Past, Active, and Upcoming budgets. Tap any budget to open its details and do the real work: add expenses, assign cards, and monitor totals.")
+
+                Text("Budget Details: Build the Budget")
+                    .font(.title3).bold()
+                Divider()
+                Text("Inside a budget, you plan and track expenses in two lanes:")
+                Text("• Planned: recurring or expected costs.")
+                Text("• Variable: one-off spending from your cards.")
+                Text("You can add Planned or Variable expenses from the toolbar. Use Manage Cards and Manage Presets to keep the budget clean and accurate.")
+                Text("Tip: having Cards and Categories defined first makes budgeting faster and keeps totals accurate.")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Budgets")
+
+                Text("Filters, Sorting, and Category Chips")
+                    .font(.title3).bold()
+                Divider()
+                Text("Category chips sit above the list. Tap a category to filter the list to that category; tap again to clear the filter.")
+                Text("Sorting controls apply within the active filter and let you order by title, amount, or date.")
+                Text("Long-press a category chip to set caps and see how close you are to that category limit.")
+
+                Text("How Budget Totals Are Calculated")
+                    .font(.title3).bold()
+                Divider()
+                Text("These totals are shown in the budget header and summary cards:")
+                Text("• Income (Expected) = planned income total in this period.")
+                Text("• Income (Received) = actual income total in this period.")
+                Text("• Planned expenses (Planned) = sum of planned amounts.")
+                Text("• Planned expenses (Actual) = sum of actual amounts entered on planned expenses.")
+                Text("• Variable expenses = sum of unplanned expenses on cards for this budget.")
+                Text("• Projected savings = planned income - planned expenses (planned) - variable expenses.")
+                Text("• Max savings = planned income - planned expenses (planned).")
+                Text("• Actual savings = actual income - (planned expenses actual + variable expenses).")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Budgets")
             }
             .padding()
             .navigationTitle("Budgets")
@@ -201,15 +254,45 @@ struct HelpView: View {
     private var home: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Overview and navigation:")
+                DeviceScreenshotPlaceholders(sectionTitle: "Home")
+
+                Text("Home is your dashboard for the selected date range.")
                     .font(.title3).bold()
-                Text("• Use the left and right chevrons to move between budget periods. The current period is controlled by pressing the calendar icon, or by changing your default budget period in Settings.")
-                Text("• If no budget exists for the selected period, the top‑right shows only the ellipsis and calendar buttons. Tap the ellipsis to Create Budget.")
-                Text("• After a budget exists, the ellipsis menu includes Manage Cards, Manage Presets, Edit Budget, and Delete Budget.")
-                Text("• Use the calendar button to jump to a specific period and create budgets for it.")
-                Text("• Tap + to add expenses: Planned Expenses for recurring items, or Variable Expenses for one‑off purchases.")
+                Divider()
+                Text("Use the date row to set your range. You can pick a custom start/end date, apply it, or jump using the period menu. The selected range controls every widget on the screen.")
+                Text("If no budget exists for the selected range, use the menu to create one.")
 
+                Text("Widgets Overview")
+                    .font(.title3).bold()
+                Divider()
+                Text("Home is made of widgets. Tap any widget to open its detail page.")
+                Text("• Income: shows Actual vs Planned income, and the percent received (actual / planned).")
+                Text("• Expense to Income: expenses = planned actual + variable. Shows % of planned and % of received.")
+                Text("• Savings Outlook: projected savings = actual savings + remaining income - remaining planned expenses.")
+                Text("• Next Planned Expense: next upcoming planned expense with planned and actual values.")
+                Text("• Category Spotlight: top categories by total spend (planned actual + variable).")
+                Text("• Day of Week Spend: spend totals grouped by day in the current range.")
+                Text("• Category Availability: caps and remaining amounts by category, segmented into All, Planned, or Variable.")
+                Text("• What If?: a scenario planner that uses actual savings as the remaining pool.")
+                Text("• Card widgets: every card can appear as a widget with its balance preview.")
 
+                DeviceScreenshotPlaceholders(sectionTitle: "Home")
+
+                Text("Editing Widgets")
+                    .font(.title3).bold()
+                Divider()
+                Text("Tap Edit to pin or unpin widgets, then drag to reorder. New cards automatically appear as widgets so you can keep them visible.")
+
+                Text("Home Calculations")
+                    .font(.title3).bold()
+                Divider()
+                Text("Home calculations mirror your budget math:")
+                Text("• Actual savings = actual income - (planned expenses actual + variable expenses).")
+                Text("• Remaining income = actual income - expenses.")
+                Text("• Category availability uses caps when set; otherwise it uses remaining income.")
+                Text("• Expense to Income uses planned totals and actual totals to show pacing.")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Home")
             }
             .padding()
             .navigationTitle("Home")
@@ -219,13 +302,34 @@ struct HelpView: View {
     private var income: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Calendar‑based income tracking:")
+                DeviceScreenshotPlaceholders(sectionTitle: "Income")
+
+                Text("Income is your calendar-based income tracker.")
                     .font(.title3).bold()
-                Text("• Weeks start on Sunday; today’s date is selected first.")
-                Text("• Tap a day to view its income entries below the calendar.")
-                Text("• Tap + to add income and optionally set it to repeat.")
-                Text("• Swipe an entry to edit or delete it.")
-                Text("• A weekly summary bar totals income for the visible week.")
+                Divider()
+                Text("The calendar shows planned and actual income totals per day. Tap a day to see its income entries and weekly totals.")
+                Text("Use the navigation controls to move between days and months. Tap + to add income, then edit or delete with swipe actions.")
+
+                Text("Planned vs Actual Income")
+                    .font(.title3).bold()
+                Divider()
+                Text("If your paycheck is consistent, create a recurring Actual Income entry. If it varies, use Planned Income to estimate, then log Actual Income when it arrives.")
+                Text("Planned income keeps forecasts realistic. Actual income powers your real totals and savings.")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Income")
+
+                Text("How Income Feeds the App")
+                    .font(.title3).bold()
+                Divider()
+                Text("Income totals are calculated from entries in the selected period:")
+                Text("• Planned income total = sum of Planned entries.")
+                Text("• Actual income total = sum of Actual entries.")
+                Text("These totals feed Home and Budgets:")
+                Text("• Income widgets use planned vs actual to show percent received.")
+                Text("• Expense to Income uses actual income to show how much you have left.")
+                Text("• Savings Outlook and Actual Savings use actual income.")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Income")
             }
             .padding()
             .navigationTitle("Income")
@@ -235,11 +339,33 @@ struct HelpView: View {
     private var cards: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Cards and spending:")
+                DeviceScreenshotPlaceholders(sectionTitle: "Cards")
+
+                Text("Cards is your full gallery of saved cards.")
                     .font(.title3).bold()
-                Text("• Tap a card to open details; tap Done to close.")
-                Text("• Tap + to add a new card. When a card’s details are open, + adds an expense to that card.")
-                Text("• Long‑press a card to edit or delete it.")
+                Divider()
+                Text("Tap + to add a card, or long-press a card to edit or delete it. Tap a card to open its detail view.")
+
+                Text("Card Detail: Deep Dive")
+                    .font(.title3).bold()
+                Divider()
+                Text("The detail view is a focused spending console:")
+                Text("• Date range controls scope which expenses are included.")
+                Text("• Category chips filter the list. Tap again to clear.")
+                Text("• Segment control switches Planned, Variable, or Unified views.")
+                Text("• Sorting orders results by title, amount, or date.")
+                Text("• Search finds expenses by title, date, or category.")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Cards")
+
+                Text("Card Calculations")
+                    .font(.title3).bold()
+                Divider()
+                Text("Total Spent equals the sum of filtered expenses.")
+                Text("Planned expenses only count once they have an actual amount. Variable expenses always count as actual.")
+                Text("Category totals and chips are derived from the filtered list, so filters always change the totals.")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Cards")
             }
             .padding()
             .navigationTitle("Cards")
@@ -249,12 +375,25 @@ struct HelpView: View {
     private var presets: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Reusable planned expense templates:")
+                DeviceScreenshotPlaceholders(sectionTitle: "Presets")
+
+                Text("Presets are reusable planned expense templates.")
                     .font(.title3).bold()
-                Text("• Each row shows planned/actual amounts, how many budgets use it, and the next upcoming date.")
-                Text("• Tap + to create a template with \"Save as Global Preset\" enabled by default.")
-                Text("• Swipe a preset to edit or delete it.")
-                Text("• The list updates automatically when templates change.")
+                Divider()
+                Text("Use presets for fixed bills (rent, subscriptions, insurance). Each preset includes Planned and Actual amounts so you can track changes over time.")
+                Text("Tap + to create a new preset. Swipe to edit or delete. Assign presets to budgets to speed up setup.")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Presets")
+
+                Text("How Presets Affect Totals")
+                    .font(.title3).bold()
+                Divider()
+                Text("When you assign a preset to a budget, the preset becomes a planned expense in that budget:")
+                Text("• Planned amount contributes to planned expenses totals.")
+                Text("• Actual amount contributes to actual planned expenses totals once entered.")
+                Text("Differences between planned and actual act as a signal when a vendor changes pricing.")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Presets")
             }
             .padding()
             .navigationTitle("Presets")
@@ -264,13 +403,30 @@ struct HelpView: View {
     private var settings: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Customize and manage your data:")
+                DeviceScreenshotPlaceholders(sectionTitle: "Settings")
+
+                Text("Settings is where you configure the app.")
                     .font(.title3).bold()
-                Text("• General: confirm before deleting items and choose the default budget period.")
-                Text("• iCloud Services: sync your data, card themes, app theme, and budget period across devices.")
-                Text("• Expense Categories: create or edit categories for variable expenses.")
-                Text("• Onboarding: replay the initial setup flow at any time.")
-                Text("• Reset: permanently erase all budgets, cards, incomes, and expenses. If iCloud Sync is enabled, this removal applies to all devices. This action cannot be undone.")
+                Divider()
+                Text("Every row here is a separate area to manage the app:")
+                Text("• About: app info, version, and external links.")
+                Text("• Help: this guide.")
+                Text("• General: confirm before deleting and set your default budget period.")
+                Text("• Privacy: enable Face ID or Touch ID app lock.")
+                Text("• iCloud: enable sync and force a sync refresh if needed.")
+                Text("• Manage Categories: add or edit expense categories used across budgets and cards.")
+                Text("• Manage Presets: maintain planned expense templates.")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Settings")
+
+                Text("How Settings Affect Calculations")
+                    .font(.title3).bold()
+                Divider()
+                Text("Your default budget period drives which dates are used for Home, Budgets, and Card views.")
+                Text("Categories you create appear as chips and determine how totals are grouped and filtered.")
+                Text("Presets you manage are pulled into budgets as planned expenses.")
+
+                DeviceScreenshotPlaceholders(sectionTitle: "Settings")
             }
             .padding()
             .navigationTitle("Settings")
@@ -435,5 +591,98 @@ private struct HelpIconTile: View {
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .stroke(style.tint.opacity(style.usesStroke ? 0.25 : 0), lineWidth: 0.5)
         )
+    }
+}
+
+private enum HelpDeviceFrame: String, CaseIterable, Identifiable {
+    case iPhone = "iPhone"
+    case iPad = "iPad"
+    case mac = "Mac"
+
+    var id: String { rawValue }
+
+    func aspectRatio(isLandscape: Bool) -> CGFloat {
+        switch self {
+        case .iPhone:
+            return isLandscape ? (19.5 / 9.0) : (9.0 / 19.5)
+        case .iPad:
+            return isLandscape ? (4.0 / 3.0) : (3.0 / 4.0)
+        case .mac:
+            return 16.0 / 10.0
+        }
+    }
+
+    var maxWidth: CGFloat {
+        switch self {
+        case .iPhone:
+            return 320
+        case .iPad:
+            return 520
+        case .mac:
+            return 640
+        }
+    }
+}
+
+private struct DeviceScreenshotPlaceholders: View {
+    let sectionTitle: String
+    @Environment(\.responsiveLayoutContext) private var layoutContext
+
+    private var resolvedDevice: HelpDeviceFrame {
+        #if targetEnvironment(macCatalyst)
+        return .mac
+        #elseif os(iOS)
+        return UIDevice.current.userInterfaceIdiom == .pad ? .iPad : .iPhone
+        #elseif os(macOS)
+        return .mac
+        #else
+        return .iPhone
+        #endif
+    }
+
+    private var shouldUseLandscape: Bool {
+        #if os(iOS)
+        if resolvedDevice == .iPhone || resolvedDevice == .iPad {
+            return layoutContext.isLandscape
+        }
+        #endif
+        return false
+    }
+
+    var body: some View {
+        HelpScreenshotPlaceholder(
+            title: "\(sectionTitle) - \(resolvedDevice.rawValue)",
+            device: resolvedDevice,
+            isLandscape: shouldUseLandscape
+        )
+        .padding(.vertical, 6)
+    }
+}
+
+private struct HelpScreenshotPlaceholder: View {
+    let title: String
+    let device: HelpDeviceFrame
+    let isLandscape: Bool
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Color.primary.opacity(0.04))
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(Color.primary.opacity(0.18), lineWidth: 1)
+            VStack(spacing: 6) {
+                Image(systemName: "iphone")
+                    .font(.system(size: 24, weight: .regular))
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text("Screenshot placeholder")
+                    .font(.caption)
+            }
+            .foregroundStyle(.secondary)
+        }
+        .aspectRatio(device.aspectRatio(isLandscape: isLandscape), contentMode: .fit)
+        .frame(maxWidth: device.maxWidth)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
     }
 }

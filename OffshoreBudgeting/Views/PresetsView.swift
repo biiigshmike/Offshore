@@ -25,6 +25,7 @@ struct PresetsView: View {
 
     var body: some View {
         presetsContent
+            .tipsAndHintsOverlay(for: .presets)
     }
 
     @ViewBuilder

@@ -128,6 +128,7 @@ struct ExpenseCategoryManagerView: View {
                 secondaryButton: .cancel()
             )
         }
+        .tipsAndHintsOverlay(for: .categories)
     }
     
     private var groupedListContent: some View {

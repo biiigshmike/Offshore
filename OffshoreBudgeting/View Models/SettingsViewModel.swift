@@ -40,6 +40,10 @@ final class SettingsViewModel: ObservableObject {
         }
     }
 
+    /// When enabled, Home widget layouts are synced via iCloud key-value storage.
+    @AppStorage(AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue)
+    var syncHomeWidgetsAcrossDevices: Bool = false { willSet { objectWillChange.send() } }
+
     // MARK: - Init
     init() {
         UserDefaults.standard.register(defaults: [
@@ -47,7 +51,8 @@ final class SettingsViewModel: ObservableObject {
             AppSettingsKeys.calendarHorizontal.rawValue: true,
             AppSettingsKeys.presetsDefaultUseInFutureBudgets.rawValue: true,
             AppSettingsKeys.budgetPeriod.rawValue: BudgetPeriod.monthly.rawValue,
-            AppSettingsKeys.enableCloudSync.rawValue: false
+            AppSettingsKeys.enableCloudSync.rawValue: false,
+            AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue: false
         ])
     }
 }

@@ -15,14 +15,23 @@ struct UBMonthLabel: MonthLabel {
     let month: Date
 
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.responsiveLayoutContext) private var layoutContext
 
     func createContent() -> AnyView {
         let base = scheme == .dark ? Color.white : Color.black
+        let fontSize = resolvedFontSize(in: layoutContext)
         return AnyView(
             Text(getString(format: "MMMM y"))
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: fontSize, weight: .semibold))
                 .foregroundColor(base)
         )
+    }
+
+    private func resolvedFontSize(in context: ResponsiveLayoutContext) -> CGFloat {
+        let height = context.containerSize.height
+        if height > 0, height < 500 { return 14 }
+        if height > 0, height < 700 { return 16 }
+        return 18
     }
 }
 
@@ -37,6 +46,8 @@ struct UBDayView: DayView {
     let summary: (planned: Double, actual: Double)?
     /// External date used to force selection updates when navigation buttons are tapped.
     let selectedOverride: Date?
+    /// Scale applied to typography and selection size for compact layouts.
+    let scale: CGFloat
 
     @Environment(\.colorScheme) private var scheme
 
@@ -44,35 +55,38 @@ struct UBDayView: DayView {
         let planned = summary?.planned ?? 0
         let actual = summary?.actual ?? 0
         let hasEvents = (planned + actual) > 0
+        let spacing = max(1, 2 * scale)
+        let incomeFont = max(7, 8 * scale)
+        let incomeStackHeight = max(16, 20 * scale)
 
         var content: some View {
-            VStack(spacing: 2) {
+            VStack(spacing: spacing) {
                 ZStack {
                     createSelectionView()
                     createRangeSelectionView()
                     createDayLabel()
                 }
-                VStack(spacing: 1) {
+                VStack(spacing: max(1, 1 * scale)) {
                     if planned > 0 && actual > 0 {
                         Text(currencyString(planned))
-                            .font(.system(size: 8, weight: .regular))
+                            .font(.system(size: incomeFont, weight: .regular))
                             .foregroundColor(DS.Colors.plannedIncome)
 
                         Text(currencyString(actual))
-                            .font(.system(size: 8, weight: .regular))
+                            .font(.system(size: incomeFont, weight: .regular))
                             .foregroundColor(DS.Colors.actualIncome)
                     } else if planned > 0 {
                         Text(currencyString(planned))
-                            .font(.system(size: 8, weight: .regular))
+                            .font(.system(size: incomeFont, weight: .regular))
                             .foregroundColor(DS.Colors.plannedIncome)
                     } else if actual > 0 {
                         Text(currencyString(actual))
-                            .font(.system(size: 8, weight: .regular))
+                            .font(.system(size: incomeFont, weight: .regular))
                             .foregroundColor(DS.Colors.actualIncome)
                     }
                 }
                 // Reserve space so day numbers align even when income is absent
-                .frame(height: 20, alignment: .top)
+                .frame(height: incomeStackHeight, alignment: .top)
             }
             // Fill the available cell space and pin content to the top
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -95,7 +109,7 @@ struct UBDayView: DayView {
         let color = isSelectedDay() ? selected : base
         return AnyView(
             Text(getStringFromDay(format: "d"))
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: max(12, 16 * scale), weight: .semibold))
                 .foregroundColor(color)
                 .opacity(isCurrentMonth ? 1 : 0.28)
         )
@@ -104,10 +118,11 @@ struct UBDayView: DayView {
     // Selection circle: white in dark mode; black in light mode
     func createSelectionView() -> AnyView {
         let fill = scheme == .dark ? Color.white : Color.black
+        let size = max(22, 32 * scale)
         return AnyView(
             Circle()
                 .fill(fill)
-                .frame(width: 32, height: 32)
+                .frame(width: size, height: size)
                 .opacity(isSelectedDay() ? 1 : 0)
         )
     }
@@ -138,4 +153,3 @@ struct UBDayView: DayView {
         return f.string(from: d)
     }
 }
-

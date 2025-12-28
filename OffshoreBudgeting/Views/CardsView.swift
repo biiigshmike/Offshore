@@ -22,7 +22,10 @@ struct CardsView: View {
 
     
 
-    var body: some View { cardsContent }
+    var body: some View {
+        cardsContent
+            .tipsAndHintsOverlay(for: .cards)
+    }
 
     @ViewBuilder
     private var cardsContent: some View {

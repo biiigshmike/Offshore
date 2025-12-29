@@ -6,6 +6,10 @@
 //
 
 import SwiftUI
+import CoreData
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Overview
 /// Root tab container for the application. Hosts all primary sections and
@@ -31,16 +35,54 @@ struct RootTabView: View {
         case settings
     }
 
+    enum SidebarItem: Hashable {
+        case root(Tab)
+        case addPlannedExpense
+        case addVariableExpense
+        case recentBudget(NSManagedObjectID)
+        case managePresets
+        case manageCategories
+    }
+
     // MARK: State
     @Environment(\.startTabIdentifier) private var startTabIdentifier
     @State private var selectedTab: Tab = .home
     @State private var appliedStartTab: Bool = false
+    @State private var sidebarSelection: SidebarItem? = .root(.home)
+    @State private var usesCompactTabsOverride: Bool = false
+    @State private var recentBudgets: [Budget] = []
+    private let budgetService = BudgetService()
 
     var body: some View {
-        tabViewBody
+        rootBody
     }
 
     // MARK: Body builders
+    private var prefersCompactTabs: Bool {
+#if os(iOS)
+        return UIDevice.current.userInterfaceIdiom == .phone
+#else
+        return false
+#endif
+    }
+
+    private var shouldUseCompactTabs: Bool {
+        prefersCompactTabs || usesCompactTabsOverride
+    }
+
+    private var showsSidebarRestoreControl: Bool {
+        usesCompactTabsOverride && !prefersCompactTabs
+    }
+
+    @ViewBuilder
+    private var rootBody: some View {
+        if shouldUseCompactTabs {
+            tabViewBody
+        } else {
+            splitViewBody
+        }
+    }
+
     @ViewBuilder
     private var tabViewBody: some View {
         if #available(iOS 18.0, macCatalyst 18.0, macOS 15.0, *) {
@@ -103,6 +145,30 @@ struct RootTabView: View {
         .onAppear { applyStartTabIfNeeded() }
     }
 
+    @ViewBuilder
+    private var splitViewBody: some View {
+        if #available(iOS 16.0, macCatalyst 16.0, macOS 13.0, *) {
+            NavigationSplitView {
+                sidebarList
+            } detail: {
+                sidebarDetail
+            }
+            .onAppear {
+                applyStartTabIfNeeded()
+                refreshRecentBudgets()
+            }
+            .onChange(of: dataRevision) { _ in
+                refreshRecentBudgets()
+            }
+            .onChange(of: sidebarSelection) { selection in
+                guard case .root(let tab) = selection else { return }
+                selectedTab = tab
+            }
+        } else {
+            tabViewBody
+        }
+    }
+
     // MARK: - Legacy Tab Items
 
     @ViewBuilder
@@ -117,16 +183,112 @@ struct RootTabView: View {
         .tag(tab)
     }
 
+    @ViewBuilder
+    private var sidebarList: some View {
+        List(selection: $sidebarSelection) {
+            Section {
+                ForEach(Tab.allCases, id: \.self) { tab in
+                    NavigationLink(value: SidebarItem.root(tab)) {
+                        Label(tab.title, systemImage: tab.systemImage)
+                    }
+                    .accessibilityIdentifier(tab.accessibilityID)
+                }
+            }
+
+            Section("Add Expenses") {
+                NavigationLink(value: SidebarItem.addPlannedExpense) {
+                    Label("Add Planned Expense", systemImage: "calendar.badge.plus")
+                }
+                NavigationLink(value: SidebarItem.addVariableExpense) {
+                    Label("Add Variable Expense", systemImage: "plus.circle")
+                }
+            }
+
+            Section("Budgets") {
+                if recentBudgets.isEmpty {
+                    Text("No recent budgets yet")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(recentBudgets, id: \.objectID) { budget in
+                        NavigationLink(value: SidebarItem.recentBudget(budget.objectID)) {
+                            Label(budget.name ?? "Budget", systemImage: "clock.arrow.circlepath")
+                        }
+                    }
+                }
+            }
+
+            Section("Quick Links") {
+                NavigationLink(value: SidebarItem.managePresets) {
+                    Label("Manage Presets", systemImage: "slider.horizontal.3")
+                }
+                NavigationLink(value: SidebarItem.manageCategories) {
+                    Label("Manage Categories", systemImage: "tag")
+                }
+            }
+        }
+        .ub_listStyleLiquidAware()
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Offshore")
+                    .font(.headline)
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    usesCompactTabsOverride = true
+                } label: {
+                    Image(systemName: "inset.filled.topthird.rectangle")
+                }
+                .accessibilityLabel("Show Compact Tabs")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var sidebarDetail: some View {
+        switch sidebarSelection {
+        case .root(let tab):
+            decoratedRootContent(tabContent(for: tab))
+        case .addPlannedExpense:
+            decoratedRootContent(AddPlannedExpenseView(onSaved: {}))
+        case .addVariableExpense:
+            decoratedRootContent(AddUnplannedExpenseView(onSaved: {}))
+        case .recentBudget(let objectID):
+            decoratedRootContent(BudgetDetailsView(budgetID: objectID))
+        case .managePresets:
+            decoratedRootContent(PresetsView())
+        case .manageCategories:
+            decoratedRootContent(ExpenseCategoryManagerView())
+        case .none:
+            decoratedRootContent(tabContent(for: selectedTab))
+        }
+    }
+
     // MARK: - Decoration & Navigation Containers
 
     @ViewBuilder
     private func decoratedTabContent(for tab: Tab) -> some View {
-        let base = tabContent(for: tab)
+        decoratedRootContent(tabContent(for: tab))
+    }
+
+    @ViewBuilder
+    private func decoratedRootContent<Content: View>(_ content: Content) -> some View {
+        let base = content
             .ub_navigationBackground(
                 theme: themeManager.selectedTheme,
                 configuration: themeManager.glassConfiguration
             )
             .ub_rootNavigationChrome()
+            .toolbar {
+                if showsSidebarRestoreControl {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            usesCompactTabsOverride = false
+                        } label: {
+                            Label("Show Sidebar", systemImage: "sidebar.leading")
+                        }
+                    }
+                }
+            }
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             base
@@ -183,6 +345,19 @@ struct RootTabView: View {
             .accessibilityHidden(true)
     }
 
+    private func refreshRecentBudgets() {
+        guard isWorkspaceReady else {
+            recentBudgets = []
+            return
+        }
+        do {
+            let budgets = try budgetService.fetchAllBudgets(sortByStartDateDescending: true)
+            recentBudgets = Array(budgets.prefix(3))
+        } catch {
+            recentBudgets = []
+        }
+    }
+
 }
 
 // MARK: - Tab Metadata
@@ -224,6 +399,7 @@ private extension RootTabView {
         guard !appliedStartTab, let key = startTabIdentifier else { return }
         if let target = mapStartTab(key: key) {
             selectedTab = target
+            sidebarSelection = .root(target)
             appliedStartTab = true
         }
     }

@@ -34,176 +34,195 @@ struct SettingsView: View {
 
     var body: some View { settingsContent }
 
-    @ViewBuilder
     private var settingsContent: some View {
-        List {
-            Section {
-                NavigationLink {
-                    AppInfoView(
-                        appName: appDisplayName,
-                        appIconGraphic: appIconGraphic,
-                        appStoreURL: appStoreURL,
-                        developerURL: developerURL
-                    )
-                } label: {
-                    AppInfoRow(
-                        appName: appDisplayName,
-                        appIconGraphic: appIconGraphic
-                    )
-                }
-
-                NavigationLink(destination: HelpView()) {
-                    SettingsRowLabel(
-                        iconSystemName: "questionmark.circle",
-                        title: "Help",
-                        showsChevron: false,
-                        iconStyle: .gray
-                    )
-                }
-
-            }
-
-            Section {
-                NavigationLink {
-                    GeneralSettingsView(
-                        vm: vm,
-                        showResetAlert: $showResetAlert
-                    )
-                } label: {
-                    SettingsRowLabel(
-                        iconSystemName: "gear",
-                        title: "General",
-                        showsChevron: false,
-                        iconStyle: .gray
-                    )
-                }
-
-                NavigationLink {
-                    PrivacySettingsView(
-                        biometricName: biometricName,
-                        biometricIconName: biometricIconName,
-                        isLockEnabled: $isLockEnabled
-                    )
-                } label: {
-                    SettingsRowLabel(
-                        iconSystemName: biometricIconName,
-                        title: "Privacy",
-                        showsChevron: false,
-                        iconStyle: .blue
-                    )
-                }
-
-                NavigationLink {
-                    NotificationsSettingsView()
-                } label: {
-                    SettingsRowLabel(
-                        iconSystemName: "bell.badge",
-                        title: "Notifications",
-                        showsChevron: false,
-                        iconStyle: .orange
-                    )
-                }
-
-                NavigationLink {
-                    ICloudSettingsView(
-                        cloudToggle: cloudToggleBinding,
-                        widgetSyncToggle: $vm.syncHomeWidgetsAcrossDevices,
-                        isForceReuploading: isForceReuploading,
-                        isReconfiguringStores: isReconfiguringStores,
-                        onForceRefresh: { showForceReuploadConfirm = true }
-                    )
-                } label: {
-                    SettingsRowLabel(
-                        iconSystemName: "icloud",
-                        title: "iCloud",
-                        showsChevron: false,
-                        iconStyle: .blueOnWhite
-                    )
+        settingsList
+            .listStyle(.insetGrouped)
+            .navigationTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    WorkspaceMenuButton()
                 }
             }
-
-            Section {
-                NavigationLink {
-                    ExpenseCategoryManagerView()
-                        .environment(\.managedObjectContext, viewContext)
-                } label: {
-                    SettingsRowLabel(
-                        iconSystemName: "tag",
-                        title: "Manage Categories",
-                        showsChevron: false,
-                        iconStyle: .lightPurple
-                    )
-                }
+            .task { await cloudDiag.refresh() }
+            .confirmationDialog("Turn Off iCloud Sync?", isPresented: $showDisableCloudOptions, titleVisibility: .visible) {
+                Button("Switch to Local (Keep Data)", role: .destructive) { disableCloud(eraseLocal: false) }
+                Button("Remove from This Device", role: .destructive) { disableCloud(eraseLocal: true) }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Choose what to do with your data on this device.")
             }
-
-            Section {
-                NavigationLink {
-                    PresetsView()
-                        .environment(\.managedObjectContext, viewContext)
-                } label: {
-                    SettingsRowLabel(
-                        iconSystemName: "list.number.badge.ellipsis",
-                        title: "Manage Presets",
-                        showsChevron: false,
-                        iconStyle: .orange
-                    )
-                }
+            .alert("Erase All Data?", isPresented: $showResetAlert) {
+                Button("Remove Data & Reset App", role: .destructive) { performDataWipe() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will remove all budgets, cards, incomes, and expenses. This action cannot be undone.")
             }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle("Settings")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                WorkspaceMenuButton()
+            .alert("Merge Local Data into iCloud?", isPresented: $showMergeConfirm) {
+                Button("Merge", role: .none) { runMerge() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will look for duplicate items across devices and collapse them to avoid duplicates. Your data remains in iCloud; this action cannot be undone.")
             }
-        }
-        .task { await cloudDiag.refresh() }
-        .confirmationDialog("Turn Off iCloud Sync?", isPresented: $showDisableCloudOptions, titleVisibility: .visible) {
-            Button("Switch to Local (Keep Data)", role: .destructive) { disableCloud(eraseLocal: false) }
-            Button("Remove from This Device", role: .destructive) { disableCloud(eraseLocal: true) }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("Choose what to do with your data on this device.")
-        }
-        .alert("Erase All Data?", isPresented: $showResetAlert) {
-            Button("Remove Data & Reset App", role: .destructive) { performDataWipe() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will remove all budgets, cards, incomes, and expenses. This action cannot be undone.")
-        }
-        .alert("Merge Local Data into iCloud?", isPresented: $showMergeConfirm) {
-            Button("Merge", role: .none) { runMerge() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will look for duplicate items across devices and collapse them to avoid duplicates. Your data remains in iCloud; this action cannot be undone.")
-        }
-        .alert("Merge Complete", isPresented: $showMergeDone) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Your data has been merged. If you still see duplicates, you can run the merge again or contact support.")
-        }
-        .alert("Force iCloud Sync Refresh?", isPresented: $showForceReuploadConfirm) {
-            Button("Run Refresh", role: .destructive) { forceReupload() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will mark all budgets, incomes, and expenses as updated so they re-export to iCloud. Use for troubleshooting only.")
-        }
-        .alert("Sync Refresh Finished", isPresented: $showForceReuploadResult) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(forceReuploadMessage)
-        }
-        .overlay(alignment: .center) {
-            if let overlayLabel = overlayStatusLabel {
-                ZStack {
-                    Color.black.opacity(0.3).ignoresSafeArea()
-                    VStack(spacing: 12) {
-                        ProgressView()
-                        Text(overlayLabel).foregroundStyle(.secondary)
+            .alert("Merge Complete", isPresented: $showMergeDone) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Your data has been merged. If you still see duplicates, you can run the merge again or contact support.")
+            }
+            .alert("Force iCloud Sync Refresh?", isPresented: $showForceReuploadConfirm) {
+                Button("Run Refresh", role: .destructive) { forceReupload() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will mark all budgets, incomes, and expenses as updated so they re-export to iCloud. Use for troubleshooting only.")
+            }
+            .alert("Sync Refresh Finished", isPresented: $showForceReuploadResult) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(forceReuploadMessage)
+            }
+            .overlay(alignment: .center) {
+                if let overlayLabel = overlayStatusLabel {
+                    ZStack {
+                        Color.black.opacity(0.3).ignoresSafeArea()
+                        VStack(spacing: 12) {
+                            ProgressView()
+                            Text(overlayLabel).foregroundStyle(.secondary)
+                        }
+                        .padding(16)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
-                    .padding(16)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+            }
+    }
+
+    private var settingsList: some View {
+        List {
+            appSection
+            generalSection
+            categoriesSection
+            presetsSection
+        }
+    }
+
+    @ViewBuilder
+    private var appSection: some View {
+        Section {
+            NavigationLink {
+                AppInfoView(
+                    appName: appDisplayName,
+                    appIconGraphic: appIconGraphic,
+                    appStoreURL: appStoreURL,
+                    developerURL: developerURL
+                )
+            } label: {
+                AppInfoRow(
+                    appName: appDisplayName,
+                    appIconGraphic: appIconGraphic
+                )
+            }
+
+            NavigationLink(destination: HelpView()) {
+                SettingsRowLabel(
+                    iconSystemName: "questionmark.circle",
+                    title: "Help",
+                    showsChevron: false,
+                    iconStyle: .gray
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var generalSection: some View {
+        Section {
+            NavigationLink {
+                GeneralSettingsView(
+                    vm: vm,
+                    showResetAlert: $showResetAlert
+                )
+            } label: {
+                SettingsRowLabel(
+                    iconSystemName: "gear",
+                    title: "General",
+                    showsChevron: false,
+                    iconStyle: .gray
+                )
+            }
+
+            NavigationLink {
+                PrivacySettingsView(
+                    biometricName: biometricName,
+                    biometricIconName: biometricIconName,
+                    isLockEnabled: $isLockEnabled
+                )
+            } label: {
+                SettingsRowLabel(
+                    iconSystemName: biometricIconName,
+                    title: "Privacy",
+                    showsChevron: false,
+                    iconStyle: .blue
+                )
+            }
+
+            NavigationLink {
+                NotificationsSettingsView()
+            } label: {
+                SettingsRowLabel(
+                    iconSystemName: "bell.badge",
+                    title: "Notifications",
+                    showsChevron: false,
+                    iconStyle: .red
+                )
+            }
+
+            NavigationLink {
+                ICloudSettingsView(
+                    cloudToggle: cloudToggleBinding,
+                    widgetSyncToggle: $vm.syncHomeWidgetsAcrossDevices,
+                    isForceReuploading: isForceReuploading,
+                    isReconfiguringStores: isReconfiguringStores,
+                    onForceRefresh: { showForceReuploadConfirm = true }
+                )
+            } label: {
+                SettingsRowLabel(
+                    iconSystemName: "icloud",
+                    title: "iCloud",
+                    showsChevron: false,
+                    iconStyle: .blueOnWhite
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var categoriesSection: some View {
+        Section {
+            NavigationLink {
+                ExpenseCategoryManagerView()
+                    .environment(\.managedObjectContext, viewContext)
+            } label: {
+                SettingsRowLabel(
+                    iconSystemName: "tag",
+                    title: "Manage Categories",
+                    showsChevron: false,
+                    iconStyle: .lightPurple
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var presetsSection: some View {
+        Section {
+            NavigationLink {
+                PresetsView()
+                    .environment(\.managedObjectContext, viewContext)
+            } label: {
+                SettingsRowLabel(
+                    iconSystemName: "list.number.badge.ellipsis",
+                    title: "Manage Presets",
+                    showsChevron: false,
+                    iconStyle: .orange
+                )
             }
         }
     }
@@ -376,6 +395,7 @@ private enum SettingsIconStyle {
     case gray
     case blue
     case blueOnWhite
+    case red
     case lightPurple
     case orange
 
@@ -385,6 +405,8 @@ private enum SettingsIconStyle {
             return Color(.systemGray)
         case .blue, .blueOnWhite:
             return Color(.systemBlue)
+        case .red:
+            return Color(.systemRed)
         case .lightPurple:
             return Color(.systemPurple)
         case .orange:
@@ -400,6 +422,8 @@ private enum SettingsIconStyle {
             return Color(.systemBlue).opacity(0.2)
         case .blueOnWhite:
             return Color(.systemBackground)
+        case .red:
+            return Color(.systemRed).opacity(0.2)
         case .lightPurple:
             return Color(.systemPurple).opacity(0.2)
         case .orange:

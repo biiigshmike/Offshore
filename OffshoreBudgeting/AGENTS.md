@@ -62,6 +62,10 @@ Plan architecture internally
 Generate complete, optimized, production-ready code
 Deliver short summary of reasoning and actionable steps
 
+XCODEBUILD:
+
+If asked to run command 'xcodebuild', use Offshore.xcodeproj inside /OffshoreBudgeting with OffshoreBudgeting schema on generic iOS simulator.
+
 ## Coding
 - Coding should be reusable, scalable, and OOP-oriented. 
 - The codebase should also try to be simple and easy-to-read. 

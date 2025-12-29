@@ -545,7 +545,7 @@ private struct GeneralSettingsView: View {
             }
 
             Section {
-                let label = Text("Reset")
+                let label = Text("Delete Data & Reset")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 44, maxHeight: 44)

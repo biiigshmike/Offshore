@@ -428,6 +428,7 @@ struct HomeView: View {
         .onDisappear { stopObservingWidgetSync() }
         .alert(item: $vm.alert, content: alert(for:))
         .tipsAndHintsOverlay(for: .home)
+        .tipsAndHintsOverlay(for: .home, kind: .whatsNew, versionToken: "16")
     }
 
     // MARK: Content

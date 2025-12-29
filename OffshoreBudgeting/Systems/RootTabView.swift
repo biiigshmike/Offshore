@@ -24,6 +24,7 @@ import UIKit
 struct RootTabView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dataRevision) private var dataRevision
+    @Environment(\.colorScheme) private var colorScheme
     let isWorkspaceReady: Bool
 
     // MARK: Tabs
@@ -55,6 +56,7 @@ struct RootTabView: View {
 
     var body: some View {
         rootBody
+            .animation(.easeInOut(duration: 0.25), value: shouldUseCompactTabs)
     }
 
     // MARK: Body builders
@@ -78,8 +80,10 @@ struct RootTabView: View {
     private var rootBody: some View {
         if shouldUseCompactTabs {
             tabViewBody
+                .transition(.opacity)
         } else {
             splitViewBody
+                .transition(.opacity)
         }
     }
 
@@ -188,20 +192,29 @@ struct RootTabView: View {
         List(selection: $sidebarSelection) {
             Section {
                 ForEach(Tab.allCases, id: \.self) { tab in
-                    NavigationLink(value: SidebarItem.root(tab)) {
+                    let item = SidebarItem.root(tab)
+                    NavigationLink(value: item) {
                         Label(tab.title, systemImage: tab.systemImage)
+                            .foregroundStyle(.primary)
                     }
                     .accessibilityIdentifier(tab.accessibilityID)
+                    .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == item))
                 }
             }
 
             Section("Add Expenses") {
-                NavigationLink(value: SidebarItem.addPlannedExpense) {
+                let plannedItem = SidebarItem.addPlannedExpense
+                NavigationLink(value: plannedItem) {
                     Label("Add Planned Expense", systemImage: "calendar.badge.plus")
+                        .foregroundStyle(.primary)
                 }
-                NavigationLink(value: SidebarItem.addVariableExpense) {
+                .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == plannedItem))
+                let variableItem = SidebarItem.addVariableExpense
+                NavigationLink(value: variableItem) {
                     Label("Add Variable Expense", systemImage: "plus.circle")
+                        .foregroundStyle(.primary)
                 }
+                .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == variableItem))
             }
 
             Section("Budgets") {
@@ -210,20 +223,29 @@ struct RootTabView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(recentBudgets, id: \.objectID) { budget in
-                        NavigationLink(value: SidebarItem.recentBudget(budget.objectID)) {
+                        let item = SidebarItem.recentBudget(budget.objectID)
+                        NavigationLink(value: item) {
                             Label(budget.name ?? "Budget", systemImage: "clock.arrow.circlepath")
+                                .foregroundStyle(.primary)
                         }
+                        .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == item))
                     }
                 }
             }
 
             Section("Quick Links") {
-                NavigationLink(value: SidebarItem.managePresets) {
+                let presetsItem = SidebarItem.managePresets
+                NavigationLink(value: presetsItem) {
                     Label("Manage Presets", systemImage: "slider.horizontal.3")
+                        .foregroundStyle(.primary)
                 }
-                NavigationLink(value: SidebarItem.manageCategories) {
+                .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == presetsItem))
+                let categoriesItem = SidebarItem.manageCategories
+                NavigationLink(value: categoriesItem) {
                     Label("Manage Categories", systemImage: "tag")
+                        .foregroundStyle(.primary)
                 }
+                .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == categoriesItem))
             }
         }
         .ub_listStyleLiquidAware()
@@ -234,7 +256,9 @@ struct RootTabView: View {
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
-                    usesCompactTabsOverride = true
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        usesCompactTabsOverride = true
+                    }
                 } label: {
                     Image(systemName: "inset.filled.topthird.rectangle")
                 }
@@ -282,7 +306,9 @@ struct RootTabView: View {
                 if showsSidebarRestoreControl {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button {
-                            usesCompactTabsOverride = false
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                usesCompactTabsOverride = false
+                            }
                         } label: {
                             Label("Show Sidebar", systemImage: "sidebar.leading")
                         }
@@ -356,6 +382,22 @@ struct RootTabView: View {
         } catch {
             recentBudgets = []
         }
+    }
+
+    private func sidebarRowBackground(isSelected: Bool) -> some View {
+        Group {
+            if isSelected {
+                RoundedRectangle(cornerRadius: DesignSystem.Radius.card, style: .continuous)
+                    .fill(selectedSidebarTint)
+            } else {
+                Color.clear
+            }
+        }
+    }
+
+    private var selectedSidebarTint: Color {
+        let tint = themeManager.selectedTheme.resolvedTint
+        return tint.opacity(colorScheme == .dark ? 0.32 : 0.18)
     }
 
 }

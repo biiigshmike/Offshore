@@ -30,69 +30,65 @@ struct CardsView: View {
     @ViewBuilder
     private var cardsContent: some View {
         navigationContainer {
-            ScrollView {
-                Group {
-                    switch vm.state {
-                    case .initial:
-                        Color.clear.frame(height: 1)
-                    case .loading:
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(0..<2, id: \.self) { _ in
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Color.primary.opacity(0.06))
-                                    .frame(height: cardHeight)
-                                    .redacted(reason: .placeholder)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
-                    case .empty:
-                        VStack(spacing: 12) {
-                            Image(systemName: "creditcard")
-                                .font(.system(size: 42, weight: .regular))
-                                .foregroundStyle(.secondary)
-                            Text("No Cards Found")
-                                .font(.title3.weight(.semibold))
-                            Text("Press + to add your first card.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 260, alignment: .center)
-                        .padding(.horizontal, 16)
-                    case .loaded(let cards):
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(cards) { card in
-                                NavigationLink(value: card) {
-                                    CardTileView(
-                                        card: card,
-                                        isSelected: false,
-                                        onTap: { /* handled by NavigationLink */ },
-                                        isInteractive: false,
-                                        enableMotionShine: true,
-                                        showsBaseShadow: false
-                                    )
-                                    .frame(height: cardHeight)
-                                    
-                                }
-                                
-                                .contextMenu {
-                                    Button("Edit", systemImage: "pencil") { editingCard = card }
-                                    Button("Delete", systemImage: "trash", role: .destructive) {
-                                        vm.requestDelete(card: card)
+            Group {
+                if case .empty = vm.state {
+                    UBEmptyState(message: "No cards found. Tap + to create a card.")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                } else {
+                    ScrollView {
+                        Group {
+                            switch vm.state {
+                            case .initial:
+                                Color.clear.frame(height: 1)
+                            case .loading:
+                                LazyVGrid(columns: columns, spacing: 16) {
+                                    ForEach(0..<2, id: \.self) { _ in
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(Color.primary.opacity(0.06))
+                                            .frame(height: cardHeight)
+                                            .redacted(reason: .placeholder)
                                     }
                                 }
+                                .padding(.horizontal, 16)
+                                .padding(.top, 16)
+                            case .empty:
+                                EmptyView()
+                            case .loaded(let cards):
+                                LazyVGrid(columns: columns, spacing: 16) {
+                                    ForEach(cards) { card in
+                                        NavigationLink(value: card) {
+                                            CardTileView(
+                                                card: card,
+                                                isSelected: false,
+                                                onTap: { /* handled by NavigationLink */ },
+                                                isInteractive: false,
+                                                enableMotionShine: true,
+                                                showsBaseShadow: false
+                                            )
+                                            .frame(height: cardHeight)
+                                            
+                                        }
+                                        
+                                        .contextMenu {
+                                            Button("Edit", systemImage: "pencil") { editingCard = card }
+                                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                                vm.requestDelete(card: card)
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.top, 16)
                             }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
+                        .frame(maxWidth: .infinity, alignment: .top)
+                    }
+                    .refreshable {
+                        // Pull-to-refresh: nudge CloudKit and reload cards
+                        CloudSyncAccelerator.shared.nudgeOnForeground()
+                        await vm.refresh()
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .top)
-            }
-            .refreshable {
-                // Pull-to-refresh: nudge CloudKit and reload cards
-                CloudSyncAccelerator.shared.nudgeOnForeground()
-                await vm.refresh()
             }
             
             .navigationTitle("Cards")

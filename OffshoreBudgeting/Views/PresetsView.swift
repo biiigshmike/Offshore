@@ -32,23 +32,14 @@ struct PresetsView: View {
     private var presetsContent: some View {
         Group {
             if vm.items.isEmpty {
-                ScrollView {
-                    VStack(spacing: 16) {
-                        if let header {
-                            header
-                                .padding(.horizontal, 16)
-                        }
-                        Image(systemName: "list.bullet.rectangle")
-                            .font(.system(size: 42))
-                            .foregroundStyle(.secondary)
-                        Text("No Presets Found").font(.title2.weight(.semibold))
-                        Text("Press + to add a Preset Expense.\nPresets make creating budgets faster\nand can be reused again and again.")
-                            .font(.subheadline).foregroundStyle(.secondary)
+                VStack(spacing: DS.Spacing.l) {
+                    if let header {
+                        header
+                            .padding(.horizontal, DS.Spacing.l)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 260, alignment: .center)
-                    .padding(.horizontal, 16)
+                    UBEmptyState(message: "No presets found. Tap + to create a preset.")
                 }
-                .frame(maxWidth: .infinity, alignment: .top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
                 let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
                 List {

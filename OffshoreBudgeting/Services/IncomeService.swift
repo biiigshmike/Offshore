@@ -141,6 +141,7 @@ final class IncomeService {
         }
         try RecurrenceEngine.regenerateIncomeRecurrences(base: income, in: repo.context, calendar: calendar)
         try repo.saveIfNeeded()
+        notifyIncomeScheduleChanged()
         return income
     }
     
@@ -166,6 +167,7 @@ final class IncomeService {
                          recurrenceEndDate: recurrenceEndDate,
                          secondBiMonthlyDay: secondBiMonthlyDay)
             try repo.saveIfNeeded()
+            notifyIncomeScheduleChanged()
         case .future:
             let currentDate = date ?? income.date
             if let parentID = income.parentID, let currentDate {
@@ -200,6 +202,7 @@ final class IncomeService {
                          secondBiMonthlyDay: secondBiMonthlyDay)
             try RecurrenceEngine.regenerateIncomeRecurrences(base: income, in: repo.context, calendar: calendar)
             try repo.saveIfNeeded()
+            notifyIncomeScheduleChanged()
         case .all:
             let target: Income
             if let parentID = income.parentID,
@@ -224,6 +227,7 @@ final class IncomeService {
                          secondBiMonthlyDay: secondBiMonthlyDay)
             try RecurrenceEngine.regenerateIncomeRecurrences(base: target, in: repo.context, calendar: calendar)
             try repo.saveIfNeeded()
+            notifyIncomeScheduleChanged()
         }
     }
 
@@ -341,6 +345,7 @@ final class IncomeService {
                 repo.delete(income)
             }
             try repo.saveIfNeeded()
+            notifyIncomeScheduleChanged()
         }
     }
     
@@ -348,6 +353,7 @@ final class IncomeService {
     /// DANGER: Delete all incomes. Use for testing/reset only.
     func deleteAllIncomes() throws {
         try repo.deleteAll()
+        notifyIncomeScheduleChanged()
     }
     
     // MARK: - Calendar Helpers
@@ -447,5 +453,9 @@ final class IncomeService {
             }
         }
         return nil
+    }
+
+    private func notifyIncomeScheduleChanged() {
+        Task { await LocalNotificationScheduler.shared.refreshPlannedIncomeReminders() }
     }
 }

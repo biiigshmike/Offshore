@@ -395,6 +395,7 @@ struct HelpView: View {
                     .font(.title3).bold()
                 Divider()
                 Text("Every row here is a separate area to manage the app:")
+                Text("• In the top right of this page, press the 3 person icon to switch between Budgeting Workspaces, i.e. Personal and Work. Helps keeps budgeting for different use cases compeletely separate, but while all still existing in the same app.")
                 Text("• About: app info, version, and external links.")
                 Text("• Help: this guide.")
                 Text("• General: confirm before deleting and set your default budget period.")

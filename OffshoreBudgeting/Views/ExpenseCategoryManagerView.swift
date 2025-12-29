@@ -15,7 +15,6 @@ struct ExpenseCategoryManagerView: View {
     // MARK: Dependencies
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.isOnboardingPresentation) private var isOnboardingPresentation
     @Environment(\.platformCapabilities) private var capabilities
     @Environment(\.ub_safeAreaInsets) private var legacySafeAreaInsets
     @Environment(\.dismiss) private var dismiss
@@ -141,8 +140,7 @@ struct ExpenseCategoryManagerView: View {
     
     private var groupedListContent: some View {
         Group {
-            if isOnboardingPresentation && filteredCategories.isEmpty {
-                // Onboarding-specific empty state message
+            if filteredCategories.isEmpty {
                 emptyState
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
@@ -223,12 +221,7 @@ struct ExpenseCategoryManagerView: View {
     
     // MARK: - Empty State
     private var emptyState: some View {
-        UBEmptyState(
-            iconSystemName: "tag",
-            title: "Categories",
-            message: "Create categories to track your spending. You can always edit them later. Press the '+' on the top right to get started."
-        )
-        .padding(.horizontal, DS.Spacing.l)
+        UBEmptyState(message: "No categories found. Tap + to create a category.")
     }
     
     // MARK: - CRUD

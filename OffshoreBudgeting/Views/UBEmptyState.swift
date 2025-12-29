@@ -3,21 +3,19 @@
 //  SoFar
 //
 //  A reusable, app-standard empty state view.
-//  Matches the Cards screen styling: centered icon, bold title,
+//  Matches the Cards screen styling: centered content,
 //  supportive message, and a pill-shaped primary action.
 //
 //  Usage:
 //  UBEmptyState(
-//      iconSystemName: "creditcard",
 //      title: "Cards",
-//      message: "Add your credit/debit/store cards to track variable spending.",
+//      message: "No cards found. Tap + to create a card.",
 //      primaryButtonTitle: "Add your first card",
 //      onPrimaryTap: { /* present add flow */ }
 //  )
 //
 
 import SwiftUI
-import UIKit
 
 // MARK: - UBEmptyState
 /// Standardized empty-state presentation with optional action buttons.
@@ -30,9 +28,9 @@ struct UBEmptyState: View {
 
     // MARK: Content
     /// SF Symbol name to display above the title.
-    let iconSystemName: String
+    let iconSystemName: String?
     /// Main headline text.
-    let title: String
+    let title: String?
     /// Supporting copy below the title.
     let message: String
 
@@ -59,8 +57,8 @@ struct UBEmptyState: View {
     ///   - onPrimaryTap: Closure invoked when CTA is tapped
     ///   - maxMessageWidth: Optional width limit for the message line-wrapping
     init(
-        iconSystemName: String,
-        title: String,
+        iconSystemName: String? = nil,
+        title: String? = nil,
         message: String,
         primaryButtonTitle: String? = nil,
         onPrimaryTap: (() -> Void)? = nil,
@@ -78,23 +76,28 @@ struct UBEmptyState: View {
 
     // MARK: Body
     var body: some View {
-        VStack(spacing: DS.Spacing.l) {
+        VStack(spacing: DS.Spacing.m) {
             // MARK: Icon
-            Image(systemName: iconSystemName)
-                .font(.system(size: 52, weight: .medium))
-                .foregroundStyle(.primary)
-                .accessibilityHidden(true)
+            if let iconSystemName, !iconSystemName.isEmpty {
+                Image(systemName: iconSystemName)
+                    .font(.system(size: 52, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .accessibilityHidden(true)
+            }
 
             // MARK: Title
-            Text(title)
-                .font(.largeTitle.bold())
-                .foregroundStyle(UBTypography.cardTitleStatic)
+            if let title = resolvedTitle {
+                Text(title)
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(UBTypography.cardTitleStatic)
                 //.ub_cardTitleShadow()
+            }
 
             // MARK: Message
             Text(message)
+                .font(messageFont)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(messageForeground)
                 .frame(maxWidth: maxMessageWidth)
 
             // MARK: Primary CTA (optional)
@@ -103,8 +106,22 @@ struct UBEmptyState: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: containerAlignment)
-        .padding(.horizontal, DS.Spacing.xl)
+        .padding(.horizontal, DS.Spacing.l)
         .padding(.vertical, resolvedVerticalPadding)
+    }
+
+    private var resolvedTitle: String? {
+        guard let title else { return nil }
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private var messageFont: Font {
+        resolvedTitle == nil ? .title3.weight(.semibold) : .subheadline
+    }
+
+    private var messageForeground: Color {
+        resolvedTitle == nil ? .primary : .secondary
     }
 
     private var resolvedVerticalPadding: CGFloat {

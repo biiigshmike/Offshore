@@ -11,6 +11,11 @@ enum AppSettingsKeys: String {
     case budgetPeriod
     case enableCloudSync
     case syncHomeWidgetsAcrossDevices
+    case enableDailyReminder
+    case enablePlannedIncomeReminder
+    case notificationReminderTimeMinutes
+    case lastAppOpenDate
+    case lastExpenseAddedDate
     case tipsHintsResetToken
     case activeWorkspaceID
 }

@@ -228,6 +228,8 @@ final class UnplannedExpenseService {
         }
         
         try expenseRepo.saveIfNeeded()
+        LocalNotificationScheduler.shared.recordExpenseAdded()
+        Task { await LocalNotificationScheduler.shared.refreshDailyReminder() }
         return expense
     }
     
@@ -294,6 +296,8 @@ final class UnplannedExpenseService {
         if let parentID { expense.setValue(parentID, forKey: "parentID") }
         
         try expenseRepo.saveIfNeeded()
+        LocalNotificationScheduler.shared.recordExpenseAdded()
+        Task { await LocalNotificationScheduler.shared.refreshDailyReminder() }
     }
     
     // MARK: - DELETE

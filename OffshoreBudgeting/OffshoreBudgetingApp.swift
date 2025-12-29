@@ -160,6 +160,8 @@ struct OffshoreBudgetingApp: App {
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .active {
                     CloudSyncAccelerator.shared.nudgeOnForeground()
+                    LocalNotificationScheduler.shared.recordAppOpen()
+                    Task { await LocalNotificationScheduler.shared.refreshAll() }
 
                     // Foreground return: prompt once if still locked.
                     if appLockViewModel.isLockEnabled && appLockViewModel.isLocked {

@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 import LocalAuthentication
+import UserNotifications
 #if os(iOS)
 import UIKit
 #elseif os(macOS)
@@ -89,6 +90,17 @@ struct SettingsView: View {
                         title: "Privacy",
                         showsChevron: false,
                         iconStyle: .blue
+                    )
+                }
+
+                NavigationLink {
+                    NotificationsSettingsView()
+                } label: {
+                    SettingsRowLabel(
+                        iconSystemName: "bell.badge",
+                        title: "Notifications",
+                        showsChevron: false,
+                        iconStyle: .orange
                     )
                 }
 
@@ -636,6 +648,144 @@ private struct PrivacySettingsView: View {
                 }
             }
         }
+    }
+}
+
+private struct NotificationsSettingsView: View {
+    @AppStorage(AppSettingsKeys.enableDailyReminder.rawValue) private var enableDailyReminder: Bool = false
+    @AppStorage(AppSettingsKeys.enablePlannedIncomeReminder.rawValue) private var enablePlannedIncomeReminder: Bool = false
+    @AppStorage(AppSettingsKeys.notificationReminderTimeMinutes.rawValue) private var reminderTimeMinutes: Int = 20 * 60
+    @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
+    @State private var showPermissionAlert = false
+
+    private let calendar: Calendar = .current
+
+    var body: some View {
+        List {
+            Section {
+                Toggle("Daily Expense Reminder", isOn: $enableDailyReminder)
+                Toggle("Planned Income Reminder", isOn: $enablePlannedIncomeReminder)
+                DatePicker("Reminder Time", selection: reminderTimeBinding, displayedComponents: .hourAndMinute)
+            } footer: {
+                Text("Reminders are scheduled locally and never leave the device.")
+            }
+
+            Section {
+                LabeledContent("Status", value: authorizationStatusLabel)
+
+                Button("Request Notification Permission") {
+                    Task { await requestPermission() }
+                }
+                .disabled(authorizationStatus == .authorized)
+
+                Button("Open System Settings") {
+                    openSystemSettings()
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle("Notifications")
+        .task { await refreshAuthorizationStatus() }
+        .onChange(of: enableDailyReminder) { _ in handleReminderToggleChange() }
+        .onChange(of: enablePlannedIncomeReminder) { _ in handleReminderToggleChange() }
+        .onChange(of: reminderTimeMinutes) { _ in Task { await LocalNotificationScheduler.shared.refreshAll() } }
+        .alert("Notifications Disabled", isPresented: $showPermissionAlert) {
+            Button("Open Settings") { openSystemSettings() }
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Enable notifications in iOS Settings to receive reminders.")
+        }
+    }
+
+    private var reminderTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                let hour = max(0, min(23, reminderTimeMinutes / 60))
+                let minute = max(0, min(59, reminderTimeMinutes % 60))
+                return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+            },
+            set: { newValue in
+                let comps = calendar.dateComponents([.hour, .minute], from: newValue)
+                let hour = comps.hour ?? 20
+                let minute = comps.minute ?? 0
+                reminderTimeMinutes = max(0, min(24 * 60 - 1, hour * 60 + minute))
+            }
+        )
+    }
+
+    private var authorizationStatusLabel: String {
+        switch authorizationStatus {
+        case .authorized:
+            return "Allowed"
+        case .denied:
+            return "Not allowed"
+        case .provisional:
+            return "Provisional"
+        case .ephemeral:
+            return "Ephemeral"
+        case .notDetermined:
+            return "Not determined"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+
+    private func handleReminderToggleChange() {
+        Task {
+            await refreshAuthorizationStatus()
+            guard enableDailyReminder || enablePlannedIncomeReminder else {
+                await LocalNotificationScheduler.shared.refreshAll()
+                return
+            }
+            if authorizationStatus == .notDetermined {
+                let granted = await LocalNotificationScheduler.shared.requestAuthorization()
+                await refreshAuthorizationStatus()
+                if !granted {
+                    await disableRemindersAndAlert()
+                    return
+                }
+            } else if authorizationStatus == .denied {
+                await disableRemindersAndAlert()
+                return
+            }
+            await LocalNotificationScheduler.shared.refreshAll()
+        }
+    }
+
+    private func requestPermission() async {
+        _ = await LocalNotificationScheduler.shared.requestAuthorization()
+        await refreshAuthorizationStatus()
+        await LocalNotificationScheduler.shared.refreshAll()
+    }
+
+    private func refreshAuthorizationStatus() async {
+        let settings = await withCheckedContinuation { continuation in
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                continuation.resume(returning: settings)
+            }
+        }
+        await MainActor.run {
+            authorizationStatus = settings.authorizationStatus
+        }
+    }
+
+    @MainActor
+    private func disableRemindersAndAlert() async {
+        enableDailyReminder = false
+        enablePlannedIncomeReminder = false
+        showPermissionAlert = true
+    }
+
+    private func openSystemSettings() {
+        #if os(iOS)
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+        #elseif os(macOS)
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
+            NSWorkspace.shared.open(url)
+        }
+        #endif
     }
 }
 

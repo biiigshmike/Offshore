@@ -52,7 +52,10 @@ final class SettingsViewModel: ObservableObject {
             AppSettingsKeys.presetsDefaultUseInFutureBudgets.rawValue: true,
             AppSettingsKeys.budgetPeriod.rawValue: BudgetPeriod.monthly.rawValue,
             AppSettingsKeys.enableCloudSync.rawValue: false,
-            AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue: false
+            AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue: false,
+            AppSettingsKeys.enableDailyReminder.rawValue: false,
+            AppSettingsKeys.enablePlannedIncomeReminder.rawValue: false,
+            AppSettingsKeys.notificationReminderTimeMinutes.rawValue: 20 * 60
         ])
     }
 }

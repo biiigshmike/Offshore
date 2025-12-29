@@ -47,11 +47,7 @@ struct BudgetsView: View {
             ProgressView("Loading Budgets…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         } else if !isSearchActive && activeBudgets.isEmpty && upcomingBudgets.isEmpty && pastBudgets.isEmpty {
-            UBEmptyState(
-                iconSystemName: "chart.pie",
-                title: "No Budgets",
-                message: "Create a budget to get started."
-            )
+            UBEmptyState(message: "No budgets found. Tap + to create a budget.")
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .sheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
         } else {

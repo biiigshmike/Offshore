@@ -25,6 +25,8 @@ struct RootTabView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dataRevision) private var dataRevision
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.responsiveLayoutContext) private var layoutContext
     let isWorkspaceReady: Bool
 
     // MARK: Tabs
@@ -69,11 +71,22 @@ struct RootTabView: View {
     }
 
     private var shouldUseCompactTabs: Bool {
-        prefersCompactTabs || usesCompactTabsOverride
+        prefersCompactTabs || usesCompactTabsOverride || isNarrowLayout
     }
 
     private var showsSidebarRestoreControl: Bool {
-        usesCompactTabsOverride && !prefersCompactTabs
+        usesCompactTabsOverride && !prefersCompactTabs && !isNarrowLayout
+    }
+
+    private var isNarrowLayout: Bool {
+        if horizontalSizeClass == .compact {
+            return true
+        }
+        let width = layoutContext.containerSize.width
+        if width > 0 && width < 720 {
+            return true
+        }
+        return false
     }
 
     @ViewBuilder
@@ -189,32 +202,25 @@ struct RootTabView: View {
 
     @ViewBuilder
     private var sidebarList: some View {
-        List(selection: $sidebarSelection) {
+        List {
             Section {
                 ForEach(Tab.allCases, id: \.self) { tab in
                     let item = SidebarItem.root(tab)
-                    NavigationLink(value: item) {
+                    sidebarRow(item: item, accessibilityID: tab.accessibilityID) {
                         Label(tab.title, systemImage: tab.systemImage)
-                            .foregroundStyle(.primary)
                     }
-                    .accessibilityIdentifier(tab.accessibilityID)
-                    .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == item))
                 }
             }
 
             Section("Add Expenses") {
                 let plannedItem = SidebarItem.addPlannedExpense
-                NavigationLink(value: plannedItem) {
+                sidebarRow(item: plannedItem) {
                     Label("Add Planned Expense", systemImage: "calendar.badge.plus")
-                        .foregroundStyle(.primary)
                 }
-                .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == plannedItem))
                 let variableItem = SidebarItem.addVariableExpense
-                NavigationLink(value: variableItem) {
+                sidebarRow(item: variableItem) {
                     Label("Add Variable Expense", systemImage: "plus.circle")
-                        .foregroundStyle(.primary)
                 }
-                .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == variableItem))
             }
 
             Section("Budgets") {
@@ -224,28 +230,22 @@ struct RootTabView: View {
                 } else {
                     ForEach(recentBudgets, id: \.objectID) { budget in
                         let item = SidebarItem.recentBudget(budget.objectID)
-                        NavigationLink(value: item) {
+                        sidebarRow(item: item) {
                             Label(budget.name ?? "Budget", systemImage: "clock.arrow.circlepath")
-                                .foregroundStyle(.primary)
                         }
-                        .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == item))
                     }
                 }
             }
 
             Section("Quick Links") {
                 let presetsItem = SidebarItem.managePresets
-                NavigationLink(value: presetsItem) {
+                sidebarRow(item: presetsItem) {
                     Label("Manage Presets", systemImage: "slider.horizontal.3")
-                        .foregroundStyle(.primary)
                 }
-                .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == presetsItem))
                 let categoriesItem = SidebarItem.manageCategories
-                NavigationLink(value: categoriesItem) {
+                sidebarRow(item: categoriesItem) {
                     Label("Manage Categories", systemImage: "tag")
-                        .foregroundStyle(.primary)
                 }
-                .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == categoriesItem))
             }
         }
         .ub_listStyleLiquidAware()
@@ -389,9 +389,31 @@ struct RootTabView: View {
             if isSelected {
                 RoundedRectangle(cornerRadius: DesignSystem.Radius.card, style: .continuous)
                     .fill(selectedSidebarTint)
+                    .padding(.horizontal, DesignSystem.Spacing.s)
             } else {
                 Color.clear
             }
+        }
+    }
+
+    @ViewBuilder
+    private func sidebarRow<Label: View>(
+        item: SidebarItem,
+        accessibilityID: String? = nil,
+        @ViewBuilder label: () -> Label
+    ) -> some View {
+        let base = Button {
+            sidebarSelection = item
+        } label: {
+            label()
+                .foregroundStyle(.primary)
+        }
+        .buttonStyle(.plain)
+        .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == item))
+        if let accessibilityID {
+            base.accessibilityIdentifier(accessibilityID)
+        } else {
+            base
         }
     }
 

@@ -31,6 +31,10 @@ final class ExpenseCategoryService {
             selector: #selector(NSString.localizedCaseInsensitiveCompare(_:))
         )]
         : []
+        if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+            let predicate = WorkspaceService.predicate(for: workspaceID)
+            return try repo.fetchAll(predicate: predicate, sortDescriptors: sort)
+        }
         return try repo.fetchAll(sortDescriptors: sort)
     }
     
@@ -40,7 +44,13 @@ final class ExpenseCategoryService {
     /// - Returns: Category or nil.
     func findCategory(byID id: UUID) throws -> ExpenseCategory? {
         // Literal "id" avoids ambiguity with Identifiable.
-        let predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        let base = NSPredicate(format: "id == %@", id as CVarArg)
+        let predicate: NSPredicate
+        if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+            predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        } else {
+            predicate = base
+        }
         return try repo.fetchFirst(predicate: predicate)
     }
     
@@ -49,7 +59,13 @@ final class ExpenseCategoryService {
     /// - Parameter name: Category name.
     /// - Returns: Category or nil.
     func findCategory(named name: String) throws -> ExpenseCategory? {
-        let predicate = NSPredicate(format: "name =[c] %@", name)
+        let base = NSPredicate(format: "name =[c] %@", name)
+        let predicate: NSPredicate
+        if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+            predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        } else {
+            predicate = base
+        }
         return try repo.fetchFirst(predicate: predicate)
     }
     
@@ -72,6 +88,7 @@ final class ExpenseCategoryService {
             cat.setValue(UUID(), forKey: "id")
             cat.name = name
             cat.color = color
+            WorkspaceService.applyWorkspaceIDIfPossible(on: cat)
         }
         try repo.saveIfNeeded()
         return category

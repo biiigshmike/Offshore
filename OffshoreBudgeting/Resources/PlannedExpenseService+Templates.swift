@@ -59,9 +59,12 @@ extension PlannedExpenseService {
     /// Returns all PlannedExpense where isGlobal == true.
     /// - Parameter context: NSManagedObjectContext
     /// - Returns: [PlannedExpense]
-    func fetchGlobalTemplates(in context: NSManagedObjectContext) -> [PlannedExpense] {
+    func fetchGlobalTemplates(in context: NSManagedObjectContext, workspaceID: UUID) -> [PlannedExpense] {
         let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
-        request.predicate = NSPredicate(format: "isGlobal == YES")
+        request.predicate = WorkspaceService.combinedPredicate(
+            NSPredicate(format: "isGlobal == YES"),
+            workspaceID: workspaceID
+        )
         request.sortDescriptors = [
             NSSortDescriptor(keyPath: \PlannedExpense.descriptionText, ascending: true)
         ]
@@ -78,12 +81,13 @@ extension PlannedExpenseService {
     /// - Parameters:
     ///   - template: The global PlannedExpense template.
     ///   - context: NSManagedObjectContext
-    func fetchChildren(of template: PlannedExpense, in context: NSManagedObjectContext) -> [PlannedExpense] {
+    func fetchChildren(of template: PlannedExpense, in context: NSManagedObjectContext, workspaceID: UUID) -> [PlannedExpense] {
         guard let templateID = template.id else { return [] }
         let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "isGlobal == NO"),
-            NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg)
+            NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg),
+            WorkspaceService.predicate(for: workspaceID)
         ])
         do {
             return try context.fetch(request)
@@ -103,14 +107,16 @@ extension PlannedExpenseService {
     @discardableResult
     func ensureChild(from template: PlannedExpense,
                      attachedTo budget: Budget,
-                     in context: NSManagedObjectContext) -> PlannedExpense {
+                     in context: NSManagedObjectContext,
+                     workspaceID: UUID) -> PlannedExpense {
         // First, collapse any accidental duplicates for this template+budget pair.
         if let templateID = template.id {
             let req: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
             req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 NSPredicate(format: "isGlobal == NO"),
                 NSPredicate(format: "budget == %@", budget),
-                NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg)
+                NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg),
+                WorkspaceService.predicate(for: workspaceID)
             ])
             if let matches = try? context.fetch(req), matches.count > 1 {
                 // Prefer keeping the one with the greatest actualAmount (preserves recorded spend)
@@ -126,7 +132,7 @@ extension PlannedExpenseService {
             }
         }
 
-        if let existing = child(of: template, for: budget, in: context) {
+        if let existing = child(of: template, for: budget, in: context, workspaceID: workspaceID) {
             let correctedDate = alignedTransactionDate(for: template, budget: budget)
 
             var didUpdate = false
@@ -189,8 +195,9 @@ extension PlannedExpenseService {
     /// Removes a child PlannedExpense created from the template for a specific budget.
     func removeChild(from template: PlannedExpense,
                      for budget: Budget,
-                     in context: NSManagedObjectContext) {
-        guard let target = child(of: template, for: budget, in: context) else { return }
+                     in context: NSManagedObjectContext,
+                     workspaceID: UUID) {
+        guard let target = child(of: template, for: budget, in: context, workspaceID: workspaceID) else { return }
         context.delete(target)
     }
 
@@ -198,14 +205,16 @@ extension PlannedExpenseService {
     /// Returns the child PlannedExpense for a specific budget if it exists.
     func child(of template: PlannedExpense,
                for budget: Budget,
-               in context: NSManagedObjectContext) -> PlannedExpense? {
+               in context: NSManagedObjectContext,
+               workspaceID: UUID) -> PlannedExpense? {
         guard let templateID = template.id else { return nil }
         let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
         request.fetchLimit = 1
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "isGlobal == NO"),
             NSPredicate(format: "budget == %@", budget),
-            NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg)
+            NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg),
+            WorkspaceService.predicate(for: workspaceID)
         ])
         do {
             return try context.fetch(request).first
@@ -217,8 +226,9 @@ extension PlannedExpenseService {
 
     // MARK: Fetch Budgets (helper)
     /// Returns all budgets sorted by start date descending.
-    func fetchAllBudgets(in context: NSManagedObjectContext) -> [Budget] {
+    func fetchAllBudgets(in context: NSManagedObjectContext, workspaceID: UUID) -> [Budget] {
         let request: NSFetchRequest<Budget> = Budget.fetchRequest()
+        request.predicate = WorkspaceService.predicate(for: workspaceID)
         request.sortDescriptors = [
             NSSortDescriptor(keyPath: \Budget.startDate, ascending: false)
         ]
@@ -233,7 +243,9 @@ extension PlannedExpenseService {
     // MARK: Delete Template + Children
     /// Deletes a global template and any children linked to it.
     func deleteTemplateAndChildren(template: PlannedExpense, in context: NSManagedObjectContext) throws {
-        let kids = fetchChildren(of: template, in: context)
+        let workspaceID = template.value(forKey: "workspaceID") as? UUID
+            ?? WorkspaceService.activeWorkspaceIDFromDefaults()
+        let kids = workspaceID.map { fetchChildren(of: template, in: context, workspaceID: $0) } ?? []
         for k in kids {
             context.delete(k)
         }
@@ -261,11 +273,13 @@ extension PlannedExpenseService {
                                 actualAmount: Double? = nil,
                                 transactionDate: Date? = nil,
                                 in context: NSManagedObjectContext) {
+        let workspaceID = (expense.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.activeWorkspaceIDFromDefaults()
         let template: PlannedExpense?
         if expense.isGlobal {
             template = expense
-        } else if let templateID = expense.globalTemplateID {
-            template = fetchTemplate(withID: templateID, in: context)
+        } else if let templateID = expense.globalTemplateID, let workspaceID {
+            template = fetchTemplate(withID: templateID, in: context, workspaceID: workspaceID)
         } else {
             template = nil
         }
@@ -285,8 +299,8 @@ extension PlannedExpenseService {
             applyUpdates(to: template)
         }
 
-        guard let template else { return }
-        let children = fetchChildren(of: template, in: context)
+        guard let template, let workspaceID else { return }
+        let children = fetchChildren(of: template, in: context, workspaceID: workspaceID)
         for child in children {
             if child == expense { continue }
             if scope.shouldIncludeChild(with: child.transactionDate, fallbackReferenceDate: fallbackReferenceDate) {
@@ -295,12 +309,13 @@ extension PlannedExpenseService {
         }
     }
 
-    private func fetchTemplate(withID id: UUID, in context: NSManagedObjectContext) -> PlannedExpense? {
+    private func fetchTemplate(withID id: UUID, in context: NSManagedObjectContext, workspaceID: UUID) -> PlannedExpense? {
         let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
         request.fetchLimit = 1
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "id == %@", id as CVarArg),
-            NSPredicate(format: "isGlobal == YES")
+            NSPredicate(format: "isGlobal == YES"),
+            WorkspaceService.predicate(for: workspaceID)
         ])
         return try? context.fetch(request).first
     }

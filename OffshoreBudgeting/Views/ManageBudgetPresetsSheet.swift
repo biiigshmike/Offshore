@@ -18,7 +18,11 @@ struct ManageBudgetPresetsSheet: View {
         self.onDone = onDone
 
         let request: NSFetchRequest<PlannedExpense> = NSFetchRequest(entityName: "PlannedExpense")
-        request.predicate = NSPredicate(format: "isGlobal == YES")
+        let workspaceID = WorkspaceService.shared.activeWorkspaceID
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "isGlobal == YES"),
+            WorkspaceService.predicate(for: workspaceID)
+        ])
         request.sortDescriptors = [
             NSSortDescriptor(
                 key: "descriptionText",
@@ -101,11 +105,13 @@ struct ManageBudgetPresetsSheet: View {
             return
         }
 
+        let workspaceID = (budgetInContext.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.shared.activeWorkspaceID
         if shouldAssign {
-            PlannedExpenseService.shared.ensureChild(from: template, attachedTo: budgetInContext, in: viewContext)
+            PlannedExpenseService.shared.ensureChild(from: template, attachedTo: budgetInContext, in: viewContext, workspaceID: workspaceID)
             assignedTemplateObjectIDs.insert(template.objectID)
         } else {
-            PlannedExpenseService.shared.removeChild(from: template, for: budgetInContext, in: viewContext)
+            PlannedExpenseService.shared.removeChild(from: template, for: budgetInContext, in: viewContext, workspaceID: workspaceID)
             assignedTemplateObjectIDs.remove(template.objectID)
         }
 
@@ -128,10 +134,13 @@ struct ManageBudgetPresetsSheet: View {
         }
 
         let request: NSFetchRequest<PlannedExpense> = NSFetchRequest(entityName: "PlannedExpense")
+        let workspaceID = (budgetInContext.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.shared.activeWorkspaceID
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "budget == %@", budgetInContext),
             NSPredicate(format: "isGlobal == NO"),
-            NSPredicate(format: "globalTemplateID != nil")
+            NSPredicate(format: "globalTemplateID != nil"),
+            WorkspaceService.predicate(for: workspaceID)
         ])
 
         let existingInstances = (try? viewContext.fetch(request)) ?? []

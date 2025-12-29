@@ -140,6 +140,11 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                WorkspaceMenuButton()
+            }
+        }
         .task { await cloudDiag.refresh() }
         .confirmationDialog("Turn Off iCloud Sync?", isPresented: $showDisableCloudOptions, titleVisibility: .visible) {
             Button("Switch to Local (Keep Data)", role: .destructive) { disableCloud(eraseLocal: false) }
@@ -221,8 +226,9 @@ struct SettingsView: View {
             try? await Task.sleep(nanoseconds: 80_000_000)
             await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: false)
             vm.enableCloudSync = false
-            _ = WorkspaceService.shared.ensureActiveWorkspaceID()
-            await WorkspaceService.shared.assignWorkspaceIDIfMissing()
+            let personalID = WorkspaceService.shared.personalWorkspace()?.id
+                ?? WorkspaceService.shared.ensureActiveWorkspaceID()
+            await WorkspaceService.shared.assignWorkspaceIDIfMissing(to: personalID)
             if eraseLocal {
                 do { try CoreDataService.shared.wipeAllData() } catch { }
                 UbiquitousFlags.clearHasCloudData()
@@ -250,8 +256,9 @@ private extension SettingsView {
                     Task { @MainActor in
                         try? await Task.sleep(nanoseconds: 80_000_000)
                         await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
-                        _ = WorkspaceService.shared.ensureActiveWorkspaceID()
-                        await WorkspaceService.shared.assignWorkspaceIDIfMissing()
+                        let personalID = WorkspaceService.shared.personalWorkspace()?.id
+                            ?? WorkspaceService.shared.ensureActiveWorkspaceID()
+                        await WorkspaceService.shared.assignWorkspaceIDIfMissing(to: personalID)
                         // Workspace-backed period will mirror via Core Data
                         await cloudDiag.refresh()
                         isReconfiguringStores = false

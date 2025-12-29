@@ -107,4 +107,30 @@ enum Buttons {
             }
         }
     }
+
+    // MARK: Toolbar Icon (glass preferred, label-only)
+    /// Label-only variant for toolbar/menu labels that shouldn't wrap a Button.
+    static func toolbarIconGlassPreferred(
+        _ systemImage: String,
+        size: CGFloat
+    ) -> some View {
+        Group {
+            if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+                ZStack {
+                    Color.clear
+                        .glassEffect(.regular.tint(.clear).interactive(true), in: Circle())
+                    Image(systemName: systemImage)
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundStyle(.primary)
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .frame(width: size, height: size)
+                .contentShape(Circle())
+            } else {
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: size, height: size)
+            }
+        }
+    }
 }

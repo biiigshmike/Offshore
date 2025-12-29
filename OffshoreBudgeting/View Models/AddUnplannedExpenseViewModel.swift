@@ -195,6 +195,7 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
     // MARK: Private fetch
     private func fetchCards() -> [Card] {
         let req = NSFetchRequest<Card>(entityName: "Card")
+        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
         req.sortDescriptors = [
             NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
         ]
@@ -204,6 +205,7 @@ final class AddUnplannedExpenseViewModel: ObservableObject {
 
     private func fetchCategories() -> [ExpenseCategory] {
         let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
         req.sortDescriptors = [
             NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
         ]

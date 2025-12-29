@@ -194,6 +194,7 @@ struct BudgetDetailsView: View {
                 return segment == .planned ? summary.plannedCategoryBreakdown : summary.variableCategoryBreakdown
             }
             let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+            req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
             req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
             let items: [ExpenseCategory] = (try? CoreDataService.shared.viewContext.fetch(req)) ?? []
             return items.map {
@@ -477,7 +478,10 @@ struct BudgetDetailsView: View {
             let name = cat.categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { return nil }
             let fetch = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
-            fetch.predicate = NSPredicate(format: "name ==[cd] %@", name)
+            fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "name ==[cd] %@", name),
+                WorkspaceService.shared.activeWorkspacePredicate()
+            ])
             fetch.fetchLimit = 1
             if let category = try? context.fetch(fetch).first {
                 return (category, category.objectID)
@@ -613,7 +617,10 @@ struct BudgetDetailsView: View {
             let name = data.category.categoryName.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { return nil }
             let fetch = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
-            fetch.predicate = NSPredicate(format: "name ==[cd] %@", name)
+            fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "name ==[cd] %@", name),
+                WorkspaceService.shared.activeWorkspacePredicate()
+            ])
             fetch.fetchLimit = 1
             return try? context.fetch(fetch).first?.objectID
         }()

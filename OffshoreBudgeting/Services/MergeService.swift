@@ -14,11 +14,6 @@ final class MergeService {
         let ctx = CoreDataService.shared.viewContext
         var didChange = false
 
-        // Step 1: Unify all records to the active workspace ID so signatures collide
-        // across previously separate local/cloud datasets.
-        let active = WorkspaceService.shared.activeWorkspaceID
-        didChange = unifyWorkspaceIDs(in: ctx, to: active) || didChange
-
         // Safety: When Cloud sync is enabled, avoid destructive dedupe since
         // deletions will propagate to iCloud and other devices. Let Core Data
         // mirroring upload local records and rely on manual review for
@@ -50,12 +45,12 @@ final class MergeService {
     private func mergeExpenseCategories(_ ctx: NSManagedObjectContext) throws -> Bool {
         let req: NSFetchRequest<ExpenseCategory> = ExpenseCategory.fetchRequest()
         let categories = try ctx.fetch(req)
-        let ws = WorkspaceService.shared.activeWorkspaceID.uuidString
         var seen = Set<String>()
         var changed = false
         for cat in categories {
             let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             guard !name.isEmpty else { continue }
+            let ws = (cat.value(forKey: "workspaceID") as? UUID)?.uuidString ?? "nil"
             let key = ws + "|" + name
             if seen.contains(key) {
                 ctx.delete(cat)
@@ -70,10 +65,10 @@ final class MergeService {
     private func mergeCards(_ ctx: NSManagedObjectContext) throws -> Bool {
         let req: NSFetchRequest<Card> = Card.fetchRequest()
         let cards = try ctx.fetch(req)
-        let ws = WorkspaceService.shared.activeWorkspaceID.uuidString
         var seen = Set<String>()
         var changed = false
         for card in cards {
+            let ws = (card.value(forKey: "workspaceID") as? UUID)?.uuidString ?? "nil"
             let key = (card.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             guard !key.isEmpty else { continue }
             let sig = ws + "|" + key
@@ -90,10 +85,10 @@ final class MergeService {
     private func mergeBudgets(_ ctx: NSManagedObjectContext) throws -> Bool {
         let req: NSFetchRequest<Budget> = Budget.fetchRequest()
         let budgets = try ctx.fetch(req)
-        let ws = WorkspaceService.shared.activeWorkspaceID.uuidString
         var seen = Set<String>()
         var changed = false
         for b in budgets {
+            let ws = (b.value(forKey: "workspaceID") as? UUID)?.uuidString ?? "nil"
             let n = (b.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             let s = b.startDate?.startOfDay ?? .distantPast
             let e = b.endDate?.startOfDay ?? .distantPast
@@ -111,10 +106,10 @@ final class MergeService {
     private func mergeIncomes(_ ctx: NSManagedObjectContext) throws -> Bool {
         let req: NSFetchRequest<Income> = Income.fetchRequest()
         let incomes = try ctx.fetch(req)
-        let ws = WorkspaceService.shared.activeWorkspaceID.uuidString
         var seen = Set<String>()
         var changed = false
         for inc in incomes {
+            let ws = (inc.value(forKey: "workspaceID") as? UUID)?.uuidString ?? "nil"
             let day = (inc.date ?? Date.distantPast).startOfDay
             let src = (inc.source ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             let planned = inc.isPlanned
@@ -133,10 +128,10 @@ final class MergeService {
     private func mergePlannedExpenses(_ ctx: NSManagedObjectContext) throws -> Bool {
         let req: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
         let items = try ctx.fetch(req)
-        let ws = WorkspaceService.shared.activeWorkspaceID.uuidString
         var seen = Set<String>()
         var changed = false
         for p in items {
+            let ws = (p.value(forKey: "workspaceID") as? UUID)?.uuidString ?? "nil"
             let day = (p.transactionDate ?? Date.distantPast).startOfDay
             let desc = (p.descriptionText ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             let amt = (p.plannedAmount as NSNumber).roundedTwoDecimals
@@ -164,12 +159,13 @@ final class MergeService {
             NSPredicate(format: "globalTemplateID != nil")
         ])
         let items = try ctx.fetch(req)
-        let ws = WorkspaceService.shared.activeWorkspaceID.uuidString
-
         // Group by (workspaceID | budgetRef | templateID)
         var buckets: [String: [PlannedExpense]] = [:]
         for p in items {
             guard let budget = p.budget, let templateID = p.globalTemplateID else { continue }
+            let ws = (p.value(forKey: "workspaceID") as? UUID)?.uuidString
+                ?? (budget.value(forKey: "workspaceID") as? UUID)?.uuidString
+                ?? "nil"
             let budgetRef = budget.objectID.uriRepresentation().absoluteString
             let key = "\(ws)|\(budgetRef)|\(templateID.uuidString)"
             buckets[key, default: []].append(p)
@@ -199,10 +195,10 @@ final class MergeService {
     private func mergeUnplannedExpenses(_ ctx: NSManagedObjectContext) throws -> Bool {
         let req: NSFetchRequest<UnplannedExpense> = UnplannedExpense.fetchRequest()
         let items = try ctx.fetch(req)
-        let ws = WorkspaceService.shared.activeWorkspaceID.uuidString
         var seen = Set<String>()
         var changed = false
         for u in items {
+            let ws = (u.value(forKey: "workspaceID") as? UUID)?.uuidString ?? "nil"
             let day = (u.transactionDate ?? Date.distantPast).startOfDay
             let desc = (u.descriptionText ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             let amt = (u.amount as NSNumber).roundedTwoDecimals
@@ -214,28 +210,6 @@ final class MergeService {
                 changed = true
             } else {
                 seen.insert(key)
-            }
-        }
-        return changed
-    }
-}
-
-private extension MergeService {
-    /// Reassigns any objects with a missing or different `workspaceID` to `target`.
-    func unifyWorkspaceIDs(in ctx: NSManagedObjectContext, to target: UUID) -> Bool {
-        let entities = ["Budget", "Card", "Income", "PlannedExpense", "UnplannedExpense", "ExpenseCategory"]
-        var changed = false
-        for name in entities {
-            let req = NSFetchRequest<NSManagedObject>(entityName: name)
-            // Select where workspaceID is nil or not equal to target
-            req.predicate = NSCompoundPredicate(orPredicateWithSubpredicates: [
-                NSPredicate(format: "workspaceID == nil"),
-                NSPredicate(format: "workspaceID != %@", target as CVarArg)
-            ])
-            let items = (try? ctx.fetch(req)) ?? []
-            for obj in items {
-                obj.setValue(target, forKey: "workspaceID")
-                changed = true
             }
         }
         return changed

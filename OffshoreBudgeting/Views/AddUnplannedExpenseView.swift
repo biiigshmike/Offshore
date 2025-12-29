@@ -311,6 +311,7 @@ private struct CategoryChipsRow: View {
 
     // MARK: Environment
     @Environment(\.managedObjectContext) private var viewContext
+    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
 
 
     // MARK: Live Fetch
@@ -327,6 +328,13 @@ private struct CategoryChipsRow: View {
     @Environment(\.platformCapabilities) private var capabilities
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
+
+    private var filteredCategories: [ExpenseCategory] {
+        guard let workspaceID = UUID(uuidString: activeWorkspaceIDRaw) else { return Array(categories) }
+        return categories.filter { category in
+            (category.value(forKey: "workspaceID") as? UUID) == workspaceID
+        }
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: DS.Spacing.s) {
@@ -374,8 +382,15 @@ private struct CategoryChipsRow: View {
         }
         .onChange(of: categories.count) { _ in
             // Auto-pick first category if none selected yet
-            if selectedCategoryID == nil, let first = categories.first {
+            if selectedCategoryID == nil, let first = filteredCategories.first {
                 selectedCategoryID = first.objectID
+            }
+        }
+        .onChange(of: activeWorkspaceIDRaw) { _ in
+            if let first = filteredCategories.first {
+                selectedCategoryID = first.objectID
+            } else {
+                selectedCategoryID = nil
             }
         }
     }
@@ -443,12 +458,12 @@ private extension CategoryChipsRow {
     @ViewBuilder
     private var categoryChips: some View {
         LazyHStack(spacing: DS.Spacing.s) {
-            if categories.isEmpty {
+            if filteredCategories.isEmpty {
                 Text("No categories yet")
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 10)
             } else {
-                ForEach(categories, id: \.objectID) { cat in
+                ForEach(filteredCategories, id: \.objectID) { cat in
                     let isSelected = selectedCategoryID == cat.objectID
                     CategoryChip(
                         id: cat.objectID.uriRepresentation().absoluteString,

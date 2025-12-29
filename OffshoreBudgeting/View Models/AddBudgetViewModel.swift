@@ -156,8 +156,10 @@ final class AddBudgetViewModel: ObservableObject {
 
         // Clone selected PlannedExpense templates (global)
         let templates = globalPlannedExpenseTemplates.filter { selectedTemplateObjectIDs.contains($0.objectID) }
+        let workspaceID = (newBudget.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.shared.activeWorkspaceID
         for template in templates {
-            PlannedExpenseService.shared.ensureChild(from: template, attachedTo: newBudget, in: context)
+            PlannedExpenseService.shared.ensureChild(from: template, attachedTo: newBudget, in: context, workspaceID: workspaceID)
         }
 
         try context.save()
@@ -183,6 +185,8 @@ final class AddBudgetViewModel: ObservableObject {
         }
         // Handle preset planned expense templates
         let existingInstances = fetchPlannedExpenses(for: budget)
+        let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.shared.activeWorkspaceID
 
         // Add instances for newly selected templates
         let templatesToEnsure = globalPlannedExpenseTemplates.filter { selectedTemplateObjectIDs.contains($0.objectID) }
@@ -190,7 +194,7 @@ final class AddBudgetViewModel: ObservableObject {
             let tid = template.id
             let already = existingInstances.contains { $0.globalTemplateID == tid }
             if !already {
-                PlannedExpenseService.shared.ensureChild(from: template, attachedTo: budget, in: context)
+                PlannedExpenseService.shared.ensureChild(from: template, attachedTo: budget, in: context, workspaceID: workspaceID)
             }
         }
 
@@ -209,6 +213,7 @@ final class AddBudgetViewModel: ObservableObject {
     // MARK: Private fetch helpers
     private func fetchCards() -> [Card] {
         let req = NSFetchRequest<Card>(entityName: "Card")
+        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
         req.sortDescriptors = [
             NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
         ]
@@ -217,7 +222,10 @@ final class AddBudgetViewModel: ObservableObject {
 
     private func fetchGlobalPlannedExpenseTemplates() -> [PlannedExpense] {
         let req = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-        req.predicate = NSPredicate(format: "isGlobal == YES")
+        req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "isGlobal == YES"),
+            WorkspaceService.shared.activeWorkspacePredicate()
+        ])
         req.sortDescriptors = [
             NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
         ]

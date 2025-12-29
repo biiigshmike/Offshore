@@ -138,8 +138,9 @@ struct PresetBudgetAssignmentSheet: View {
     // MARK: - Load
     /// Loads budgets and current assignment membership.
     private func reload() {
-        budgets = PlannedExpenseService.shared.fetchAllBudgets(in: viewContext)
-        let children = PlannedExpenseService.shared.fetchChildren(of: template, in: viewContext)
+        let workspaceID = WorkspaceService.shared.activeWorkspaceID
+        budgets = PlannedExpenseService.shared.fetchAllBudgets(in: viewContext, workspaceID: workspaceID)
+        let children = PlannedExpenseService.shared.fetchChildren(of: template, in: viewContext, workspaceID: workspaceID)
         let assignedBudgetIDs = Set(children.compactMap { $0.budget?.id })
         membership = [:]
         for b in budgets {
@@ -156,10 +157,12 @@ struct PresetBudgetAssignmentSheet: View {
 
     private func toggleAssignment(for budget: Budget, to newValue: Bool) {
         guard let budgetID = budget.id else { return }
+        let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.shared.activeWorkspaceID
         if newValue {
-            PlannedExpenseService.shared.ensureChild(from: template, attachedTo: budget, in: viewContext)
+            PlannedExpenseService.shared.ensureChild(from: template, attachedTo: budget, in: viewContext, workspaceID: workspaceID)
         } else {
-            PlannedExpenseService.shared.removeChild(from: template, for: budget, in: viewContext)
+            PlannedExpenseService.shared.removeChild(from: template, for: budget, in: viewContext, workspaceID: workspaceID)
         }
         membership[budgetID] = newValue
     }

@@ -23,9 +23,13 @@ struct BudgetIncomeCalculator {
     ///  - context: CoreData/App context
     static func fetchIncomes(in range: DateInterval,
                              isPlanned: Bool? = nil,
-                             context: NSManagedObjectContext) throws -> [Income] {
+                             context: NSManagedObjectContext,
+                             workspaceID: UUID) throws -> [Income] {
         let request = Income.fetchRequest()
-        request.predicate = predicate(for: range, isPlanned: isPlanned)
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            predicate(for: range, isPlanned: isPlanned),
+            WorkspaceService.predicate(for: workspaceID)
+        ])
         request.fetchBatchSize = 64
         return try context.fetch(request)
     }
@@ -34,8 +38,9 @@ struct BudgetIncomeCalculator {
     /// Sums amounts within a date interval for planned or actual incomes.
     static func sum(in range: DateInterval,
                     isPlanned: Bool? = nil,
-                    context: NSManagedObjectContext) throws -> Double {
-        let totals = try totals(for: range, context: context)
+                    context: NSManagedObjectContext,
+                    workspaceID: UUID) throws -> Double {
+        let totals = try totals(for: range, context: context, workspaceID: workspaceID)
         if let planned = isPlanned {
             return planned ? totals.planned : totals.actual
         }
@@ -45,9 +50,13 @@ struct BudgetIncomeCalculator {
     // MARK: Totals Bucket
     /// Convenience that returns both planned and actual totals for a budget window.
     static func totals(for range: DateInterval,
-                       context: NSManagedObjectContext) throws -> (planned: Double, actual: Double) {
+                       context: NSManagedObjectContext,
+                       workspaceID: UUID) throws -> (planned: Double, actual: Double) {
         let request = NSFetchRequest<NSDictionary>(entityName: "Income")
-        request.predicate = predicate(for: range, isPlanned: nil)
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            predicate(for: range, isPlanned: nil),
+            WorkspaceService.predicate(for: workspaceID)
+        ])
         request.resultType = .dictionaryResultType
         request.propertiesToGroupBy = [#keyPath(Income.isPlanned)]
 

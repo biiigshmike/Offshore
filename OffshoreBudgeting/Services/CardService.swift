@@ -54,16 +54,24 @@ final class CardService {
             selector: #selector(NSString.localizedCaseInsensitiveCompare(_:))
         )]
         : []
-        return try cardRepo.fetchAll(sortDescriptors: sort)
+        let predicate: NSPredicate? = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return nil }
+            return WorkspaceService.predicate(for: workspaceID)
+        }()
+        return try cardRepo.fetchAll(predicate: predicate, sortDescriptors: sort)
     }
     
     // MARK: fetchCards(forBudgetID:)
-    /// Fetch all cards linked to a specific Budget.
+        /// Fetch all cards linked to a specific Budget.
     /// - Parameter budgetID: The Budget's UUID.
     /// - Returns: Array of Card used by that budget.
     func fetchCards(forBudgetID budgetID: UUID) throws -> [Card] {
         // Use literal KVC key path to avoid keyPath/Identifiable ambiguity.
-        let predicate = NSPredicate(format: "ANY budget.id == %@", budgetID as CVarArg)
+        let base = NSPredicate(format: "ANY budget.id == %@", budgetID as CVarArg)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         let sort = [NSSortDescriptor(
             key: #keyPath(Card.name),
             ascending: true,
@@ -78,7 +86,11 @@ final class CardService {
     /// - Returns: Card or nil if not found.
     func findCard(byID id: UUID) throws -> Card? {
         // Literal "id" avoids the same ambiguity issues.
-        let predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        let base = NSPredicate(format: "id == %@", id as CVarArg)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         return try cardRepo.fetchFirst(predicate: predicate)
     }
     
@@ -87,7 +99,11 @@ final class CardService {
     /// - Parameter name: Target name.
     /// - Returns: Number of cards matching.
     func countCards(named name: String) throws -> Int {
-        let predicate = NSPredicate(format: "name =[c] %@", name)
+        let base = NSPredicate(format: "name =[c] %@", name)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         return try cardRepo.count(predicate: predicate)
     }
     
@@ -104,7 +120,11 @@ final class CardService {
                     attachToBudgetIDs: [UUID] = []) throws -> Card {
         if ensureUniqueName {
             let existing = try cardRepo.fetchFirst(
-                predicate: NSPredicate(format: "name =[c] %@", name)
+                predicate: {
+                    let base = NSPredicate(format: "name =[c] %@", name)
+                    guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+                    return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+                }()
             )
             if let existing { return existing }
         }
@@ -113,6 +133,7 @@ final class CardService {
             // Assign via KVC to avoid `.id` ambiguity when Identifiable is also present.
             c.setValue(UUID(), forKey: "id")
             c.name = name
+            WorkspaceService.applyWorkspaceIDIfPossible(on: c)
         }
         
         if !attachToBudgetIDs.isEmpty {
@@ -170,7 +191,11 @@ final class CardService {
         guard !budgetIDs.isEmpty else { return }
         
         // Fetch budgets by IDs using literal "id" to avoid ambiguity.
-        let predicate = NSPredicate(format: "id IN %@", budgetIDs)
+        let base = NSPredicate(format: "id IN %@", budgetIDs)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         let budgets = try budgetRepo.fetchAll(predicate: predicate)
         
         // Use a KVC set for codegen-agnostic safety (works whether the relation is NSSet or Set<Budget>).
@@ -189,7 +214,11 @@ final class CardService {
         guard !budgetIDs.isEmpty else { return }
         
         // Fetch budgets by IDs using literal "id" to avoid ambiguity.
-        let predicate = NSPredicate(format: "id IN %@", budgetIDs)
+        let base = NSPredicate(format: "id IN %@", budgetIDs)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         let budgets = try budgetRepo.fetchAll(predicate: predicate)
         
         let budgetSet = card.mutableSetValue(forKey: "budget")
@@ -207,7 +236,11 @@ final class CardService {
         // Desired (fetch by literal "id")
         let desiredPredicate = budgetIDs.isEmpty
         ? NSPredicate(value: false) // nothing desired
-        : NSPredicate(format: "id IN %@", budgetIDs)
+        : {
+            let base = NSPredicate(format: "id IN %@", budgetIDs)
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         let desiredBudgets = try budgetRepo.fetchAll(predicate: desiredPredicate)
         let desiredSet = Set(desiredBudgets.map { $0.objectID })
         

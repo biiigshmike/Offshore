@@ -186,6 +186,8 @@ final class HomeViewModel: ObservableObject {
     private var pendingApply: DispatchWorkItem?
     private var lastLoadedAt: Date? = nil
     private var hasPostedInitialDataNotification = false
+    private var activeWorkspaceID: UUID { WorkspaceService.shared.activeWorkspaceID }
+    private var workspaceObserver: NSObjectProtocol?
 
     // MARK: init()
     /// - Parameter context: The Core Data context to use (defaults to main viewContext).
@@ -193,6 +195,14 @@ final class HomeViewModel: ObservableObject {
         self.context = context
         self.period = WorkspaceService.shared.currentBudgetPeriod(in: context)
         self.selectedDate = period.start(of: Date())
+
+        workspaceObserver = NotificationCenter.default.addObserver(
+            forName: .workspaceDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { await self?.refresh() }
+        }
     }
 
     var currentDateRange: ClosedRange<Date> {
@@ -833,9 +843,11 @@ final class HomeViewModel: ObservableObject {
                 }
 
                 let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+                let budgetWorkspaceID = budget.value(forKey: "workspaceID") as? UUID
                 plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                     NSPredicate(format: "budget == %@", budget),
-                    NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+                    NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
+                    budgetWorkspaceID.map { WorkspaceService.predicate(for: $0) } ?? NSPredicate(value: true)
                 ])
                 if let planned = try? ctx.fetch(plannedReq) {
                     for exp in planned {
@@ -847,7 +859,8 @@ final class HomeViewModel: ObservableObject {
                     let varReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
                     varReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                         NSPredicate(format: "card IN %@", cards as NSSet),
-                        NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+                        NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
+                        budgetWorkspaceID.map { WorkspaceService.predicate(for: $0) } ?? NSPredicate(value: true)
                     ])
                     if let vars = try? ctx.fetch(varReq) {
                         for exp in vars {
@@ -1091,19 +1104,21 @@ final class HomeViewModel: ObservableObject {
 
     deinit {
         if let observer = dataStoreObserver { NotificationCenter.default.removeObserver(observer) }
+        if let workspaceObserver { NotificationCenter.default.removeObserver(workspaceObserver) }
         cancellables.forEach { $0.cancel() }
     }
 
     private func loadSummaries(period: BudgetPeriod, dateRange: ClosedRange<Date>) async -> (summaries: [BudgetSummary], budgetIDs: [NSManagedObjectID]) {
-        await withCheckedContinuation { continuation in
+        let workspaceID = activeWorkspaceID
+        return await withCheckedContinuation { continuation in
             let backgroundContext = CoreDataService.shared.newBackgroundContext()
             backgroundContext.perform {
                 // Include any budgets that overlap the selected range. Do NOT
                 // require exact period alignment so empty or partial budgets
                 // still appear on Home and do not cause empty/loaded flapping.
-                let budgets = Self.fetchBudgets(overlapping: dateRange, in: backgroundContext)
-                let allCategories = Self.fetchAllCategories(in: backgroundContext)
-                let allIncomes = Self.fetchIncomes(overlapping: dateRange, in: backgroundContext)
+                let budgets = Self.fetchBudgets(overlapping: dateRange, in: backgroundContext, workspaceID: workspaceID)
+                let allCategories = Self.fetchAllCategories(in: backgroundContext, workspaceID: workspaceID)
+                let allIncomes = Self.fetchIncomes(overlapping: dateRange, in: backgroundContext, workspaceID: workspaceID)
 
                 let summaries: [BudgetSummary] = budgets.compactMap { budget -> BudgetSummary? in
                     // Use the intersection between the selected range and the budget itself
@@ -1118,7 +1133,8 @@ final class HomeViewModel: ObservableObject {
                         periodEnd: rangeEnd,
                         allCategories: allCategories,
                         allIncomes: allIncomes,
-                        in: backgroundContext
+                        in: backgroundContext,
+                        workspaceID: workspaceID
                     )
                 }
                 .sorted { (first: BudgetSummary, second: BudgetSummary) -> Bool in
@@ -1217,7 +1233,9 @@ final class HomeViewModel: ObservableObject {
     // MARK: fetchBudgets(overlapping:)
     /// Returns budgets that overlap the given date range.
     /// - Parameter range: The date window to match against budget start/end.
-    private nonisolated static func fetchBudgets(overlapping range: ClosedRange<Date>, in context: NSManagedObjectContext) -> [Budget] {
+    private nonisolated static func fetchBudgets(overlapping range: ClosedRange<Date>,
+                                                 in context: NSManagedObjectContext,
+                                                 workspaceID: UUID) -> [Budget] {
         let req = NSFetchRequest<Budget>(entityName: "Budget")
         let start = range.lowerBound
         let end = range.upperBound
@@ -1225,7 +1243,8 @@ final class HomeViewModel: ObservableObject {
         // Overlap predicate: (startDate <= end) AND (endDate >= start)
         req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "startDate <= %@", end as NSDate),
-            NSPredicate(format: "endDate >= %@", start as NSDate)
+            NSPredicate(format: "endDate >= %@", start as NSDate),
+            WorkspaceService.predicate(for: workspaceID)
         ])
         req.sortDescriptors = [
             NSSortDescriptor(key: "startDate", ascending: true),
@@ -1234,15 +1253,22 @@ final class HomeViewModel: ObservableObject {
         do { return try context.fetch(req) } catch { return [] }
     }
 
-    private nonisolated static func fetchAllCategories(in context: NSManagedObjectContext) -> [ExpenseCategory] {
+    private nonisolated static func fetchAllCategories(in context: NSManagedObjectContext,
+                                                       workspaceID: UUID) -> [ExpenseCategory] {
         let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+        req.predicate = WorkspaceService.predicate(for: workspaceID)
         req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
         return (try? context.fetch(req)) ?? []
     }
 
-    private nonisolated static func fetchIncomes(overlapping range: ClosedRange<Date>, in context: NSManagedObjectContext) -> [Income] {
+    private nonisolated static func fetchIncomes(overlapping range: ClosedRange<Date>,
+                                                 in context: NSManagedObjectContext,
+                                                 workspaceID: UUID) -> [Income] {
         let req = NSFetchRequest<Income>(entityName: "Income")
-        req.predicate = incomeDatePredicate(for: range)
+        req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            incomeDatePredicate(for: range),
+            WorkspaceService.predicate(for: workspaceID)
+        ])
         return (try? context.fetch(req)) ?? []
     }
 
@@ -1268,11 +1294,15 @@ final class HomeViewModel: ObservableObject {
         periodEnd: Date,
         allCategories: [ExpenseCategory],
         allIncomes: [Income],
-        in context: NSManagedObjectContext
+        in context: NSManagedObjectContext,
+        workspaceID: UUID
     ) -> BudgetSummary {
         // MARK: Planned Expenses (attached to budget)
         let plannedFetch = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-        plannedFetch.predicate = NSPredicate(format: "budget == %@", budget)
+        plannedFetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "budget == %@", budget),
+            WorkspaceService.predicate(for: workspaceID)
+        ])
         let plannedRaw: [PlannedExpense] = (try? context.fetch(plannedFetch)) ?? []
         // Deduplicate strict duplicates of template-children within this budget to avoid double-counting
         var seenTemplateChildKeys = Set<String>()
@@ -1328,7 +1358,8 @@ final class HomeViewModel: ObservableObject {
             let unplannedReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
             unplannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 NSPredicate(format: "card IN %@", cards),
-                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", periodStart as NSDate, periodEnd as NSDate)
+                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", periodStart as NSDate, periodEnd as NSDate),
+                WorkspaceService.predicate(for: workspaceID)
             ])
             let unplanned: [UnplannedExpense] = (try? context.fetch(unplannedReq)) ?? []
             for e in unplanned {

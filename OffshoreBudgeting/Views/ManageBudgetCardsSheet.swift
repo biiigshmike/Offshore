@@ -15,6 +15,11 @@ struct ManageBudgetCardsSheet: View {
         self.budget = budget
         self.onDone = onDone
         let req: NSFetchRequest<Card> = NSFetchRequest(entityName: "Card")
+        if let workspaceID = budget.value(forKey: "workspaceID") as? UUID {
+            req.predicate = WorkspaceService.predicate(for: workspaceID)
+        } else {
+            req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
+        }
         req.sortDescriptors = [
             NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
         ]
@@ -66,4 +71,3 @@ struct ManageBudgetCardsSheet: View {
         try? viewContext.save()
     }
 }
-

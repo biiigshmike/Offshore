@@ -84,5 +84,10 @@
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="isCloud" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="name" optional="YES" attributeType="String"/>
+        <uniquenessConstraints>
+            <constraint>
+                <constraintElement name="id"/>
+            </constraint>
+        </uniquenessConstraints>
     </entity>
 </model>

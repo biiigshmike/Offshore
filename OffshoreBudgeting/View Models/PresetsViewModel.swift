@@ -85,16 +85,17 @@ final class PresetsViewModel: ObservableObject {
     /// Fetches global templates, deriving assignment counts and next dates.
     func loadTemplates(using context: NSManagedObjectContext) {
         let bg = CoreDataService.shared.newBackgroundContext()
+        let workspaceID = WorkspaceService.shared.activeWorkspaceID
 
         Task {
             struct Outline { let id: NSManagedObjectID; let name: String; let planned: Double; let actual: Double; let assignedCount: Int; let nextDate: Date? }
 
             let outlines = await bg.perform { () -> [Outline] in
-                let templates = PlannedExpenseService.shared.fetchGlobalTemplates(in: bg)
+                let templates = PlannedExpenseService.shared.fetchGlobalTemplates(in: bg, workspaceID: workspaceID)
                 let referenceDate = Calendar.current.startOfDay(for: Date())
                 var rows: [Outline] = []
                 for t in templates {
-                    let children = PlannedExpenseService.shared.fetchChildren(of: t, in: bg)
+                    let children = PlannedExpenseService.shared.fetchChildren(of: t, in: bg, workspaceID: workspaceID)
                     let planned = t.plannedAmount
                     let actual = t.actualAmount
                     // Count distinct budgets to avoid over-reporting when duplicates exist

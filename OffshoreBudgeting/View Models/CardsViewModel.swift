@@ -146,6 +146,7 @@ final class CardsViewModel: ObservableObject {
     /// Builds the fetch request/observer and starts streaming updates.
     private func configureAndStartObserver() {
         let request: NSFetchRequest<Card> = Card.fetchRequest()
+        request.predicate = WorkspaceService.shared.activeWorkspacePredicate()
         request.sortDescriptors = [
             NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
         ]

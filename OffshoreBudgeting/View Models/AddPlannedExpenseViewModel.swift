@@ -240,9 +240,12 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                 }
                 if let templateID = existing.globalTemplateID {
                     let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
+                    let workspaceID = (existing.value(forKey: "workspaceID") as? UUID)
+                        ?? WorkspaceService.shared.activeWorkspaceID
                     request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                         NSPredicate(format: "isGlobal == NO"),
-                        NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg)
+                        NSPredicate(format: "globalTemplateID == %@", templateID as CVarArg),
+                        WorkspaceService.predicate(for: workspaceID)
                     ])
                     if let siblings = try? context.fetch(request) {
                         for sibling in siblings where sibling != existing {
@@ -289,9 +292,12 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                 for budgetID in budgetsToAdd {
                     guard let budget = selectedBudgetMap[budgetID] else { continue }
                     let template = templateForChildPropagation ?? existing
+                    let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+                        ?? WorkspaceService.shared.activeWorkspaceID
                     let child = PlannedExpenseService.shared.ensureChild(from: template,
                                                                          attachedTo: budget,
-                                                                         in: context)
+                                                                         in: context,
+                                                                         workspaceID: workspaceID)
                     child.descriptionText = trimmed
                     child.plannedAmount = plannedAmt
                     child.actualAmount = actualAmt
@@ -342,9 +348,12 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                 let parentID = parent.id ?? UUID()
                 parent.id = parentID
                 for targetBudget in budgetTargets {
+                    let workspaceID = (targetBudget.value(forKey: "workspaceID") as? UUID)
+                        ?? WorkspaceService.shared.activeWorkspaceID
                     let child = PlannedExpenseService.shared.ensureChild(from: parent,
                                                                          attachedTo: targetBudget,
-                                                                         in: context)
+                                                                         in: context,
+                                                                         workspaceID: workspaceID)
                     child.descriptionText = trimmed
                     child.plannedAmount = plannedAmt
                     child.actualAmount = actualAmt
@@ -443,7 +452,9 @@ final class AddPlannedExpenseViewModel: ObservableObject {
 
     private func gatherBudgetSelections(for expense: PlannedExpense) -> Set<NSManagedObjectID> {
         if let template = resolveTemplate(for: expense) {
-            let children = PlannedExpenseService.shared.fetchChildren(of: template, in: context)
+            let workspaceID = (template.value(forKey: "workspaceID") as? UUID)
+                ?? WorkspaceService.shared.activeWorkspaceID
+            let children = PlannedExpenseService.shared.fetchChildren(of: template, in: context, workspaceID: workspaceID)
             return Set(children.compactMap { $0.budget?.objectID })
         }
 
@@ -454,6 +465,9 @@ final class AddPlannedExpenseViewModel: ObservableObject {
             NSPredicate(format: "globalTemplateID == nil"),
             NSPredicate(format: "plannedAmount == %lf", expense.plannedAmount)
         ]
+        if let workspaceID = expense.value(forKey: "workspaceID") as? UUID {
+            predicates.append(WorkspaceService.predicate(for: workspaceID))
+        }
         if let date = expense.transactionDate {
             predicates.append(NSPredicate(format: "transactionDate == %@", date as NSDate))
         }
@@ -488,9 +502,12 @@ final class AddPlannedExpenseViewModel: ObservableObject {
         guard let templateID = expense.globalTemplateID else { return nil }
         let request: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
         request.fetchLimit = 1
+        let workspaceID = (expense.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.shared.activeWorkspaceID
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "id == %@", templateID as CVarArg),
-            NSPredicate(format: "isGlobal == YES")
+            NSPredicate(format: "isGlobal == YES"),
+            WorkspaceService.predicate(for: workspaceID)
         ])
         return try? context.fetch(request).first
     }
@@ -527,6 +544,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
     // MARK: Private fetch
     private func fetchBudgets() -> [Budget] {
         let req = NSFetchRequest<Budget>(entityName: "Budget")
+        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
         req.sortDescriptors = [
             NSSortDescriptor(key: "startDate", ascending: false),
             NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
@@ -536,6 +554,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
 
     private func fetchCards() -> [Card] {
         let req = NSFetchRequest<Card>(entityName: "Card")
+        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
         req.sortDescriptors = [
             NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
         ]
@@ -576,6 +595,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
 
     private func fetchCategories() -> [ExpenseCategory] {
         let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
         req.sortDescriptors = [
             NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
         ]

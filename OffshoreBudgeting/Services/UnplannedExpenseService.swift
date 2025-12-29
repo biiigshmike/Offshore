@@ -77,13 +77,21 @@ final class UnplannedExpenseService {
     /// Fetch all unplanned expenses.
     func fetchAll(sortedByDateAscending: Bool = true) throws -> [UnplannedExpense] {
         let sort = NSSortDescriptor(key: "transactionDate", ascending: sortedByDateAscending)
-        return try expenseRepo.fetchAll(sortDescriptors: [sort])
+        let predicate: NSPredicate? = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return nil }
+            return WorkspaceService.predicate(for: workspaceID)
+        }()
+        return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
     }
     
     // MARK: find(byID:)
     /// Find a single expense by UUID.
     func find(byID id: UUID) throws -> UnplannedExpense? {
-        let predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        let base = NSPredicate(format: "id == %@", id as CVarArg)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         return try expenseRepo.fetchFirst(predicate: predicate)
     }
     
@@ -94,10 +102,20 @@ final class UnplannedExpenseService {
                       sortedByDateAscending: Bool = true) throws -> [UnplannedExpense] {
         var predicate: NSPredicate
         if let interval {
-            predicate = NSPredicate(format: "card.id == %@ AND transactionDate >= %@ AND transactionDate <= %@",
-                                    cardID as CVarArg, interval.start as CVarArg, interval.end as CVarArg)
+            let base = NSPredicate(format: "card.id == %@ AND transactionDate >= %@ AND transactionDate <= %@",
+                                   cardID as CVarArg, interval.start as CVarArg, interval.end as CVarArg)
+            if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+            } else {
+                predicate = base
+            }
         } else {
-            predicate = NSPredicate(format: "card.id == %@", cardID as CVarArg)
+            let base = NSPredicate(format: "card.id == %@", cardID as CVarArg)
+            if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+            } else {
+                predicate = base
+            }
         }
         let sort = NSSortDescriptor(key: "transactionDate", ascending: sortedByDateAscending)
         return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
@@ -110,10 +128,20 @@ final class UnplannedExpenseService {
                           sortedByDateAscending: Bool = true) throws -> [UnplannedExpense] {
         var predicate: NSPredicate
         if let interval {
-            predicate = NSPredicate(format: "expenseCategory.id == %@ AND transactionDate >= %@ AND transactionDate <= %@",
-                                    categoryID as CVarArg, interval.start as CVarArg, interval.end as CVarArg)
+            let base = NSPredicate(format: "expenseCategory.id == %@ AND transactionDate >= %@ AND transactionDate <= %@",
+                                   categoryID as CVarArg, interval.start as CVarArg, interval.end as CVarArg)
+            if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+            } else {
+                predicate = base
+            }
         } else {
-            predicate = NSPredicate(format: "expenseCategory.id == %@", categoryID as CVarArg)
+            let base = NSPredicate(format: "expenseCategory.id == %@", categoryID as CVarArg)
+            if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+            } else {
+                predicate = base
+            }
         }
         let sort = NSSortDescriptor(key: "transactionDate", ascending: sortedByDateAscending)
         return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
@@ -127,8 +155,12 @@ final class UnplannedExpenseService {
                         in interval: DateInterval,
                         sortedByDateAscending: Bool = true) throws -> [UnplannedExpense] {
         // ANY card.budget.id == budgetID (Card is to-one, Card.budget is to-many)
-        let predicate = NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@ AND ANY card.budget.id == %@",
-                                    interval.start as CVarArg, interval.end as CVarArg, budgetID as CVarArg)
+        let base = NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@ AND ANY card.budget.id == %@",
+                               interval.start as CVarArg, interval.end as CVarArg, budgetID as CVarArg)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         let sort = NSSortDescriptor(key: "transactionDate", ascending: sortedByDateAscending)
         return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
     }
@@ -159,12 +191,22 @@ final class UnplannedExpenseService {
                 secondBiMonthlyDay: Int16? = nil,
                 secondBiMonthlyDate: Date? = nil,
                 parentID: UUID? = nil) throws -> UnplannedExpense {
-        guard let card = try cardRepo.fetchFirst(predicate: NSPredicate(format: "id == %@", cardID as CVarArg)) else {
+        let cardBase = NSPredicate(format: "id == %@", cardID as CVarArg)
+        let cardPredicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return cardBase }
+            return WorkspaceService.combinedPredicate(cardBase, workspaceID: workspaceID)
+        }()
+        guard let card = try cardRepo.fetchFirst(predicate: cardPredicate) else {
             throw NSError(domain: "UnplannedExpenseService", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Card not found: \(cardID)"])
         }
         let category: ExpenseCategory? = {
             guard let categoryID else { return nil }
-            return try? categoryRepo.fetchFirst(predicate: NSPredicate(format: "id == %@", categoryID as CVarArg))
+            let base = NSPredicate(format: "id == %@", categoryID as CVarArg)
+            let predicate: NSPredicate = {
+                guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+                return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+            }()
+            return try? categoryRepo.fetchFirst(predicate: predicate)
         }()
         
         let expense = expenseRepo.create { exp in
@@ -182,6 +224,7 @@ final class UnplannedExpenseService {
             exp.setValue(card, forKey: "card")
             if let category { exp.setValue(category, forKey: "expenseCategory") }
             if let parentID { exp.setValue(parentID, forKey: "parentID") }
+            WorkspaceService.applyWorkspaceIDIfPossible(on: exp)
         }
         
         try expenseRepo.saveIfNeeded()
@@ -208,7 +251,12 @@ final class UnplannedExpenseService {
         if let date { expense.transactionDate = date }
         
         if let cardID {
-            if let card = try cardRepo.fetchFirst(predicate: NSPredicate(format: "id == %@", cardID as CVarArg)) {
+            let base = NSPredicate(format: "id == %@", cardID as CVarArg)
+            let cardPredicate: NSPredicate = {
+                guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+                return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+            }()
+            if let card = try cardRepo.fetchFirst(predicate: cardPredicate) {
                 expense.setValue(card, forKey: "card")
             }
         }
@@ -216,7 +264,12 @@ final class UnplannedExpenseService {
         if let categoryID {
             if let cid = categoryID {
                 // Set to specific category ID
-                if let cat = try categoryRepo.fetchFirst(predicate: NSPredicate(format: "id == %@", cid as CVarArg)) {
+                let base = NSPredicate(format: "id == %@", cid as CVarArg)
+                let catPredicate: NSPredicate = {
+                    guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+                    return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+                }()
+                if let cat = try categoryRepo.fetchFirst(predicate: catPredicate) {
                     expense.setValue(cat, forKey: "expenseCategory")
                 }
             } else {
@@ -259,7 +312,11 @@ final class UnplannedExpenseService {
     // MARK: deleteAllForCard(_:)
     /// DANGER: Delete all unplanned expenses for a card (testing/reset).
     func deleteAllForCard(_ cardID: UUID) throws {
-        let predicate = NSPredicate(format: "card.id == %@", cardID as CVarArg)
+        let base = NSPredicate(format: "card.id == %@", cardID as CVarArg)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         try expenseRepo.deleteAll(predicate: predicate)
     }
     
@@ -291,7 +348,11 @@ final class UnplannedExpenseService {
     // MARK: children(of:)
     /// Fetch the direct children of a parent expense.
     func children(of parentID: UUID) throws -> [UnplannedExpense] {
-        let predicate = NSPredicate(format: "parentExpense.id == %@", parentID as CVarArg)
+        let base = NSPredicate(format: "parentExpense.id == %@", parentID as CVarArg)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         let sort = NSSortDescriptor(key: "transactionDate", ascending: true)
         return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
     }
@@ -407,8 +468,12 @@ final class UnplannedExpenseService {
     
     // MARK: - Internal: Range fetch (used by calendar helpers)
     private func fetchRange(_ interval: DateInterval) throws -> [UnplannedExpense] {
-        let predicate = NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@",
-                                    interval.start as CVarArg, interval.end as CVarArg)
+        let base = NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@",
+                               interval.start as CVarArg, interval.end as CVarArg)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         let sort = NSSortDescriptor(key: "transactionDate", ascending: true)
         return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
     }

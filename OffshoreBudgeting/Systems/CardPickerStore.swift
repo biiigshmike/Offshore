@@ -25,6 +25,7 @@ final class CardPickerStore: ObservableObject {
     // MARK: Observation
     private var observer: CoreDataListObserver<Card>?
     private var hasStarted = false
+    private var workspaceObserver: NSObjectProtocol?
 
     // MARK: Init
     /// Defer resolving the Core Data context until `start()` to avoid
@@ -47,6 +48,7 @@ final class CardPickerStore: ObservableObject {
             await CoreDataService.shared.waitUntilStoresLoaded()
             configureObserverIfNeeded()
             observer?.start()
+            observeWorkspaceChanges()
         }
     }
 
@@ -57,14 +59,19 @@ final class CardPickerStore: ObservableObject {
 
         let request = makeFetchRequest()
         observer = CoreDataListObserver(request: request, context: context) { [weak self] cards in
-            guard let self else { return }
-            self.cards = cards
-            self.isReady = true
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.cards = cards
+                self.isReady = true
+            }
         }
     }
 
     private func makeFetchRequest() -> NSFetchRequest<Card> {
         let request = NSFetchRequest<Card>(entityName: "Card")
+        if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+            request.predicate = WorkspaceService.predicate(for: workspaceID)
+        }
         request.sortDescriptors = [
             NSSortDescriptor(
                 key: "name",
@@ -75,7 +82,25 @@ final class CardPickerStore: ObservableObject {
         return request
     }
 
+    private func observeWorkspaceChanges() {
+        guard workspaceObserver == nil else { return }
+        workspaceObserver = NotificationCenter.default.addObserver(
+            forName: .workspaceDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.observer?.stop()
+                self.observer = nil
+                self.configureObserverIfNeeded()
+                self.observer?.start()
+            }
+        }
+    }
+
     deinit {
         observer?.stop()
+        if let workspaceObserver { NotificationCenter.default.removeObserver(workspaceObserver) }
     }
 }

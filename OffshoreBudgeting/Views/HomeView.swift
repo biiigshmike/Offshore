@@ -1749,9 +1749,13 @@ struct HomeView: View {
         let snapshot: PlannedExpenseSnapshot? = await bgContext.perform {
             guard let budget = try? bgContext.existingObject(with: summary.id) as? Budget else { return nil }
             let fetch = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+            let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+                ?? WorkspaceService.activeWorkspaceIDFromDefaults()
+            guard let workspaceID else { return nil }
             fetch.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 NSPredicate(format: "budget == %@", budget),
-                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
+                WorkspaceService.predicate(for: workspaceID)
             ])
             fetch.sortDescriptors = [NSSortDescriptor(key: "transactionDate", ascending: true)]
             fetch.fetchLimit = 25
@@ -1908,6 +1912,7 @@ struct HomeView: View {
         let range = currentRange
         let ctx = CoreDataService.shared.viewContext
         let req = NSFetchRequest<Card>(entityName: "Card")
+        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
         req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
         let fetched = (try? ctx.fetch(req)) ?? []
         let items: [CardItem] = fetched.map { card in
@@ -1916,15 +1921,19 @@ struct HomeView: View {
             let expenseReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
             expenseReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 NSPredicate(format: "card == %@", card),
-                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
+                WorkspaceService.shared.activeWorkspacePredicate()
             ])
             if let expenses = try? ctx.fetch(expenseReq) {
                 let variableTotal = expenses.reduce(0) { $0 + $1.amount }
                 var plannedTotal: Double = 0
                 if let cardUUID = card.value(forKey: "id") as? UUID {
                     let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-                    plannedReq.predicate = NSPredicate(format: "card.id == %@ AND isGlobal == NO AND transactionDate >= %@ AND transactionDate <= %@",
-                                                       cardUUID as CVarArg, range.lowerBound as NSDate, range.upperBound as NSDate)
+                    plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                        NSPredicate(format: "card.id == %@ AND isGlobal == NO AND transactionDate >= %@ AND transactionDate <= %@",
+                                    cardUUID as CVarArg, range.lowerBound as NSDate, range.upperBound as NSDate),
+                        WorkspaceService.shared.activeWorkspacePredicate()
+                    ])
                     if let planned = try? ctx.fetch(plannedReq) {
                         plannedTotal = planned.reduce(0) { $0 + $1.actualAmount }
                     }
@@ -2644,7 +2653,13 @@ private struct MetricDetailView: View {
             guard let budget = try? ctx.existingObject(with: summary.id) as? Budget else { return [] }
             let catReq = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
             catReq.fetchLimit = 1
-            catReq.predicate = NSPredicate(format: "name ==[cd] %@", categoryName)
+            let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+                ?? WorkspaceService.activeWorkspaceIDFromDefaults()
+            guard let workspaceID else { return [] }
+            catReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "name ==[cd] %@", categoryName),
+                WorkspaceService.predicate(for: workspaceID)
+            ])
             guard let category = try? ctx.fetch(catReq).first else { return [] }
 
             var results: [CategoryExpenseItem] = []
@@ -2657,7 +2672,8 @@ private struct MetricDetailView: View {
                     NSPredicate(format: "budget == %@", budget),
                     NSPredicate(format: "isGlobal == NO"),
                     NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start, end),
-                    NSPredicate(format: "expenseCategory == %@", category)
+                    NSPredicate(format: "expenseCategory == %@", category),
+                    WorkspaceService.predicate(for: workspaceID)
                 ])
                 plannedReq.sortDescriptors = [NSSortDescriptor(key: "transactionDate", ascending: false)]
                 if let planned = try? ctx.fetch(plannedReq) {
@@ -2682,7 +2698,8 @@ private struct MetricDetailView: View {
                 varReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                     NSPredicate(format: "card IN %@", cards as NSSet),
                     NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start, end),
-                    NSPredicate(format: "expenseCategory == %@", category)
+                    NSPredicate(format: "expenseCategory == %@", category),
+                    WorkspaceService.predicate(for: workspaceID)
                 ])
                 varReq.sortDescriptors = [NSSortDescriptor(key: "transactionDate", ascending: false)]
                 if let vars = try? ctx.fetch(varReq) {
@@ -3552,12 +3569,26 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
             var incomeDaily: [Date: Double] = [:]
             var expenseDaily: [Date: Double] = [:]
+            let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+                ?? WorkspaceService.activeWorkspaceIDFromDefaults()
+            guard let workspaceID else {
+                let projected = summary.potentialIncomeTotal - summary.plannedExpensesPlannedTotal - summary.variableExpensesTotal
+                return DailySeriesResult(
+                    expensePoints: twoPointSeries(value: summary.plannedExpensesActualTotal + summary.variableExpensesTotal),
+                    actualIncomePoints: twoPointSeries(value: summary.actualIncomeTotal),
+                    plannedIncomePoints: twoPointSeries(value: summary.potentialIncomeTotal),
+                    savingsPoints: fallbackSavingsSeries(projected: projected, actual: summary.actualSavingsTotal)
+                )
+            }
             // Incomes (actual)
             let incomeReq = NSFetchRequest<Income>(entityName: "Income")
             let incomeStart = startOfDay(range.lowerBound)
             let incomeEndDay = startOfDay(range.upperBound)
             let incomeEndExclusive = Calendar.current.date(byAdding: .day, value: 1, to: incomeEndDay) ?? range.upperBound
-            incomeReq.predicate = NSPredicate(format: "date >= %@ AND date < %@", incomeStart as NSDate, incomeEndExclusive as NSDate)
+            incomeReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "date >= %@ AND date < %@", incomeStart as NSDate, incomeEndExclusive as NSDate),
+                WorkspaceService.predicate(for: workspaceID)
+            ])
             if let incomes = try? ctx.fetch(incomeReq) {
                 for inc in incomes where inc.isPlanned == false {
                     let day = startOfDay(inc.date ?? range.lowerBound)
@@ -3569,7 +3600,8 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
             plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 NSPredicate(format: "budget == %@", budget),
-                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
+                WorkspaceService.predicate(for: workspaceID)
             ])
             if let planned = try? ctx.fetch(plannedReq) {
                 for exp in planned {
@@ -3583,7 +3615,8 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 let varReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
                 varReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                     NSPredicate(format: "card IN %@", cards as NSSet),
-                    NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+                    NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
+                    WorkspaceService.predicate(for: workspaceID)
                 ])
                 if let vars = try? ctx.fetch(varReq) {
                     for exp in vars {
@@ -3779,6 +3812,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     // MARK: Income Helpers
     private func computeIncomeTimeline() async -> IncomeTimelineResult {
         let ctx = CoreDataService.shared.newBackgroundContext()
+        let workspaceID = WorkspaceService.shared.activeWorkspaceID
         return await ctx.perform {
             let dates = allDates(in: range)
             var incomeDaily: [Date: Double] = [:]
@@ -3787,7 +3821,10 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             let incomeStart = startOfDay(range.lowerBound)
             let incomeEndDay = startOfDay(range.upperBound)
             let incomeEndExclusive = Calendar.current.date(byAdding: .day, value: 1, to: incomeEndDay) ?? range.upperBound
-            incomeReq.predicate = NSPredicate(format: "date >= %@ AND date < %@", incomeStart as NSDate, incomeEndExclusive as NSDate)
+            incomeReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "date >= %@ AND date < %@", incomeStart as NSDate, incomeEndExclusive as NSDate),
+                WorkspaceService.predicate(for: workspaceID)
+            ])
             incomeReq.sortDescriptors = [NSSortDescriptor(key: "date", ascending: true)]
             let incomes = (try? ctx.fetch(incomeReq)) ?? []
             for inc in incomes where inc.isPlanned == false {
@@ -3820,13 +3857,15 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     return DatedValue(date: day, value: expectedCumulative)
                 }
             }
-            let buckets = computeIncomeBuckets(using: ctx, period: comparisonPeriod)
+            let buckets = computeIncomeBuckets(using: ctx, period: comparisonPeriod, workspaceID: workspaceID)
             let latestIncomeID = incomes.last?.objectID
             return IncomeTimelineResult(received: received, expected: expected, buckets: buckets, latestIncomeID: latestIncomeID)
         }
     }
 
-    private func computeIncomeBuckets(using ctx: NSManagedObjectContext, period: IncomeComparisonPeriod) -> [IncomeBucket] {
+    private func computeIncomeBuckets(using ctx: NSManagedObjectContext,
+                                      period: IncomeComparisonPeriod,
+                                      workspaceID: UUID) -> [IncomeBucket] {
         var buckets: [IncomeBucket] = []
         let calendar = Calendar.current
         let end = range.upperBound
@@ -3834,7 +3873,10 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         for i in 0..<count {
             guard let bucketRange = bucketRange(endingAt: end, index: i, period: period, calendar: calendar) else { continue }
             let incomeReq = NSFetchRequest<Income>(entityName: "Income")
-            incomeReq.predicate = NSPredicate(format: "date >= %@ AND date <= %@", bucketRange.start as NSDate, bucketRange.end as NSDate)
+            incomeReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "date >= %@ AND date <= %@", bucketRange.start as NSDate, bucketRange.end as NSDate),
+                WorkspaceService.predicate(for: workspaceID)
+            ])
             let total = ((try? ctx.fetch(incomeReq)) ?? []).filter { $0.isPlanned == false }.reduce(0) { $0 + $1.amount }
             let label = bucketLabel(for: bucketRange, period: period, calendar: calendar)
             buckets.append(IncomeBucket(label: label, start: bucketRange.start, total: total))
@@ -4596,9 +4638,13 @@ private func daySpendTotals(for summary: BudgetSummary, in range: ClosedRange<Da
 
         // Planned expenses
         let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+        let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.activeWorkspaceIDFromDefaults()
+        guard let workspaceID else { return totals }
         plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "budget == %@", budget),
-            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
+            WorkspaceService.predicate(for: workspaceID)
         ])
         if let planned = try? ctx.fetch(plannedReq) {
             for exp in planned {
@@ -4611,7 +4657,8 @@ private func daySpendTotals(for summary: BudgetSummary, in range: ClosedRange<Da
             let varReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
             varReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 NSPredicate(format: "card IN %@", cards as NSSet),
-                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
+                WorkspaceService.predicate(for: workspaceID)
             ])
             if let vars = try? ctx.fetch(varReq) {
                 for exp in vars {
@@ -5203,6 +5250,9 @@ struct PlannedRowsList: View {
             NSPredicate(format: "budget == %@", budget),
             NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate)
         ]
+        if let workspaceID = budget.value(forKey: "workspaceID") as? UUID {
+            predicates.append(WorkspaceService.predicate(for: workspaceID))
+        }
         if let catPredicate = categoryPredicate(from: selectedCategoryURI) {
             predicates.append(catPredicate)
         }
@@ -5408,6 +5458,9 @@ struct VariableRowsList: View {
                 NSPredicate(format: "card IN %@", cards as NSSet),
                 NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate)
             ]
+            if let workspaceID = budget.value(forKey: "workspaceID") as? UUID {
+                subs.append(WorkspaceService.predicate(for: workspaceID))
+            }
             if let catPredicate = categoryPredicate(from: selectedCategoryURI) {
                 subs.append(catPredicate)
             }

@@ -27,10 +27,9 @@ import CoreData
 ///
 /// What it does:
 /// - Ensures stores are loaded and CloudKit mode is active.
-/// - Runs a batch update across all syncable entities to rewrite `workspaceID`
-///   to the current workspace. Even when the value is the same, the batch
-///   update produces history entries, which CloudKit mirroring treats as
-///   updates to export. No user-visible fields are changed.
+/// - Runs a batch update across all syncable entities, writing `workspaceID`
+///   back onto itself to generate history entries without moving records
+///   across workspaces.
 /// - Merges the updated object IDs back into the view context so UI can refresh.
 ///
 /// Safety notes:
@@ -67,8 +66,6 @@ enum ForceReuploadHelper {
             throw ForceReuploadError.cloudNotActive
         }
 
-        let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
-
         let entityNames = [
             "Budget",
             "Card",
@@ -88,7 +85,7 @@ enum ForceReuploadHelper {
             try backgroundContext.performAndWait {
 
                 let request = NSBatchUpdateRequest(entityName: name)
-                request.propertiesToUpdate = ["workspaceID": workspaceID]
+                request.propertiesToUpdate = ["workspaceID": NSExpression(forKeyPath: "workspaceID")]
                 request.resultType = .updatedObjectIDsResultType
 
                 let result = try backgroundContext.execute(request) as? NSBatchUpdateResult

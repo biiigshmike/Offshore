@@ -241,7 +241,14 @@ struct RecurrenceEngine {
 
         // Remove existing children for this series
         let request: NSFetchRequest<Income> = Income.fetchRequest()
-        request.predicate = NSPredicate(format: "parentID == %@", baseID as CVarArg)
+        if let workspaceID = income.value(forKey: "workspaceID") as? UUID {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "parentID == %@", baseID as CVarArg),
+                WorkspaceService.predicate(for: workspaceID)
+            ])
+        } else {
+            request.predicate = NSPredicate(format: "parentID == %@", baseID as CVarArg)
+        }
         let existingChildren = try context.fetch(request)
         existingChildren.forEach { context.delete($0) }
 

@@ -21,6 +21,7 @@ extension Notification.Name {
     /// NotificationCenter.default.addObserver(forName: .dataStoreDidChange, object: nil, queue: .main) { _ in ... }
     static let dataStoreDidChange = Notification.Name("dataStoreDidChange")
     static let homeViewInitialDataLoaded = Notification.Name("homeViewInitialDataLoaded")
+    static let workspaceDidChange = Notification.Name("workspaceDidChange")
     
     // Intentionally lean: add new app-wide notifications only when used.
 }

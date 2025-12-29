@@ -118,6 +118,7 @@ final class BudgetDetailsViewModel: ObservableObject {
 
         // Include zero-amount categories by unioning with all ExpenseCategory records
         let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
         req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
         let allCats = (try? context.fetch(req)) ?? []
         for cat in allCats {
@@ -384,7 +385,8 @@ final class BudgetDetailsViewModel: ObservableObject {
 
         if let totals = try? BudgetIncomeCalculator.totals(
             for: DateInterval(start: range.lowerBound, end: range.upperBound),
-            context: context
+            context: context,
+            workspaceID: WorkspaceService.shared.activeWorkspaceID
         ) {
             incomeTotals = IncomeTotals(planned: totals.planned, actual: totals.actual)
         } else {
@@ -408,9 +410,12 @@ final class BudgetDetailsViewModel: ObservableObject {
     private func fetchPlannedExpenses(for budget: Budget?, in range: ClosedRange<Date>) -> [PlannedExpense] {
         guard let budget else { return [] }
         let req = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+        let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.shared.activeWorkspaceID
         req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "budget == %@", budget),
-            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
+            WorkspaceService.predicate(for: workspaceID)
         ])
         req.sortDescriptors = [
             NSSortDescriptor(key: "transactionDate", ascending: false),
@@ -436,9 +441,12 @@ final class BudgetDetailsViewModel: ObservableObject {
         // Fallback: via explicit cards set (works regardless of inverse name on Card)
         guard let cards = (budget.cards as? Set<Card>), !cards.isEmpty else { return [] }
         let req = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
+        let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.shared.activeWorkspaceID
         req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "card IN %@", cards),
-            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate)
+            NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
+            WorkspaceService.predicate(for: workspaceID)
         ])
         req.sortDescriptors = [
             NSSortDescriptor(key: "transactionDate", ascending: false),

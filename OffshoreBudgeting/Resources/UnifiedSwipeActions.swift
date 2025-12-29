@@ -11,6 +11,7 @@ import UIKit
 
 // MARK: - UnifiedSwipeConfig
 public struct UnifiedSwipeConfig {
+    public var showsDeleteAction: Bool
     public var showsEditAction: Bool
     public var deleteTitle: String
     public var deleteSystemImageName: String
@@ -24,6 +25,7 @@ public struct UnifiedSwipeConfig {
     public var editAccessibilityID: String?
 
     public init(
+        showsDeleteAction: Bool = true,
         showsEditAction: Bool = true,
         deleteTitle: String = "Delete",
         deleteSystemImageName: String = "trash",
@@ -36,6 +38,7 @@ public struct UnifiedSwipeConfig {
         deleteAccessibilityID: String? = "swipe_delete",
         editAccessibilityID: String? = "swipe_edit"
     ) {
+        self.showsDeleteAction = showsDeleteAction
         self.showsEditAction = showsEditAction
         self.deleteTitle = deleteTitle
         self.deleteSystemImageName = deleteSystemImageName
@@ -124,16 +127,20 @@ private struct UnifiedSwipeActionsModifier: ViewModifier {
 
             Divider()
 
-            Button(role: .destructive) { triggerDelete() } label: {
-                Label(config.deleteTitle, systemImage: config.deleteSystemImageName)
+            if config.showsDeleteAction {
+                Button(role: .destructive) { triggerDelete() } label: {
+                    Label(config.deleteTitle, systemImage: config.deleteSystemImageName)
+                }
+                .help(config.deleteTitle)
+                .accessibilityIdentifierIfAvailable(config.deleteAccessibilityID)
             }
-            .help(config.deleteTitle)
-            .accessibilityIdentifierIfAvailable(config.deleteAccessibilityID)
         }
 
         if #available(iOS 15.0, macCatalyst 15.0, *) {
             base.swipeActions(edge: .trailing, allowsFullSwipe: config.allowsFullSwipeToDelete) {
-                deleteButton()
+                if config.showsDeleteAction {
+                    deleteButton()
+                }
                 if let onEdit, config.showsEditAction { editButton(onEdit: onEdit) }
                 customButtons()
             }

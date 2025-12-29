@@ -12,4 +12,5 @@ enum AppSettingsKeys: String {
     case enableCloudSync
     case syncHomeWidgetsAcrossDevices
     case tipsHintsResetToken
+    case activeWorkspaceID
 }

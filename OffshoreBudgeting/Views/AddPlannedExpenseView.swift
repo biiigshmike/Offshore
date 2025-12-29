@@ -556,6 +556,7 @@ private struct CategoryChipsRow: View {
     @Binding var selectedCategoryID: NSManagedObjectID?
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.platformCapabilities) private var capabilities
+    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(key: "name", ascending: true,
@@ -568,6 +569,13 @@ private struct CategoryChipsRow: View {
     @State private var addCategorySheetInstanceID = UUID()
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
+
+    private var filteredCategories: [ExpenseCategory] {
+        guard let workspaceID = UUID(uuidString: activeWorkspaceIDRaw) else { return Array(categories) }
+        return categories.filter { category in
+            (category.value(forKey: "workspaceID") as? UUID) == workspaceID
+        }
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: DS.Spacing.s) {
@@ -604,8 +612,15 @@ private struct CategoryChipsRow: View {
             .environment(\.managedObjectContext, viewContext)
         }
         .onChange(of: categories.count) { _ in
-            if selectedCategoryID == nil, let first = categories.first {
+            if selectedCategoryID == nil, let first = filteredCategories.first {
                 selectedCategoryID = first.objectID
+            }
+        }
+        .onChange(of: activeWorkspaceIDRaw) { _ in
+            if let first = filteredCategories.first {
+                selectedCategoryID = first.objectID
+            } else {
+                selectedCategoryID = nil
             }
         }
     }
@@ -648,12 +663,12 @@ private extension CategoryChipsRow {
     @ViewBuilder
     private var categoryChips: some View {
         LazyHStack(spacing: DS.Spacing.s) {
-            if categories.isEmpty {
+            if filteredCategories.isEmpty {
                 Text("No categories yet")
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 10)
             } else {
-                ForEach(categories, id: \.objectID) { cat in
+                ForEach(filteredCategories, id: \.objectID) { cat in
                     let isSelected = selectedCategoryID == cat.objectID
                     CategoryChip(
                         id: cat.objectID.uriRepresentation().absoluteString,

@@ -39,6 +39,7 @@ struct ExpenseCategoryManagerView: View {
     @State private var categoryToEdit: ExpenseCategory?
     @State private var categoryToDelete: ExpenseCategory?
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
+    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
     
     // MARK: Body
     var body: some View {
@@ -130,10 +131,17 @@ struct ExpenseCategoryManagerView: View {
         }
         .tipsAndHintsOverlay(for: .categories)
     }
+
+    private var filteredCategories: [ExpenseCategory] {
+        guard let workspaceID = UUID(uuidString: activeWorkspaceIDRaw) else { return Array(categories) }
+        return categories.filter { category in
+            (category.value(forKey: "workspaceID") as? UUID) == workspaceID
+        }
+    }
     
     private var groupedListContent: some View {
         Group {
-            if isOnboardingPresentation && categories.isEmpty {
+            if isOnboardingPresentation && filteredCategories.isEmpty {
                 // Onboarding-specific empty state message
                 emptyState
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
@@ -146,11 +154,11 @@ struct ExpenseCategoryManagerView: View {
                     Section() {
                         let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
 
-                        ForEach(categories, id: \.objectID) { category in
+                        ForEach(filteredCategories, id: \.objectID) { category in
                             categoryRow(for: category, swipeConfig: swipeConfig)
                         }
                         .onDelete { offsets in
-                            let targets = offsets.map { categories[$0] }
+                            let targets = offsets.map { filteredCategories[$0] }
                             if confirmBeforeDelete {
                                 if let used = targets.first(where: { usageCounts(for: $0).total > 0 }) {
                                     categoryToDelete = used

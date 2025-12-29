@@ -57,6 +57,10 @@ final class IncomeService {
     /// - Parameter sortedByDateAscending: Sort by `date` ascending if true (default true).
     func fetchAllIncomes(sortedByDateAscending: Bool = true) throws -> [Income] {
         let sort = NSSortDescriptor(key: #keyPath(Income.date), ascending: sortedByDateAscending)
+        if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+            let predicate = WorkspaceService.predicate(for: workspaceID)
+            return try repo.fetchAll(predicate: predicate, sortDescriptors: [sort])
+        }
         return try repo.fetchAll(sortDescriptors: [sort])
     }
     
@@ -64,9 +68,15 @@ final class IncomeService {
     /// Fetch incomes within a date interval (inclusive of boundaries).
     /// - Parameter interval: DateInterval to search.
     func fetchIncomes(in interval: DateInterval) throws -> [Income] {
-        let predicate = NSPredicate(format: "(%K >= %@) AND (%K <= %@)",
-                                    #keyPath(Income.date), interval.start as CVarArg,
-                                    #keyPath(Income.date), interval.end as CVarArg)
+        let base = NSPredicate(format: "(%K >= %@) AND (%K <= %@)",
+                               #keyPath(Income.date), interval.start as CVarArg,
+                               #keyPath(Income.date), interval.end as CVarArg)
+        let predicate: NSPredicate
+        if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+            predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        } else {
+            predicate = base
+        }
         let sort = NSSortDescriptor(key: #keyPath(Income.date), ascending: true)
         return try repo.fetchAll(predicate: predicate, sortDescriptors: [sort])
     }
@@ -85,7 +95,13 @@ final class IncomeService {
     /// Find a single income by UUID.
     func findIncome(byID id: UUID) throws -> Income? {
         // ✅ Literal "id" avoids ambiguity with Identifiable.
-        let predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        let base = NSPredicate(format: "id == %@", id as CVarArg)
+        let predicate: NSPredicate
+        if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+            predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        } else {
+            predicate = base
+        }
         return try repo.fetchFirst(predicate: predicate)
     }
     
@@ -121,6 +137,7 @@ final class IncomeService {
             Self.setOptionalInt16IfAttributeExists(on: inc,
                                                    keyCandidates: ["secondPayDay", "secondBiMonthlyPayDay"],
                                                    value: secondBiMonthlyDay)
+            WorkspaceService.applyWorkspaceIDIfPossible(on: inc)
         }
         try RecurrenceEngine.regenerateIncomeRecurrences(base: income, in: repo.context, calendar: calendar)
         try repo.saveIfNeeded()
@@ -152,10 +169,23 @@ final class IncomeService {
         case .future:
             let currentDate = date ?? income.date
             if let parentID = income.parentID, let currentDate {
-                let pred = NSPredicate(format: "parentID == %@ AND date > %@", parentID as CVarArg, currentDate as CVarArg)
+                let base = NSPredicate(format: "parentID == %@ AND date > %@", parentID as CVarArg, currentDate as CVarArg)
+                let pred: NSPredicate
+                if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                    pred = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+                } else {
+                    pred = base
+                }
                 let siblings = try repo.fetchAll(predicate: pred)
                 for s in siblings { repo.delete(s) }
-                if let parent = try repo.fetchFirst(predicate: NSPredicate(format: "id == %@", parentID as CVarArg)) {
+                let parentBase = NSPredicate(format: "id == %@", parentID as CVarArg)
+                let parentPredicate: NSPredicate
+                if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                    parentPredicate = WorkspaceService.combinedPredicate(parentBase, workspaceID: workspaceID)
+                } else {
+                    parentPredicate = parentBase
+                }
+                if let parent = try repo.fetchFirst(predicate: parentPredicate) {
                     parent.recurrenceEndDate = calendar.date(byAdding: .day, value: -1, to: currentDate)
                 }
                 income.parentID = nil
@@ -173,7 +203,13 @@ final class IncomeService {
         case .all:
             let target: Income
             if let parentID = income.parentID,
-               let parent = try repo.fetchFirst(predicate: NSPredicate(format: "id == %@", parentID as CVarArg)) {
+               let parent = try repo.fetchFirst(predicate: {
+                   let base = NSPredicate(format: "id == %@", parentID as CVarArg)
+                   if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                       return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+                   }
+                   return base
+               }()) {
                 target = parent
             } else {
                 target = income
@@ -221,7 +257,13 @@ final class IncomeService {
                 repo.delete(income)
                 try repo.saveIfNeeded()
             } else if let id = income.id {
-                let predicate = NSPredicate(format: "parentID == %@", id as CVarArg)
+                let base = NSPredicate(format: "parentID == %@", id as CVarArg)
+                let predicate: NSPredicate
+                if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                    predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+                } else {
+                    predicate = base
+                }
                 let sort = NSSortDescriptor(key: #keyPath(Income.date), ascending: true)
                 let children = try repo.fetchAll(predicate: predicate, sortDescriptors: [sort])
                 if let newBase = children.first {
@@ -242,10 +284,23 @@ final class IncomeService {
             }
         case .future:
             if let parentID = income.parentID, let currentDate = income.date {
-                let predicate = NSPredicate(format: "parentID == %@ AND date >= %@", parentID as CVarArg, currentDate as CVarArg)
+                let base = NSPredicate(format: "parentID == %@ AND date >= %@", parentID as CVarArg, currentDate as CVarArg)
+                let predicate: NSPredicate
+                if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                    predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+                } else {
+                    predicate = base
+                }
                 let targets = try repo.fetchAll(predicate: predicate)
                 for t in targets { repo.delete(t) }
-                if let parent = try repo.fetchFirst(predicate: NSPredicate(format: "id == %@", parentID as CVarArg)) {
+                let parentBase = NSPredicate(format: "id == %@", parentID as CVarArg)
+                let parentPredicate: NSPredicate
+                if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                    parentPredicate = WorkspaceService.combinedPredicate(parentBase, workspaceID: workspaceID)
+                } else {
+                    parentPredicate = parentBase
+                }
+                if let parent = try repo.fetchFirst(predicate: parentPredicate) {
                     parent.recurrenceEndDate = calendar.date(byAdding: .day, value: -1, to: currentDate)
                 }
                 try repo.saveIfNeeded()
@@ -254,13 +309,31 @@ final class IncomeService {
             }
         case .all:
             if income.parentID == nil, let id = income.id {
-                let predicate = NSPredicate(format: "parentID == %@", id as CVarArg)
+                let base = NSPredicate(format: "parentID == %@", id as CVarArg)
+                let predicate: NSPredicate
+                if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                    predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+                } else {
+                    predicate = base
+                }
                 let children = try repo.fetchAll(predicate: predicate)
                 for child in children { repo.delete(child) }
                 repo.delete(income)
             } else if let parentID = income.parentID,
-                      let parent = try repo.fetchFirst(predicate: NSPredicate(format: "id == %@", parentID as CVarArg)) {
-                let predicate = NSPredicate(format: "parentID == %@", parentID as CVarArg)
+                      let parent = try repo.fetchFirst(predicate: {
+                          let base = NSPredicate(format: "id == %@", parentID as CVarArg)
+                          if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                              return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+                          }
+                          return base
+                      }()) {
+                let base = NSPredicate(format: "parentID == %@", parentID as CVarArg)
+                let predicate: NSPredicate
+                if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                    predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+                } else {
+                    predicate = base
+                }
                 let children = try repo.fetchAll(predicate: predicate)
                 for child in children { repo.delete(child) }
                 repo.delete(parent)

@@ -132,8 +132,9 @@ struct CloudSyncGateView: View {
         Task { @MainActor in
             await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
             // Establish a shared cloud workspace ID and assign missing IDs.
-            _ = WorkspaceService.shared.ensureActiveWorkspaceID()
-            await WorkspaceService.shared.assignWorkspaceIDIfMissing()
+            let personalID = WorkspaceService.shared.personalWorkspace()?.id
+                ?? WorkspaceService.shared.ensureActiveWorkspaceID()
+            await WorkspaceService.shared.assignWorkspaceIDIfMissing(to: personalID)
             // Quick probe to see if remote data appears via local import.
             let hasData = await CloudDataProbe().scanForExistingData(timeout: 3.0, pollInterval: 0.3)
             scanningForExisting = false

@@ -97,7 +97,10 @@ final class AddIncomeFormViewModel: ObservableObject {
         var parent: Income? = nil
         if let pid = income.parentID {
             let req: NSFetchRequest<Income> = Income.fetchRequest()
-            req.predicate = NSPredicate(format: "id == %@", pid as CVarArg)
+            req.predicate = WorkspaceService.shared.combinedPredicate(
+                NSPredicate(format: "id == %@", pid as CVarArg),
+                workspaceID: WorkspaceService.shared.activeWorkspaceID
+            )
             req.fetchLimit = 1
             parent = try? context.fetch(req).first
             self.originalSeriesStartDate = parent?.date ?? income.date

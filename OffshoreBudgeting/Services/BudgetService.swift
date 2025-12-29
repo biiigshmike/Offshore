@@ -28,7 +28,11 @@ final class BudgetService {
     /// - Returns: Array of Budget.
     func fetchAllBudgets(sortByStartDateDescending: Bool = true) throws -> [Budget] {
         let sort = NSSortDescriptor(key: #keyPath(Budget.startDate), ascending: !sortByStartDateDescending)
-        return try repo.fetchAll(sortDescriptors: [sort])
+        let predicate: NSPredicate? = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return nil }
+            return WorkspaceService.predicate(for: workspaceID)
+        }()
+        return try repo.fetchAll(predicate: predicate, sortDescriptors: [sort])
     }
     
     // MARK: findBudget(byID:)
@@ -37,7 +41,11 @@ final class BudgetService {
     /// - Returns: Budget or nil.
     func findBudget(byID id: UUID) throws -> Budget? {
         // ✅ Literal "id" avoids ambiguity with Identifiable.
-        let predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        let base = NSPredicate(format: "id == %@", id as CVarArg)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         return try repo.fetchFirst(predicate: predicate)
     }
     
@@ -46,9 +54,13 @@ final class BudgetService {
     /// - Parameter date: Date to test (defaults to now).
     /// - Returns: Budget or nil.
     func fetchActiveBudget(on date: Date = Date()) throws -> Budget? {
-        let predicate = NSPredicate(format: "(%K <= %@) AND (%K >= %@)",
-                                    #keyPath(Budget.startDate), date as CVarArg,
-                                    #keyPath(Budget.endDate), date as CVarArg)
+        let base = NSPredicate(format: "(%K <= %@) AND (%K >= %@)",
+                               #keyPath(Budget.startDate), date as CVarArg,
+                               #keyPath(Budget.endDate), date as CVarArg)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
         let sort = NSSortDescriptor(key: #keyPath(Budget.startDate), ascending: false)
         return try repo.fetchFirst(predicate: predicate, sortDescriptors: [sort])
     }
@@ -84,6 +96,7 @@ final class BudgetService {
             b.recurrenceEndDate = recurrenceEndDate
             // Property is UUID?, so assign UUID? directly.
             b.parentID = parentID
+            WorkspaceService.applyWorkspaceIDIfPossible(on: b)
         }
         try repo.saveIfNeeded()
         return budget

@@ -30,6 +30,15 @@ enum SavingsOutlookWidgetStore {
         }
         return period
     }
+
+    static func sampleSnapshot() -> Snapshot {
+        Snapshot(
+            actualSavings: 620.0,
+            projectedSavings: 1400.0,
+            rangeLabel: "This Month",
+            updatedAt: Date()
+        )
+    }
 }
 
 struct SavingsOutlookWidgetEntry: TimelineEntry {
@@ -44,12 +53,13 @@ struct SavingsOutlookWidgetIntentProvider: AppIntentTimelineProvider {
     typealias Entry = SavingsOutlookWidgetEntry
 
     func placeholder(in context: Context) -> SavingsOutlookWidgetEntry {
-        SavingsOutlookWidgetEntry(date: Date(), snapshot: nil, period: SavingsOutlookWidgetStore.defaultPeriodValue())
+        SavingsOutlookWidgetEntry(date: Date(), snapshot: SavingsOutlookWidgetStore.sampleSnapshot(), period: SavingsOutlookWidgetStore.defaultPeriodValue())
     }
 
     func snapshot(for configuration: SavingsOutlookWidgetConfigurationIntent, in context: Context) async -> SavingsOutlookWidgetEntry {
         let period = configuration.period ?? SavingsOutlookWidgetStore.defaultPeriodValue()
-        return SavingsOutlookWidgetEntry(date: Date(), snapshot: resolveSnapshot(for: period), period: period)
+        let snapshot = resolveSnapshot(for: period) ?? SavingsOutlookWidgetStore.sampleSnapshot()
+        return SavingsOutlookWidgetEntry(date: Date(), snapshot: snapshot, period: period)
     }
 
     func timeline(for configuration: SavingsOutlookWidgetConfigurationIntent, in context: Context) async -> Timeline<SavingsOutlookWidgetEntry> {

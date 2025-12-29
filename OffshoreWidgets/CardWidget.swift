@@ -65,6 +65,27 @@ enum CardWidgetStore {
     static func defaultCardID() -> String? {
         readCards().first?.id
     }
+
+    static func sampleSnapshot() -> CardSnapshot {
+        let sampleTransactions: [CardSnapshot.Transaction] = [
+            .init(name: "Groceries", amount: 64.25, date: Date().addingTimeInterval(-3600 * 24 * 2), hexColor: "#6F9CFB"),
+            .init(name: "Fuel", amount: 42.10, date: Date().addingTimeInterval(-3600 * 24 * 3), hexColor: "#56C8F5"),
+            .init(name: "Dining", amount: 28.75, date: Date().addingTimeInterval(-3600 * 24 * 5), hexColor: "#F5A25D")
+        ]
+        return CardSnapshot(
+            cardID: "sample-card",
+            cardName: "Everyday Card",
+            cardThemeName: nil,
+            cardPrimaryHex: "#1C1C1E",
+            cardSecondaryHex: "#2C2C2E",
+            cardPattern: nil,
+            totalSpent: 423.90,
+            recentTransactions: sampleTransactions,
+            topTransactions: sampleTransactions.sorted { $0.amount > $1.amount },
+            rangeLabel: "This Month",
+            updatedAt: Date()
+        )
+    }
 }
 
 @available(iOS 17.0, *)
@@ -137,11 +158,12 @@ struct CardWidgetIntentProvider: AppIntentTimelineProvider {
     typealias Entry = CardWidgetEntry
 
     func placeholder(in context: Context) -> CardWidgetEntry {
-        CardWidgetEntry(
+        let sample = CardWidgetStore.sampleSnapshot()
+        return CardWidgetEntry(
             date: Date(),
-            snapshot: nil,
+            snapshot: sample,
             period: CardWidgetStore.readDefaultPeriod(),
-            cardID: CardWidgetStore.defaultCardID(),
+            cardID: sample.cardID,
             mode: .recent
         )
     }
@@ -151,7 +173,9 @@ struct CardWidgetIntentProvider: AppIntentTimelineProvider {
         let cardID = configuration.card?.id ?? CardWidgetStore.defaultCardID()
         let mode = configuration.mode ?? .recent
         let snapshot = cardID.flatMap { CardWidgetStore.readSnapshot(periodRaw: period.rawValue, cardID: $0) }
-        return CardWidgetEntry(date: Date(), snapshot: snapshot, period: period, cardID: cardID, mode: mode)
+            ?? CardWidgetStore.sampleSnapshot()
+        let resolvedCardID = cardID ?? snapshot.cardID
+        return CardWidgetEntry(date: Date(), snapshot: snapshot, period: period, cardID: resolvedCardID, mode: mode)
     }
 
     func timeline(for configuration: CardWidgetConfigurationIntent, in context: Context) async -> Timeline<CardWidgetEntry> {

@@ -7,7 +7,14 @@ import CloudKit
 final class OffshoreAppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        application.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
         true
+    }
+
+    func application(_ application: UIApplication,
+                     performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        WidgetRefreshCoordinator.refreshAllTimelines()
+        completionHandler(.noData)
     }
 
     func application(_ application: UIApplication,
@@ -32,4 +39,3 @@ final class OffshoreAppDelegate: NSObject, UIApplicationDelegate {
         AppLog.iCloud.error("Failed to register for remote notifications: \(String(describing: error))")
     }
 }
-

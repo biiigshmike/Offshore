@@ -40,6 +40,23 @@ enum DayOfWeekSpendWidgetStore {
         }
         return period
     }
+
+    static func sampleSnapshot() -> DayOfWeekSnapshot {
+        DayOfWeekSnapshot(
+            buckets: [
+                .init(label: "M", amount: 32, hexColors: ["#56C8F5"]),
+                .init(label: "T", amount: 58, hexColors: ["#F5A25D"]),
+                .init(label: "W", amount: 18, hexColors: ["#8FD37A"]),
+                .init(label: "T", amount: 74, hexColors: ["#6F9CFB"]),
+                .init(label: "F", amount: 42, hexColors: ["#F5D96E"]),
+                .init(label: "S", amount: 96, hexColors: ["#F07A6B"]),
+                .init(label: "S", amount: 27, hexColors: ["#B690F2"])
+            ],
+            rangeLabel: "This Month",
+            fallbackHexes: ["#56C8F5", "#F5A25D", "#8FD37A", "#6F9CFB", "#F5D96E", "#F07A6B", "#B690F2"],
+            updatedAt: Date()
+        )
+    }
 }
 
 struct DayOfWeekSpendEntry: TimelineEntry {
@@ -54,12 +71,13 @@ struct DayOfWeekSpendWidgetIntentProvider: AppIntentTimelineProvider {
     typealias Entry = DayOfWeekSpendEntry
 
     func placeholder(in context: Context) -> DayOfWeekSpendEntry {
-        DayOfWeekSpendEntry(date: Date(), snapshot: nil, period: DayOfWeekSpendWidgetStore.defaultPeriodValue())
+        DayOfWeekSpendEntry(date: Date(), snapshot: DayOfWeekSpendWidgetStore.sampleSnapshot(), period: DayOfWeekSpendWidgetStore.defaultPeriodValue())
     }
 
     func snapshot(for configuration: DayOfWeekSpendWidgetConfigurationIntent, in context: Context) async -> DayOfWeekSpendEntry {
         let period = configuration.period ?? DayOfWeekSpendWidgetStore.defaultPeriodValue()
-        return DayOfWeekSpendEntry(date: Date(), snapshot: resolveSnapshot(for: period), period: period)
+        let snapshot = resolveSnapshot(for: period) ?? DayOfWeekSpendWidgetStore.sampleSnapshot()
+        return DayOfWeekSpendEntry(date: Date(), snapshot: snapshot, period: period)
     }
 
     func timeline(for configuration: DayOfWeekSpendWidgetConfigurationIntent, in context: Context) async -> Timeline<DayOfWeekSpendEntry> {

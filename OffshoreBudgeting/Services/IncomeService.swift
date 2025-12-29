@@ -457,5 +457,6 @@ final class IncomeService {
 
     private func notifyIncomeScheduleChanged() {
         Task { await LocalNotificationScheduler.shared.refreshPlannedIncomeReminders() }
+        WidgetRefreshCoordinator.refreshAllTimelines()
     }
 }

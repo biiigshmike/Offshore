@@ -63,6 +63,18 @@ enum CategoryAvailabilityWidgetStore {
         guard let defaults = UserDefaults(suiteName: appGroupID) else { return [] }
         return defaults.stringArray(forKey: categoriesKey) ?? []
     }
+
+    static func sampleSnapshot() -> Snapshot {
+        Snapshot(
+            items: [
+                .init(name: "Groceries", spent: 120, cap: 300, available: 180, hexColor: "#6F9CFB"),
+                .init(name: "Dining", spent: 95, cap: 180, available: 85, hexColor: "#F5A25D"),
+                .init(name: "Fuel", spent: 60, cap: 120, available: 60, hexColor: "#56C8F5")
+            ],
+            rangeLabel: "This Month",
+            updatedAt: Date()
+        )
+    }
 }
 
 enum CategoryAvailabilityWidgetSegment: String, CaseIterable {
@@ -138,7 +150,7 @@ struct CategoryAvailabilityWidgetIntentProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> CategoryAvailabilityEntry {
         CategoryAvailabilityEntry(
             date: Date(),
-            snapshot: nil,
+            snapshot: CategoryAvailabilityWidgetStore.sampleSnapshot(),
             period: CategoryAvailabilityWidgetStore.readDefaultPeriod(),
             segment: CategoryAvailabilityWidgetStore.readDefaultSegment(),
             sort: CategoryAvailabilityWidgetStore.readDefaultSort(),
@@ -151,6 +163,7 @@ struct CategoryAvailabilityWidgetIntentProvider: AppIntentTimelineProvider {
         let segment = configuration.segment ?? CategoryAvailabilityWidgetStore.readDefaultSegment()
         let sort = configuration.sort ?? CategoryAvailabilityWidgetStore.readDefaultSort()
         let snapshot = CategoryAvailabilityWidgetStore.readSnapshot(periodRaw: period.rawValue, segmentRaw: segment.rawValue)
+            ?? CategoryAvailabilityWidgetStore.sampleSnapshot()
         return CategoryAvailabilityEntry(
             date: Date(),
             snapshot: snapshot,

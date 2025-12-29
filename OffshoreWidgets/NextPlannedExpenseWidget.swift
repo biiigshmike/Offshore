@@ -26,6 +26,22 @@ enum NextPlannedExpenseWidgetStore {
         decoder.dateDecodingStrategy = .iso8601
         return try? decoder.decode(Snapshot.self, from: data)
     }
+
+    static func sampleSnapshot() -> Snapshot {
+        Snapshot(
+            title: "Gas & Parking",
+            plannedAmount: 90,
+            actualAmount: 0,
+            date: Calendar.current.date(byAdding: .day, value: 2, to: Date()) ?? Date(),
+            cardName: "Everyday Card",
+            cardThemeName: nil,
+            cardPrimaryHex: "#1C1C1E",
+            cardSecondaryHex: "#2C2C2E",
+            cardPattern: nil,
+            rangeLabel: "This Month",
+            updatedAt: Date()
+        )
+    }
 }
 
 struct NextPlannedExpenseEntry: TimelineEntry {
@@ -35,11 +51,12 @@ struct NextPlannedExpenseEntry: TimelineEntry {
 
 struct NextPlannedExpenseProvider: TimelineProvider {
     func placeholder(in context: Context) -> NextPlannedExpenseEntry {
-        NextPlannedExpenseEntry(date: Date(), snapshot: nil)
+        NextPlannedExpenseEntry(date: Date(), snapshot: NextPlannedExpenseWidgetStore.sampleSnapshot())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (NextPlannedExpenseEntry) -> Void) {
-        completion(NextPlannedExpenseEntry(date: Date(), snapshot: NextPlannedExpenseWidgetStore.readSnapshot()))
+        let snapshot = NextPlannedExpenseWidgetStore.readSnapshot() ?? NextPlannedExpenseWidgetStore.sampleSnapshot()
+        completion(NextPlannedExpenseEntry(date: Date(), snapshot: snapshot))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<NextPlannedExpenseEntry>) -> Void) {

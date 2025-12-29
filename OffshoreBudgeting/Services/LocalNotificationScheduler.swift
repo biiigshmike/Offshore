@@ -89,8 +89,8 @@ final class LocalNotificationScheduler {
 
     private func scheduleDailyReminder(on date: Date) {
         let content = UNMutableNotificationContent()
-        content.title = "Daily reminder"
-        content.body = "If you haven’t added any variable expenses today, take a moment to log them."
+        content.title = "Log Variable Expenses"
+        content.body = "If you haven’t added any variable expenses today, take a moment to log them now."
         content.sound = .default
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date),
@@ -102,8 +102,8 @@ final class LocalNotificationScheduler {
 
     private func schedulePlannedIncomeReminder(on date: Date, day: Date) {
         let content = UNMutableNotificationContent()
-        content.title = "Log your income"
-        content.body = "You planned income for today. Add the actual amount to compare planned vs actual."
+        content.title = "Log Actual Income"
+        content.body = "You planned income for today. Log the actual amount to compare planned vs actual."
         content.sound = .default
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date),

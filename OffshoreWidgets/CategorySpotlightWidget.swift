@@ -39,6 +39,19 @@ enum CategorySpotlightWidgetStore {
         }
         return period
     }
+
+    static func sampleSnapshot() -> CategorySpotlightSnapshot {
+        CategorySpotlightSnapshot(
+            categories: [
+                .init(name: "Groceries", amount: 260, hexColor: "#6F9CFB"),
+                .init(name: "Dining", amount: 140, hexColor: "#F5A25D"),
+                .init(name: "Fuel", amount: 90, hexColor: "#56C8F5"),
+                .init(name: "Subscriptions", amount: 60, hexColor: "#B690F2")
+            ],
+            rangeLabel: "This Month",
+            updatedAt: Date()
+        )
+    }
 }
 
 struct CategorySpotlightEntry: TimelineEntry {
@@ -53,12 +66,13 @@ struct CategorySpotlightWidgetIntentProvider: AppIntentTimelineProvider {
     typealias Entry = CategorySpotlightEntry
 
     func placeholder(in context: Context) -> CategorySpotlightEntry {
-        CategorySpotlightEntry(date: Date(), snapshot: nil, period: CategorySpotlightWidgetStore.defaultPeriodValue())
+        CategorySpotlightEntry(date: Date(), snapshot: CategorySpotlightWidgetStore.sampleSnapshot(), period: CategorySpotlightWidgetStore.defaultPeriodValue())
     }
 
     func snapshot(for configuration: CategorySpotlightWidgetConfigurationIntent, in context: Context) async -> CategorySpotlightEntry {
         let period = configuration.period ?? CategorySpotlightWidgetStore.defaultPeriodValue()
-        return CategorySpotlightEntry(date: Date(), snapshot: resolveSnapshot(for: period), period: period)
+        let snapshot = resolveSnapshot(for: period) ?? CategorySpotlightWidgetStore.sampleSnapshot()
+        return CategorySpotlightEntry(date: Date(), snapshot: snapshot, period: period)
     }
 
     func timeline(for configuration: CategorySpotlightWidgetConfigurationIntent, in context: Context) async -> Timeline<CategorySpotlightEntry> {

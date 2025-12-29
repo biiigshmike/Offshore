@@ -166,7 +166,7 @@ struct SettingsView: View {
             Text("Choose what to do with your data on this device.")
         }
         .alert("Erase All Data?", isPresented: $showResetAlert) {
-            Button("Reset", role: .destructive) { performDataWipe() }
+            Button("Remove Data & Reset App", role: .destructive) { performDataWipe() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will remove all budgets, cards, incomes, and expenses. This action cannot be undone.")
@@ -671,16 +671,11 @@ private struct NotificationsSettingsView: View {
             }
 
             Section {
-                LabeledContent("Status", value: authorizationStatusLabel)
+                permissionButton
+            }
 
-                Button("Request Notification Permission") {
-                    Task { await requestPermission() }
-                }
-                .disabled(authorizationStatus == .authorized)
-
-                Button("Open System Settings") {
-                    openSystemSettings()
-                }
+            Section {
+                settingsButton
             }
         }
         .listStyle(.insetGrouped)
@@ -697,6 +692,94 @@ private struct NotificationsSettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private var permissionButton: some View {
+        let isGranted = authorizationStatus == .authorized
+        let label = HStack(spacing: 8) {
+            Text(isGranted ? "Notification Permission Granted" : "Request Notification Permission")
+            if isGranted {
+                Image(systemName: "checkmark")
+            }
+        }
+        .font(.subheadline.weight(.semibold))
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 44, maxHeight: 44)
+
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button {
+                Task { await requestPermission() }
+            } label: {
+                label
+            }
+            .buttonStyle(.glassProminent)
+            .tint(isGranted ? .green : .blue)
+            .disabled(isGranted)
+            .opacity(isGranted ? 0.85 : 1)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } else {
+            Button {
+                Task { await requestPermission() }
+            } label: {
+                label
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isGranted ? Color.green : Color.blue)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .disabled(isGranted)
+            .opacity(isGranted ? 0.85 : 1)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        }
+    }
+
+    @ViewBuilder
+    private var settingsButton: some View {
+        let label = Text("Open System Settings")
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 44, maxHeight: 44)
+
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(action: openSystemSettings) {
+                label
+            }
+            .buttonStyle(.glassProminent)
+            .tint(.gray)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } else {
+            Button(action: openSystemSettings) {
+                label
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.primary)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(settingsButtonBackground)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        }
+    }
+
+    private var settingsButtonBackground: Color {
+        #if canImport(UIKit)
+        return Color(UIColor.systemGray4)
+        #elseif canImport(AppKit)
+        return Color(nsColor: NSColor.windowBackgroundColor)
+        #else
+        return Color.gray.opacity(0.2)
+        #endif
+    }
+
     private var reminderTimeBinding: Binding<Date> {
         Binding(
             get: {
@@ -711,23 +794,6 @@ private struct NotificationsSettingsView: View {
                 reminderTimeMinutes = max(0, min(24 * 60 - 1, hour * 60 + minute))
             }
         )
-    }
-
-    private var authorizationStatusLabel: String {
-        switch authorizationStatus {
-        case .authorized:
-            return "Allowed"
-        case .denied:
-            return "Not allowed"
-        case .provisional:
-            return "Provisional"
-        case .ephemeral:
-            return "Ephemeral"
-        case .notDetermined:
-            return "Not determined"
-        @unknown default:
-            return "Unknown"
-        }
     }
 
     private func handleReminderToggleChange() {

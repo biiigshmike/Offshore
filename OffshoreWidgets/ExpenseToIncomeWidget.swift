@@ -30,6 +30,15 @@ enum ExpenseToIncomeWidgetStore {
         }
         return period
     }
+
+    static func sampleSnapshot() -> Snapshot {
+        Snapshot(
+            expenses: 980.0,
+            actualIncome: 2500.0,
+            rangeLabel: "This Month",
+            updatedAt: Date()
+        )
+    }
 }
 
 struct ExpenseToIncomeWidgetEntry: TimelineEntry {
@@ -44,12 +53,13 @@ struct ExpenseToIncomeWidgetIntentProvider: AppIntentTimelineProvider {
     typealias Entry = ExpenseToIncomeWidgetEntry
 
     func placeholder(in context: Context) -> ExpenseToIncomeWidgetEntry {
-        ExpenseToIncomeWidgetEntry(date: Date(), snapshot: nil, period: ExpenseToIncomeWidgetStore.defaultPeriodValue())
+        ExpenseToIncomeWidgetEntry(date: Date(), snapshot: ExpenseToIncomeWidgetStore.sampleSnapshot(), period: ExpenseToIncomeWidgetStore.defaultPeriodValue())
     }
 
     func snapshot(for configuration: ExpenseToIncomeWidgetConfigurationIntent, in context: Context) async -> ExpenseToIncomeWidgetEntry {
         let period = configuration.period ?? ExpenseToIncomeWidgetStore.defaultPeriodValue()
-        return ExpenseToIncomeWidgetEntry(date: Date(), snapshot: resolveSnapshot(for: period), period: period)
+        let snapshot = resolveSnapshot(for: period) ?? ExpenseToIncomeWidgetStore.sampleSnapshot()
+        return ExpenseToIncomeWidgetEntry(date: Date(), snapshot: snapshot, period: period)
     }
 
     func timeline(for configuration: ExpenseToIncomeWidgetConfigurationIntent, in context: Context) async -> Timeline<ExpenseToIncomeWidgetEntry> {

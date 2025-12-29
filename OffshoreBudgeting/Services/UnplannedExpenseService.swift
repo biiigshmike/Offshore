@@ -230,6 +230,7 @@ final class UnplannedExpenseService {
         try expenseRepo.saveIfNeeded()
         LocalNotificationScheduler.shared.recordExpenseAdded()
         Task { await LocalNotificationScheduler.shared.refreshDailyReminder() }
+        WidgetRefreshCoordinator.refreshAllTimelines()
         return expense
     }
     
@@ -298,6 +299,7 @@ final class UnplannedExpenseService {
         try expenseRepo.saveIfNeeded()
         LocalNotificationScheduler.shared.recordExpenseAdded()
         Task { await LocalNotificationScheduler.shared.refreshDailyReminder() }
+        WidgetRefreshCoordinator.refreshAllTimelines()
     }
     
     // MARK: - DELETE
@@ -311,6 +313,7 @@ final class UnplannedExpenseService {
         }
         expenseRepo.delete(expense)
         try expenseRepo.saveIfNeeded()
+        WidgetRefreshCoordinator.refreshAllTimelines()
     }
     
     // MARK: deleteAllForCard(_:)
@@ -322,6 +325,7 @@ final class UnplannedExpenseService {
             return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
         }()
         try expenseRepo.deleteAll(predicate: predicate)
+        WidgetRefreshCoordinator.refreshAllTimelines()
     }
     
     // MARK: - TOTALS

@@ -223,20 +223,6 @@ struct RootTabView: View {
                 }
             }
 
-            Section("Budgets") {
-                if recentBudgets.isEmpty {
-                    Text("No recent budgets yet")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(recentBudgets, id: \.objectID) { budget in
-                        let item = SidebarItem.recentBudget(budget.objectID)
-                        sidebarRow(item: item) {
-                            Label(budget.name ?? "Budget", systemImage: "clock.arrow.circlepath")
-                        }
-                    }
-                }
-            }
-
             Section("Quick Links") {
                 let presetsItem = SidebarItem.managePresets
                 sidebarRow(item: presetsItem) {

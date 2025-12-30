@@ -729,7 +729,7 @@ private struct AddCategoryPill: View {
                 Label("Add", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 12)
-                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 33, alignment: .center)
+                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 44, alignment: .center)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(UIColor { traits in
@@ -785,7 +785,7 @@ private struct CategoryChip: View {
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(maxHeight: 44)
+            .frame(minHeight: 44)
             .buttonStyle(.plain)
         } else {
             let neutralFill = DS.Colors.chipFill
@@ -794,7 +794,7 @@ private struct CategoryChip: View {
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(maxHeight: 33)
+            .frame(minHeight: 44)
             .buttonStyle(.plain)
             .background(
                 legacyShape.fill(isSelected ? glassTintColor : neutralFill)

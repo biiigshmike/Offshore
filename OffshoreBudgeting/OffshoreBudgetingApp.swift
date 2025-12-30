@@ -39,6 +39,7 @@ struct OffshoreBudgetingApp: App {
         // Defer Core Data store loading and CardPickerStore creation to onAppear
         configureForUITestingIfNeeded()
         logPlatformCapabilities()
+        configureKeyboardAssistantIfNeeded()
         let labelAppearance = UILabel.appearance()
         labelAppearance.adjustsFontSizeToFitWidth = true
         labelAppearance.minimumScaleFactor = 0.75
@@ -299,6 +300,23 @@ struct OffshoreBudgetingApp: App {
         let versionString = "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
         let runtimeVersion = ProcessInfo.processInfo.environment["SIMULATOR_RUNTIME_VERSION"] ?? "n/a"
         AppLog.ui.info("PlatformCapabilities.current supportsOS26Translucency=\(platformCapabilities.supportsOS26Translucency, privacy: .public) supportsAdaptiveKeypad=\(platformCapabilities.supportsAdaptiveKeypad, privacy: .public) osVersion=\(versionString, privacy: .public) runtimeVersion=\(runtimeVersion, privacy: .public)")
+    }
+
+    private func configureKeyboardAssistantIfNeeded() {
+#if canImport(UIKit)
+        #if targetEnvironment(macCatalyst)
+        let shouldDisable = true
+        #else
+        let shouldDisable = UIDevice.current.userInterfaceIdiom == .pad
+        #endif
+        guard shouldDisable else { return }
+        let textFieldAssistant = UITextField.appearance().inputAssistantItem
+        textFieldAssistant.leadingBarButtonGroups = []
+        textFieldAssistant.trailingBarButtonGroups = []
+        let textViewAssistant = UITextView.appearance().inputAssistantItem
+        textViewAssistant.leadingBarButtonGroups = []
+        textViewAssistant.trailingBarButtonGroups = []
+#endif
     }
 
 #if targetEnvironment(macCatalyst)

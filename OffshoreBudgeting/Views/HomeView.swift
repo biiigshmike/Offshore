@@ -2130,7 +2130,21 @@ private struct MetricDetailView: View {
     @State private var selectedSpendBucket: SpendBucket?
     @State private var selectedSpendSectionID: UUID?
     @State private var savingsSelection: SavingsPoint?
-    @State private var editingExpenseBox: ManagedIDBox?
+    private enum ActiveSheet: Identifiable {
+        case addIncome
+        case editIncome(NSManagedObjectID)
+        case editPlannedExpense(NSManagedObjectID)
+
+        var id: String {
+            switch self {
+            case .addIncome: return "addIncome"
+            case .editIncome(let id): return "editIncome:\(id.uriRepresentation().absoluteString)"
+            case .editPlannedExpense(let id): return "editPlanned:\(id.uriRepresentation().absoluteString)"
+            }
+        }
+    }
+
+    @State private var activeSheet: ActiveSheet?
     @State private var hasDeletedNextExpense = false
     @State private var incomeTimeline: [DatedValue] = []
     @State private var expectedTimeline: [DatedValue] = []
@@ -2138,8 +2152,6 @@ private struct MetricDetailView: View {
     @State private var incomeBuckets: [IncomeBucket] = []
     @State private var comparisonPeriod: IncomeComparisonPeriod = .monthly
     @State private var latestIncomeID: NSManagedObjectID?
-    @State private var showAddIncomeSheet = false
-    @State private var editingIncomeBox: ManagedIDBox?
     @State private var spendSections: [SpendChartSection] = []
     @State private var expandedCategoryName: String? = nil
     @State private var expandedCategoryExpenses: [CategoryExpenseItem] = []
@@ -2210,10 +2222,6 @@ private struct MetricDetailView: View {
         let series: ExpenseIncomeSeries
     }
 
-    private struct ManagedIDBox: Identifiable {
-        let id: NSManagedObjectID
-    }
-
     private struct IncomeBucket: Identifiable {
         let id = UUID()
         let label: String
@@ -2241,6 +2249,26 @@ private struct MetricDetailView: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
             .task { await loadSeriesIfNeeded() }
+            .ub_platformSheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .addIncome:
+                    AddIncomeFormView(incomeObjectID: nil, budgetObjectID: nil, initialDate: nil)
+                        .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+                case .editIncome(let objectID):
+                    AddIncomeFormView(incomeObjectID: objectID, budgetObjectID: nil, initialDate: nil)
+                        .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+                case .editPlannedExpense(let objectID):
+                    AddPlannedExpenseView(
+                        plannedExpenseID: objectID,
+                        preselectedBudgetID: summary.id,
+                        onSaved: {
+                            activeSheet = nil
+                            Task { await loadSeriesIfNeeded() }
+                        }
+                    )
+                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+                }
+            }
     }
 
     @ViewBuilder
@@ -2303,126 +2331,153 @@ private struct MetricDetailView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(spendSections) { section in
-                    let orientation = detailBarOrientation(for: resolved, bucketCount: section.buckets.count)
-                    let maxAmount = max(section.buckets.map(\.amount).max() ?? 1, 1)
-                    let breakdown = spendBucketBreakdown(section.buckets)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(section.title)
-                            .font(.subheadline.weight(.semibold))
-                        if let subtitle = section.subtitle {
-                            Text(subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Chart(section.buckets) { item in
-                            let norm = max(min(item.amount / maxAmount, 1), 0)
-                            let gradientColors = spendGradientColors(for: item, summary: summary, maxColors: 4)
-                            let gradient = LinearGradient(
-                                colors: gradientColors.map { $0.opacity(0.4 + 0.5 * norm) },
-                                startPoint: orientation == .horizontal ? .leading : .top,
-                                endPoint: orientation == .horizontal ? .trailing : .bottom
-                            )
-                            if orientation == .horizontal {
-                                BarMark(
-                                    x: .value("Amount", item.amount),
-                                    y: .value("Period", item.label)
+                    weekdaySectionView(section: section, resolved: resolved)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func weekdaySectionView(section: SpendChartSection, resolved: BudgetPeriod) -> some View {
+        let safeBuckets = sanitizedBuckets(section.buckets)
+        let orientation = detailBarOrientation(for: resolved, bucketCount: section.buckets.count)
+        let maxAmount = max(safeBuckets.map(\.amount).max() ?? 1, 1)
+        let breakdown = spendBucketBreakdown(safeBuckets)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(section.title)
+                .font(.subheadline.weight(.semibold))
+            if let subtitle = section.subtitle {
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if safeBuckets.isEmpty {
+                Text("No spending in this range.")
+                    .foregroundStyle(.secondary)
+            } else {
+                weekdaySpendChart(
+                    section: section,
+                    safeBuckets: safeBuckets,
+                    orientation: orientation,
+                    maxAmount: maxAmount,
+                    breakdown: breakdown
+                )
+            }
+            if selectedSpendSectionID == section.id, let bucket = selectedSpendBucket {
+                spendCategoryChips(for: bucket)
+            }
+            if let maxItem = section.buckets.max(by: { $0.amount < $1.amount }) {
+                Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(section.buckets) { item in
+                    Text("\(item.label): \(formatCurrency(item.amount))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private func weekdaySpendChart(
+        section: SpendChartSection,
+        safeBuckets: [SpendBucket],
+        orientation: SpendBarOrientation,
+        maxAmount: Double,
+        breakdown: String?
+    ) -> some View {
+        Chart(safeBuckets) { item in
+            let norm = max(min(item.amount / maxAmount, 1), 0)
+            let gradientColors = spendGradientColors(for: item, summary: summary, maxColors: 4)
+            let gradient = LinearGradient(
+                colors: gradientColors.map { $0.opacity(0.4 + 0.5 * norm) },
+                startPoint: orientation == .horizontal ? .leading : .top,
+                endPoint: orientation == .horizontal ? .trailing : .bottom
+            )
+            if orientation == .horizontal {
+                BarMark(
+                    x: .value("Amount", item.amount),
+                    y: .value("Period", item.label)
+                )
+                .foregroundStyle(gradient)
+                .cornerRadius(3)
+            } else {
+                BarMark(
+                    x: .value("Period", item.label),
+                    y: .value("Amount", item.amount)
+                )
+                .foregroundStyle(gradient)
+                .cornerRadius(3)
+            }
+        }
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                Rectangle().fill(.clear).contentShape(Rectangle())
+                    .simultaneousGesture(
+                        SpatialTapGesture()
+                            .onEnded { value in
+                                let origin = geo[proxy.plotAreaFrame].origin
+                                let location = CGPoint(
+                                    x: value.location.x - origin.x,
+                                    y: value.location.y - origin.y
                                 )
-                                .foregroundStyle(gradient)
-                                .cornerRadius(3)
-                            } else {
-                                BarMark(
-                                    x: .value("Period", item.label),
-                                    y: .value("Amount", item.amount)
-                                )
-                                .foregroundStyle(gradient)
-                                .cornerRadius(3)
-                            }
-                        }
-                        .chartOverlay { proxy in
-                            GeometryReader { geo in
-                                Rectangle().fill(.clear).contentShape(Rectangle())
-                                    .simultaneousGesture(
-                                        SpatialTapGesture()
-                                            .onEnded { value in
-                                                let origin = geo[proxy.plotAreaFrame].origin
-                                                let location = CGPoint(
-                                                    x: value.location.x - origin.x,
-                                                    y: value.location.y - origin.y
-                                                )
-                                                if orientation == .horizontal {
-                                                    if let label: String = proxy.value(atY: location.y) {
-                                                        toggleSpendSelection(in: section, label: label)
-                                                    }
-                                                } else {
-                                                    if let label: String = proxy.value(atX: location.x) {
-                                                        toggleSpendSelection(in: section, label: label)
-                                                    }
-                                                }
-                                            }
-                                    )
-                            }
-                        }
-                        .chartYAxis {
-                            if orientation == .horizontal {
-                                AxisMarks(position: .leading, values: section.buckets.map(\.label)) { _ in
-                                    AxisValueLabel()
-                                }
-                            } else {
-                                AxisMarks(position: .leading) { value in
-                                    if let val = value.as(Double.self) {
-                                        AxisGridLine()
-                                        AxisTick()
-                                        AxisValueLabel(formatCurrency(val))
+                                if orientation == .horizontal {
+                                    if let label: String = proxy.value(atY: location.y) {
+                                        toggleSpendSelection(in: section, label: label)
+                                    }
+                                } else {
+                                    if let label: String = proxy.value(atX: location.x) {
+                                        toggleSpendSelection(in: section, label: label)
                                     }
                                 }
                             }
-                        }
-                        .chartXAxis {
-                            if orientation == .horizontal {
-                                AxisMarks(position: .bottom) { value in
-                                    if let val = value.as(Double.self) {
-                                        AxisGridLine()
-                                        AxisTick()
-                                        AxisValueLabel(formatCurrency(val))
-                                    }
-                                }
-                            } else {
-                                AxisMarks(position: .bottom, values: section.buckets.map(\.label)) { value in
-                                    if let label = value.as(String.self) {
-                                        AxisTick()
-                                        AxisValueLabel {
-                                            Text(String(label.prefix(1)))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .frame(height: orientation == .horizontal ? 180 : 200)
-                        .chartA11ySummary(
-                            title: "\(section.title) spending",
-                            range: rangeText(range),
-                            breakdown: breakdown,
-                            hint: "Shows spending totals by period. See the list below for exact values."
-                        )
-                        if selectedSpendSectionID == section.id, let bucket = selectedSpendBucket {
-                            spendCategoryChips(for: bucket)
-                        }
-                        if let maxItem = section.buckets.max(by: { $0.amount < $1.amount }) {
-                            Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        VStack(alignment: .leading, spacing: 2) {
-                            ForEach(section.buckets) { item in
-                                Text("\(item.label): \(formatCurrency(item.amount))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                    )
+            }
+        }
+        .chartYAxis {
+            if orientation == .horizontal {
+                AxisMarks(position: .leading, values: safeBuckets.map(\.label)) { _ in
+                    AxisValueLabel()
+                }
+            } else {
+                AxisMarks(position: .leading) { value in
+                    if let val = value.as(Double.self) {
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(formatCurrency(val))
+                    }
+                }
+            }
+        }
+        .chartXAxis {
+            if orientation == .horizontal {
+                AxisMarks(position: .bottom) { value in
+                    if let val = value.as(Double.self) {
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(formatCurrency(val))
+                    }
+                }
+            } else {
+                AxisMarks(position: .bottom, values: safeBuckets.map(\.label)) { value in
+                    if let label = value.as(String.self) {
+                        AxisTick()
+                        AxisValueLabel {
+                            Text(String(label.prefix(1)))
                         }
                     }
                 }
             }
         }
+        .frame(height: orientation == .horizontal ? 180 : 200)
+        .chartA11ySummary(
+            title: "\(section.title) spending",
+            range: rangeText(range),
+            breakdown: breakdown,
+            hint: "Shows spending totals by period. See the list below for exact values."
+        )
     }
 
     private var capsContent: some View {
@@ -2550,7 +2605,7 @@ private struct MetricDetailView: View {
                     expense: expense,
                     onEdit: {
                         if let id = expense?.objectID {
-                            editingExpenseBox = ManagedIDBox(id: id)
+                            activeSheet = .editPlannedExpense(id)
                         }
                     },
                     onDelete: {
@@ -3290,92 +3345,97 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             let actualLineColor = Color.gray
             let receiptColor = Color.green
 
-            let plannedSeries = expectedTimeline.isEmpty ? fallbackExpectedSeries() : expectedTimeline
-            let receiptPoints = receiptPoints(from: incomeTimeline)
-            let actualLineSeries = actualIncomeLineSeries(from: receiptPoints)
+            let plannedSeries = sanitizedPoints(expectedTimeline.isEmpty ? fallbackExpectedSeries() : expectedTimeline)
+            let receiptPoints = sanitizedPoints(receiptPoints(from: incomeTimeline))
+            let actualLineSeries = sanitizedPoints(actualIncomeLineSeries(from: receiptPoints))
             let breakdown: String? = {
                 guard let planned = plannedSeries.last, let actual = actualLineSeries.last else { return nil }
                 return "Latest: Planned \(formatCurrency(planned.value)), Actual \(formatCurrency(actual.value))"
             }()
 
-            let maxVal = max((actualLineSeries.map(\.value).max() ?? 0), (plannedSeries.map(\.value).max() ?? 0), 1)
-            let domain: ClosedRange<Double> = 0...(maxVal * 1.1)
+            let maxVal = safeUpper(from: actualLineSeries.map(\.value) + plannedSeries.map(\.value), minimum: 1)
+            let domain: ClosedRange<Double> = safeDomain(lower: 0, upper: maxVal * 1.1)
             VStack(alignment: .leading, spacing: 8) {
-                Chart {
-                    ForEach(plannedSeries) { point in
-                        LineMark(
-                            x: .value("Date", point.date),
-                            y: .value("Planned Income", point.value)
-                        )
-                        .interpolationMethod(.linear)
-                        .foregroundStyle(by: .value("Series", "Planned Income"))
-                        .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
-                    }
-                    ForEach(actualLineSeries) { point in
-                        LineMark(
-                            x: .value("Date", point.date),
-                            y: .value("Actual Income", point.value)
-                        )
-                        .interpolationMethod(.linear)
-                        .foregroundStyle(by: .value("Series", "Actual Income"))
-                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, dash: [6, 4]))
-                    }
-                    ForEach(receiptPoints) { point in
-                        PointMark(
-                            x: .value("Date", point.date),
-                            y: .value("Received", point.value)
-                        )
-                        .symbolSize(18)
-                        .foregroundStyle(receiptColor)
-                    }
-                    if let selected = timelineSelection {
-                        RuleMark(x: .value("Selected", selected.date))
-                            .foregroundStyle(.gray.opacity(0.35))
-                            .annotation(position: .topLeading) {
-                                Text(formatCurrency(selected.value))
-                                    .font(.caption2)
-                            }
-                    }
-                }
-                .chartYScale(domain: domain)
-                .chartLegend(.hidden)
-                .chartForegroundStyleScale([
-                    "Planned Income": plannedLineColor,
-                    "Actual Income": actualLineColor.opacity(0.9)
-                ])
-                .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: 3))
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        if let val = value.as(Double.self) {
-                            AxisGridLine()
-                            AxisTick()
-                            AxisValueLabel(formatCurrency(val))
+                if plannedSeries.isEmpty && actualLineSeries.isEmpty {
+                    Text("No income in this range.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Chart {
+                        ForEach(plannedSeries) { point in
+                            LineMark(
+                                x: .value("Date", point.date),
+                                y: .value("Planned Income", point.value)
+                            )
+                            .interpolationMethod(.linear)
+                            .foregroundStyle(by: .value("Series", "Planned Income"))
+                            .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                        }
+                        ForEach(actualLineSeries) { point in
+                            LineMark(
+                                x: .value("Date", point.date),
+                                y: .value("Actual Income", point.value)
+                            )
+                            .interpolationMethod(.linear)
+                            .foregroundStyle(by: .value("Series", "Actual Income"))
+                            .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, dash: [6, 4]))
+                        }
+                        ForEach(receiptPoints) { point in
+                            PointMark(
+                                x: .value("Date", point.date),
+                                y: .value("Received", point.value)
+                            )
+                            .symbolSize(18)
+                            .foregroundStyle(receiptColor)
+                        }
+                        if let selected = timelineSelection {
+                            RuleMark(x: .value("Selected", selected.date))
+                                .foregroundStyle(.gray.opacity(0.35))
+                                .annotation(position: .topLeading) {
+                                    Text(formatCurrency(selected.value))
+                                        .font(.caption2)
+                                }
                         }
                     }
-                }
-                .frame(height: 220)
-                .chartA11ySummary(
-                    title: "Income Timeline",
-                    range: rangeText(range),
-                    breakdown: breakdown,
-                    hint: "Shows planned income, actual income, and received payments over time."
-                )
-                .chartOverlay { proxy in
-                    GeometryReader { geo in
-                        Rectangle().fill(.clear).contentShape(Rectangle())
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { gesture in
-                                        let origin = geo[proxy.plotAreaFrame].origin
-                                        let locationX = gesture.location.x - origin.x
-                                        if let date: Date = proxy.value(atX: locationX) {
-                                            timelineSelection = nearestPoint(in: actualLineSeries, to: date)
+                    .chartYScale(domain: domain)
+                    .chartLegend(.hidden)
+                    .chartForegroundStyleScale([
+                        "Planned Income": plannedLineColor,
+                        "Actual Income": actualLineColor.opacity(0.9)
+                    ])
+                    .chartXAxis {
+                        AxisMarks(values: .automatic(desiredCount: 3))
+                    }
+                    .chartYAxis {
+                        AxisMarks(position: .leading) { value in
+                            if let val = value.as(Double.self) {
+                                AxisGridLine()
+                                AxisTick()
+                                AxisValueLabel(formatCurrency(val))
+                            }
+                        }
+                    }
+                    .frame(height: 220)
+                    .chartA11ySummary(
+                        title: "Income Timeline",
+                        range: rangeText(range),
+                        breakdown: breakdown,
+                        hint: "Shows planned income, actual income, and received payments over time."
+                    )
+                    .chartOverlay { proxy in
+                        GeometryReader { geo in
+                            Rectangle().fill(.clear).contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { gesture in
+                                            let origin = geo[proxy.plotAreaFrame].origin
+                                            let locationX = gesture.location.x - origin.x
+                                            if let date: Date = proxy.value(atX: locationX) {
+                                                timelineSelection = nearestPoint(in: actualLineSeries, to: date)
+                                            }
                                         }
-                                    }
-                                    .onEnded { _ in timelineSelection = nil }
-                            )
+                                        .onEnded { _ in timelineSelection = nil }
+                                )
+                        }
                     }
                 }
 
@@ -3410,12 +3470,13 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 }
                 .pickerStyle(.menu)
             }
-            if incomeBuckets.isEmpty {
+            let safeBuckets = sanitizedIncomeBuckets(incomeBuckets)
+            if safeBuckets.isEmpty {
                 Text("No income history for this period size.")
                     .foregroundStyle(.secondary)
             } else {
-                let breakdown = incomeBucketBreakdown(incomeBuckets)
-                Chart(incomeBuckets) { bucket in
+                let breakdown = incomeBucketBreakdown(safeBuckets)
+                Chart(safeBuckets) { bucket in
                     BarMark(
                         x: .value("Period", bucket.label),
                         y: .value("Total", bucket.total)
@@ -3452,7 +3513,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private var quickIncomeActions: some View {
         HStack(spacing: 12) {
             Button {
-                showAddIncomeSheet = true
+                activeSheet = .addIncome
             } label: {
                 Label("Add Income", systemImage: "plus.circle.fill")
                     .font(.subheadline.weight(.semibold))
@@ -3462,7 +3523,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
             Button {
                 if let id = latestIncomeID {
-                    editingIncomeBox = ManagedIDBox(id: id)
+                    activeSheet = .editIncome(id)
                 }
             } label: {
                 Label("Edit Latest", systemImage: "pencil")
@@ -3470,14 +3531,6 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             }
             .buttonStyle(.bordered)
             .disabled(latestIncomeID == nil)
-        }
-        .sheet(isPresented: $showAddIncomeSheet) {
-            AddIncomeFormView(incomeObjectID: nil, budgetObjectID: nil, initialDate: nil)
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .sheet(item: $editingIncomeBox) { box in
-            AddIncomeFormView(incomeObjectID: box.id, budgetObjectID: nil, initialDate: nil)
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
     }
 
@@ -3510,6 +3563,38 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         let start = f.string(from: range.lowerBound)
         let end = f.string(from: range.upperBound)
         return "\(start) – \(end)"
+    }
+
+    private func sanitizedBuckets(_ buckets: [SpendBucket]) -> [SpendBucket] {
+        buckets.filter { $0.amount.isFinite }
+    }
+
+    private func sanitizedIncomeBuckets(_ buckets: [IncomeBucket]) -> [IncomeBucket] {
+        buckets.filter { $0.total.isFinite }
+    }
+
+    private func sanitizedPoints(_ points: [DatedValue]) -> [DatedValue] {
+        points.filter { $0.value.isFinite }
+    }
+
+    private func sanitizedSavings(_ points: [SavingsPoint]) -> [SavingsPoint] {
+        points.filter { $0.actual.isFinite && $0.projected.isFinite }
+    }
+
+    private func safeUpper(from values: [Double], minimum: Double = 1) -> Double {
+        let finite = values.filter { $0.isFinite }
+        let maxVal = finite.max() ?? minimum
+        return max(maxVal, minimum)
+    }
+
+    private func safeDomain(lower: Double, upper: Double, fallback: ClosedRange<Double> = 0...1) -> ClosedRange<Double> {
+        guard lower.isFinite, upper.isFinite else { return fallback }
+        if lower == upper {
+            let pad = max(abs(lower) * 0.1, 1)
+            return (lower - pad)...(upper + pad)
+        }
+        if lower < upper { return lower...upper }
+        return upper...lower
     }
 
     private func spendBucketBreakdown(_ buckets: [SpendBucket]) -> String? {
@@ -3546,17 +3631,6 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
         }
         .listStyle(.plain)
-        .sheet(item: $editingExpenseBox) { box in
-            AddPlannedExpenseView(
-                plannedExpenseID: box.id,
-                preselectedBudgetID: summary.id,
-                onSaved: {
-                    editingExpenseBox = nil
-                    Task { await loadSeriesIfNeeded() }
-                }
-            )
-            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
     }
 
     private func fetchPlannedExpense(from uri: URL) -> PlannedExpense? {
@@ -4123,25 +4197,28 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
     @ViewBuilder
     private func expenseIncomeChart(expensePoints: [DatedValue], incomePoints: [DatedValue], plannedPoints: [DatedValue]) -> some View {
-        if expensePoints.isEmpty && incomePoints.isEmpty && plannedPoints.isEmpty {
+        let safeExpense = sanitizedPoints(expensePoints)
+        let safeIncome = sanitizedPoints(incomePoints)
+        let safePlanned = sanitizedPoints(plannedPoints)
+        if safeExpense.isEmpty && safeIncome.isEmpty && safePlanned.isEmpty {
             Text("Not enough data for this range.")
                 .foregroundStyle(.secondary)
         } else {
             let chartPoints =
-                expensePoints.map { ExpenseIncomePoint(date: $0.date, value: $0.value, series: .expenses) } +
-                incomePoints.map { ExpenseIncomePoint(date: $0.date, value: $0.value, series: .actualIncome) } +
-                plannedPoints.map { ExpenseIncomePoint(date: $0.date, value: $0.value, series: .plannedIncome) }
-            let values = (expensePoints + incomePoints + plannedPoints).map(\.value)
-            let maxVal = values.max() ?? 1
+                safeExpense.map { ExpenseIncomePoint(date: $0.date, value: $0.value, series: .expenses) } +
+                safeIncome.map { ExpenseIncomePoint(date: $0.date, value: $0.value, series: .actualIncome) } +
+                safePlanned.map { ExpenseIncomePoint(date: $0.date, value: $0.value, series: .plannedIncome) }
+            let values = (safeExpense + safeIncome + safePlanned).map(\.value)
+            let maxVal = safeUpper(from: values, minimum: 1)
             let lineColor = Color.orange
             let incomeColor = HomeView.HomePalette.income
             let plannedColor = HomeView.HomePalette.income.opacity(0.6)
             let upper = max(maxVal, 1)
             let pad = max(upper * 0.12, 1)
-            let domain: ClosedRange<Double> = 0...(upper + pad)
-            let latestExpense = expensePoints.last
-            let latestIncome = incomePoints.last
-            let latestPlanned = plannedPoints.last
+            let domain: ClosedRange<Double> = safeDomain(lower: 0, upper: upper + pad)
+            let latestExpense = safeExpense.last
+            let latestIncome = safeIncome.last
+            let latestPlanned = safePlanned.last
             let breakdown: String? = {
                 guard let latestExpense, let latestIncome, let latestPlanned else { return nil }
                 return "Latest: Exp \(formatCurrency(latestExpense.value)), Inc \(formatCurrency(latestIncome.value)), Plan \(formatCurrency(latestPlanned.value))"
@@ -4208,7 +4285,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                                     let origin = geo[proxy.plotAreaFrame].origin
                                     let locationX = gesture.location.x - origin.x
                                     if let date: Date = proxy.value(atX: locationX) {
-                                        ratioSelection = nearestPoint(in: expensePoints, to: date)
+                                        ratioSelection = nearestPoint(in: safeExpense, to: date)
                                     }
                                 }
                                 .onEnded { _ in ratioSelection = nil }
@@ -4248,17 +4325,18 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
     @ViewBuilder
     private func savingsChart(points: [SavingsPoint]) -> some View {
-        if points.isEmpty {
+        let safePoints = sanitizedSavings(points)
+        if safePoints.isEmpty {
             Text("Not enough data for this range.")
                 .foregroundStyle(.secondary)
         } else {
-            let sampled = smoothSavings(points, maxCount: 14)
-            let minVal = sampled.map { min($0.actual, $0.projected) }.min() ?? 0
-            let maxVal = sampled.map { max($0.actual, $0.projected) }.max() ?? 1
+            let sampled = smoothSavings(safePoints, maxCount: 14)
+            let minVal = sampled.map { min($0.actual, $0.projected) }.filter { $0.isFinite }.min() ?? 0
+            let maxVal = sampled.map { max($0.actual, $0.projected) }.filter { $0.isFinite }.max() ?? 1
             let lower = min(minVal, 0)
             let upper = max(maxVal, 0)
             let pad = max((upper - lower) * 0.1, 1)
-            let domain: ClosedRange<Double> = (lower - pad)...(upper + pad)
+            let domain: ClosedRange<Double> = safeDomain(lower: lower - pad, upper: upper + pad)
 
             let actualSeries = sampled.map { DatedValue(date: $0.date, value: $0.actual) }
             let projectedSeries = sampled.map { DatedValue(date: $0.date, value: $0.projected) }
@@ -4328,14 +4406,14 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                             .gesture(
                                 DragGesture(minimumDistance: 0)
                                     .onChanged { gesture in
-                                        let origin = geo[proxy.plotAreaFrame].origin
-                                        let locationX = gesture.location.x - origin.x
-                                        if let date: Date = proxy.value(atX: locationX) {
-                                            savingsSelection = nearestSavingsPoint(in: points, to: date)
-                                        }
+                                    let origin = geo[proxy.plotAreaFrame].origin
+                                    let locationX = gesture.location.x - origin.x
+                                    if let date: Date = proxy.value(atX: locationX) {
+                                        savingsSelection = nearestSavingsPoint(in: safePoints, to: date)
                                     }
-                                    .onEnded { _ in savingsSelection = nil }
-                            )
+                                }
+                                .onEnded { _ in savingsSelection = nil }
+                        )
                     }
                 }
 
@@ -4585,7 +4663,7 @@ private struct NextPlannedPresetsView: View {
 
     var body: some View {
         PresetsView(header: headerView)
-            .sheet(item: $editingExpenseBox) { box in
+            .ub_platformSheet(item: $editingExpenseBox) { box in
                 AddPlannedExpenseView(
                     plannedExpenseID: box.id,
                     preselectedBudgetID: summaryID,
@@ -5254,39 +5332,47 @@ private struct CategoryDonutView: View {
     var centerValueColor: Color? = nil
 
     var body: some View {
-        let breakdown = slices.isEmpty ? nil : "Top: \(centerTitle) \(centerValue)"
+        let safeSlices = slices.filter { $0.amount.isFinite && $0.amount >= 0 }
+        let breakdown = safeSlices.isEmpty ? nil : "Top: \(centerTitle) \(centerValue)"
         ZStack {
             if #available(iOS 17.0, macCatalyst 17.0, macOS 14.0, *) {
-                Chart(slices) { slice in
-                    SectorMark(
-                        angle: .value("Amount", slice.amount),
-                        innerRadius: .ratio(0.60),
-                        outerRadius: .ratio(1.0)
-                    )
-                    .foregroundStyle(style(for: slice))
-                    .shadow(
-                        color: slice.name == "Savings"
+                if safeSlices.isEmpty {
+                    Text("No category data.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Chart(safeSlices) { slice in
+                        let glow = slice.name == "Savings"
                             ? (savingsColor ?? Color.green).opacity(0.45)
-                            : .clear,
-                        radius: slice.name == "Savings" ? 2.5 : 0,
-                        x: 0,
-                        y: 0
-                    )
-                    .shadow(
-                        color: slice.name == "Savings"
+                            : .clear
+                        let glowOuter = slice.name == "Savings"
                             ? (savingsColor ?? Color.green).opacity(0.3)
-                            : .clear,
-                        radius: slice.name == "Savings" ? 6 : 0,
-                        x: 0,
-                        y: 0
-                    )
+                            : .clear
+                        SectorMark(
+                            angle: .value("Amount", slice.amount),
+                            innerRadius: .ratio(0.60),
+                            outerRadius: .ratio(1.0)
+                        )
+                        .foregroundStyle(style(for: slice))
+                        .shadow(
+                            color: glow,
+                            radius: slice.name == "Savings" ? 2.5 : 0,
+                            x: 0,
+                            y: 0
+                        )
+                        .shadow(
+                            color: glowOuter,
+                            radius: slice.name == "Savings" ? 6 : 0,
+                            x: 0,
+                            y: 0
+                        )
+                    }
+                    .chartLegend(.hidden)
+                    .frame(maxWidth: .infinity)
                 }
-                .chartLegend(.hidden)
-                .frame(maxWidth: .infinity)
             } else {
                 // Fallback: simple ring using proportional rectangles
                 HStack(spacing: 4) {
-                    ForEach(slices) { slice in
+                    ForEach(safeSlices) { slice in
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(style(for: slice))
                             .frame(maxWidth: .infinity)

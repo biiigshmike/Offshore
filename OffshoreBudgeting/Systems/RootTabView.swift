@@ -100,7 +100,7 @@ struct RootTabView: View {
                 HelpCommands(openHelp: { openWindow(id: "help") })
             )
 #else
-            .sheet(isPresented: $isPresentingHelp) { HelpView() }
+            .ub_platformSheet(isPresented: $isPresentingHelp) { HelpView() }
             .focusedSceneValue(
                 \.helpCommands,
                 HelpCommands(openHelp: { isPresentingHelp = true })

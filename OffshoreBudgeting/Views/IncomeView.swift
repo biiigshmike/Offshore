@@ -73,10 +73,10 @@ struct IncomeView: View {
         .onChange(of: vm.selectedDate) { _ in
             vm.reloadForSelectedDay(forceMonthReload: false)
         }
-        .sheet(item: Binding(get: { addIncomeSheetDate.map { SheetDateBox(value: $0) } }, set: { addIncomeSheetDate = $0?.value })) {
+        .ub_platformSheet(item: Binding(get: { addIncomeSheetDate.map { SheetDateBox(value: $0) } }, set: { addIncomeSheetDate = $0?.value })) {
             AddIncomeFormView(incomeObjectID: nil, budgetObjectID: nil, initialDate: $0.value)
         }
-        .sheet(item: $editingIncome) { income in
+        .ub_platformSheet(item: $editingIncome) { income in
             AddIncomeFormView(incomeObjectID: income.objectID, budgetObjectID: nil, initialDate: nil)
         }
         .alert("Delete Income?", isPresented: $isConfirmingDelete) {

@@ -124,7 +124,7 @@ struct PresetBudgetAssignmentSheet: View {
                 cancel: { dismiss() }
             ) : nil
         )
-        .sheet(item: $editingBudgetBox) { box in
+        .ub_platformSheet(item: $editingBudgetBox) { box in
             if let budget = try? CoreDataService.shared.viewContext.existingObject(with: box.id) as? Budget {
                 let start = budget.startDate ?? Date()
                 let end = budget.endDate ?? Date()

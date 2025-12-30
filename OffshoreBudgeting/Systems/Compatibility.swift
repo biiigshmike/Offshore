@@ -150,6 +150,67 @@ extension View {
     func ub_preOS26ListRowBackground(_ color: Color) -> some View {
         modifier(UBPreOS26ListRowBackgroundModifier(color: color))
     }
+
+    // MARK: ub_platformSheet(...)
+    /// Presents sheets as full-screen covers on iPad and macCatalyst to avoid
+    /// legacy keyboard accessory/layout issues, while keeping modal sheets on iPhone.
+    @ViewBuilder
+    func ub_platformSheet<SheetContent: View>(
+        isPresented: Binding<Bool>,
+        onDismiss: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping () -> SheetContent
+    ) -> some View {
+        if ub_shouldUseFullScreenCoverForSheets {
+            if let onDismiss {
+                fullScreenCover(isPresented: isPresented, onDismiss: onDismiss, content: content)
+            } else {
+                fullScreenCover(isPresented: isPresented, content: content)
+            }
+        } else {
+            if let onDismiss {
+                sheet(isPresented: isPresented, onDismiss: onDismiss, content: content)
+            } else {
+                sheet(isPresented: isPresented, content: content)
+            }
+        }
+    }
+
+    /// Item-based sheet that mirrors `sheet(item:)` but uses full-screen covers
+    /// for iPad/macCatalyst.
+    @ViewBuilder
+    func ub_platformSheet<Item: Identifiable, SheetContent: View>(
+        item: Binding<Item?>,
+        onDismiss: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping (Item) -> SheetContent
+    ) -> some View {
+        if ub_shouldUseFullScreenCoverForSheets {
+            if let onDismiss {
+                fullScreenCover(item: item, onDismiss: onDismiss, content: content)
+            } else {
+                fullScreenCover(item: item, content: content)
+            }
+        } else {
+            if let onDismiss {
+                sheet(item: item, onDismiss: onDismiss, content: content)
+            } else {
+                sheet(item: item, content: content)
+            }
+        }
+    }
+
+    private var ub_shouldUseFullScreenCoverForSheets: Bool {
+#if targetEnvironment(macCatalyst)
+        return true
+#elseif os(iOS)
+        #if canImport(UIKit)
+        return UIDevice.current.userInterfaceIdiom == .pad
+        #else
+        return false
+        #endif
+#else
+        return false
+#endif
+    }
 }
 
 // MARK: - UIKit Bridges

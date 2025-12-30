@@ -30,6 +30,7 @@ struct AddPlannedExpenseView: View {
     /// We don't call `dismiss()` directly anymore (the scaffold handles it),
     /// but we keep this in case future platform-specific work needs it.
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var cardPickerStore: CardPickerStore
     @StateObject private var vm: AddPlannedExpenseViewModel
     @State private var isAssigningToBudget: Bool
@@ -51,7 +52,19 @@ struct AddPlannedExpenseView: View {
     // MARK: Layout
     /// Shared card picker height to align with `CardPickerRow`.
     private let cardRowHeight: CGFloat = 160
-    @State private var isPresentingAddCard = false
+    private enum ActiveSheet: Identifiable {
+        case addCard
+        case addCategory
+
+        var id: String {
+            switch self {
+            case .addCard: return "addCard"
+            case .addCategory: return "addCategory"
+            }
+        }
+    }
+
+    @State private var activeSheet: ActiveSheet?
 
     // MARK: Init
     /// Designated initializer.
@@ -113,7 +126,7 @@ struct AddPlannedExpenseView: View {
                             height: 44,
                             fillHorizontally: true,
                             fallbackAppearance: .neutral,
-                            action: { isPresentingAddCard = true }
+                            action: { activeSheet = .addCard }
                         ) {
                             Label("Add Card", systemImage: "plus")
                         }
@@ -154,7 +167,10 @@ struct AddPlannedExpenseView: View {
 
             // MARK: Category Selection
             Section {
-                CategoryChipsRow(selectedCategoryID: $vm.selectedCategoryID)
+                CategoryChipsRow(
+                    selectedCategoryID: $vm.selectedCategoryID,
+                    onAddCategory: { activeSheet = .addCategory }
+                )
             }
 //            .ub_formSectionClearBackground()
             .accessibilityElement(children: .contain)
@@ -338,24 +354,34 @@ struct AddPlannedExpenseView: View {
             }
         }
         .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        // Add Card sheet for empty state
-        .sheet(isPresented: $isPresentingAddCard) {
-            AddCardFormView { newName, selectedTheme in
-                do {
-                    let service = CardService()
-                    let card = try service.createCard(name: newName)
-                    try service.updateCard(card, name: nil, theme: selectedTheme)
-                    // Select the new card immediately
-                    vm.selectedCardID = card.objectID
-                } catch {
-                    // Best-effort simple alert; the sheet handles its own dismissal
-                    let alert = UIAlertController(title: "Couldn’t Create Card", message: error.localizedDescription, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    UIApplication.shared.connectedScenes
-                        .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-                        .first?
-                        .rootViewController?
-                        .present(alert, animated: true)
+        .ub_platformSheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .addCard:
+                AddCardFormView { newName, selectedTheme in
+                    do {
+                        let service = CardService()
+                        let card = try service.createCard(name: newName)
+                        try service.updateCard(card, name: nil, theme: selectedTheme)
+                        // Select the new card immediately
+                        vm.selectedCardID = card.objectID
+                    } catch {
+                        // Best-effort simple alert; the sheet handles its own dismissal
+                        let alert = UIAlertController(title: "Couldn’t Create Card", message: error.localizedDescription, preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "OK", style: .default))
+                        UIApplication.shared.connectedScenes
+                            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+                            .first?
+                            .rootViewController?
+                            .present(alert, animated: true)
+                    }
+                }
+            case .addCategory:
+                ExpenseCategoryEditorSheet(
+                    initialName: "",
+                    initialHex: "#4E9CFF"
+                ) { name, hex in
+                    addCategory(name: name, hex: hex)
+                    activeSheet = nil
                 }
             }
         }
@@ -550,6 +576,21 @@ struct AddPlannedExpenseView: View {
         }
     }
 
+    private func addCategory(name: String, hex: String) {
+        let category = ExpenseCategory(context: viewContext)
+        category.id = UUID()
+        category.name = name
+        category.color = hex
+        WorkspaceService.shared.applyWorkspaceID(on: category)
+        do {
+            try viewContext.obtainPermanentIDs(for: [category])
+            try viewContext.save()
+            vm.selectedCategoryID = category.objectID
+        } catch {
+            AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
+        }
+    }
+
 }
 
 // MARK: - Navigation container
@@ -570,8 +611,7 @@ private extension AddPlannedExpenseView {
 private struct CategoryChipsRow: View {
 
     @Binding var selectedCategoryID: NSManagedObjectID?
-    @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.platformCapabilities) private var capabilities
+    let onAddCategory: () -> Void
     @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
 
     @FetchRequest(
@@ -579,10 +619,6 @@ private struct CategoryChipsRow: View {
                                            selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
     )
     private var categories: FetchedResults<ExpenseCategory>
-
-    @State private var isPresentingNewCategory = false
-    // Force fresh instance so the editor sheet doesn't retain prior @State on Mac Catalyst
-    @State private var addCategorySheetInstanceID = UUID()
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
 
@@ -603,30 +639,6 @@ private struct CategoryChipsRow: View {
         .listRowInsets(rowInsets)
         .listRowSeparator(.hidden)
         .ub_preOS26ListRowBackground(.clear)
-        .sheet(isPresented: $isPresentingNewCategory) {
-            ExpenseCategoryEditorSheet(
-                initialName: "",
-                initialHex: "#4E9CFF"
-            ) { name, hex in
-                let category = ExpenseCategory(context: viewContext)
-                category.id = UUID()
-                category.name = name
-                category.color = hex
-                WorkspaceService.shared.applyWorkspaceID(on: category)
-                do {
-                    try viewContext.obtainPermanentIDs(for: [category])
-                    try viewContext.save()
-                    selectedCategoryID = category.objectID
-                } catch {
-                    AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
-                }
-            }
-            // Guard presentationDetents for iOS 16+ only.
-            .modifier(PresentationDetentsCompat())
-            // Ensure a fresh view identity each presentation
-            .id(addCategorySheetInstanceID)
-            .environment(\.managedObjectContext, viewContext)
-        }
         .onChange(of: categories.count) { _ in
             if selectedCategoryID == nil, let first = filteredCategories.first {
                 selectedCategoryID = first.objectID
@@ -700,22 +712,9 @@ private extension CategoryChipsRow {
 
     private var addCategoryButton: some View {
         AddCategoryPill {
-            // Refresh identity and present
-            addCategorySheetInstanceID = UUID()
-            isPresentingNewCategory = true
+            onAddCategory()
         }
             .padding(.leading, DS.Spacing.s)
-    }
-}
-
-// A tiny compatibility wrapper to avoid directly calling presentationDetents on older OSes.
-private struct PresentationDetentsCompat: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 16.0, *) {
-            content.presentationDetents([.medium])
-        } else {
-            content
-        }
     }
 }
 

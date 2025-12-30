@@ -18,7 +18,29 @@ struct CardDetailView: View {
 
     // MARK: State
     @State private var cardSnapshot: CardItem
-    @State private var isPresentingEditCard: Bool = false
+    private enum ActiveSheet: Identifiable, Equatable {
+        case editCard
+        case addUnplanned
+        case addPlanned
+        case editPlanned(NSManagedObjectID)
+        case editUnplanned(NSManagedObjectID)
+
+        var id: String {
+            switch self {
+            case .editCard: return "editCard"
+            case .addUnplanned: return "addUnplanned"
+            case .addPlanned: return "addPlanned"
+            case .editPlanned(let id): return "editPlanned:\(id.uriRepresentation().absoluteString)"
+            case .editUnplanned(let id): return "editUnplanned:\(id.uriRepresentation().absoluteString)"
+            }
+        }
+
+        static func == (lhs: ActiveSheet, rhs: ActiveSheet) -> Bool {
+            lhs.id == rhs.id
+        }
+    }
+
+    @State private var activeSheet: ActiveSheet?
     @StateObject private var viewModel: CardDetailViewModel
     @Environment(\.responsiveLayoutContext) private var layoutContext
     @EnvironmentObject private var themeManager: ThemeManager
@@ -31,11 +53,9 @@ struct CardDetailView: View {
     @State private var isSearchActive: Bool = false
     @FocusState private var isSearchFieldFocused: Bool
     // Add flows
-    @State private var isPresentingAddPlanned: Bool = false
     @State private var expensePendingDeletion: CardExpense?
     @State private var isConfirmingDelete: Bool = false
     @State private var deletionError: DeletionError?
-    @State private var editingExpense: CardExpense?
     @State private var isMenuActive = false
     @State private var budgetDetailCommands: BudgetDetailCommands?
     // Date range pickers
@@ -71,62 +91,76 @@ struct CardDetailView: View {
         .task { await viewModel.load() }
         //.accentColor(themeManager.selectedTheme.tint)
         //.tint(themeManager.selectedTheme.tint)
-        .sheet(isPresented: $isPresentingEditCard) {
-            AddCardFormView(
-                mode: .edit,
-                editingCard: cardSnapshot
-            ) { name, theme in
-                handleCardEdit(name: name, theme: theme)
-            }
-        }
-        // Add Variable (Unplanned) Expense sheet for this card
-        .sheet(isPresented: $isPresentingAddExpense) {
-            AddUnplannedExpenseView(
-                initialCardID: cardSnapshot.objectID ?? card.objectID,
-                initialDate: Date(),
-                onSaved: {
-                    isPresentingAddExpense = false
-                    refreshCardDetails()
+        .ub_platformSheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .editCard:
+                AddCardFormView(
+                    mode: .edit,
+                    editingCard: cardSnapshot
+                ) { name, theme in
+                    handleCardEdit(name: name, theme: theme)
+                    activeSheet = nil
                 }
-            )
-        }
-        // Add Planned Expense sheet for this card
-        .sheet(isPresented: $isPresentingAddPlanned) {
-            AddPlannedExpenseView(
-                preselectedBudgetID: nil,
-                defaultSaveAsGlobalPreset: false,
-                showAssignBudgetToggle: true,
-                onSaved: {
-                    isPresentingAddPlanned = false
-                    refreshCardDetails()
-                },
-                initialCardID: cardSnapshot.objectID ?? card.objectID
-            )
-            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .sheet(item: $editingExpense) { expense in
-            if expense.isPlanned {
+            case .addUnplanned:
+                AddUnplannedExpenseView(
+                    initialCardID: cardSnapshot.objectID ?? card.objectID,
+                    initialDate: Date(),
+                    onSaved: {
+                        activeSheet = nil
+                        isPresentingAddExpense = false
+                        refreshCardDetails()
+                    }
+                )
+            case .addPlanned:
                 AddPlannedExpenseView(
-                    plannedExpenseID: expense.objectID,
                     preselectedBudgetID: nil,
                     defaultSaveAsGlobalPreset: false,
                     showAssignBudgetToggle: true,
                     onSaved: {
+                        activeSheet = nil
                         refreshCardDetails()
                     },
                     initialCardID: cardSnapshot.objectID ?? card.objectID
                 )
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            } else {
-                AddUnplannedExpenseView(
-                    unplannedExpenseID: expense.objectID,
-                    initialCardID: cardSnapshot.objectID ?? card.objectID,
-                    initialDate: expense.date,
+            case .editPlanned(let objectID):
+                AddPlannedExpenseView(
+                    plannedExpenseID: objectID,
+                    preselectedBudgetID: nil,
+                    defaultSaveAsGlobalPreset: false,
+                    showAssignBudgetToggle: true,
                     onSaved: {
+                        activeSheet = nil
+                        refreshCardDetails()
+                    },
+                    initialCardID: cardSnapshot.objectID ?? card.objectID
+                )
+                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            case .editUnplanned(let objectID):
+                AddUnplannedExpenseView(
+                    unplannedExpenseID: objectID,
+                    initialCardID: cardSnapshot.objectID ?? card.objectID,
+                    initialDate: nil,
+                    onSaved: {
+                        activeSheet = nil
                         refreshCardDetails()
                     }
                 )
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            }
+        }
+        .onChange(of: isPresentingAddExpense) { newValue in
+            if newValue {
+                activeSheet = .addUnplanned
+            }
+        }
+        .onChange(of: activeSheet) { newValue in
+            if case .addUnplanned = newValue {
+                isPresentingAddExpense = true
+                return
+            }
+            if newValue == nil {
+                isPresentingAddExpense = false
             }
         }
         .alert("Delete Expense?", isPresented: $isConfirmingDelete) {
@@ -311,7 +345,12 @@ struct CardDetailView: View {
 //                            }
                             .unifiedSwipeActions(
                                 swipeConfig,
-                                onEdit: { editingExpense = expense },
+                                onEdit: {
+                                    guard let objectID = expense.objectID else { return }
+                                    activeSheet = expense.isPlanned
+                                        ? .editPlanned(objectID)
+                                        : .editUnplanned(objectID)
+                                },
                                 onDelete: { requestDelete(expense) }
                             )
                     }
@@ -436,8 +475,8 @@ struct CardDetailView: View {
                 isMenuActive = true
                 if budgetDetailCommands == nil {
                     budgetDetailCommands = BudgetDetailCommands(
-                        addPlannedExpense: { isPresentingAddPlanned = true },
-                        addVariableExpense: { isPresentingAddExpense = true }
+                        addPlannedExpense: { activeSheet = .addPlanned },
+                        addVariableExpense: { activeSheet = .addUnplanned }
                     )
                 }
             }
@@ -452,15 +491,15 @@ struct CardDetailView: View {
         }
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             IconOnlyButton(systemName: "pencil") {
-                isPresentingEditCard = true
+                activeSheet = .editCard
             }
             // Add Expense menu (Planned or Variable) — rightmost control
             Menu {
                 Button("Add Planned Expense") {
-                    isPresentingAddPlanned = true
+                    activeSheet = .addPlanned
                 }
                 Button("Add Variable Expense") {
-                    isPresentingAddExpense = true
+                    activeSheet = .addUnplanned
                 }
             } label: {
                 Image(systemName: "plus")

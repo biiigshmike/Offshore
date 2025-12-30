@@ -54,7 +54,7 @@ struct BudgetsView: View {
         } else if !isSearchActive && activeBudgets.isEmpty && upcomingBudgets.isEmpty && pastBudgets.isEmpty {
             UBEmptyState(message: "No budgets found. Tap + to create a budget.")
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .sheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
+            .ub_platformSheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
         } else {
             List {
                 budgetSection(
@@ -77,7 +77,7 @@ struct BudgetsView: View {
                 )
             }
             .listStyle(.insetGrouped)
-            .sheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
+            .ub_platformSheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
         }
     }
 

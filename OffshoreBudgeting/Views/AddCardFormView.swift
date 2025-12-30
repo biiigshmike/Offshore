@@ -63,6 +63,7 @@ struct AddCardFormView: View {
     @State private var selectedTheme: CardTheme = .rose
     @State private var saveErrorMessage: String?
     @State private var isMenuActive = false
+    @FocusState private var isNameFieldFocused: Bool
 
     // MARK: Computed
     /// Trimmed card name for validation.
@@ -88,6 +89,7 @@ struct AddCardFormView: View {
     // MARK: - Body
     /// Main view composition using a native NavigationStack + Form + toolbar.
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.platformCapabilities) private var capabilities
     var body: some View {
         navigationContainer {
             Form {
@@ -120,6 +122,7 @@ struct AddCardFormView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .submitLabel(.done)
                             .accessibilityLabel("Card Name")
+                            .focused($isNameFieldFocused)
                     } else {
                         TextField("Apple Card", text: $cardName)
                             .autocorrectionDisabled(true)
@@ -128,6 +131,7 @@ struct AddCardFormView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .submitLabel(.done)
                             .accessibilityLabel("Card Name")
+                            .focused($isNameFieldFocused)
                     }
                     Spacer(minLength: 0)
                 }
@@ -178,6 +182,13 @@ struct AddCardFormView: View {
         .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
         .onAppear { isMenuActive = true }
         .onDisappear { isMenuActive = false }
+        .onChange(of: isNameFieldFocused) { isFocused in
+            guard isFocused else { return }
+            let osVersion = ProcessInfo.processInfo.operatingSystemVersion
+            let versionString = "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
+            let runtimeVersion = ProcessInfo.processInfo.environment["SIMULATOR_RUNTIME_VERSION"] ?? "n/a"
+            AppLog.ui.info("TextFieldFocus supportsOS26Translucency=\(capabilities.supportsOS26Translucency, privacy: .public) supportsAdaptiveKeypad=\(capabilities.supportsAdaptiveKeypad, privacy: .public) osVersion=\(versionString, privacy: .public) runtimeVersion=\(runtimeVersion, privacy: .public)")
+        }
         // Error alert (if validation or save logic fails)
         .alert("Error", isPresented: .constant(saveErrorMessage != nil), actions: {
             Button("OK", role: .cancel) { saveErrorMessage = nil }

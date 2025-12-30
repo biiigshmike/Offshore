@@ -324,7 +324,7 @@ struct TipsAndHintsOverlayModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .task { maybeShow() }
-            .sheet(isPresented: $isPresented, onDismiss: markSeenOnDismiss) {
+            .ub_platformSheet(isPresented: $isPresented, onDismiss: markSeenOnDismiss) {
                 if let payload = TipsCatalog.content(for: screen, kind: kind, versionToken: versionToken) {
                     TipsAndHintsSheet(content: payload, onContinue: dismiss)
                 }

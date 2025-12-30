@@ -3,8 +3,6 @@ import CoreData
 
 @MainActor
 struct BudgetDetailsView: View {
-    private struct ObjectIDBox: Identifiable { let id: NSManagedObjectID }
-
     let budgetID: NSManagedObjectID
     @StateObject private var vm: BudgetDetailsViewModel
     @Environment(\.dismiss) private var dismiss
@@ -14,14 +12,31 @@ struct BudgetDetailsView: View {
     @State private var sort: BudgetDetailsViewModel.SortOption = .dateNewOld
     @State private var selectedCategoryURI: URL? = nil
 
-    @State private var isPresentingAddPlanned = false
-    @State private var isPresentingAddVariable = false
-    @State private var isPresentingManageCards = false
-    @State private var isPresentingManagePresets = false
-    @State private var editingBudgetBox: ObjectIDBox?
-    @State private var editingPlannedBox: ObjectIDBox?
-    @State private var editingUnplannedBox: ObjectIDBox?
-    @State private var capGaugeData: CapGaugeData?
+    private enum ActiveSheet: Identifiable {
+        case addPlanned
+        case addVariable
+        case manageCards
+        case managePresets
+        case editBudget(NSManagedObjectID)
+        case editPlanned(NSManagedObjectID)
+        case editUnplanned(NSManagedObjectID)
+        case capGauge(CapGaugeData)
+
+        var id: String {
+            switch self {
+            case .addPlanned: return "addPlanned"
+            case .addVariable: return "addVariable"
+            case .manageCards: return "manageCards"
+            case .managePresets: return "managePresets"
+            case .editBudget(let id): return "editBudget:\(id.uriRepresentation().absoluteString)"
+            case .editPlanned(let id): return "editPlanned:\(id.uriRepresentation().absoluteString)"
+            case .editUnplanned(let id): return "editUnplanned:\(id.uriRepresentation().absoluteString)"
+            case .capGauge(let data): return "capGauge:\(data.id.uuidString)"
+            }
+        }
+    }
+
+    @State private var activeSheet: ActiveSheet?
     @State private var capOverrides: [String: (min: Double?, max: Double?)] = [:]
     @State private var isConfirmingDelete = false
     @State private var deleteErrorMessage: String?
@@ -59,8 +74,8 @@ struct BudgetDetailsView: View {
             isMenuActive = true
             if budgetDetailCommands == nil {
                 budgetDetailCommands = BudgetDetailCommands(
-                    addPlannedExpense: { isPresentingAddPlanned = true },
-                    addVariableExpense: { isPresentingAddVariable = true }
+                    addPlannedExpense: { activeSheet = .addPlanned },
+                    addVariableExpense: { activeSheet = .addVariable }
                 )
             }
         }
@@ -74,31 +89,35 @@ struct BudgetDetailsView: View {
         .onChange(of: vm.loadState) { state in
             if case .loaded = state { refreshCapOverrides() }
         }
-        .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
-        .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
-        .sheet(isPresented: $isPresentingManageCards) { manageCardsSheet }
-        .sheet(isPresented: $isPresentingManagePresets) { managePresetsSheet }
-        .sheet(item: $editingBudgetBox) { box in
-            AddBudgetView(
-                editingBudgetObjectID: box.id,
-                fallbackStartDate: vm.startDate,
-                fallbackEndDate: vm.endDate
-            ) { Task { await vm.load() } }
-        }
-        .sheet(item: $editingPlannedBox) { box in
-            AddPlannedExpenseView(plannedExpenseID: box.id, onSaved: { Task { await vm.refreshRows() } })
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .sheet(item: $editingUnplannedBox) { box in
-            AddUnplannedExpenseView(unplannedExpenseID: box.id, onSaved: { Task { await vm.refreshRows() } })
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .sheet(item: $capGaugeData) { data in
-            CategoryCapGaugeSheet(
-                data: data,
-                onDismiss: { capGaugeData = nil },
-                onSave: { min, max in await saveCaps(for: data, min: min, max: max) }
-            )
+        .ub_platformSheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .addPlanned:
+                addPlannedSheet
+            case .addVariable:
+                addVariableSheet
+            case .manageCards:
+                manageCardsSheet
+            case .managePresets:
+                managePresetsSheet
+            case .editBudget(let objectID):
+                AddBudgetView(
+                    editingBudgetObjectID: objectID,
+                    fallbackStartDate: vm.startDate,
+                    fallbackEndDate: vm.endDate
+                ) { Task { await vm.load() } }
+            case .editPlanned(let objectID):
+                AddPlannedExpenseView(plannedExpenseID: objectID, onSaved: { Task { await vm.refreshRows() } })
+                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            case .editUnplanned(let objectID):
+                AddUnplannedExpenseView(unplannedExpenseID: objectID, onSaved: { Task { await vm.refreshRows() } })
+                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            case .capGauge(let data):
+                CategoryCapGaugeSheet(
+                    data: data,
+                    onDismiss: { activeSheet = nil },
+                    onSave: { min, max in await saveCaps(for: data, min: min, max: max) }
+                )
+            }
         }
         .alert("Delete Budget?", isPresented: $isConfirmingDelete) {
             Button("Delete", role: .destructive) { deleteBudget() }
@@ -181,7 +200,7 @@ struct BudgetDetailsView: View {
                     horizontalPadding: 16,
                     selectedCategoryURI: selectedCategoryURI,
                     confirmBeforeDelete: true,
-                    onEdit: { editingPlannedBox = ObjectIDBox(id: $0) },
+                    onEdit: { activeSheet = .editPlanned($0) },
                     onDelete: { _ in Task { await vm.refreshRows() } }
                 )
             } else {
@@ -193,7 +212,7 @@ struct BudgetDetailsView: View {
                     horizontalPadding: 16,
                     selectedCategoryURI: selectedCategoryURI,
                     confirmBeforeDelete: true,
-                    onEdit: { editingUnplannedBox = ObjectIDBox(id: $0) },
+                    onEdit: { activeSheet = .editUnplanned($0) },
                     onDelete: { _ in Task { await vm.refreshRows() } }
                 )
             }
@@ -365,8 +384,8 @@ struct BudgetDetailsView: View {
     private var toolbarActions: some View {
         HStack(spacing: 8) {
             Menu {
-                Button("Add Planned Expense") { isPresentingAddPlanned = true }
-                Button("Add Variable Expense") { isPresentingAddVariable = true }
+                Button("Add Planned Expense") { activeSheet = .addPlanned }
+                Button("Add Variable Expense") { activeSheet = .addVariable }
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 15, weight: .semibold))
@@ -375,10 +394,10 @@ struct BudgetDetailsView: View {
             .iconButtonA11y(label: "Add Expense", hint: "Choose planned or variable expense")
 
             Menu {
-                Button("Manage Cards") { isPresentingManageCards = true }
-                Button("Manage Presets") { isPresentingManagePresets = true }
+                Button("Manage Cards") { activeSheet = .manageCards }
+                Button("Manage Presets") { activeSheet = .managePresets }
                 if let budget = vm.budget {
-                    Button("Edit Budget") { editingBudgetBox = ObjectIDBox(id: budget.objectID) }
+                    Button("Edit Budget") { activeSheet = .editBudget(budget.objectID) }
                 }
                 Button("Delete Budget", role: .destructive) { isConfirmingDelete = true }
             } label: {
@@ -515,7 +534,7 @@ struct BudgetDetailsView: View {
         let defaults = defaultCaps(for: cat.categoryName, segment: segment)
 
         guard let (category, _) = resolvedCategory() else {
-            capGaugeData = CapGaugeData(
+            let data = CapGaugeData(
                 category: cat,
                 minCap: defaults.min,
                 maxCap: defaults.max,
@@ -525,6 +544,7 @@ struct BudgetDetailsView: View {
                 categoryObjectID: nil,
                 periodKey: key
             )
+            activeSheet = .capGauge(data)
             return
         }
 
@@ -553,7 +573,7 @@ struct BudgetDetailsView: View {
         }
 
         let color = UBColorFromHex(cat.hexColor) ?? .accentColor
-        capGaugeData = CapGaugeData(
+        let data = CapGaugeData(
             category: cat,
             minCap: minCap,
             maxCap: maxCap,
@@ -563,6 +583,7 @@ struct BudgetDetailsView: View {
             categoryObjectID: category.objectID,
             periodKey: key
         )
+        activeSheet = .capGauge(data)
     }
 
     private func periodKey(start: Date, end: Date, segment: BudgetDetailsViewModel.Segment) -> String {
@@ -685,7 +706,7 @@ struct BudgetDetailsView: View {
         }
 
         await MainActor.run {
-            capGaugeData = CapGaugeData(
+            let updated = CapGaugeData(
                 category: data.category,
                 minCap: min,
                 maxCap: max,
@@ -695,6 +716,9 @@ struct BudgetDetailsView: View {
                 categoryObjectID: data.categoryObjectID,
                 periodKey: data.periodKey
             )
+            if case .capGauge = activeSheet {
+                activeSheet = .capGauge(updated)
+            }
             refreshCapOverrides()
             Task { await vm.refreshRows() }
         }

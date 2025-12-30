@@ -72,7 +72,7 @@ struct AddIncomeFormView: View {
                 }
             }
         }
-        .sheet(isPresented: $viewModel.isPresentingCustomRecurrenceEditor) {
+        .ub_platformSheet(isPresented: $viewModel.isPresentingCustomRecurrenceEditor) {
             CustomRecurrenceEditorView(initial: viewModel.customRuleSeed) {
                 viewModel.isPresentingCustomRecurrenceEditor = false
             } onSave: { custom in

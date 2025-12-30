@@ -204,10 +204,12 @@ struct CustomRecurrenceEditorView: View {
                         Spacer()
                         if selection.contains(day) {
                             Image(systemName: "checkmark")
+                                .hideDecorative()
                         }
                     }
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(selection.contains(day) ? .isSelected : [])
             }
         }
 

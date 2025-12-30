@@ -573,6 +573,7 @@ struct HomeView: View {
                                 Text(item.title)
                                 Spacer()
                                 Image(systemName: "pin.fill")
+                                    .hideDecorative()
                             }
                             .padding(.vertical, 10)
                             .padding(.horizontal, 12)
@@ -948,6 +949,7 @@ struct HomeView: View {
         let maxColors: Int
 
         var body: some View {
+            let breakdown = bucketBreakdown()
             GeometryReader { geo in
                 let spacing: CGFloat = 8
                 let count = max(buckets.count, 1)
@@ -1010,6 +1012,12 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 }
             }
+            .chartA11ySummary(
+                title: "Spending by \(period.displayName)",
+                range: nil,
+                breakdown: breakdown,
+                hint: "Shows spending totals by period."
+            )
         }
 
         private func displayLabel(_ label: String, period: BudgetPeriod) -> String {
@@ -1017,6 +1025,37 @@ struct HomeView: View {
                 return String(first)
             }
             return label
+        }
+
+        private func bucketBreakdown() -> String? {
+            guard !buckets.isEmpty else { return nil }
+            let maxItem = buckets.max(by: { $0.amount < $1.amount })
+            let minItem = buckets.min(by: { $0.amount < $1.amount })
+            var parts: [String] = []
+            if let maxItem {
+                parts.append("Highest \(maxItem.label): \(formatCurrency(maxItem.amount))")
+            }
+            if let minItem {
+                parts.append("Lowest \(minItem.label): \(formatCurrency(minItem.amount))")
+            }
+            return parts.joined(separator: ". ")
+        }
+
+        private func formatCurrency(_ amount: Double) -> String {
+            if #available(iOS 15.0, macCatalyst 15.0, *) {
+                let currencyCode: String
+                if #available(iOS 16.0, macCatalyst 16.0, *) {
+                    currencyCode = Locale.current.currency?.identifier ?? "USD"
+                } else {
+                    currencyCode = Locale.current.currencyCode ?? "USD"
+                }
+                return amount.formatted(.currency(code: currencyCode))
+            } else {
+                let formatter = NumberFormatter()
+                formatter.numberStyle = .currency
+                formatter.currencyCode = Locale.current.currencyCode ?? "USD"
+                return formatter.string(from: amount as NSNumber) ?? String(format: "%.2f", amount)
+            }
         }
     }
 
@@ -1062,6 +1101,10 @@ struct HomeView: View {
 
     @ViewBuilder
     private func widgetCell(for item: WidgetItem) -> some View {
+        let pinnedOrder = widgetOrder.filter { pinnedIDs.contains($0) }
+        let index = pinnedOrder.firstIndex(of: item.id)
+        let canMoveUp = (index ?? 0) > 0
+        let canMoveDown = (index ?? 0) < max(pinnedOrder.count - 1, 0)
         let base = item.view
             .layoutValue(key: WidgetSpanKey.self, value: item.span)
             .overlay(alignment: .topTrailing) {
@@ -1079,6 +1122,12 @@ struct HomeView: View {
                     return NSItemProvider(object: item.id.storageKey as NSString)
                 }
                 .onDrop(of: [UTType.text], delegate: WidgetDropDelegate(target: item.id, order: $widgetOrder, dragging: $draggingID, persist: persistOrder))
+                .a11yMoveUpDownActions(
+                    canMoveUp: canMoveUp,
+                    canMoveDown: canMoveDown,
+                    moveUp: { moveWidget(item.id, direction: -1) },
+                    moveDown: { moveWidget(item.id, direction: 1) }
+                )
         } else {
             base
         }
@@ -1100,6 +1149,7 @@ struct HomeView: View {
         }
         .buttonStyle(.plain)
         .padding(6)
+        .iconButtonA11y(label: isPinned ? "Unpin Widget" : "Pin Widget")
     }
 
     private func pinWidget(_ id: WidgetID) {
@@ -1111,11 +1161,26 @@ struct HomeView: View {
         }
         persistPinned()
         persistOrder()
+        AccessibilityAnnouncements.announceStatusChangeIfNeeded(message: "Widget pinned")
     }
 
     private func unpinWidget(_ id: WidgetID) {
         pinnedIDs.removeAll { $0 == id }
         persistPinned()
+        AccessibilityAnnouncements.announceStatusChangeIfNeeded(message: "Widget unpinned")
+    }
+
+    private func moveWidget(_ id: WidgetID, direction: Int) {
+        var pinnedOrder = widgetOrder.filter { pinnedIDs.contains($0) }
+        guard let index = pinnedOrder.firstIndex(of: id) else { return }
+        let newIndex = max(0, min(pinnedOrder.count - 1, index + direction))
+        guard newIndex != index else { return }
+        pinnedOrder.remove(at: index)
+        pinnedOrder.insert(id, at: newIndex)
+        let unpinned = widgetOrder.filter { !pinnedIDs.contains($0) }
+        widgetOrder = pinnedOrder + unpinned
+        persistOrder()
+        AccessibilityAnnouncements.announceStatusChangeIfNeeded(message: "Widget moved")
     }
 
     private func initializeLayoutStateIfNeeded(with items: [WidgetItem]) {
@@ -1403,7 +1468,7 @@ struct HomeView: View {
                         HStack {
                             Spacer(minLength: 0)
                             HStack(spacing: 12) {
-                                availabilityNavButton("chevron.left", isDisabled: availabilityPage == 0) {
+                                availabilityNavButton("chevron.left", label: "Previous Availability Page", isDisabled: availabilityPage == 0) {
                                     availabilityPage = max(0, availabilityPage - 1)
                                 }
 
@@ -1414,8 +1479,10 @@ struct HomeView: View {
                                             .frame(width: idx == availabilityPage ? 20 : 9, height: 7)
                                     }
                                 }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(Text("Availability page \(availabilityPage + 1) of \(pages.count)"))
 
-                                availabilityNavButton("chevron.right", isDisabled: availabilityPage >= pages.count - 1) {
+                                availabilityNavButton("chevron.right", label: "Next Availability Page", isDisabled: availabilityPage >= pages.count - 1) {
                                     availabilityPage = min(pages.count - 1, availabilityPage + 1)
                                 }
                             }
@@ -1456,7 +1523,7 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private func availabilityNavButton(_ systemName: String, isDisabled: Bool, action: @escaping () -> Void) -> some View {
+    private func availabilityNavButton(_ systemName: String, label: String, isDisabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.body.weight(.semibold))
@@ -1479,6 +1546,7 @@ struct HomeView: View {
         .buttonStyle(.plain)
         .opacity(isDisabled ? 0.45 : 1)
         .disabled(isDisabled)
+        .iconButtonA11y(label: label)
     }
 
 
@@ -1528,13 +1596,14 @@ struct HomeView: View {
                         }
                     }
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-                body
-                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .hideDecorative()
             }
+            body
+            Spacer(minLength: 0)
+        }
             .padding(16)
             .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
         }
@@ -1670,6 +1739,7 @@ struct HomeView: View {
             .buttonBorderShape(.circle)
             .tint(.accentColor)
             .disabled(disabled)
+            .iconButtonA11y(label: "Apply Date Range")
         } else {
             Button(action: applyCustomRangeFromPickers) {
                 Image(systemName: "arrow.right")
@@ -1677,6 +1747,7 @@ struct HomeView: View {
             }
             .buttonStyle(.plain)
             .disabled(disabled)
+            .iconButtonA11y(label: "Apply Date Range")
         }
     }
 
@@ -1694,6 +1765,7 @@ struct HomeView: View {
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
+            .iconButtonA11y(label: "Select Budget Period")
         } else {
             Menu {
                 periodMenuItems
@@ -1701,6 +1773,7 @@ struct HomeView: View {
                 Image(systemName: "calendar")
                     .font(.headline.weight(.semibold))
             }
+            .iconButtonA11y(label: "Select Budget Period")
         }
     }
 
@@ -1714,6 +1787,7 @@ struct HomeView: View {
                     Text(period.displayName)
                     if period == vm.period, !vm.isUsingCustomRange {
                         Image(systemName: "checkmark")
+                            .hideDecorative()
                     }
                 }
             }
@@ -2231,6 +2305,7 @@ private struct MetricDetailView: View {
                 ForEach(spendSections) { section in
                     let orientation = detailBarOrientation(for: resolved, bucketCount: section.buckets.count)
                     let maxAmount = max(section.buckets.map(\.amount).max() ?? 1, 1)
+                    let breakdown = spendBucketBreakdown(section.buckets)
                     VStack(alignment: .leading, spacing: 8) {
                         Text(section.title)
                             .font(.subheadline.weight(.semibold))
@@ -2323,6 +2398,12 @@ private struct MetricDetailView: View {
                             }
                         }
                         .frame(height: orientation == .horizontal ? 180 : 200)
+                        .chartA11ySummary(
+                            title: "\(section.title) spending",
+                            range: rangeText(range),
+                            breakdown: breakdown,
+                            hint: "Shows spending totals by period. See the list below for exact values."
+                        )
                         if selectedSpendSectionID == section.id, let bucket = selectedSpendBucket {
                             spendCategoryChips(for: bucket)
                         }
@@ -2330,6 +2411,13 @@ private struct MetricDetailView: View {
                             Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(section.buckets) { item in
+                                Text("\(item.label): \(formatCurrency(item.amount))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -2358,6 +2446,7 @@ private struct MetricDetailView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Circle().fill(cap.color).frame(width: 10, height: 10)
+                                .accessibilityHidden(true)
                             Text(cap.name)
                                 .font(.ubDetailLabel.weight(.semibold))
                             Spacer()
@@ -2634,28 +2723,31 @@ private struct MetricDetailView: View {
     @ViewBuilder
     private func categoryExpenseCardPreview(_ card: Card?) -> some View {
         let symbolWidth: CGFloat = 14
-        if let card {
-            let theme: CardTheme = {
-                if card.entity.attributesByName["theme"] != nil,
-                   let raw = card.value(forKey: "theme") as? String,
-                   let t = CardTheme(rawValue: raw) { return t }
-                return .graphite
-            }()
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(theme.backgroundStyle(for: themeManager.selectedTheme))
-                .overlay(theme.patternOverlay(cornerRadius: 2))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .stroke(Color.primary.opacity(0.18), lineWidth: 1)
-                )
-                .frame(width: 12, height: 8)
-                .frame(width: symbolWidth, alignment: .leading)
-        } else {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .stroke(Color.primary.opacity(0.12), lineWidth: 1)
-                .frame(width: 12, height: 8)
-                .frame(width: symbolWidth, alignment: .leading)
+        Group {
+            if let card {
+                let theme: CardTheme = {
+                    if card.entity.attributesByName["theme"] != nil,
+                       let raw = card.value(forKey: "theme") as? String,
+                       let t = CardTheme(rawValue: raw) { return t }
+                    return .graphite
+                }()
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(theme.backgroundStyle(for: themeManager.selectedTheme))
+                    .overlay(theme.patternOverlay(cornerRadius: 2))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 2, style: .continuous)
+                            .stroke(Color.primary.opacity(0.18), lineWidth: 1)
+                    )
+                    .frame(width: 12, height: 8)
+                    .frame(width: symbolWidth, alignment: .leading)
+            } else {
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                    .frame(width: 12, height: 8)
+                    .frame(width: symbolWidth, alignment: .leading)
+            }
         }
+        .accessibilityHidden(true)
     }
 
     private func expenseDateString(_ date: Date?) -> String {
@@ -3201,6 +3293,10 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             let plannedSeries = expectedTimeline.isEmpty ? fallbackExpectedSeries() : expectedTimeline
             let receiptPoints = receiptPoints(from: incomeTimeline)
             let actualLineSeries = actualIncomeLineSeries(from: receiptPoints)
+            let breakdown: String? = {
+                guard let planned = plannedSeries.last, let actual = actualLineSeries.last else { return nil }
+                return "Latest: Planned \(formatCurrency(planned.value)), Actual \(formatCurrency(actual.value))"
+            }()
 
             let maxVal = max((actualLineSeries.map(\.value).max() ?? 0), (plannedSeries.map(\.value).max() ?? 0), 1)
             let domain: ClosedRange<Double> = 0...(maxVal * 1.1)
@@ -3260,6 +3356,12 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     }
                 }
                 .frame(height: 220)
+                .chartA11ySummary(
+                    title: "Income Timeline",
+                    range: rangeText(range),
+                    breakdown: breakdown,
+                    hint: "Shows planned income, actual income, and received payments over time."
+                )
                 .chartOverlay { proxy in
                     GeometryReader { geo in
                         Rectangle().fill(.clear).contentShape(Rectangle())
@@ -3312,6 +3414,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 Text("No income history for this period size.")
                     .foregroundStyle(.secondary)
             } else {
+                let breakdown = incomeBucketBreakdown(incomeBuckets)
                 Chart(incomeBuckets) { bucket in
                     BarMark(
                         x: .value("Period", bucket.label),
@@ -3329,6 +3432,19 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     }
                 }
                 .frame(height: 180)
+                .chartA11ySummary(
+                    title: "Income Trends",
+                    range: rangeText(range),
+                    breakdown: breakdown,
+                    hint: "Shows income totals for each period."
+                )
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(incomeBuckets) { bucket in
+                        Text("\(bucket.label): \(formatCurrency(bucket.total))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
     }
@@ -3386,6 +3502,42 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         let f = DateFormatter()
         f.dateStyle = .medium
         return f.string(from: date)
+    }
+
+    private func rangeText(_ range: ClosedRange<Date>) -> String {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        let start = f.string(from: range.lowerBound)
+        let end = f.string(from: range.upperBound)
+        return "\(start) – \(end)"
+    }
+
+    private func spendBucketBreakdown(_ buckets: [SpendBucket]) -> String? {
+        guard !buckets.isEmpty else { return nil }
+        let maxItem = buckets.max(by: { $0.amount < $1.amount })
+        let minItem = buckets.min(by: { $0.amount < $1.amount })
+        var parts: [String] = []
+        if let maxItem {
+            parts.append("Highest \(maxItem.label): \(formatCurrency(maxItem.amount))")
+        }
+        if let minItem {
+            parts.append("Lowest \(minItem.label): \(formatCurrency(minItem.amount))")
+        }
+        return parts.joined(separator: ". ")
+    }
+
+    private func incomeBucketBreakdown(_ buckets: [IncomeBucket]) -> String? {
+        guard !buckets.isEmpty else { return nil }
+        let maxItem = buckets.max(by: { $0.total < $1.total })
+        let minItem = buckets.min(by: { $0.total < $1.total })
+        var parts: [String] = []
+        if let maxItem {
+            parts.append("Highest \(maxItem.label): \(formatCurrency(maxItem.total))")
+        }
+        if let minItem {
+            parts.append("Lowest \(minItem.label): \(formatCurrency(minItem.total))")
+        }
+        return parts.joined(separator: ". ")
     }
 
     private var nextExpenseList: some View {
@@ -3990,6 +4142,10 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             let latestExpense = expensePoints.last
             let latestIncome = incomePoints.last
             let latestPlanned = plannedPoints.last
+            let breakdown: String? = {
+                guard let latestExpense, let latestIncome, let latestPlanned else { return nil }
+                return "Latest: Exp \(formatCurrency(latestExpense.value)), Inc \(formatCurrency(latestIncome.value)), Plan \(formatCurrency(latestPlanned.value))"
+            }()
 
             Chart {
                 ForEach(chartPoints) { point in
@@ -3999,7 +4155,16 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     )
                     .interpolationMethod(.linear)
                     .foregroundStyle(by: .value("Series", point.series.rawValue))
-                    .lineStyle(point.series == .plannedIncome ? StrokeStyle(lineWidth: 2, dash: [5, 4]) : StrokeStyle(lineWidth: 2))
+                    .lineStyle({
+                        switch point.series {
+                        case .plannedIncome:
+                            return StrokeStyle(lineWidth: 2, dash: [5, 4])
+                        case .actualIncome:
+                            return StrokeStyle(lineWidth: 2, dash: [2, 2])
+                        case .expenses:
+                            return StrokeStyle(lineWidth: 2)
+                        }
+                    }())
                 }
                 if let selected = ratioSelection {
                     RuleMark(x: .value("Selected", selected.date))
@@ -4028,6 +4193,12 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 AxisMarks(values: .automatic(desiredCount: 3))
             }
             .frame(height: 200)
+            .chartA11ySummary(
+                title: "Expense to Income",
+                range: rangeText(range),
+                breakdown: breakdown,
+                hint: "Shows expenses versus income over time."
+            )
             .chartOverlay { proxy in
                 GeometryReader { geo in
                     Rectangle().fill(.clear).contentShape(Rectangle())
@@ -4093,6 +4264,10 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             let projectedSeries = sampled.map { DatedValue(date: $0.date, value: $0.projected) }
             let actualColor = Color.green
             let projectedColor = Color.indigo
+            let breakdown: String? = {
+                guard let latest = sampled.last else { return nil }
+                return "Latest: \(formatCurrency(latest.actual)) actual, \(formatCurrency(latest.projected)) projected"
+            }()
 
             VStack(alignment: .leading, spacing: 6) {
                 Chart {
@@ -4141,6 +4316,12 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     }
                 }
                 .frame(height: 220)
+                .chartA11ySummary(
+                    title: "Savings Outlook",
+                    range: rangeText(range),
+                    breakdown: breakdown,
+                    hint: "Shows actual savings and projected savings over time."
+                )
                 .chartOverlay { proxy in
                     GeometryReader { geo in
                         Rectangle().fill(.clear).contentShape(Rectangle())
@@ -4202,6 +4383,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         let share = max(min(cat.amount / max(total, 1), 1), 0)
         return HStack {
             Circle().fill(color).frame(width: 10, height: 10)
+                .accessibilityHidden(true)
             Text(cat.categoryName)
                 .font(.subheadline.weight(.semibold))
             Spacer()
@@ -4234,6 +4416,7 @@ private struct NextPlannedDetailRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Circle().fill(dotColor).frame(width: 8, height: 8)
                         .frame(width: symbolWidth, alignment: .leading)
+                        .accessibilityHidden(true)
                     Text(snapshot.title)
                         .font(.headline)
                 }
@@ -4289,6 +4472,7 @@ private struct NextPlannedDetailRow: View {
                     .frame(width: 12, height: 8)
             }
         }
+        .accessibilityHidden(true)
     }
 
     private func formatCurrency(_ amount: Double) -> String {
@@ -5070,6 +5254,7 @@ private struct CategoryDonutView: View {
     var centerValueColor: Color? = nil
 
     var body: some View {
+        let breakdown = slices.isEmpty ? nil : "Top: \(centerTitle) \(centerValue)"
         ZStack {
             if #available(iOS 17.0, macCatalyst 17.0, macOS 14.0, *) {
                 Chart(slices) { slice in
@@ -5136,6 +5321,12 @@ private struct CategoryDonutView: View {
                     .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
             }
         }
+        .chartA11ySummary(
+            title: "Spending by category",
+            range: nil,
+            breakdown: breakdown,
+            hint: "Shows category share of spending. See the list below for exact values."
+        )
     }
 
     private var centerStyle: AnyShapeStyle {
@@ -5207,6 +5398,7 @@ private struct CategoryTopRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Circle().fill(slice.color).frame(width: 10, height: 10)
+                    .accessibilityHidden(true)
                 Text(slice.name)
                     .font(.subheadline.weight(.semibold))
                 Spacer()
@@ -5220,6 +5412,7 @@ private struct CategoryTopRow: View {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .fill(slice.color.opacity(0.25))
                     .frame(width: CGFloat(share) * geo.size.width, height: 8)
+                    .accessibilityHidden(true)
             }
             .frame(height: 8)
         }

@@ -98,14 +98,13 @@ struct IncomeView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             // Clear, no-background toolbar icon per design
-            Buttons.toolbarIcon("plus") { addIncome() }
-            .accessibilityLabel("Add Income")
+            Buttons.toolbarIcon("plus", label: "Add Income") { addIncome() }
             .accessibilityIdentifier("btn_add_income")
             
         }
         if uiTest.showTestControls {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Buttons.toolbarIcon("trash") {
+                Buttons.toolbarIcon("trash", label: "Delete First Income") {
                     if let first = vm.incomesForDay.first { requestDelete(income: first) }
                 }
                 .accessibilityIdentifier("btn_delete_first_income")
@@ -117,21 +116,21 @@ struct IncomeView: View {
 
     private var calendarNav: some View {
         HStack(alignment: .center) {
-            navIcon("chevron.backward.2") { goToPreviousMonth() }
+            navIcon("chevron.backward.2", label: "Previous Month") { goToPreviousMonth() }
             Spacer(minLength: 12)
-            navIcon("chevron.backward") { goToPreviousDay() }
+            navIcon("chevron.backward", label: "Previous Day") { goToPreviousDay() }
             Spacer(minLength: 12)
             navLabel("Today") { goToToday() }
             Spacer(minLength: 12)
-            navIcon("chevron.forward") { goToNextDay() }
+            navIcon("chevron.forward", label: "Next Day") { goToNextDay() }
             Spacer(minLength: 12)
-            navIcon("chevron.forward.2") { goToNextMonth() }
+            navIcon("chevron.forward.2", label: "Next Month") { goToNextMonth() }
         }
         .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
-    private func navIcon(_ systemName: String, action: @escaping () -> Void) -> some View {
+    private func navIcon(_ systemName: String, label: String, action: @escaping () -> Void) -> some View {
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
                 Image(systemName: systemName)
@@ -142,9 +141,11 @@ struct IncomeView: View {
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
+            .iconButtonA11y(label: label)
         } else {
             Button(action: action) { Image(systemName: systemName) }
                 .buttonStyle(.plain)
+                .iconButtonA11y(label: label)
         }
     }
 

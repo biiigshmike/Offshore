@@ -135,9 +135,10 @@ private struct UnifiedSwipeActionsModifier: ViewModifier {
                 .accessibilityIdentifierIfAvailable(config.deleteAccessibilityID)
             }
         }
+        let accessibleBase = applyAccessibilityActions(to: base)
 
         if #available(iOS 15.0, macCatalyst 15.0, *) {
-            base.swipeActions(edge: .trailing, allowsFullSwipe: config.allowsFullSwipeToDelete) {
+            accessibleBase.swipeActions(edge: .trailing, allowsFullSwipe: config.allowsFullSwipeToDelete) {
                 if config.showsDeleteAction {
                     deleteButton()
                 }
@@ -145,8 +146,22 @@ private struct UnifiedSwipeActionsModifier: ViewModifier {
                 customButtons()
             }
         } else {
-            base
+            accessibleBase
         }
+    }
+
+    private func applyAccessibilityActions<Content: View>(to content: Content) -> some View {
+        var view: AnyView = AnyView(content)
+        if let onEdit, config.showsEditAction {
+            view = AnyView(view.accessibilityAction(named: Text(config.editTitle), onEdit))
+        }
+        for item in customActions {
+            view = AnyView(view.accessibilityAction(named: Text(item.title), item.action))
+        }
+        if config.showsDeleteAction {
+            view = AnyView(view.accessibilityAction(named: Text(config.deleteTitle), triggerDelete))
+        }
+        return view
     }
 
     // MARK: Buttons

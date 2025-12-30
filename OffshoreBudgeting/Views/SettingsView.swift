@@ -421,6 +421,7 @@ private struct SettingsRowLabel: View {
                 Image(systemName: "chevron.right")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .hideDecorative()
             }
         }
     }
@@ -493,6 +494,7 @@ private struct SettingsIconTile: View {
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .stroke(style.tint.opacity(style.usesStroke ? 0.25 : 0), lineWidth: 0.5)
         )
+        .accessibilityHidden(true)
     }
 }
 
@@ -703,6 +705,7 @@ private struct PrivacySettingsView: View {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 8) {
                     Image(systemName: biometricIconName)
+                        .hideDecorative()
                     Text(biometricName)
                 }
             }
@@ -758,11 +761,12 @@ private struct NotificationsSettingsView: View {
             Text(isGranted ? "Notification Permission Granted" : "Request Notification Permission")
             if isGranted {
                 Image(systemName: "checkmark")
+                    .hideDecorative()
             }
         }
         .font(.subheadline.weight(.semibold))
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 44, maxHeight: 44)
+        .frame(minHeight: 44)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button {
@@ -946,11 +950,12 @@ private struct ICloudSettingsView: View {
         let isDisabled = isForceReuploading || isReconfiguringStores
         let label = HStack(spacing: 10) {
             Image(systemName: "arrow.triangle.2.circlepath")
+                .hideDecorative()
             Text("Force iCloud Sync Refresh")
                 .font(.headline)
         }
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 44, maxHeight: 44)
+        .frame(minHeight: 44)
 
         if cloudToggle,
            capabilities.supportsOS26Translucency,
@@ -1006,6 +1011,7 @@ private struct AppIconImageView: View {
                 .frame(width: size, height: size)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                .accessibilityHidden(true)
         case .squircle:
             let mask = RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
             image
@@ -1015,6 +1021,7 @@ private struct AppIconImageView: View {
                 .frame(width: size, height: size)
                 .clipShape(mask)
                 .overlay(mask.stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                .accessibilityHidden(true)
         }
     }
 }

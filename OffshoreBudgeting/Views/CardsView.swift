@@ -151,9 +151,7 @@ struct CardsView: View {
 
     @ViewBuilder
     private var addButton: some View {
-        Buttons.toolbarIcon("plus") { isPresentingAddCard = true }
-        .accessibilityLabel("Add Card")
-        
+        Buttons.toolbarIcon("plus", label: "Add Card") { isPresentingAddCard = true }
     }
 
     // MARK: Navigation container

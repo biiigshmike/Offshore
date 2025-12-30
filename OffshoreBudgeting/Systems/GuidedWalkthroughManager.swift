@@ -418,7 +418,7 @@ struct TipsAndHintsSheet: View {
 
     @ViewBuilder
     private var closeButton: some View {
-        Buttons.toolbarIconGlassPreferred("xmark") { dismiss() }
+        Buttons.toolbarIconGlassPreferred("xmark", label: "Close Tips") { dismiss() }
     }
 }
 

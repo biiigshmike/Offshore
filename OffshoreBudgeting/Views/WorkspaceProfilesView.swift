@@ -23,7 +23,7 @@ struct WorkspaceMenuButton: View {
         } label: {
             workspaceMenuLabel
         }
-        .accessibilityLabel("Profile Menu")
+        .iconButtonA11y(label: "Profile Menu")
         .task { _ = WorkspaceService.shared.ensureActiveWorkspaceID() }
         .sheet(isPresented: $showAdd) {
             WorkspaceEditorView(mode: .add)
@@ -48,8 +48,12 @@ struct WorkspaceMenuButton: View {
                     Text(workspace.name ?? "Untitled")
                     if activeID == workspace.id {
                         Image(systemName: "checkmark")
+                            .hideDecorative()
                     }
                 }
+            }
+            .if(activeID == workspace.id) { view in
+                view.accessibilityValue(Text("Active"))
             }
         }
     }

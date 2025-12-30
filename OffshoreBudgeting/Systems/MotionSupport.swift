@@ -72,6 +72,22 @@ final class MotionMonitor: ObservableObject {
         provider.start { [weak self] r, p, y, gx, gy, gz in
             Task { @MainActor [weak self] in
                 guard let self else { return }
+#if canImport(UIKit)
+                if UIAccessibility.isReduceMotionEnabled {
+                    self.roll = 0
+                    self.pitch = 0
+                    self.yaw = 0
+                    self.gravityX = 0
+                    self.gravityY = 0
+                    self.gravityZ = 0
+                    self.displayRoll = 0
+                    self.displayPitch = 0
+                    self.displayGravityX = 0
+                    self.displayGravityY = 0
+                    self.displayGravityZ = 0
+                    return
+                }
+#endif
                 self.roll = r
                 self.pitch = p
                 self.yaw = y

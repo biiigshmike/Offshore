@@ -88,8 +88,7 @@ struct BudgetsView: View {
             searchToolbarControl
         }
         ToolbarItem(placement: .navigationBarTrailing) {
-            Buttons.toolbarIcon("plus") { isPresentingAddBudget = true }
-                .accessibilityLabel("Add Budget")
+            Buttons.toolbarIcon("plus", label: "Add Budget") { isPresentingAddBudget = true }
         }
     }
 
@@ -284,10 +283,13 @@ struct BudgetsView: View {
                 Image(systemName: "chevron.right")
                     .rotationEffect(isExpanded ? .degrees(90) : .zero)
                     .font(.system(size: 12, weight: .semibold))
+                    .hideDecorative()
             }
         }
         .buttonStyle(.plain)
         .textCase(nil)
+        .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
+        .accessibilityHint(Text("Shows budgets in this section"))
     }
 
     private func sectionTitle(title: String, count: Int) -> String {
@@ -310,10 +312,10 @@ struct BudgetsView: View {
         GlassEffectContainer(spacing: 8) {
             HStack(spacing: 6) {
                 if isSearching {
-                    Buttons.toolbarIcon("xmark") { closeSearch() }
+                    Buttons.toolbarIcon("xmark", label: "Close Search") { closeSearch() }
                     glassSearchField
                 } else {
-                    Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                    Buttons.toolbarIcon("magnifyingglass", label: "Search Budgets") { openSearch() }
                 }
             }
         }
@@ -322,10 +324,10 @@ struct BudgetsView: View {
     private var searchToolbarControlLegacy: some View {
         HStack(spacing: 6) {
             if isSearching {
-                Buttons.toolbarIcon("xmark") { closeSearch() }
+                Buttons.toolbarIcon("xmark", label: "Close Search") { closeSearch() }
                 legacySearchField
             } else {
-                Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                Buttons.toolbarIcon("magnifyingglass", label: "Search Budgets") { openSearch() }
             }
         }
     }
@@ -372,7 +374,7 @@ struct BudgetsView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Clear Search")
+                .iconButtonA11y(label: "Clear Search")
             }
         }
         .accessibilityElement(children: .contain)

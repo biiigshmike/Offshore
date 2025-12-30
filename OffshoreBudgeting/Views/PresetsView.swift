@@ -130,8 +130,7 @@ struct PresetsView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
-            Buttons.toolbarIcon("plus") { isPresentingAdd = true }
-                .accessibilityLabel("Add Preset Planned Expense")
+            Buttons.toolbarIcon("plus", label: "Add Preset Planned Expense") { isPresentingAdd = true }
         }
     }
 

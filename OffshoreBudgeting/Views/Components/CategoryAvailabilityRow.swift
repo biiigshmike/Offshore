@@ -3,6 +3,7 @@ import SwiftUI
 struct CategoryAvailabilityRow: View {
     let item: CategoryAvailability
     let currencyFormatter: (Double) -> String
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var diffNoColor
 
     var body: some View {
         let availableDisplay: Double = {
@@ -14,6 +15,7 @@ struct CategoryAvailabilityRow: View {
 
         HStack(alignment: .center, spacing: 12) {
             Circle().fill(item.color.opacity(0.75)).frame(width: 12, height: 12)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.name)
                     .font(.ubDetailLabel.weight(.semibold))
@@ -30,6 +32,11 @@ struct CategoryAvailabilityRow: View {
                         Text(currencyFormatter(availableDisplay))
                             .font(.ubCaption)
                             .foregroundStyle(availableDisplay < 0 ? Color.red : .primary)
+                        if diffNoColor, availableDisplay < 0 {
+                            Text("Over")
+                                .font(.ubCaption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
@@ -38,6 +45,15 @@ struct CategoryAvailabilityRow: View {
                 Text("Spent \(currencyFormatter(item.spent))")
                     .font(.ubCaption)
                     .foregroundStyle(item.over ? Color.red : (item.near ? Color.orange : .secondary))
+                if diffNoColor, item.over {
+                    Text("Over budget")
+                        .font(.ubCaption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                } else if diffNoColor, item.near {
+                    Text("Near limit")
+                        .font(.ubCaption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
                 if let cap = item.cap {
                     ProgressView(value: min(item.spent / max(cap, 1), 1))
                         .tint(item.color)
@@ -46,5 +62,6 @@ struct CategoryAvailabilityRow: View {
             }
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
     }
 }

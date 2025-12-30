@@ -144,8 +144,12 @@ struct AddCardFormView: View {
                 let columns = [GridItem(.adaptive(minimum: 120), spacing: DS.Spacing.m)]
                 LazyVGrid(columns: columns, spacing: DS.Spacing.m) {
                     ForEach(CardTheme.allCases) { theme in
-                        ThemeSwatch(theme: theme, isSelected: theme == selectedTheme)
-                            .onTapGesture { selectedTheme = theme }
+                        Button {
+                            selectedTheme = theme
+                        } label: {
+                            ThemeSwatch(theme: theme, isSelected: theme == selectedTheme)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.vertical, DS.Spacing.s)

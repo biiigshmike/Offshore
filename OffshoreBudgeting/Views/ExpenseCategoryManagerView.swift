@@ -76,7 +76,7 @@ struct ExpenseCategoryManagerView: View {
                                 .contentShape(Circle())
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Add Category")
+                        .iconButtonA11y(label: "Add Category")
                     }
                 }
         }
@@ -230,6 +230,7 @@ struct ExpenseCategoryManagerView: View {
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
+                .hideDecorative()
         }
     }
     
@@ -302,15 +303,16 @@ private struct CategoryRowView<Label: View>: View {
     
     // MARK: Body
     var body: some View {
-        label()
-            .contentShape(Rectangle())
-            .onTapGesture(perform: onTap)
-            .unifiedSwipeActions(
-                config,
-                onEdit: onEdit,
-                onDelete: onDelete
-            )
-            .accessibilityAddTraits(.isButton)
+        Button(action: onTap) {
+            label()
+        }
+        .buttonStyle(.plain)
+        .unifiedSwipeActions(
+            config,
+            onEdit: onEdit,
+            onDelete: onDelete
+        )
+        .accessibilityHint(Text("Opens category details"))
     }
 }
 

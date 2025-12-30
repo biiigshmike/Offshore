@@ -327,7 +327,7 @@ struct RootTabView: View {
                 } label: {
                     Image(systemName: "inset.filled.topthird.rectangle")
                 }
-                .accessibilityLabel("Show Compact Tabs")
+                .iconButtonA11y(label: "Show Compact Tabs")
             }
         }
     }

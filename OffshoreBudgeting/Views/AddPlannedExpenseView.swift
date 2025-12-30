@@ -496,6 +496,7 @@ struct AddPlannedExpenseView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             if vm.isBudgetSelected(budget.objectID) {
                                 Image(systemName: "checkmark")
+                                    .hideDecorative()
                             }
                         }
                     }
@@ -729,13 +730,13 @@ private struct AddCategoryPill: View {
             let label = Label("Add", systemImage: "plus")
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 12)
-                .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 44, alignment: .center)
+                .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
                 .glassEffect(.regular.tint(.clear).interactive(true))
             Button(action: onTap) {
                 label
             }
             .buttonStyle(.plain)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 44, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .center)
             .clipShape(Capsule())
             .compositingGroup()
             .accessibilityLabel("Add Category")
@@ -744,7 +745,7 @@ private struct AddCategoryPill: View {
                 Label("Add", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 12)
-                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 33, alignment: .center)
+                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(UIColor { traits in
@@ -756,7 +757,7 @@ private struct AddCategoryPill: View {
             }
             .buttonStyle(.plain)
             .controlSize(.regular)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 44, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
             .accessibilityLabel("Add Category")
         }
     }
@@ -769,6 +770,7 @@ private struct CategoryChip: View {
     let colorHex: String
     let isSelected: Bool
     let action: () -> Void
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var diffNoColor
 
     var body: some View {
         let accentColor = UBColorFromHex(colorHex) ?? .secondary
@@ -779,12 +781,18 @@ private struct CategoryChip: View {
             Circle()
                 .fill(accentColor)
                 .frame(width: 10, height: 10)
+                .accessibilityHidden(true)
             Text(name)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
+            if isSelected && diffNoColor {
+                Image(systemName: "checkmark")
+                    .font(.caption2.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
         }
         .padding(.horizontal, 12)
-        .frame(minHeight: 44, maxHeight: 44)
+        .frame(minHeight: 44)
 
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             Button(action: action) {
@@ -794,13 +802,13 @@ private struct CategoryChip: View {
                             .tint(isSelected ? glassTintColor : .none)
                             .interactive(true)
                     )
-                    .frame(minHeight: 44, maxHeight: 44)
+                    .frame(minHeight: 44)
                     .clipShape(Capsule())
                     .compositingGroup()
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(maxHeight: 44)
+            .frame(minHeight: 44)
             .buttonStyle(.plain)
         } else {
             let neutralFill = DS.Colors.chipFill
@@ -809,7 +817,7 @@ private struct CategoryChip: View {
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(maxHeight: 33)
+            .frame(minHeight: 44)
             .buttonStyle(.plain)
             .background(
                 legacyShape.fill(isSelected ? glassTintColor : neutralFill)

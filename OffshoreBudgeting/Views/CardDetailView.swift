@@ -25,6 +25,7 @@ struct CardDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var diffNoColor
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
     private var confirmBeforeDelete: Bool = true
     @State private var isSearchActive: Bool = false
@@ -169,6 +170,7 @@ struct CardDetailView: View {
             VStack(spacing: 12) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 40, weight: .bold))
+                    .hideDecorative()
                 Text("Couldn’t load details")
                     .font(.headline)
                 Text(message).font(.subheadline).foregroundStyle(.secondary)
@@ -465,7 +467,7 @@ struct CardDetailView: View {
                     .font(.system(size: 18, weight: .semibold))
                     .symbolRenderingMode(.monochrome)
             }
-            .accessibilityLabel("Add Expense")
+            .iconButtonA11y(label: "Add Expense", hint: "Choose planned or variable expense")
         }
     }
 
@@ -484,10 +486,10 @@ struct CardDetailView: View {
         GlassEffectContainer(spacing: 8) {
             HStack(spacing: 6) {
                 if isSearchActive {
-                    Buttons.toolbarIcon("xmark") { closeSearch() }
+                    Buttons.toolbarIcon("xmark", label: "Close Search") { closeSearch() }
                     glassSearchField
                 } else {
-                    Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                    Buttons.toolbarIcon("magnifyingglass", label: "Search Expenses") { openSearch() }
                 }
             }
         }
@@ -496,10 +498,10 @@ struct CardDetailView: View {
     private var searchToolbarControlLegacy: some View {
         HStack(spacing: 6) {
             if isSearchActive {
-                Buttons.toolbarIcon("xmark") { closeSearch() }
+                Buttons.toolbarIcon("xmark", label: "Close Search") { closeSearch() }
                 legacySearchField
             } else {
-                Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                Buttons.toolbarIcon("magnifyingglass", label: "Search Expenses") { openSearch() }
             }
         }
     }
@@ -546,7 +548,7 @@ struct CardDetailView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Clear Search")
+                .iconButtonA11y(label: "Clear Search")
             }
         }
         .accessibilityElement(children: .contain)
@@ -580,7 +582,7 @@ struct CardDetailView: View {
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
-            .accessibilityLabel("Apply date range")
+            .iconButtonA11y(label: "Apply Date Range")
         } else {
             let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
             Button(action: applyDateRange) {
@@ -615,7 +617,7 @@ struct CardDetailView: View {
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
-            .accessibilityLabel("Select date preset")
+            .iconButtonA11y(label: "Select Date Preset")
         } else {
             Menu {
                 Button("Daily") { setPreset(.daily) }
@@ -628,7 +630,7 @@ struct CardDetailView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .frame(width: 33, height: 33)
             }
-            .accessibilityLabel("Select date preset")
+            .iconButtonA11y(label: "Select Date Preset")
         }
     }
 
@@ -793,6 +795,7 @@ private struct ExpenseRow: View {
                     Circle()
                         .fill(catColor)
                         .frame(width: 8, height: 8)
+                        .accessibilityHidden(true)
                     Text(catName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -831,7 +834,7 @@ private struct IconOnlyButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text(label))
+        .iconButtonA11y(label: label)
     }
     private var label: String {
         switch systemName {
@@ -862,11 +865,17 @@ private extension CardDetailView {
 
         let label = HStack(spacing: DS.Spacing.s) {
             Circle().fill(accentColor).frame(width: 10, height: 10)
+                .accessibilityHidden(true)
             Text(cat.name).font(.subheadline.weight(.medium))
             Text(cat.amount, format: .currency(code: currencyCode)).font(.subheadline.weight(.semibold))
+            if isSelected && diffNoColor {
+                Image(systemName: "checkmark")
+                    .font(.caption2.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
         }
         .padding(.horizontal, 12)
-        .frame(minHeight: 44, maxHeight: 44)
+        .frame(minHeight: 44)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: {
@@ -879,14 +888,14 @@ private extension CardDetailView {
                             .tint(isSelected ? glassTintColor : .none)
                             .interactive(true)
                     )
-                    .frame(minHeight: 44, maxHeight: 44)
+                    .frame(minHeight: 44)
                     .clipShape(Capsule())
                     .compositingGroup()
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(maxHeight: 44)
+            .frame(minHeight: 44)
         } else {
             Button(action: {
                 if viewModel.selectedCategoryID == cat.categoryObjectID { viewModel.selectedCategoryID = nil }
@@ -896,7 +905,7 @@ private extension CardDetailView {
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(maxHeight: 33)
+            .frame(minHeight: 44)
             .buttonStyle(.plain)
             .background(
                 legacyShape.fill(isSelected ? glassTintColor : DS.Colors.chipFill)

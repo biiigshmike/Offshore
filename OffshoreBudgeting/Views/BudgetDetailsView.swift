@@ -372,6 +372,7 @@ struct BudgetDetailsView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
+            .iconButtonA11y(label: "Add Expense", hint: "Choose planned or variable expense")
 
             Menu {
                 Button("Manage Cards") { isPresentingManageCards = true }
@@ -385,6 +386,7 @@ struct BudgetDetailsView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
+            .iconButtonA11y(label: "Budget Actions")
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 10)

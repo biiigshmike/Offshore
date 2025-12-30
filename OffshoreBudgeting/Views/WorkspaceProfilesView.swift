@@ -10,10 +10,10 @@ struct WorkspaceMenuButton: View {
         sortDescriptors: [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
     ) private var workspaces: FetchedResults<Workspace>
     @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
-
+    
     @State private var showAdd = false
     @State private var showManage = false
-
+    
     var body: some View {
         Menu {
             workspaceListSection
@@ -34,7 +34,7 @@ struct WorkspaceMenuButton: View {
                 .environment(\.managedObjectContext, viewContext)
         }
     }
-
+    
     @ViewBuilder
     private var workspaceListSection: some View {
         let activeID = UUID(uuidString: activeWorkspaceIDRaw)
@@ -53,25 +53,28 @@ struct WorkspaceMenuButton: View {
             }
         }
     }
-
+    
     @ViewBuilder
     private var workspaceMenuLabel: some View {
-        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            let label = Label("Profile", systemImage: "person.3.fill")
-                .labelStyle(.iconOnly)
-                .font(.system(size: 16, weight: .semibold))
-                .frame(width: 44, height: 44, alignment: .center)
-                .glassEffect(.regular.tint(.clear).interactive(true))
-            label
-                .buttonStyle(.plain)
-                .frame(width: 44, height: 44, alignment: .center)
-                .clipShape(Circle())
-                .compositingGroup()
-        } else {
-            Image(systemName: "person.3.fill")
-                .font(.system(size: 16, weight: .semibold))
-                .frame(width: 33, height: 33)
-        }
+        Image(systemName: "person.3.fill")
+            .font(.system(size: 16, weight: .semibold))
+            .frame(width: 33, height: 33)
+        //        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+        //            let label = Label("Profile", systemImage: "person.3.fill")
+        //                .labelStyle(.iconOnly)
+        //                .font(.system(size: 16, weight: .semibold))
+        //                .frame(width: 44, height: 44, alignment: .center)
+        //                .glassEffect(.regular.tint(.clear).interactive(true))
+        //            label
+        //                .buttonStyle(.plain)
+        //                .frame(width: 44, height: 44, alignment: .center)
+        //                .clipShape(Circle())
+        //                .compositingGroup()
+        //        } else {
+        //            Image(systemName: "person.3.fill")
+        //                .font(.system(size: 16, weight: .semibold))
+        //                .frame(width: 33, height: 33)
+        //        }
     }
 }
 
@@ -85,11 +88,11 @@ struct WorkspaceManagerView: View {
         sortDescriptors: [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
     ) private var workspaces: FetchedResults<Workspace>
     @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
-
+    
     @State private var editingWorkspace: Workspace?
     @State private var workspaceToDelete: Workspace?
     @State private var showAddSheet = false
-
+    
     var body: some View {
         NavigationStack {
             List {
@@ -133,7 +136,7 @@ struct WorkspaceManagerView: View {
             activeWorkspaceIDRaw = id.uuidString
         }
     }
-
+    
     private func workspaceRow(for workspace: Workspace) -> some View {
         let isActive = UUID(uuidString: activeWorkspaceIDRaw) == workspace.id
         let isPersonal = WorkspaceService.shared.isPersonalWorkspace(workspace)
@@ -158,7 +161,7 @@ struct WorkspaceManagerView: View {
             onDelete: { workspaceToDelete = workspace }
         )
     }
-
+    
     private func confirmDelete() {
         guard let workspace = workspaceToDelete else { return }
         _ = WorkspaceService.shared.deleteWorkspace(workspace, in: viewContext)
@@ -172,14 +175,14 @@ struct WorkspaceEditorView: View {
     enum Mode {
         case add
         case edit(Workspace)
-
+        
         var title: String {
             switch self {
             case .add: return "New Profile"
             case .edit: return "Edit Profile"
             }
         }
-
+        
         var actionTitle: String {
             switch self {
             case .add: return "Create"
@@ -187,13 +190,13 @@ struct WorkspaceEditorView: View {
             }
         }
     }
-
+    
     let mode: Mode
-
+    
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @State private var name: String = ""
-
+    
     var body: some View {
         NavigationStack {
             List {
@@ -216,7 +219,7 @@ struct WorkspaceEditorView: View {
             .onAppear { loadInitialName() }
         }
     }
-
+    
     private var canSave: Bool {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return false }
@@ -228,7 +231,7 @@ struct WorkspaceEditorView: View {
             return WorkspaceService.shared.isWorkspaceNameAvailable(trimmed, excluding: workspace, in: viewContext)
         }
     }
-
+    
     private func loadInitialName() {
         switch mode {
         case .add:
@@ -237,7 +240,7 @@ struct WorkspaceEditorView: View {
             name = workspace.name ?? ""
         }
     }
-
+    
     private func save() {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }

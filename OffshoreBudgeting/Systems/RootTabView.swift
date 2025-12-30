@@ -215,18 +215,18 @@ struct RootTabView: View {
             Section("Add Expenses") {
                 let plannedItem = SidebarItem.addPlannedExpense
                 sidebarRow(item: plannedItem) {
-                    Label("Add Planned Expense", systemImage: "calendar.badge.plus")
+                    Label("Add Planned Expense", systemImage: "plus.rectangle")
                 }
                 let variableItem = SidebarItem.addVariableExpense
                 sidebarRow(item: variableItem) {
-                    Label("Add Variable Expense", systemImage: "plus.circle")
+                    Label("Add Variable Expense", systemImage: "plus.rectangle")
                 }
             }
             
             Section("Quick Links") {
                 let presetsItem = SidebarItem.managePresets
                 sidebarRow(item: presetsItem) {
-                    Label("Manage Presets", systemImage: "slider.horizontal.3")
+                    Label("Manage Presets", systemImage: "list.bullet.rectangle")
                 }
                 let categoriesItem = SidebarItem.manageCategories
                 sidebarRow(item: categoriesItem) {

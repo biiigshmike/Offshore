@@ -96,7 +96,7 @@ struct HelpView: View {
                     presets
                 } label: {
                     HelpRowLabel(
-                        iconSystemName: "list.number.badge.ellipsis",
+                        iconSystemName: "list.bullet.rectangle",
                         title: "Presets",
                         iconStyle: .orange
                     )

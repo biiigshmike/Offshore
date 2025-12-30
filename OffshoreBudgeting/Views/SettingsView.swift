@@ -218,7 +218,7 @@ struct SettingsView: View {
                     .environment(\.managedObjectContext, viewContext)
             } label: {
                 SettingsRowLabel(
-                    iconSystemName: "list.number.badge.ellipsis",
+                    iconSystemName: "list.bullet.rectangle",
                     title: "Manage Presets",
                     showsChevron: false,
                     iconStyle: .orange

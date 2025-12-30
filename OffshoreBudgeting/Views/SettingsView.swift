@@ -28,9 +28,7 @@ struct SettingsView: View {
     @State private var showMergeDone = false
     @State private var showDisableCloudOptions = false
     @State private var isReconfiguringStores = false
-    @State private var isMenuActive = false
     @StateObject private var cloudDiag = CloudDiagnostics.shared
-    @Environment(\.currentRootTab) private var currentRootTab
 
     // Guided walkthrough removed
 
@@ -46,8 +44,6 @@ struct SettingsView: View {
                 }
             }
             .task { await cloudDiag.refresh() }
-            .onAppear { isMenuActive = true }
-            .onDisappear { isMenuActive = false }
             .confirmationDialog("Turn Off iCloud Sync?", isPresented: $showDisableCloudOptions, titleVisibility: .visible) {
                 Button("Switch to Local (Keep Data)", role: .destructive) { disableCloud(eraseLocal: false) }
                 Button("Remove from This Device", role: .destructive) { disableCloud(eraseLocal: true) }
@@ -96,19 +92,6 @@ struct SettingsView: View {
                     }
                 }
             }
-            .focusedSceneValue(
-                \.homePeriodCommands,
-                currentRootTab == .settings && isMenuActive ? HomePeriodCommands(
-                    cyclePeriod: { cyclePeriodSetting() },
-                    setDaily: { setBudgetPeriod(.daily) },
-                    setWeekly: { setBudgetPeriod(.weekly) },
-                    setBiWeekly: { setBudgetPeriod(.biWeekly) },
-                    setMonthly: { setBudgetPeriod(.monthly) },
-                    setQuarterly: { setBudgetPeriod(.quarterly) },
-                    setYearly: { setBudgetPeriod(.yearly) }
-                ) : nil
-            )
-            .focusedSceneValue(\.newItemCommand, nil)
     }
 
     private var settingsList: some View {
@@ -117,24 +100,6 @@ struct SettingsView: View {
             generalSection
             categoriesSection
             presetsSection
-        }
-    }
-
-    private func setBudgetPeriod(_ period: BudgetPeriod) {
-        WorkspaceService.shared.setBudgetPeriod(period, in: viewContext)
-    }
-
-    private func cyclePeriodSetting() {
-        let periods = BudgetPeriod.selectableCases
-        let current = WorkspaceService.shared.currentBudgetPeriod(in: viewContext)
-        guard let currentIndex = periods.firstIndex(of: current) else {
-            setBudgetPeriod(.monthly)
-            return
-        }
-        let nextIndex = periods.index(after: currentIndex)
-        let next = nextIndex == periods.endIndex ? periods.first : periods[nextIndex]
-        if let next {
-            setBudgetPeriod(next)
         }
     }
 
@@ -421,7 +386,6 @@ private struct SettingsRowLabel: View {
                 Image(systemName: "chevron.right")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                    .hideDecorative()
             }
         }
     }
@@ -494,7 +458,6 @@ private struct SettingsIconTile: View {
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .stroke(style.tint.opacity(style.usesStroke ? 0.25 : 0), lineWidth: 0.5)
         )
-        .accessibilityHidden(true)
     }
 }
 
@@ -705,7 +668,6 @@ private struct PrivacySettingsView: View {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 8) {
                     Image(systemName: biometricIconName)
-                        .hideDecorative()
                     Text(biometricName)
                 }
             }
@@ -761,12 +723,11 @@ private struct NotificationsSettingsView: View {
             Text(isGranted ? "Notification Permission Granted" : "Request Notification Permission")
             if isGranted {
                 Image(systemName: "checkmark")
-                    .hideDecorative()
             }
         }
         .font(.subheadline.weight(.semibold))
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 44)
+        .frame(minHeight: 44, maxHeight: 44)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button {
@@ -950,12 +911,11 @@ private struct ICloudSettingsView: View {
         let isDisabled = isForceReuploading || isReconfiguringStores
         let label = HStack(spacing: 10) {
             Image(systemName: "arrow.triangle.2.circlepath")
-                .hideDecorative()
             Text("Force iCloud Sync Refresh")
                 .font(.headline)
         }
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 44)
+        .frame(minHeight: 44, maxHeight: 44)
 
         if cloudToggle,
            capabilities.supportsOS26Translucency,
@@ -1011,7 +971,6 @@ private struct AppIconImageView: View {
                 .frame(width: size, height: size)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.primary.opacity(0.08), lineWidth: 1))
-                .accessibilityHidden(true)
         case .squircle:
             let mask = RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
             image
@@ -1021,7 +980,6 @@ private struct AppIconImageView: View {
                 .frame(width: size, height: size)
                 .clipShape(mask)
                 .overlay(mask.stroke(Color.primary.opacity(0.08), lineWidth: 1))
-                .accessibilityHidden(true)
         }
     }
 }

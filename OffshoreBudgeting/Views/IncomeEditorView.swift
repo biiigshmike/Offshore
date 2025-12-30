@@ -84,7 +84,6 @@ struct IncomeEditorView: View {
     // MARK: State
     @State private var form: IncomeEditorForm = .init()
     @Environment(\.dismiss) private var dismiss
-    @State private var isMenuActive = false
 
     // MARK: Init
     /// - Parameters:
@@ -172,23 +171,6 @@ struct IncomeEditorView: View {
             }
         }
         .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
-        .onAppear { isMenuActive = true }
-        .onDisappear { isMenuActive = false }
-        .focusedSceneValue(
-            \.formCommands,
-            isMenuActive ? FormCommands(
-                saveTitle: saveButtonTitle,
-                canSave: canSave,
-                save: {
-                    if handleSave() { dismiss() }
-                },
-                cancelTitle: "Cancel",
-                cancel: {
-                    _ = onCommit(.cancelled)
-                    dismiss()
-                }
-            ) : nil
-        )
     }
 
     // MARK: Labels

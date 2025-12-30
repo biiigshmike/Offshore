@@ -10,22 +10,10 @@ struct CardsView: View {
 
     // MARK: State & ViewModel
     @StateObject private var vm = CardsViewModel()
-    private enum ActiveSheet: Identifiable {
-        case add
-        case edit(CardItem)
-
-        var id: String {
-            switch self {
-            case .add: return "add"
-            case .edit(let card): return "edit:\(card.id)"
-            }
-        }
-    }
-
-    @State private var activeSheet: ActiveSheet?
+    @State private var isPresentingAddCard = false
     @State private var isPresentingCardVariableExpense = false
     @State private var detailCard: CardItem? = nil
-    @Environment(\.currentRootTab) private var currentRootTab
+    @State private var editingCard: CardItem? = nil
 
 
     // MARK: Grid
@@ -37,10 +25,6 @@ struct CardsView: View {
     var body: some View {
         cardsContent
             .tipsAndHintsOverlay(for: .cards)
-            .focusedSceneValue(
-                \.newItemCommand,
-                currentRootTab == .cards ? NewItemCommand(title: "New Card", action: { activeSheet = .add }) : nil
-            )
     }
 
     @ViewBuilder
@@ -86,7 +70,7 @@ struct CardsView: View {
                                         }
                                         
                                         .contextMenu {
-                                            Button("Edit", systemImage: "pencil") { activeSheet = .edit(card) }
+                                            Button("Edit", systemImage: "pencil") { editingCard = card }
                                             Button("Delete", systemImage: "trash", role: .destructive) {
                                                 vm.requestDelete(card: card)
                                             }
@@ -109,21 +93,10 @@ struct CardsView: View {
             
             .navigationTitle("Cards")
             .toolbar { toolbarContent }
-            .onAppear {
-                vm.startIfNeeded()
-            }
-            .ub_platformSheet(item: $activeSheet) { sheet in
-                switch sheet {
-                case .add:
-                    AddCardFormView { newName, theme in
-                        Task { await vm.addCard(name: newName, theme: theme) }
-                        activeSheet = nil
-                    }
-                case .edit(let card):
-                    AddCardFormView(mode: .edit, editingCard: card) { name, theme in
-                        Task { await vm.edit(card: card, name: name, theme: theme) }
-                        activeSheet = nil
-                    }
+            .onAppear { vm.startIfNeeded() }
+            .sheet(isPresented: $isPresentingAddCard) {
+                AddCardFormView { newName, theme in
+                    Task { await vm.addCard(name: newName, theme: theme) }
                 }
             }
             .onChange(of: detailCard) { newValue in
@@ -153,6 +126,11 @@ struct CardsView: View {
                     onDone: { detailCard = nil }
                 )
             }
+            .sheet(item: $editingCard) { card in
+                AddCardFormView(mode: .edit, editingCard: card) { name, theme in
+                    Task { await vm.edit(card: card, name: name, theme: theme) }
+                }
+            }
         }
     }
 
@@ -166,7 +144,9 @@ struct CardsView: View {
 
     @ViewBuilder
     private var addButton: some View {
-        Buttons.toolbarIcon("plus", label: "Add Card") { activeSheet = .add }
+        Buttons.toolbarIcon("plus") { isPresentingAddCard = true }
+        .accessibilityLabel("Add Card")
+        
     }
 
     // MARK: Navigation container

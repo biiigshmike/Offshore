@@ -11,40 +11,27 @@ struct WorkspaceMenuButton: View {
     ) private var workspaces: FetchedResults<Workspace>
     @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
 
-    private enum ActiveSheet: Identifiable {
-        case add
-        case manage
-
-        var id: String {
-            switch self {
-            case .add: return "add"
-            case .manage: return "manage"
-            }
-        }
-    }
-
-    @State private var activeSheet: ActiveSheet?
+    @State private var showAdd = false
+    @State private var showManage = false
 
     var body: some View {
         Menu {
             workspaceListSection
             Divider()
-            Button("Add New Profile") { activeSheet = .add }
-            Button("Manage Profiles") { activeSheet = .manage }
+            Button("Add New Profile") { showAdd = true }
+            Button("Manage Profiles") { showManage = true }
         } label: {
             workspaceMenuLabel
         }
-        .iconButtonA11y(label: "Profile Menu")
+        .accessibilityLabel("Profile Menu")
         .task { _ = WorkspaceService.shared.ensureActiveWorkspaceID() }
-        .ub_platformSheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .add:
-                WorkspaceEditorView(mode: .add)
-                    .environment(\.managedObjectContext, viewContext)
-            case .manage:
-                WorkspaceManagerView()
-                    .environment(\.managedObjectContext, viewContext)
-            }
+        .sheet(isPresented: $showAdd) {
+            WorkspaceEditorView(mode: .add)
+                .environment(\.managedObjectContext, viewContext)
+        }
+        .sheet(isPresented: $showManage) {
+            WorkspaceManagerView()
+                .environment(\.managedObjectContext, viewContext)
         }
     }
 
@@ -61,21 +48,30 @@ struct WorkspaceMenuButton: View {
                     Text(workspace.name ?? "Untitled")
                     if activeID == workspace.id {
                         Image(systemName: "checkmark")
-                            .hideDecorative()
                     }
                 }
-            }
-            .if(activeID == workspace.id) { view in
-                view.accessibilityValue(Text("Active"))
             }
         }
     }
 
     @ViewBuilder
     private var workspaceMenuLabel: some View {
-        Image(systemName: "person.3.fill")
-            .font(.system(size: 16, weight: .semibold))
-            .frame(width: 33, height: 33)
+        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            let label = Label("Profile", systemImage: "person.3.fill")
+                .labelStyle(.iconOnly)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 44, height: 44, alignment: .center)
+                .glassEffect(.regular.tint(.clear).interactive(true))
+            label
+                .buttonStyle(.plain)
+                .frame(width: 44, height: 44, alignment: .center)
+                .clipShape(Circle())
+                .compositingGroup()
+        } else {
+            Image(systemName: "person.3.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 33, height: 33)
+        }
     }
 }
 
@@ -90,20 +86,9 @@ struct WorkspaceManagerView: View {
     ) private var workspaces: FetchedResults<Workspace>
     @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
 
-    private enum ActiveSheet: Identifiable {
-        case add
-        case edit(NSManagedObjectID)
-
-        var id: String {
-            switch self {
-            case .add: return "add"
-            case .edit(let id): return "edit:\(id.uriRepresentation().absoluteString)"
-            }
-        }
-    }
-
-    @State private var activeSheet: ActiveSheet?
+    @State private var editingWorkspace: Workspace?
     @State private var workspaceToDelete: Workspace?
+    @State private var showAddSheet = false
 
     var body: some View {
         NavigationStack {
@@ -121,22 +106,16 @@ struct WorkspaceManagerView: View {
                     Button("Done") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Add") { activeSheet = .add }
+                    Button("Add") { showAddSheet = true }
                 }
             }
-            .ub_platformSheet(item: $activeSheet) { sheet in
-                switch sheet {
-                case .add:
-                    WorkspaceEditorView(mode: .add)
-                        .environment(\.managedObjectContext, viewContext)
-                case .edit(let objectID):
-                    if let workspace = try? viewContext.existingObject(with: objectID) as? Workspace {
-                        WorkspaceEditorView(mode: .edit(workspace))
-                            .environment(\.managedObjectContext, viewContext)
-                    } else {
-                        EmptyView()
-                    }
-                }
+            .sheet(item: $editingWorkspace) { workspace in
+                WorkspaceEditorView(mode: .edit(workspace))
+                    .environment(\.managedObjectContext, viewContext)
+            }
+            .sheet(isPresented: $showAddSheet) {
+                WorkspaceEditorView(mode: .add)
+                    .environment(\.managedObjectContext, viewContext)
             }
             .alert("Delete Profile?", isPresented: Binding(get: {
                 workspaceToDelete != nil
@@ -175,7 +154,7 @@ struct WorkspaceManagerView: View {
         }
         .unifiedSwipeActions(
             config,
-            onEdit: { activeSheet = .edit(workspace.objectID) },
+            onEdit: { editingWorkspace = workspace },
             onDelete: { workspaceToDelete = workspace }
         )
     }

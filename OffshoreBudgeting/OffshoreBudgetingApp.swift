@@ -39,7 +39,6 @@ struct OffshoreBudgetingApp: App {
         // Defer Core Data store loading and CardPickerStore creation to onAppear
         configureForUITestingIfNeeded()
         logPlatformCapabilities()
-        configureKeyboardAssistantIfNeeded()
         let labelAppearance = UILabel.appearance()
         labelAppearance.adjustsFontSizeToFitWidth = true
         labelAppearance.minimumScaleFactor = 0.75
@@ -69,9 +68,16 @@ struct OffshoreBudgetingApp: App {
                 }
             }
         }
+#if targetEnvironment(macCatalyst)
         .commands {
-            OffshoreMenuCommands()
+            CommandGroup(replacing: .help) {
+                Button("Offshore Budgeting Help") {
+                    requestHelpScene()
+                }
+                .keyboardShortcut("?", modifiers: .command)
+            }
         }
+#endif
 
 #if targetEnvironment(macCatalyst)
         WindowGroup(id: catalystHelpSceneIdentifier) {
@@ -302,23 +308,6 @@ struct OffshoreBudgetingApp: App {
         AppLog.ui.info("PlatformCapabilities.current supportsOS26Translucency=\(platformCapabilities.supportsOS26Translucency, privacy: .public) supportsAdaptiveKeypad=\(platformCapabilities.supportsAdaptiveKeypad, privacy: .public) osVersion=\(versionString, privacy: .public) runtimeVersion=\(runtimeVersion, privacy: .public)")
     }
 
-    private func configureKeyboardAssistantIfNeeded() {
-#if canImport(UIKit)
-        #if targetEnvironment(macCatalyst)
-        let shouldDisable = true
-        #else
-        let shouldDisable = UIDevice.current.userInterfaceIdiom == .pad
-        #endif
-        guard shouldDisable else { return }
-        let textFieldAssistant = UITextField.appearance().inputAssistantItem
-        textFieldAssistant.leadingBarButtonGroups = []
-        textFieldAssistant.trailingBarButtonGroups = []
-        let textViewAssistant = UITextView.appearance().inputAssistantItem
-        textViewAssistant.leadingBarButtonGroups = []
-        textViewAssistant.trailingBarButtonGroups = []
-#endif
-    }
-
 #if targetEnvironment(macCatalyst)
     private var helpActivityType: String {
         (Bundle.main.bundleIdentifier ?? "com.offshorebudgeting") + ".help"
@@ -332,107 +321,6 @@ struct OffshoreBudgetingApp: App {
         UIApplication.shared.requestSceneSessionActivation(nil, userActivity: activity, options: nil, errorHandler: nil)
     }
 #endif
-}
-
-// MARK: - Menu Commands
-struct NewItemCommand {
-    let title: String
-    let action: () -> Void
-}
-
-struct BudgetDetailCommands {
-    let addPlannedExpense: () -> Void
-    let addVariableExpense: () -> Void
-}
-
-struct HomePeriodCommands {
-    let cyclePeriod: () -> Void
-    let setDaily: () -> Void
-    let setWeekly: () -> Void
-    let setBiWeekly: () -> Void
-    let setMonthly: () -> Void
-    let setQuarterly: () -> Void
-    let setYearly: () -> Void
-}
-
-struct HelpCommands {
-    let openHelp: () -> Void
-}
-
-struct FormCommands {
-    let saveTitle: String
-    let canSave: Bool
-    let save: () -> Void
-    let cancelTitle: String
-    let cancel: () -> Void
-}
-
-extension FocusedValues {
-    @Entry var newItemCommand: NewItemCommand?
-    @Entry var budgetDetailCommands: BudgetDetailCommands?
-    @Entry var homePeriodCommands: HomePeriodCommands?
-    @Entry var helpCommands: HelpCommands?
-    @Entry var formCommands: FormCommands?
-}
-
-struct OffshoreMenuCommands: Commands {
-    @FocusedValue(\.newItemCommand) private var newItemCommand
-    @FocusedValue(\.budgetDetailCommands) private var budgetDetailCommands
-    @FocusedValue(\.homePeriodCommands) private var homePeriodCommands
-    @FocusedValue(\.helpCommands) private var helpCommands
-    @FocusedValue(\.formCommands) private var formCommands
-
-    var body: some Commands {
-        CommandGroup(after: .newItem) {
-            if let newItemCommand {
-                Button(newItemCommand.title, action: newItemCommand.action)
-                    .keyboardShortcut("N", modifiers: [.command, .shift])
-            }
-            if let budgetDetailCommands {
-                if newItemCommand != nil {
-                    Divider()
-                }
-                Button("Add Planned Expense", action: budgetDetailCommands.addPlannedExpense)
-                Button("Add Variable Expense", action: budgetDetailCommands.addVariableExpense)
-            }
-        }
-
-        CommandGroup(after: .toolbar) {
-            if let homePeriodCommands {
-                Button("Cycle Period", action: homePeriodCommands.cyclePeriod)
-                    .keyboardShortcut("P", modifiers: [.command, .shift])
-                Divider()
-                Button("Daily", action: homePeriodCommands.setDaily)
-                    .keyboardShortcut("1", modifiers: [.option])
-                Button("Weekly", action: homePeriodCommands.setWeekly)
-                    .keyboardShortcut("2", modifiers: [.option])
-                Button("Bi-Weekly", action: homePeriodCommands.setBiWeekly)
-                    .keyboardShortcut("3", modifiers: [.option])
-                Button("Monthly", action: homePeriodCommands.setMonthly)
-                    .keyboardShortcut("4", modifiers: [.option])
-                Button("Quarterly", action: homePeriodCommands.setQuarterly)
-                    .keyboardShortcut("5", modifiers: [.option])
-                Button("Yearly", action: homePeriodCommands.setYearly)
-                    .keyboardShortcut("6", modifiers: [.option])
-            }
-        }
-
-        CommandGroup(after: .saveItem) {
-            if let formCommands {
-                Button(formCommands.saveTitle, action: formCommands.save)
-                    .keyboardShortcut("S", modifiers: [.command])
-                    .disabled(!formCommands.canSave)
-                Button(formCommands.cancelTitle, action: formCommands.cancel)
-                    .keyboardShortcut(.cancelAction)
-            }
-        }
-
-        CommandGroup(after: .help) {
-            if let helpCommands {
-                Button("Offshore Budgeting Help", action: helpCommands.openHelp)
-            }
-        }
-    }
 }
 
 // MARK: - Test UI Overrides

@@ -67,8 +67,6 @@ enum Buttons {
     /// - Returns: A view rendering the toolbar icon with glass on OS 26+ and a plain fallback otherwise.
     static func toolbarIcon(
         _ systemImage: String,
-        label: String,
-        hint: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
         // Toolbar icons should be visually "clear" (no grey/tinted backgrounds)
@@ -79,7 +77,6 @@ enum Buttons {
                 .frame(width: 33, height: 33)
         }
         .buttonStyle(.plain)
-        .iconButtonA11y(label: label, hint: hint)
     }
 
     // MARK: Toolbar Icon (glass preferred)
@@ -87,8 +84,6 @@ enum Buttons {
     /// a translucent affordance is desired (e.g., IncomeView).
     static func toolbarIconGlassPreferred(
         _ systemImage: String,
-        label: String,
-        hint: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
         Group {
@@ -111,7 +106,6 @@ enum Buttons {
                 .buttonStyle(.plain)
             }
         }
-        .iconButtonA11y(label: label, hint: hint)
     }
 
     // MARK: Toolbar Icon (glass preferred, label-only)

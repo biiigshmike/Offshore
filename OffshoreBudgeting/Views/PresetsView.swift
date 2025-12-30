@@ -15,24 +15,10 @@ struct PresetsView: View {
     
     // MARK: State
     @StateObject private var vm = PresetsViewModel()
-    private enum ActiveSheet: Identifiable {
-        case add
-        case assign(NSManagedObjectID)
-        case edit(NSManagedObjectID)
-
-        var id: String {
-            switch self {
-            case .add: return "add"
-            case .assign(let id): return "assign:\(id.uriRepresentation().absoluteString)"
-            case .edit(let id): return "edit:\(id.uriRepresentation().absoluteString)"
-            }
-        }
-    }
-
-    @State private var activeSheet: ActiveSheet?
+    @State private var isPresentingAdd = false
+    @State private var sheetTemplateToAssign: PlannedExpense? = nil
+    @State private var editingTemplate: PlannedExpense? = nil
     @State private var templateToDelete: PlannedExpense? = nil
-    @State private var isMenuActive = false
-    @Environment(\.currentSidebarSelection) private var currentSidebarSelection
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
 
     // Guided walkthrough removed
@@ -40,12 +26,6 @@ struct PresetsView: View {
     var body: some View {
         presetsContent
             .tipsAndHintsOverlay(for: .presets)
-            .focusedSceneValue(
-                \.newItemCommand,
-                isMenuActive || currentSidebarSelection == .managePresets
-                ? NewItemCommand(title: "New Preset", action: { activeSheet = .add })
-                : nil
-            )
     }
 
     @ViewBuilder
@@ -71,13 +51,11 @@ struct PresetsView: View {
 
                     Section {
                         ForEach(vm.items) { item in
-                            PresetRowView(item: item) { template in
-                                activeSheet = .assign(template.objectID)
-                            }
+                            PresetRowView(item: item) { template in sheetTemplateToAssign = template }
                                 .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
                                 .unifiedSwipeActions(
                                     swipeConfig,
-                                    onEdit: { activeSheet = .edit(item.template.objectID) },
+                                    onEdit: { editingTemplate = item.template },
                                     onDelete: {
                                         if confirmBeforeDelete {
                                             templateToDelete = item.template
@@ -103,50 +81,28 @@ struct PresetsView: View {
         }
         .navigationTitle("Presets")
         .toolbar { toolbarContent }
-        .onAppear {
-            isMenuActive = true
-            vm.startIfNeeded(using: viewContext)
-        }
-        .onDisappear { isMenuActive = false }
+        .onAppear { vm.startIfNeeded(using: viewContext) }
         .refreshable {
             // Pull-to-refresh: nudge CloudKit and reload list
             CloudSyncAccelerator.shared.nudgeOnForeground()
             vm.loadTemplates(using: viewContext)
         }
-        .ub_platformSheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .add:
-                AddGlobalPresetSheet(onSaved: {
-                    vm.loadTemplates(using: viewContext)
-                    activeSheet = nil
-                })
+        .sheet(isPresented: $isPresentingAdd) {
+            AddGlobalPresetSheet(onSaved: { vm.loadTemplates(using: viewContext) })
                 .environment(\.managedObjectContext, viewContext)
-            case .assign(let objectID):
-                if let template = try? viewContext.existingObject(with: objectID) as? PlannedExpense {
-                    PresetBudgetAssignmentSheet(template: template) {
-                        vm.loadTemplates(using: viewContext)
-                        activeSheet = nil
-                    }
-                    .environment(\.managedObjectContext, viewContext)
-                } else {
-                    EmptyView()
-                }
-            case .edit(let objectID):
-                if let template = try? viewContext.existingObject(with: objectID) as? PlannedExpense {
-                    AddPlannedExpenseView(
-                        plannedExpenseID: template.objectID,
-                        preselectedBudgetID: nil,
-                        defaultSaveAsGlobalPreset: true,
-                        onSaved: {
-                            vm.loadTemplates(using: viewContext)
-                            activeSheet = nil
-                        }
-                    )
-                    .environment(\.managedObjectContext, viewContext)
-                } else {
-                    EmptyView()
-                }
-            }
+        }
+        .sheet(item: $sheetTemplateToAssign) { template in
+            PresetBudgetAssignmentSheet(template: template) { vm.loadTemplates(using: viewContext) }
+                .environment(\.managedObjectContext, viewContext)
+        }
+        .sheet(item: $editingTemplate) { template in
+            AddPlannedExpenseView(
+                plannedExpenseID: template.objectID,
+                preselectedBudgetID: nil,
+                defaultSaveAsGlobalPreset: true,
+                onSaved: { vm.loadTemplates(using: viewContext) }
+            )
+            .environment(\.managedObjectContext, viewContext)
         }
         .alert(item: $templateToDelete) { template in
             Alert(
@@ -162,7 +118,8 @@ struct PresetsView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
-            Buttons.toolbarIcon("plus", label: "Add Preset Planned Expense") { activeSheet = .add }
+            Buttons.toolbarIcon("plus") { isPresentingAdd = true }
+                .accessibilityLabel("Add Preset Planned Expense")
         }
     }
 

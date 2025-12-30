@@ -18,46 +18,23 @@ struct CardDetailView: View {
 
     // MARK: State
     @State private var cardSnapshot: CardItem
-    private enum ActiveSheet: Identifiable, Equatable {
-        case editCard
-        case addUnplanned
-        case addPlanned
-        case editPlanned(NSManagedObjectID)
-        case editUnplanned(NSManagedObjectID)
-
-        var id: String {
-            switch self {
-            case .editCard: return "editCard"
-            case .addUnplanned: return "addUnplanned"
-            case .addPlanned: return "addPlanned"
-            case .editPlanned(let id): return "editPlanned:\(id.uriRepresentation().absoluteString)"
-            case .editUnplanned(let id): return "editUnplanned:\(id.uriRepresentation().absoluteString)"
-            }
-        }
-
-        static func == (lhs: ActiveSheet, rhs: ActiveSheet) -> Bool {
-            lhs.id == rhs.id
-        }
-    }
-
-    @State private var activeSheet: ActiveSheet?
+    @State private var isPresentingEditCard: Bool = false
     @StateObject private var viewModel: CardDetailViewModel
     @Environment(\.responsiveLayoutContext) private var layoutContext
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityDifferentiateWithoutColor) private var diffNoColor
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
     private var confirmBeforeDelete: Bool = true
     @State private var isSearchActive: Bool = false
     @FocusState private var isSearchFieldFocused: Bool
     // Add flows
+    @State private var isPresentingAddPlanned: Bool = false
     @State private var expensePendingDeletion: CardExpense?
     @State private var isConfirmingDelete: Bool = false
     @State private var deletionError: DeletionError?
-    @State private var isMenuActive = false
-    @State private var budgetDetailCommands: BudgetDetailCommands?
+    @State private var editingExpense: CardExpense?
     // Date range pickers
     @State private var startDate: Date = Date()
     @State private var endDate: Date = Date()
@@ -91,76 +68,62 @@ struct CardDetailView: View {
         .task { await viewModel.load() }
         //.accentColor(themeManager.selectedTheme.tint)
         //.tint(themeManager.selectedTheme.tint)
-        .ub_platformSheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .editCard:
-                AddCardFormView(
-                    mode: .edit,
-                    editingCard: cardSnapshot
-                ) { name, theme in
-                    handleCardEdit(name: name, theme: theme)
-                    activeSheet = nil
+        .sheet(isPresented: $isPresentingEditCard) {
+            AddCardFormView(
+                mode: .edit,
+                editingCard: cardSnapshot
+            ) { name, theme in
+                handleCardEdit(name: name, theme: theme)
+            }
+        }
+        // Add Variable (Unplanned) Expense sheet for this card
+        .sheet(isPresented: $isPresentingAddExpense) {
+            AddUnplannedExpenseView(
+                initialCardID: cardSnapshot.objectID ?? card.objectID,
+                initialDate: Date(),
+                onSaved: {
+                    isPresentingAddExpense = false
+                    refreshCardDetails()
                 }
-            case .addUnplanned:
-                AddUnplannedExpenseView(
-                    initialCardID: cardSnapshot.objectID ?? card.objectID,
-                    initialDate: Date(),
-                    onSaved: {
-                        activeSheet = nil
-                        isPresentingAddExpense = false
-                        refreshCardDetails()
-                    }
-                )
-            case .addPlanned:
+            )
+        }
+        // Add Planned Expense sheet for this card
+        .sheet(isPresented: $isPresentingAddPlanned) {
+            AddPlannedExpenseView(
+                preselectedBudgetID: nil,
+                defaultSaveAsGlobalPreset: false,
+                showAssignBudgetToggle: true,
+                onSaved: {
+                    isPresentingAddPlanned = false
+                    refreshCardDetails()
+                },
+                initialCardID: cardSnapshot.objectID ?? card.objectID
+            )
+            .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+        }
+        .sheet(item: $editingExpense) { expense in
+            if expense.isPlanned {
                 AddPlannedExpenseView(
+                    plannedExpenseID: expense.objectID,
                     preselectedBudgetID: nil,
                     defaultSaveAsGlobalPreset: false,
                     showAssignBudgetToggle: true,
                     onSaved: {
-                        activeSheet = nil
                         refreshCardDetails()
                     },
                     initialCardID: cardSnapshot.objectID ?? card.objectID
                 )
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            case .editPlanned(let objectID):
-                AddPlannedExpenseView(
-                    plannedExpenseID: objectID,
-                    preselectedBudgetID: nil,
-                    defaultSaveAsGlobalPreset: false,
-                    showAssignBudgetToggle: true,
-                    onSaved: {
-                        activeSheet = nil
-                        refreshCardDetails()
-                    },
-                    initialCardID: cardSnapshot.objectID ?? card.objectID
-                )
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            case .editUnplanned(let objectID):
+            } else {
                 AddUnplannedExpenseView(
-                    unplannedExpenseID: objectID,
+                    unplannedExpenseID: expense.objectID,
                     initialCardID: cardSnapshot.objectID ?? card.objectID,
-                    initialDate: nil,
+                    initialDate: expense.date,
                     onSaved: {
-                        activeSheet = nil
                         refreshCardDetails()
                     }
                 )
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            }
-        }
-        .onChange(of: isPresentingAddExpense) { newValue in
-            if newValue {
-                activeSheet = .addUnplanned
-            }
-        }
-        .onChange(of: activeSheet) { newValue in
-            if case .addUnplanned = newValue {
-                isPresentingAddExpense = true
-                return
-            }
-            if newValue == nil {
-                isPresentingAddExpense = false
             }
         }
         .alert("Delete Expense?", isPresented: $isConfirmingDelete) {
@@ -186,10 +149,6 @@ struct CardDetailView: View {
             ignoringSafeArea: .all
         )
         .tipsAndHintsOverlay(for: .cardDetail)
-        .focusedSceneValue(
-            \.budgetDetailCommands,
-            isMenuActive ? budgetDetailCommands : nil
-        )
         
 
     }
@@ -204,7 +163,6 @@ struct CardDetailView: View {
             VStack(spacing: 12) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 40, weight: .bold))
-                    .hideDecorative()
                 Text("Couldn’t load details")
                     .font(.headline)
                 Text(message).font(.subheadline).foregroundStyle(.secondary)
@@ -345,12 +303,7 @@ struct CardDetailView: View {
 //                            }
                             .unifiedSwipeActions(
                                 swipeConfig,
-                                onEdit: {
-                                    guard let objectID = expense.objectID else { return }
-                                    activeSheet = expense.isPlanned
-                                        ? .editPlanned(objectID)
-                                        : .editUnplanned(objectID)
-                                },
+                                onEdit: { editingExpense = expense },
                                 onDelete: { requestDelete(expense) }
                             )
                     }
@@ -471,16 +424,6 @@ struct CardDetailView: View {
                     endDate = r.end
                 }
             }
-            .onAppear {
-                isMenuActive = true
-                if budgetDetailCommands == nil {
-                    budgetDetailCommands = BudgetDetailCommands(
-                        addPlannedExpense: { activeSheet = .addPlanned },
-                        addVariableExpense: { activeSheet = .addUnplanned }
-                    )
-                }
-            }
-            .onDisappear { isMenuActive = false }
     }
 
     // MARK: Toolbar
@@ -491,22 +434,22 @@ struct CardDetailView: View {
         }
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             IconOnlyButton(systemName: "pencil") {
-                activeSheet = .editCard
+                isPresentingEditCard = true
             }
             // Add Expense menu (Planned or Variable) — rightmost control
             Menu {
                 Button("Add Planned Expense") {
-                    activeSheet = .addPlanned
+                    isPresentingAddPlanned = true
                 }
                 Button("Add Variable Expense") {
-                    activeSheet = .addUnplanned
+                    isPresentingAddExpense = true
                 }
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 18, weight: .semibold))
                     .symbolRenderingMode(.monochrome)
             }
-            .iconButtonA11y(label: "Add Expense", hint: "Choose planned or variable expense")
+            .accessibilityLabel("Add Expense")
         }
     }
 
@@ -525,10 +468,10 @@ struct CardDetailView: View {
         GlassEffectContainer(spacing: 8) {
             HStack(spacing: 6) {
                 if isSearchActive {
-                    Buttons.toolbarIcon("xmark", label: "Close Search") { closeSearch() }
+                    Buttons.toolbarIcon("xmark") { closeSearch() }
                     glassSearchField
                 } else {
-                    Buttons.toolbarIcon("magnifyingglass", label: "Search Expenses") { openSearch() }
+                    Buttons.toolbarIcon("magnifyingglass") { openSearch() }
                 }
             }
         }
@@ -537,10 +480,10 @@ struct CardDetailView: View {
     private var searchToolbarControlLegacy: some View {
         HStack(spacing: 6) {
             if isSearchActive {
-                Buttons.toolbarIcon("xmark", label: "Close Search") { closeSearch() }
+                Buttons.toolbarIcon("xmark") { closeSearch() }
                 legacySearchField
             } else {
-                Buttons.toolbarIcon("magnifyingglass", label: "Search Expenses") { openSearch() }
+                Buttons.toolbarIcon("magnifyingglass") { openSearch() }
             }
         }
     }
@@ -587,7 +530,7 @@ struct CardDetailView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .iconButtonA11y(label: "Clear Search")
+                .accessibilityLabel("Clear Search")
             }
         }
         .accessibilityElement(children: .contain)
@@ -621,7 +564,7 @@ struct CardDetailView: View {
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
-            .iconButtonA11y(label: "Apply Date Range")
+            .accessibilityLabel("Apply date range")
         } else {
             let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
             Button(action: applyDateRange) {
@@ -656,7 +599,7 @@ struct CardDetailView: View {
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
-            .iconButtonA11y(label: "Select Date Preset")
+            .accessibilityLabel("Select date preset")
         } else {
             Menu {
                 Button("Daily") { setPreset(.daily) }
@@ -669,7 +612,7 @@ struct CardDetailView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .frame(width: 33, height: 33)
             }
-            .iconButtonA11y(label: "Select Date Preset")
+            .accessibilityLabel("Select date preset")
         }
     }
 
@@ -834,7 +777,6 @@ private struct ExpenseRow: View {
                     Circle()
                         .fill(catColor)
                         .frame(width: 8, height: 8)
-                        .accessibilityHidden(true)
                     Text(catName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -873,7 +815,7 @@ private struct IconOnlyButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .iconButtonA11y(label: label)
+        .accessibilityLabel(Text(label))
     }
     private var label: String {
         switch systemName {
@@ -904,17 +846,11 @@ private extension CardDetailView {
 
         let label = HStack(spacing: DS.Spacing.s) {
             Circle().fill(accentColor).frame(width: 10, height: 10)
-                .accessibilityHidden(true)
             Text(cat.name).font(.subheadline.weight(.medium))
             Text(cat.amount, format: .currency(code: currencyCode)).font(.subheadline.weight(.semibold))
-            if isSelected && diffNoColor {
-                Image(systemName: "checkmark")
-                    .font(.caption2.weight(.semibold))
-                    .accessibilityHidden(true)
-            }
         }
         .padding(.horizontal, 12)
-        .frame(minHeight: 44)
+        .frame(minHeight: 44, maxHeight: 44)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: {
@@ -927,14 +863,14 @@ private extension CardDetailView {
                             .tint(isSelected ? glassTintColor : .none)
                             .interactive(true)
                     )
-                    .frame(minHeight: 44)
+                    .frame(minHeight: 44, maxHeight: 44)
                     .clipShape(Capsule())
                     .compositingGroup()
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(minHeight: 44)
+            .frame(maxHeight: 44)
         } else {
             Button(action: {
                 if viewModel.selectedCategoryID == cat.categoryObjectID { viewModel.selectedCategoryID = nil }
@@ -944,7 +880,7 @@ private extension CardDetailView {
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(minHeight: 44)
+            .frame(maxHeight: 33)
             .buttonStyle(.plain)
             .background(
                 legacyShape.fill(isSelected ? glassTintColor : DS.Colors.chipFill)

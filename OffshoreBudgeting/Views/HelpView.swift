@@ -543,7 +543,6 @@ private struct HelpRowLabel: View {
             Image(systemName: "chevron.right")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-                .hideDecorative()
         }
     }
 }
@@ -565,7 +564,6 @@ private struct HelpIconTile: View {
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .stroke(style.tint.opacity(style.usesStroke ? 0.25 : 0), lineWidth: 0.5)
         )
-        .accessibilityHidden(true)
     }
 }
 
@@ -668,7 +666,6 @@ private struct HelpScreenshotPlaceholder: View {
                 VStack(spacing: 6) {
                     Image(systemName: "iphone")
                         .font(.system(size: 24, weight: .regular))
-                        .hideDecorative()
                     Text(title)
                         .font(.subheadline.weight(.semibold))
                     Text("Screenshot placeholder")

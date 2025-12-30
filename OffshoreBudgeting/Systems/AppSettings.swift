@@ -18,6 +18,4 @@ enum AppSettingsKeys: String {
     case lastExpenseAddedDate
     case tipsHintsResetToken
     case activeWorkspaceID
-    case sidebarVisibility
-    case sidebarCompactTabsOverride
 }

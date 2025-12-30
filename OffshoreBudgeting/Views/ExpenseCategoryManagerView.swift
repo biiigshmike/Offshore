@@ -32,22 +32,11 @@ struct ExpenseCategoryManagerView: View {
     private var categories: FetchedResults<ExpenseCategory>
     
     // MARK: UI State
-    private enum ActiveSheet: Identifiable {
-        case add(UUID)
-        case edit(NSManagedObjectID)
-
-        var id: String {
-            switch self {
-            case .add(let id): return "add:\(id)"
-            case .edit(let id): return "edit:\(id.uriRepresentation().absoluteString)"
-            }
-        }
-    }
-
-    @State private var activeSheet: ActiveSheet?
+    @State private var isPresentingAddSheet: Bool = false
+    // Force a fresh sheet instance each presentation (fixes Mac Catalyst state reuse)
+    @State private var addSheetInstanceID = UUID()
+    @State private var categoryToEdit: ExpenseCategory?
     @State private var categoryToDelete: ExpenseCategory?
-    @State private var isMenuActive = false
-    @Environment(\.currentSidebarSelection) private var currentSidebarSelection
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
     @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
     
@@ -73,7 +62,9 @@ struct ExpenseCategoryManagerView: View {
                     // Right: Add Category (clear/plain, 33x33 hit box)
                     ToolbarItem(placement: .primaryAction) {
                         Button(action: {
-                            activeSheet = .add(UUID())
+                            // Refresh the sheet identity so @State in the sheet resets on each open
+                            addSheetInstanceID = UUID()
+                            isPresentingAddSheet = true
                         }) {
                             Image(systemName: "plus")
                                 .symbolRenderingMode(.monochrome)
@@ -83,42 +74,42 @@ struct ExpenseCategoryManagerView: View {
                                 .contentShape(Circle())
                         }
                         .buttonStyle(.plain)
-                        .iconButtonA11y(label: "Add Category")
+                        .accessibilityLabel("Add Category")
                     }
                 }
         }
         .accentColor(themeManager.selectedTheme.resolvedTint)
         .tint(themeManager.selectedTheme.resolvedTint)
-        .ub_platformSheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .add(let instanceID):
-                ExpenseCategoryEditorSheet(
-                    initialName: "",
-                    initialHex: "#4E9CFF",
-                    onCancel: { activeSheet = nil },
-                    onSave: { name, hex in
-                        addCategory(name: name, hex: hex)
-                        activeSheet = nil
-                    }
-                )
-                .id(instanceID)
-            case .edit(let objectID):
-                if let category = try? viewContext.existingObject(with: objectID) as? ExpenseCategory {
-                    ExpenseCategoryEditorSheet(
-                        initialName: category.name ?? "",
-                        initialHex: category.color ?? "#999999",
-                        onCancel: { activeSheet = nil },
-                        onSave: { name, hex in
-                            category.name = name
-                            category.color = hex
-                            saveContext()
-                            activeSheet = nil
-                        }
-                    )
-                } else {
-                    EmptyView()
+        .sheet(isPresented: $isPresentingAddSheet, onDismiss: {
+            // Ensure the presenting flag is cleared and next open is fresh
+            isPresentingAddSheet = false
+        }) {
+            ExpenseCategoryEditorSheet(
+                initialName: "",
+                initialHex: "#4E9CFF",
+                onCancel: { isPresentingAddSheet = false },
+                onSave: { name, hex in
+                    addCategory(name: name, hex: hex)
+                    // Explicitly flip binding off to avoid any Catalyst re-present glitch
+                    #if targetEnvironment(macCatalyst)
+                    DispatchQueue.main.async { isPresentingAddSheet = false }
+                    #else
+                    isPresentingAddSheet = false
+                    #endif
                 }
-            }
+            )
+            .id(addSheetInstanceID)
+        }
+        .sheet(item: $categoryToEdit) { category in
+            ExpenseCategoryEditorSheet(
+                initialName: category.name ?? "",
+                initialHex: category.color ?? "#999999",
+                onSave: { name, hex in
+                    category.name = name
+                    category.color = hex
+                    saveContext()
+                }
+            )
         }
         .alert(item: $categoryToDelete) { cat in
             let counts = usageCounts(for: cat)
@@ -138,17 +129,6 @@ struct ExpenseCategoryManagerView: View {
             )
         }
         .tipsAndHintsOverlay(for: .categories)
-        .onAppear { isMenuActive = true }
-        .onDisappear { isMenuActive = false }
-        .focusedSceneValue(
-            \.newItemCommand,
-            (isMenuActive || currentSidebarSelection == .manageCategories) ? NewItemCommand(
-                title: "New Category",
-                action: {
-                    activeSheet = .add(UUID())
-                }
-            ) : nil
-        )
     }
 
     private var filteredCategories: [ExpenseCategory] {
@@ -211,8 +191,8 @@ struct ExpenseCategoryManagerView: View {
         CategoryRowView(
             config: swipeConfig,
             label: { rowLabel(for: category) },
-            onTap: { activeSheet = .edit(category.objectID) },
-            onEdit: { activeSheet = .edit(category.objectID) },
+            onTap: { categoryToEdit = category },
+            onEdit: { categoryToEdit = category },
             onDelete: {
                 if confirmBeforeDelete {
                     // Show confirmation (with cascade details if in use)
@@ -236,7 +216,6 @@ struct ExpenseCategoryManagerView: View {
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .hideDecorative()
         }
     }
     
@@ -309,16 +288,15 @@ private struct CategoryRowView<Label: View>: View {
     
     // MARK: Body
     var body: some View {
-        Button(action: onTap) {
-            label()
-        }
-        .buttonStyle(.plain)
-        .unifiedSwipeActions(
-            config,
-            onEdit: onEdit,
-            onDelete: onDelete
-        )
-        .accessibilityHint(Text("Opens category details"))
+        label()
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onTap)
+            .unifiedSwipeActions(
+                config,
+                onEdit: onEdit,
+                onDelete: onDelete
+            )
+            .accessibilityAddTraits(.isButton)
     }
 }
 

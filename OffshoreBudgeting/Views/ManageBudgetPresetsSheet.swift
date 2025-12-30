@@ -166,7 +166,6 @@ struct ManageBudgetPresetsSheet: View {
             Image(systemName: "list.bullet.rectangle")
                 .font(.system(size: 44, weight: .regular))
                 .foregroundStyle(.secondary)
-                .hideDecorative()
             Text("No Presets Available")
                 .font(.headline)
             Text("Create presets from the Presets tab to assign them to this budget.")

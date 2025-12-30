@@ -29,22 +29,25 @@ struct CardPickerItemTile: View {
     var body: some View {
         let uiItem = CardItem(from: card)
 
-        Button(action: onTap) {
-            CardTileView(card: uiItem, showsBaseShadow: false)
-                // Keep the *shape* correct first…
-                .aspectRatio(creditCardAspect, contentMode: .fit)
-                // …then set the height to control the overall size in the row.
-                .frame(height: pickerHeight)
+        CardTileView(card: uiItem, showsBaseShadow: false)
+            // Keep the *shape* correct first…
+            .aspectRatio(creditCardAspect, contentMode: .fit)
+            // …then set the height to control the overall size in the row.
+            .frame(height: pickerHeight)
 
-                // Clip & hit area match the card’s continuous rounded rect.
-                .compositingGroup()
-                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous))
-                .contentShape(RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(uiItem.name)"))
-        .accessibilityHint(Text("Select card"))
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+            // Clip & hit area match the card’s continuous rounded rect.
+            .compositingGroup()
+            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous))
+
+            // No additional shadow here; keep tiles flat in pickers.
+
+            // Tap handling
+            .onTapGesture(perform: onTap)
+
+            // Accessibility
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text("\(uiItem.name)"))
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

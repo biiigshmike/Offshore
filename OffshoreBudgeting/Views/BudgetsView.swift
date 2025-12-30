@@ -16,7 +16,6 @@ struct BudgetsView: View {
     @State private var expandedPast = false
     @State private var ubiquitousObserver: NSObjectProtocol?
     @FocusState private var searchFocused: Bool
-    @Environment(\.currentRootTab) private var currentRootTab
 
     // MARK: Services
     private let budgetService = BudgetService()
@@ -24,26 +23,22 @@ struct BudgetsView: View {
     var body: some View {
         content
             .navigationTitle("Budgets")
-        .toolbar { toolbarContent }
-        .task { await loadBudgetsIfNeeded() }
-        .refreshable { await loadBudgets() }
-        .onAppear {
-            loadExpansionState()
-            startObservingUbiquitousChangesIfNeeded()
-        }
-        .onDisappear {
-            stopObservingUbiquitousChanges()
-        }
-        .alert(item: $alert) { alert in
-            Alert(title: Text("Error"),
-                  message: Text(alert.message),
-                  dismissButton: .default(Text("OK")))
-        }
-        .tipsAndHintsOverlay(for: .budgets)
-        .focusedSceneValue(
-            \.newItemCommand,
-            currentRootTab == .budgets ? NewItemCommand(title: "New Budget", action: { isPresentingAddBudget = true }) : nil
-        )
+            .toolbar { toolbarContent }
+            .task { await loadBudgetsIfNeeded() }
+            .refreshable { await loadBudgets() }
+            .onAppear {
+                loadExpansionState()
+                startObservingUbiquitousChangesIfNeeded()
+            }
+            .onDisappear {
+                stopObservingUbiquitousChanges()
+            }
+            .alert(item: $alert) { alert in
+                Alert(title: Text("Error"),
+                      message: Text(alert.message),
+                      dismissButton: .default(Text("OK")))
+            }
+            .tipsAndHintsOverlay(for: .budgets)
     }
 
     @ViewBuilder
@@ -54,7 +49,7 @@ struct BudgetsView: View {
         } else if !isSearchActive && activeBudgets.isEmpty && upcomingBudgets.isEmpty && pastBudgets.isEmpty {
             UBEmptyState(message: "No budgets found. Tap + to create a budget.")
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .ub_platformSheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
+            .sheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
         } else {
             List {
                 budgetSection(
@@ -77,7 +72,7 @@ struct BudgetsView: View {
                 )
             }
             .listStyle(.insetGrouped)
-            .ub_platformSheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
+            .sheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
         }
     }
 
@@ -88,7 +83,8 @@ struct BudgetsView: View {
             searchToolbarControl
         }
         ToolbarItem(placement: .navigationBarTrailing) {
-            Buttons.toolbarIcon("plus", label: "Add Budget") { isPresentingAddBudget = true }
+            Buttons.toolbarIcon("plus") { isPresentingAddBudget = true }
+                .accessibilityLabel("Add Budget")
         }
     }
 
@@ -283,13 +279,10 @@ struct BudgetsView: View {
                 Image(systemName: "chevron.right")
                     .rotationEffect(isExpanded ? .degrees(90) : .zero)
                     .font(.system(size: 12, weight: .semibold))
-                    .hideDecorative()
             }
         }
         .buttonStyle(.plain)
         .textCase(nil)
-        .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
-        .accessibilityHint(Text("Shows budgets in this section"))
     }
 
     private func sectionTitle(title: String, count: Int) -> String {
@@ -312,10 +305,10 @@ struct BudgetsView: View {
         GlassEffectContainer(spacing: 8) {
             HStack(spacing: 6) {
                 if isSearching {
-                    Buttons.toolbarIcon("xmark", label: "Close Search") { closeSearch() }
+                    Buttons.toolbarIcon("xmark") { closeSearch() }
                     glassSearchField
                 } else {
-                    Buttons.toolbarIcon("magnifyingglass", label: "Search Budgets") { openSearch() }
+                    Buttons.toolbarIcon("magnifyingglass") { openSearch() }
                 }
             }
         }
@@ -324,10 +317,10 @@ struct BudgetsView: View {
     private var searchToolbarControlLegacy: some View {
         HStack(spacing: 6) {
             if isSearching {
-                Buttons.toolbarIcon("xmark", label: "Close Search") { closeSearch() }
+                Buttons.toolbarIcon("xmark") { closeSearch() }
                 legacySearchField
             } else {
-                Buttons.toolbarIcon("magnifyingglass", label: "Search Budgets") { openSearch() }
+                Buttons.toolbarIcon("magnifyingglass") { openSearch() }
             }
         }
     }
@@ -374,7 +367,7 @@ struct BudgetsView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .iconButtonA11y(label: "Clear Search")
+                .accessibilityLabel("Clear Search")
             }
         }
         .accessibilityElement(children: .contain)

@@ -206,7 +206,7 @@ enum TipsCatalog {
                 let version = info?["CFBundleShortVersionString"] as? String ?? "0"
                 let build = info?["CFBundleVersion"] as? String ?? "0"
                 return TipsContent(
-                    title: "What's New in Offshore Budgeting (\(version).\(build))",
+                    title: "What's New in Offshore Budgeting (\(version) (\(build)))",
                     items: [
                         TipsItem(
                             symbolName: "sidebar.left",
@@ -324,7 +324,7 @@ struct TipsAndHintsOverlayModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .task { maybeShow() }
-            .ub_platformSheet(isPresented: $isPresented, onDismiss: markSeenOnDismiss) {
+            .sheet(isPresented: $isPresented, onDismiss: markSeenOnDismiss) {
                 if let payload = TipsCatalog.content(for: screen, kind: kind, versionToken: versionToken) {
                     TipsAndHintsSheet(content: payload, onContinue: dismiss)
                 }
@@ -418,7 +418,7 @@ struct TipsAndHintsSheet: View {
 
     @ViewBuilder
     private var closeButton: some View {
-        Buttons.toolbarIconGlassPreferred("xmark", label: "Close Tips") { dismiss() }
+        Buttons.toolbarIconGlassPreferred("xmark") { dismiss() }
     }
 }
 

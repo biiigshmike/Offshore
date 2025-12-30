@@ -40,7 +40,7 @@ struct CategoryChipPill<Label: View>: View {
             .font(.footnote.weight(.semibold))
             .foregroundStyle(textColor)
             .padding(.horizontal, 12)
-            .frame(minHeight: 33)
+            .frame(height: 33)
             .background(backgroundView)
             .overlay(overlayView)
             .clipShape(Capsule())

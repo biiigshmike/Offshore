@@ -53,26 +53,12 @@ extension View {
                     self
                         .presentationDetents(systemDetents, selection: bridged)
                         .presentationDragIndicator(.visible)
-                        .onAppear {
-                            let caps = PlatformCapabilities.current
-                            let osVersion = ProcessInfo.processInfo.operatingSystemVersion
-                            let versionString = "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
-                            let runtimeVersion = ProcessInfo.processInfo.environment["SIMULATOR_RUNTIME_VERSION"] ?? "n/a"
-                            AppLog.ui.info("SheetPresentation supportsOS26Translucency=\(caps.supportsOS26Translucency, privacy: .public) supportsAdaptiveKeypad=\(caps.supportsAdaptiveKeypad, privacy: .public) osVersion=\(versionString, privacy: .public) runtimeVersion=\(runtimeVersion, privacy: .public)")
-                        }
                 )
             } else {
                 return AnyView(
                     self
                         .presentationDetents(systemDetents)
                         .presentationDragIndicator(.visible)
-                        .onAppear {
-                            let caps = PlatformCapabilities.current
-                            let osVersion = ProcessInfo.processInfo.operatingSystemVersion
-                            let versionString = "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
-                            let runtimeVersion = ProcessInfo.processInfo.environment["SIMULATOR_RUNTIME_VERSION"] ?? "n/a"
-                            AppLog.ui.info("SheetPresentation supportsOS26Translucency=\(caps.supportsOS26Translucency, privacy: .public) supportsAdaptiveKeypad=\(caps.supportsAdaptiveKeypad, privacy: .public) osVersion=\(versionString, privacy: .public) runtimeVersion=\(runtimeVersion, privacy: .public)")
-                        }
                 )
             }
         } else {
@@ -80,3 +66,4 @@ extension View {
         }
     }
 }
+

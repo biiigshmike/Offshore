@@ -10,55 +10,45 @@ struct BudgetCategoryChipView: View {
     let isSelected: Bool
     let isExceeded: Bool
     let onTap: () -> Void
-    @Environment(\.accessibilityDifferentiateWithoutColor) private var diffNoColor
 
     var body: some View {
         let dot = UBColorFromHex(hex) ?? .secondary
         let chipLabel = HStack(spacing: 8) {
             Circle().fill(dot).frame(width: 8, height: 8)
-                .accessibilityHidden(true)
             Text(title).font(.subheadline.weight(.medium))
             Text(formatCurrency(amount))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(isExceeded ? Color.red : Color.primary)
-            if isExceeded && diffNoColor {
-                Text("Over")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
         }
         .padding(.horizontal, 12)
-        .frame(minHeight: 44)
+        .frame(height: 44)
         .background(.clear)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            let base = Button(action: onTap) {
+            Button(action: onTap) {
                 chipLabel
                     .glassEffect(
                         .regular
                             .tint(isSelected ? dot.opacity(0.25) : .clear)
                             .interactive(true)
                     )
-                    .frame(minHeight: 44)
+                    .frame(minHeight: 44, maxHeight: 44)
             }
             .buttonBorderShape(.capsule)
             .foregroundStyle(.primary)
             .allowsHitTesting(true)
             .disabled(false)
-            .frame(minHeight: 44)
+            .frame(minHeight: 44, maxHeight: 44)
             .clipShape(Capsule())
             .compositingGroup()
             .accessibilityAddTraits(isSelected ? .isSelected : [])
-            base.if(isExceeded) { view in
-                view.accessibilityValue(Text("Over budget"))
-            }
         } else {
-            let base = Button(action: onTap) {
+            Button(action: onTap) {
                 chipLabel
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
-            .frame(minHeight: 44)
+            .frame(minHeight: 44, maxHeight: 44)
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(
@@ -74,10 +64,7 @@ struct BudgetCategoryChipView: View {
                     .stroke(isSelected ? dot.opacity(0.35) : .clear, lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .frame(minHeight: 44)
-            base.if(isExceeded) { view in
-                view.accessibilityValue(Text("Over budget"))
-            }
+            .frame(minHeight: 44, maxHeight: 44)
         }
     }
 

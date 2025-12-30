@@ -30,7 +30,6 @@ struct AddPlannedExpenseView: View {
     /// We don't call `dismiss()` directly anymore (the scaffold handles it),
     /// but we keep this in case future platform-specific work needs it.
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var cardPickerStore: CardPickerStore
     @StateObject private var vm: AddPlannedExpenseViewModel
     @State private var isAssigningToBudget: Bool
@@ -43,7 +42,6 @@ struct AddPlannedExpenseView: View {
     @State private var budgetSearchText = ""
     @State private var showAllBudgets = false
     @State private var isShowingScopeDialog = false
-    @State private var isMenuActive = false
 
     private var filteredBudgets: [Budget] {
         vm.allBudgets.filter { budgetSearchText.isEmpty || ($0.name ?? "").localizedCaseInsensitiveContains(budgetSearchText) }
@@ -52,19 +50,7 @@ struct AddPlannedExpenseView: View {
     // MARK: Layout
     /// Shared card picker height to align with `CardPickerRow`.
     private let cardRowHeight: CGFloat = 160
-    private enum ActiveSheet: Identifiable {
-        case addCard
-        case addCategory
-
-        var id: String {
-            switch self {
-            case .addCard: return "addCard"
-            case .addCategory: return "addCategory"
-            }
-        }
-    }
-
-    @State private var activeSheet: ActiveSheet?
+    @State private var isPresentingAddCard = false
 
     // MARK: Init
     /// Designated initializer.
@@ -126,7 +112,7 @@ struct AddPlannedExpenseView: View {
                             height: 44,
                             fillHorizontally: true,
                             fallbackAppearance: .neutral,
-                            action: { activeSheet = .addCard }
+                            action: { isPresentingAddCard = true }
                         ) {
                             Label("Add Card", systemImage: "plus")
                         }
@@ -167,10 +153,7 @@ struct AddPlannedExpenseView: View {
 
             // MARK: Category Selection
             Section {
-                CategoryChipsRow(
-                    selectedCategoryID: $vm.selectedCategoryID,
-                    onAddCategory: { activeSheet = .addCategory }
-                )
+                CategoryChipsRow(selectedCategoryID: $vm.selectedCategoryID)
             }
 //            .ub_formSectionClearBackground()
             .accessibilityElement(children: .contain)
@@ -321,13 +304,11 @@ struct AddPlannedExpenseView: View {
         }
         .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
         .onAppear {
-            isMenuActive = true
             vm.attachCardPickerStoreIfNeeded(cardPickerStore)
             vm.startIfNeeded()
             applyInitialCardSelectionIfNeeded()
             applyInitialAssignBudgetToggleIfNeeded()
         }
-        .onDisappear { isMenuActive = false }
         .onChange(of: vm.cardsLoaded) { _ in
             guard vm.cardsLoaded else { return }
             applyDefaultSaveAsGlobalPresetIfNeeded()
@@ -354,34 +335,24 @@ struct AddPlannedExpenseView: View {
             }
         }
         .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        .ub_platformSheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .addCard:
-                AddCardFormView { newName, selectedTheme in
-                    do {
-                        let service = CardService()
-                        let card = try service.createCard(name: newName)
-                        try service.updateCard(card, name: nil, theme: selectedTheme)
-                        // Select the new card immediately
-                        vm.selectedCardID = card.objectID
-                    } catch {
-                        // Best-effort simple alert; the sheet handles its own dismissal
-                        let alert = UIAlertController(title: "Couldn’t Create Card", message: error.localizedDescription, preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "OK", style: .default))
-                        UIApplication.shared.connectedScenes
-                            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-                            .first?
-                            .rootViewController?
-                            .present(alert, animated: true)
-                    }
-                }
-            case .addCategory:
-                ExpenseCategoryEditorSheet(
-                    initialName: "",
-                    initialHex: "#4E9CFF"
-                ) { name, hex in
-                    addCategory(name: name, hex: hex)
-                    activeSheet = nil
+        // Add Card sheet for empty state
+        .sheet(isPresented: $isPresentingAddCard) {
+            AddCardFormView { newName, selectedTheme in
+                do {
+                    let service = CardService()
+                    let card = try service.createCard(name: newName)
+                    try service.updateCard(card, name: nil, theme: selectedTheme)
+                    // Select the new card immediately
+                    vm.selectedCardID = card.objectID
+                } catch {
+                    // Best-effort simple alert; the sheet handles its own dismissal
+                    let alert = UIAlertController(title: "Couldn’t Create Card", message: error.localizedDescription, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                    UIApplication.shared.connectedScenes
+                        .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+                        .first?
+                        .rootViewController?
+                        .present(alert, animated: true)
                 }
             }
         }
@@ -411,18 +382,6 @@ struct AddPlannedExpenseView: View {
             }
             Button("Cancel", role: .cancel) { }
         }
-        .focusedSceneValue(
-            \.formCommands,
-            isMenuActive ? FormCommands(
-                saveTitle: vm.isEditing ? "Save Changes" : "Save",
-                canSave: vm.canSave,
-                save: {
-                    if trySave() { dismiss() }
-                },
-                cancelTitle: "Cancel",
-                cancel: { dismiss() }
-            ) : nil
-        )
     }
 
     // MARK: Actions
@@ -522,7 +481,6 @@ struct AddPlannedExpenseView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             if vm.isBudgetSelected(budget.objectID) {
                                 Image(systemName: "checkmark")
-                                    .hideDecorative()
                             }
                         }
                     }
@@ -576,21 +534,6 @@ struct AddPlannedExpenseView: View {
         }
     }
 
-    private func addCategory(name: String, hex: String) {
-        let category = ExpenseCategory(context: viewContext)
-        category.id = UUID()
-        category.name = name
-        category.color = hex
-        WorkspaceService.shared.applyWorkspaceID(on: category)
-        do {
-            try viewContext.obtainPermanentIDs(for: [category])
-            try viewContext.save()
-            vm.selectedCategoryID = category.objectID
-        } catch {
-            AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
-        }
-    }
-
 }
 
 // MARK: - Navigation container
@@ -611,7 +554,8 @@ private extension AddPlannedExpenseView {
 private struct CategoryChipsRow: View {
 
     @Binding var selectedCategoryID: NSManagedObjectID?
-    let onAddCategory: () -> Void
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.platformCapabilities) private var capabilities
     @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
 
     @FetchRequest(
@@ -619,6 +563,10 @@ private struct CategoryChipsRow: View {
                                            selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
     )
     private var categories: FetchedResults<ExpenseCategory>
+
+    @State private var isPresentingNewCategory = false
+    // Force fresh instance so the editor sheet doesn't retain prior @State on Mac Catalyst
+    @State private var addCategorySheetInstanceID = UUID()
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
 
@@ -639,6 +587,30 @@ private struct CategoryChipsRow: View {
         .listRowInsets(rowInsets)
         .listRowSeparator(.hidden)
         .ub_preOS26ListRowBackground(.clear)
+        .sheet(isPresented: $isPresentingNewCategory) {
+            ExpenseCategoryEditorSheet(
+                initialName: "",
+                initialHex: "#4E9CFF"
+            ) { name, hex in
+                let category = ExpenseCategory(context: viewContext)
+                category.id = UUID()
+                category.name = name
+                category.color = hex
+                WorkspaceService.shared.applyWorkspaceID(on: category)
+                do {
+                    try viewContext.obtainPermanentIDs(for: [category])
+                    try viewContext.save()
+                    selectedCategoryID = category.objectID
+                } catch {
+                    AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
+                }
+            }
+            // Guard presentationDetents for iOS 16+ only.
+            .modifier(PresentationDetentsCompat())
+            // Ensure a fresh view identity each presentation
+            .id(addCategorySheetInstanceID)
+            .environment(\.managedObjectContext, viewContext)
+        }
         .onChange(of: categories.count) { _ in
             if selectedCategoryID == nil, let first = filteredCategories.first {
                 selectedCategoryID = first.objectID
@@ -712,9 +684,22 @@ private extension CategoryChipsRow {
 
     private var addCategoryButton: some View {
         AddCategoryPill {
-            onAddCategory()
+            // Refresh identity and present
+            addCategorySheetInstanceID = UUID()
+            isPresentingNewCategory = true
         }
             .padding(.leading, DS.Spacing.s)
+    }
+}
+
+// A tiny compatibility wrapper to avoid directly calling presentationDetents on older OSes.
+private struct PresentationDetentsCompat: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDetents([.medium])
+        } else {
+            content
+        }
     }
 }
 
@@ -729,13 +714,13 @@ private struct AddCategoryPill: View {
             let label = Label("Add", systemImage: "plus")
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 12)
-                .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
+                .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 44, alignment: .center)
                 .glassEffect(.regular.tint(.clear).interactive(true))
             Button(action: onTap) {
                 label
             }
             .buttonStyle(.plain)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 44, alignment: .center)
             .clipShape(Capsule())
             .compositingGroup()
             .accessibilityLabel("Add Category")
@@ -744,7 +729,7 @@ private struct AddCategoryPill: View {
                 Label("Add", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 12)
-                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
+                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 33, alignment: .center)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(UIColor { traits in
@@ -756,7 +741,7 @@ private struct AddCategoryPill: View {
             }
             .buttonStyle(.plain)
             .controlSize(.regular)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 44, alignment: .center)
             .accessibilityLabel("Add Category")
         }
     }
@@ -769,7 +754,6 @@ private struct CategoryChip: View {
     let colorHex: String
     let isSelected: Bool
     let action: () -> Void
-    @Environment(\.accessibilityDifferentiateWithoutColor) private var diffNoColor
 
     var body: some View {
         let accentColor = UBColorFromHex(colorHex) ?? .secondary
@@ -780,18 +764,12 @@ private struct CategoryChip: View {
             Circle()
                 .fill(accentColor)
                 .frame(width: 10, height: 10)
-                .accessibilityHidden(true)
             Text(name)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
-            if isSelected && diffNoColor {
-                Image(systemName: "checkmark")
-                    .font(.caption2.weight(.semibold))
-                    .accessibilityHidden(true)
-            }
         }
         .padding(.horizontal, 12)
-        .frame(minHeight: 44)
+        .frame(minHeight: 44, maxHeight: 44)
 
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             Button(action: action) {
@@ -801,13 +779,13 @@ private struct CategoryChip: View {
                             .tint(isSelected ? glassTintColor : .none)
                             .interactive(true)
                     )
-                    .frame(minHeight: 44)
+                    .frame(minHeight: 44, maxHeight: 44)
                     .clipShape(Capsule())
                     .compositingGroup()
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(minHeight: 44)
+            .frame(maxHeight: 44)
             .buttonStyle(.plain)
         } else {
             let neutralFill = DS.Colors.chipFill
@@ -816,7 +794,7 @@ private struct CategoryChip: View {
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(minHeight: 44)
+            .frame(maxHeight: 33)
             .buttonStyle(.plain)
             .background(
                 legacyShape.fill(isSelected ? glassTintColor : neutralFill)

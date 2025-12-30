@@ -3,6 +3,8 @@ import CoreData
 
 @MainActor
 struct BudgetDetailsView: View {
+    private struct ObjectIDBox: Identifiable { let id: NSManagedObjectID }
+
     let budgetID: NSManagedObjectID
     @StateObject private var vm: BudgetDetailsViewModel
     @Environment(\.dismiss) private var dismiss
@@ -12,36 +14,17 @@ struct BudgetDetailsView: View {
     @State private var sort: BudgetDetailsViewModel.SortOption = .dateNewOld
     @State private var selectedCategoryURI: URL? = nil
 
-    private enum ActiveSheet: Identifiable {
-        case addPlanned
-        case addVariable
-        case manageCards
-        case managePresets
-        case editBudget(NSManagedObjectID)
-        case editPlanned(NSManagedObjectID)
-        case editUnplanned(NSManagedObjectID)
-        case capGauge(CapGaugeData)
-
-        var id: String {
-            switch self {
-            case .addPlanned: return "addPlanned"
-            case .addVariable: return "addVariable"
-            case .manageCards: return "manageCards"
-            case .managePresets: return "managePresets"
-            case .editBudget(let id): return "editBudget:\(id.uriRepresentation().absoluteString)"
-            case .editPlanned(let id): return "editPlanned:\(id.uriRepresentation().absoluteString)"
-            case .editUnplanned(let id): return "editUnplanned:\(id.uriRepresentation().absoluteString)"
-            case .capGauge(let data): return "capGauge:\(data.id.uuidString)"
-            }
-        }
-    }
-
-    @State private var activeSheet: ActiveSheet?
+    @State private var isPresentingAddPlanned = false
+    @State private var isPresentingAddVariable = false
+    @State private var isPresentingManageCards = false
+    @State private var isPresentingManagePresets = false
+    @State private var editingBudgetBox: ObjectIDBox?
+    @State private var editingPlannedBox: ObjectIDBox?
+    @State private var editingUnplannedBox: ObjectIDBox?
+    @State private var capGaugeData: CapGaugeData?
     @State private var capOverrides: [String: (min: Double?, max: Double?)] = [:]
     @State private var isConfirmingDelete = false
     @State private var deleteErrorMessage: String?
-    @State private var isMenuActive = false
-    @State private var budgetDetailCommands: BudgetDetailCommands?
     private let budgetService = BudgetService()
 
     init(budgetID: NSManagedObjectID, store: BudgetDetailsViewModelStore? = nil) {
@@ -70,16 +53,6 @@ struct BudgetDetailsView: View {
             sort = vm.sort
             refreshCapOverrides()
         }
-        .onAppear {
-            isMenuActive = true
-            if budgetDetailCommands == nil {
-                budgetDetailCommands = BudgetDetailCommands(
-                    addPlannedExpense: { activeSheet = .addPlanned },
-                    addVariableExpense: { activeSheet = .addVariable }
-                )
-            }
-        }
-        .onDisappear { isMenuActive = false }
         .refreshable { await vm.refreshRows() }
         .onChange(of: segment) { vm.selectedSegment = $0 }
         .onChange(of: sort) { vm.sort = $0 }
@@ -89,35 +62,31 @@ struct BudgetDetailsView: View {
         .onChange(of: vm.loadState) { state in
             if case .loaded = state { refreshCapOverrides() }
         }
-        .ub_platformSheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .addPlanned:
-                addPlannedSheet
-            case .addVariable:
-                addVariableSheet
-            case .manageCards:
-                manageCardsSheet
-            case .managePresets:
-                managePresetsSheet
-            case .editBudget(let objectID):
-                AddBudgetView(
-                    editingBudgetObjectID: objectID,
-                    fallbackStartDate: vm.startDate,
-                    fallbackEndDate: vm.endDate
-                ) { Task { await vm.load() } }
-            case .editPlanned(let objectID):
-                AddPlannedExpenseView(plannedExpenseID: objectID, onSaved: { Task { await vm.refreshRows() } })
-                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            case .editUnplanned(let objectID):
-                AddUnplannedExpenseView(unplannedExpenseID: objectID, onSaved: { Task { await vm.refreshRows() } })
-                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            case .capGauge(let data):
-                CategoryCapGaugeSheet(
-                    data: data,
-                    onDismiss: { activeSheet = nil },
-                    onSave: { min, max in await saveCaps(for: data, min: min, max: max) }
-                )
-            }
+        .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
+        .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
+        .sheet(isPresented: $isPresentingManageCards) { manageCardsSheet }
+        .sheet(isPresented: $isPresentingManagePresets) { managePresetsSheet }
+        .sheet(item: $editingBudgetBox) { box in
+            AddBudgetView(
+                editingBudgetObjectID: box.id,
+                fallbackStartDate: vm.startDate,
+                fallbackEndDate: vm.endDate
+            ) { Task { await vm.load() } }
+        }
+        .sheet(item: $editingPlannedBox) { box in
+            AddPlannedExpenseView(plannedExpenseID: box.id, onSaved: { Task { await vm.refreshRows() } })
+                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+        }
+        .sheet(item: $editingUnplannedBox) { box in
+            AddUnplannedExpenseView(unplannedExpenseID: box.id, onSaved: { Task { await vm.refreshRows() } })
+                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+        }
+        .sheet(item: $capGaugeData) { data in
+            CategoryCapGaugeSheet(
+                data: data,
+                onDismiss: { capGaugeData = nil },
+                onSave: { min, max in await saveCaps(for: data, min: min, max: max) }
+            )
         }
         .alert("Delete Budget?", isPresented: $isConfirmingDelete) {
             Button("Delete", role: .destructive) { deleteBudget() }
@@ -131,10 +100,6 @@ struct BudgetDetailsView: View {
             Text(deleteErrorMessage ?? "")
         }
         .toolbar { toolbarContent }
-        .focusedSceneValue(
-            \.budgetDetailCommands,
-            isMenuActive ? budgetDetailCommands : nil
-        )
     }
 
     @ViewBuilder
@@ -200,7 +165,7 @@ struct BudgetDetailsView: View {
                     horizontalPadding: 16,
                     selectedCategoryURI: selectedCategoryURI,
                     confirmBeforeDelete: true,
-                    onEdit: { activeSheet = .editPlanned($0) },
+                    onEdit: { editingPlannedBox = ObjectIDBox(id: $0) },
                     onDelete: { _ in Task { await vm.refreshRows() } }
                 )
             } else {
@@ -212,7 +177,7 @@ struct BudgetDetailsView: View {
                     horizontalPadding: 16,
                     selectedCategoryURI: selectedCategoryURI,
                     confirmBeforeDelete: true,
-                    onEdit: { activeSheet = .editUnplanned($0) },
+                    onEdit: { editingUnplannedBox = ObjectIDBox(id: $0) },
                     onDelete: { _ in Task { await vm.refreshRows() } }
                 )
             }
@@ -223,56 +188,51 @@ struct BudgetDetailsView: View {
         }
     }
 
-    @ViewBuilder
     private var categoryChipsRow: some View {
-        switch vm.loadState {
-        case .idle, .loading:
-            ProgressView("Loading Categories…")
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 8)
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-        case .failed:
-            Text("Categories unavailable")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 8)
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-        case .loaded:
-            let categories = (vm.summary.map {
-                segment == .planned ? $0.plannedCategoryBreakdown : $0.variableCategoryBreakdown
-            }) ?? []
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(categories) { cat in
-                        let isSelected = (selectedCategoryURI == cat.categoryURI)
-                        BudgetCategoryChipView(
-                            title: cat.categoryName,
-                            amount: cat.amount,
-                            hex: cat.hexColor,
-                            isSelected: isSelected,
-                            isExceeded: isOverCap(category: cat, segment: segment),
-                            onTap: {
-                                selectedCategoryURI = isSelected ? nil : cat.categoryURI
-                            }
-                        )
-                        .simultaneousGesture(
-                            LongPressGesture(minimumDuration: 0.35)
-                                .onEnded { _ in presentCapGauge(for: cat) }
-                        )
-                    }
-                    if categories.isEmpty {
-                        Text("No categories yet")
-                            .foregroundStyle(.secondary)
-                            .padding(.vertical, 8)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+        let categories: [BudgetSummary.CategorySpending] = {
+            if let summary = vm.summary {
+                return segment == .planned ? summary.plannedCategoryBreakdown : summary.variableCategoryBreakdown
             }
-            .frame(height: 44)
-            .padding(.vertical, 2)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+            req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
+            req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+            let items: [ExpenseCategory] = (try? CoreDataService.shared.viewContext.fetch(req)) ?? []
+            return items.map {
+                let name = ($0.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                return BudgetSummary.CategorySpending(categoryURI: $0.objectID.uriRepresentation(), categoryName: name, hexColor: $0.color, amount: 0)
+            }
+        }()
+
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(categories) { cat in
+                    let isSelected = (selectedCategoryURI == cat.categoryURI)
+                    BudgetCategoryChipView(
+                        title: cat.categoryName,
+                        amount: cat.amount,
+                        hex: cat.hexColor,
+                        isSelected: isSelected,
+                        isExceeded: isOverCap(category: cat, segment: segment),
+                        onTap: {
+                            selectedCategoryURI = isSelected ? nil : cat.categoryURI
+                        }
+                    )
+                    .simultaneousGesture(
+                        LongPressGesture(minimumDuration: 0.35)
+                            .onEnded { _ in presentCapGauge(for: cat) }
+                    )
+                }
+                if categories.isEmpty {
+                    Text("No categories yet")
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(height: 44)
+        .padding(.vertical, 2)
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
     }
 
     @ToolbarContentBuilder
@@ -384,20 +344,19 @@ struct BudgetDetailsView: View {
     private var toolbarActions: some View {
         HStack(spacing: 8) {
             Menu {
-                Button("Add Planned Expense") { activeSheet = .addPlanned }
-                Button("Add Variable Expense") { activeSheet = .addVariable }
+                Button("Add Planned Expense") { isPresentingAddPlanned = true }
+                Button("Add Variable Expense") { isPresentingAddVariable = true }
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
-            .iconButtonA11y(label: "Add Expense", hint: "Choose planned or variable expense")
 
             Menu {
-                Button("Manage Cards") { activeSheet = .manageCards }
-                Button("Manage Presets") { activeSheet = .managePresets }
+                Button("Manage Cards") { isPresentingManageCards = true }
+                Button("Manage Presets") { isPresentingManagePresets = true }
                 if let budget = vm.budget {
-                    Button("Edit Budget") { activeSheet = .editBudget(budget.objectID) }
+                    Button("Edit Budget") { editingBudgetBox = ObjectIDBox(id: budget.objectID) }
                 }
                 Button("Delete Budget", role: .destructive) { isConfirmingDelete = true }
             } label: {
@@ -405,7 +364,6 @@ struct BudgetDetailsView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
-            .iconButtonA11y(label: "Budget Actions")
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
@@ -534,7 +492,7 @@ struct BudgetDetailsView: View {
         let defaults = defaultCaps(for: cat.categoryName, segment: segment)
 
         guard let (category, _) = resolvedCategory() else {
-            let data = CapGaugeData(
+            capGaugeData = CapGaugeData(
                 category: cat,
                 minCap: defaults.min,
                 maxCap: defaults.max,
@@ -544,7 +502,6 @@ struct BudgetDetailsView: View {
                 categoryObjectID: nil,
                 periodKey: key
             )
-            activeSheet = .capGauge(data)
             return
         }
 
@@ -573,7 +530,7 @@ struct BudgetDetailsView: View {
         }
 
         let color = UBColorFromHex(cat.hexColor) ?? .accentColor
-        let data = CapGaugeData(
+        capGaugeData = CapGaugeData(
             category: cat,
             minCap: minCap,
             maxCap: maxCap,
@@ -583,7 +540,6 @@ struct BudgetDetailsView: View {
             categoryObjectID: category.objectID,
             periodKey: key
         )
-        activeSheet = .capGauge(data)
     }
 
     private func periodKey(start: Date, end: Date, segment: BudgetDetailsViewModel.Segment) -> String {
@@ -706,7 +662,7 @@ struct BudgetDetailsView: View {
         }
 
         await MainActor.run {
-            let updated = CapGaugeData(
+            capGaugeData = CapGaugeData(
                 category: data.category,
                 minCap: min,
                 maxCap: max,
@@ -716,9 +672,6 @@ struct BudgetDetailsView: View {
                 categoryObjectID: data.categoryObjectID,
                 periodKey: data.periodKey
             )
-            if case .capGauge = activeSheet {
-                activeSheet = .capGauge(updated)
-            }
             refreshCapOverrides()
             Task { await vm.refreshRows() }
         }

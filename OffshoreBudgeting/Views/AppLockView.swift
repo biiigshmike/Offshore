@@ -51,12 +51,6 @@ public struct AppLockView: View {
                         .accessibilityLabel("Authentication Error")
                         .accessibilityValue(error)
                 }
-
-                Button("Unlock") {
-                    viewModel.attemptUnlockWithBiometrics()
-                }
-                .buttonStyle(.borderedProminent)
-                .accessibilityHint("Prompts for Face ID or Touch ID")
             }
             .padding(24)
             .frame(maxWidth: 400)

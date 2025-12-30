@@ -31,7 +31,6 @@ struct IncomeView: View {
 
     @State private var incomePendingDeletion: Income?
     @State private var isConfirmingDelete: Bool = false
-    @Environment(\.currentRootTab) private var currentRootTab
 
     // MARK: Body
     var body: some View {
@@ -44,10 +43,6 @@ struct IncomeView: View {
             calendarScrollDate = normalize(vm.selectedDate ?? Date())
         }
         .tipsAndHintsOverlay(for: .income)
-        .focusedSceneValue(
-            \.newItemCommand,
-            currentRootTab == .income ? NewItemCommand(title: "New Income", action: { addIncome() }) : nil
-        )
         
     }
 
@@ -73,10 +68,10 @@ struct IncomeView: View {
         .onChange(of: vm.selectedDate) { _ in
             vm.reloadForSelectedDay(forceMonthReload: false)
         }
-        .ub_platformSheet(item: Binding(get: { addIncomeSheetDate.map { SheetDateBox(value: $0) } }, set: { addIncomeSheetDate = $0?.value })) {
+        .sheet(item: Binding(get: { addIncomeSheetDate.map { SheetDateBox(value: $0) } }, set: { addIncomeSheetDate = $0?.value })) {
             AddIncomeFormView(incomeObjectID: nil, budgetObjectID: nil, initialDate: $0.value)
         }
-        .ub_platformSheet(item: $editingIncome) { income in
+        .sheet(item: $editingIncome) { income in
             AddIncomeFormView(incomeObjectID: income.objectID, budgetObjectID: nil, initialDate: nil)
         }
         .alert("Delete Income?", isPresented: $isConfirmingDelete) {
@@ -98,13 +93,14 @@ struct IncomeView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             // Clear, no-background toolbar icon per design
-            Buttons.toolbarIcon("plus", label: "Add Income") { addIncome() }
+            Buttons.toolbarIcon("plus") { addIncome() }
+            .accessibilityLabel("Add Income")
             .accessibilityIdentifier("btn_add_income")
             
         }
         if uiTest.showTestControls {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Buttons.toolbarIcon("trash", label: "Delete First Income") {
+                Buttons.toolbarIcon("trash") {
                     if let first = vm.incomesForDay.first { requestDelete(income: first) }
                 }
                 .accessibilityIdentifier("btn_delete_first_income")
@@ -116,21 +112,21 @@ struct IncomeView: View {
 
     private var calendarNav: some View {
         HStack(alignment: .center) {
-            navIcon("chevron.backward.2", label: "Previous Month") { goToPreviousMonth() }
+            navIcon("chevron.backward.2") { goToPreviousMonth() }
             Spacer(minLength: 12)
-            navIcon("chevron.backward", label: "Previous Day") { goToPreviousDay() }
+            navIcon("chevron.backward") { goToPreviousDay() }
             Spacer(minLength: 12)
             navLabel("Today") { goToToday() }
             Spacer(minLength: 12)
-            navIcon("chevron.forward", label: "Next Day") { goToNextDay() }
+            navIcon("chevron.forward") { goToNextDay() }
             Spacer(minLength: 12)
-            navIcon("chevron.forward.2", label: "Next Month") { goToNextMonth() }
+            navIcon("chevron.forward.2") { goToNextMonth() }
         }
         .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
-    private func navIcon(_ systemName: String, label: String, action: @escaping () -> Void) -> some View {
+    private func navIcon(_ systemName: String, action: @escaping () -> Void) -> some View {
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
                 Image(systemName: systemName)
@@ -141,11 +137,9 @@ struct IncomeView: View {
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
-            .iconButtonA11y(label: label)
         } else {
             Button(action: action) { Image(systemName: systemName) }
                 .buttonStyle(.plain)
-                .iconButtonA11y(label: label)
         }
     }
 

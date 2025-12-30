@@ -398,14 +398,16 @@ struct RootTabView: View {
         accessibilityID: String? = nil,
         @ViewBuilder label: () -> Label
     ) -> some View {
+        let isSelected = sidebarSelection == item
         let base = Button {
             sidebarSelection = item
         } label: {
             label()
                 .foregroundStyle(.primary)
+                .padding(.horizontal, DesignSystem.Spacing.s)
         }
             .buttonStyle(.plain)
-            .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == item))
+            .listRowBackground(sidebarRowBackground(isSelected: isSelected))
         if let accessibilityID {
             base.accessibilityIdentifier(accessibilityID)
         } else {

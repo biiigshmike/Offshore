@@ -14,6 +14,7 @@ struct CardsView: View {
     @State private var isPresentingCardVariableExpense = false
     @State private var detailCard: CardItem? = nil
     @State private var editingCard: CardItem? = nil
+    @Environment(\.currentRootTab) private var currentRootTab
 
 
     // MARK: Grid
@@ -25,6 +26,10 @@ struct CardsView: View {
     var body: some View {
         cardsContent
             .tipsAndHintsOverlay(for: .cards)
+            .focusedSceneValue(
+                \.newItemCommand,
+                currentRootTab == .cards ? NewItemCommand(title: "New Card", action: { isPresentingAddCard = true }) : nil
+            )
     }
 
     @ViewBuilder
@@ -93,7 +98,9 @@ struct CardsView: View {
             
             .navigationTitle("Cards")
             .toolbar { toolbarContent }
-            .onAppear { vm.startIfNeeded() }
+            .onAppear {
+                vm.startIfNeeded()
+            }
             .sheet(isPresented: $isPresentingAddCard) {
                 AddCardFormView { newName, theme in
                     Task { await vm.addCard(name: newName, theme: theme) }

@@ -19,6 +19,8 @@ struct PresetsView: View {
     @State private var sheetTemplateToAssign: PlannedExpense? = nil
     @State private var editingTemplate: PlannedExpense? = nil
     @State private var templateToDelete: PlannedExpense? = nil
+    @State private var isMenuActive = false
+    @Environment(\.currentSidebarSelection) private var currentSidebarSelection
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
 
     // Guided walkthrough removed
@@ -26,6 +28,12 @@ struct PresetsView: View {
     var body: some View {
         presetsContent
             .tipsAndHintsOverlay(for: .presets)
+            .focusedSceneValue(
+                \.newItemCommand,
+                isMenuActive || currentSidebarSelection == .managePresets
+                ? NewItemCommand(title: "New Preset", action: { isPresentingAdd = true })
+                : nil
+            )
     }
 
     @ViewBuilder
@@ -81,7 +89,11 @@ struct PresetsView: View {
         }
         .navigationTitle("Presets")
         .toolbar { toolbarContent }
-        .onAppear { vm.startIfNeeded(using: viewContext) }
+        .onAppear {
+            isMenuActive = true
+            vm.startIfNeeded(using: viewContext)
+        }
+        .onDisappear { isMenuActive = false }
         .refreshable {
             // Pull-to-refresh: nudge CloudKit and reload list
             CloudSyncAccelerator.shared.nudgeOnForeground()

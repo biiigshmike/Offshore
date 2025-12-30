@@ -37,6 +37,8 @@ struct ExpenseCategoryManagerView: View {
     @State private var addSheetInstanceID = UUID()
     @State private var categoryToEdit: ExpenseCategory?
     @State private var categoryToDelete: ExpenseCategory?
+    @State private var isMenuActive = false
+    @Environment(\.currentSidebarSelection) private var currentSidebarSelection
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
     @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
     
@@ -129,6 +131,18 @@ struct ExpenseCategoryManagerView: View {
             )
         }
         .tipsAndHintsOverlay(for: .categories)
+        .onAppear { isMenuActive = true }
+        .onDisappear { isMenuActive = false }
+        .focusedSceneValue(
+            \.newItemCommand,
+            (isMenuActive || currentSidebarSelection == .manageCategories) ? NewItemCommand(
+                title: "New Category",
+                action: {
+                    addSheetInstanceID = UUID()
+                    isPresentingAddSheet = true
+                }
+            ) : nil
+        )
     }
 
     private var filteredCategories: [ExpenseCategory] {

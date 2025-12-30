@@ -15,6 +15,7 @@ struct AddIncomeFormView: View {
     @StateObject var viewModel: AddIncomeFormViewModel
     @State private var error: SaveError?
     @State private var showEditScopeOptions: Bool = false
+    @State private var isMenuActive = false
 
     init(incomeObjectID: NSManagedObjectID? = nil,
          budgetObjectID: NSManagedObjectID? = nil,
@@ -47,12 +48,14 @@ struct AddIncomeFormView: View {
         }
         .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
         .onAppear {
+            isMenuActive = true
             do { try viewModel.loadIfNeeded(from: viewContext) }
             catch { /* This error is handled at save time */ }
             if !viewModel.isEditing, let prefill = initialDate {
                 viewModel.firstDate = prefill
             }
         }
+        .onDisappear { isMenuActive = false }
         .alert(item: $error) { err in
             Alert(
                 title: Text("Couldn’t Save"),
@@ -89,6 +92,16 @@ struct AddIncomeFormView: View {
         } message: {
             Text("Selecting \"Edit this and all future instances\" creates a new series. Changes from this point forward will be treated as a new series.")
         }
+        .focusedSceneValue(
+            \.formCommands,
+            isMenuActive ? FormCommands(
+                saveTitle: viewModel.isEditing ? "Save Changes" : "Add Income",
+                canSave: viewModel.canSave,
+                save: { _ = saveTapped() },
+                cancelTitle: "Cancel",
+                cancel: { dismiss() }
+            ) : nil
+        )
     }
 
     // MARK: Navigation container

@@ -56,22 +56,9 @@ struct WorkspaceMenuButton: View {
 
     @ViewBuilder
     private var workspaceMenuLabel: some View {
-        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            let label = Label("Profile", systemImage: "person.3.fill")
-                .labelStyle(.iconOnly)
-                .font(.system(size: 16, weight: .semibold))
-                .frame(width: 44, height: 44, alignment: .center)
-                .glassEffect(.regular.tint(.clear).interactive(true))
-            label
-                .buttonStyle(.plain)
-                .frame(width: 44, height: 44, alignment: .center)
-                .clipShape(Circle())
-                .compositingGroup()
-        } else {
-            Image(systemName: "person.3.fill")
-                .font(.system(size: 16, weight: .semibold))
-                .frame(width: 33, height: 33)
-        }
+        Image(systemName: "person.3.fill")
+            .font(.system(size: 16, weight: .semibold))
+            .frame(width: 33, height: 33)
     }
 }
 

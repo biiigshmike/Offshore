@@ -188,6 +188,9 @@ final class HomeViewModel: ObservableObject {
     private var hasPostedInitialDataNotification = false
     private var activeWorkspaceID: UUID { WorkspaceService.shared.activeWorkspaceID }
     private var workspaceObserver: NSObjectProtocol?
+    private var widgetUpdateTask: Task<Void, Never>?
+    private var lastWidgetFullRefreshAt: Date?
+    private let widgetFullRefreshInterval: TimeInterval = 60 * 5
 
     // MARK: init()
     /// - Parameter context: The Core Data context to use (defaults to main viewContext).
@@ -314,14 +317,22 @@ final class HomeViewModel: ObservableObject {
             }
         }
 
-        Task { [weak self] in
-            await self?.updateIncomeWidgetsForAllPeriods(referenceDate: requestedDate)
-            await self?.updateExpenseToIncomeWidgetsForAllPeriods(referenceDate: requestedDate)
-            await self?.updateSavingsOutlookWidgetsForAllPeriods(referenceDate: requestedDate)
-            await self?.updateCategorySpotlightWidgetsForAllPeriods(referenceDate: requestedDate)
-            await self?.updateCategoryAvailabilityWidgetsForAllPeriods(referenceDate: requestedDate)
-            await self?.updateDayOfWeekWidgetsForAllPeriods(referenceDate: Date())
-            await self?.updateCardWidgetsForAllPeriods(referenceDate: requestedDate)
+        let now = Date()
+        if let last = lastWidgetFullRefreshAt, now.timeIntervalSince(last) < widgetFullRefreshInterval {
+            return
+        }
+        widgetUpdateTask?.cancel()
+        widgetUpdateTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            guard let self, !Task.isCancelled else { return }
+            self.lastWidgetFullRefreshAt = Date()
+            await self.updateIncomeWidgetsForAllPeriods(referenceDate: requestedDate)
+            await self.updateExpenseToIncomeWidgetsForAllPeriods(referenceDate: requestedDate)
+            await self.updateSavingsOutlookWidgetsForAllPeriods(referenceDate: requestedDate)
+            await self.updateCategorySpotlightWidgetsForAllPeriods(referenceDate: requestedDate)
+            await self.updateCategoryAvailabilityWidgetsForAllPeriods(referenceDate: requestedDate)
+            await self.updateDayOfWeekWidgetsForAllPeriods(referenceDate: Date())
+            await self.updateCardWidgetsForAllPeriods(referenceDate: requestedDate)
         }
     }
 

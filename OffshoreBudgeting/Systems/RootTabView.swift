@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import CoreData
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -27,6 +26,9 @@ struct RootTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.responsiveLayoutContext) private var layoutContext
+#if targetEnvironment(macCatalyst)
+    @Environment(\.openWindow) private var openWindow
+#endif
     let isWorkspaceReady: Bool
 
     // MARK: Tabs
@@ -42,24 +44,97 @@ struct RootTabView: View {
         case root(Tab)
         case addPlannedExpense
         case addVariableExpense
-        case recentBudget(NSManagedObjectID)
         case managePresets
         case manageCategories
     }
+
+    private enum SidebarVisibility: String {
+        case all
+        case detailOnly
+        case automatic
+    }
+
+    private static let sidebarVisibilityStorageKey: String = {
+#if targetEnvironment(macCatalyst)
+        return "\(AppSettingsKeys.sidebarVisibility.rawValue).macCatalyst"
+#elseif os(iOS)
+        let idiom: String = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
+        return "\(AppSettingsKeys.sidebarVisibility.rawValue).\(idiom)"
+#else
+        return "\(AppSettingsKeys.sidebarVisibility.rawValue).macOS"
+#endif
+    }()
+
+    private static let compactTabsStorageKey: String = {
+#if targetEnvironment(macCatalyst)
+        return "\(AppSettingsKeys.sidebarCompactTabsOverride.rawValue).macCatalyst"
+#elseif os(iOS)
+        let idiom: String = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
+        return "\(AppSettingsKeys.sidebarCompactTabsOverride.rawValue).\(idiom)"
+#else
+        return "\(AppSettingsKeys.sidebarCompactTabsOverride.rawValue).macOS"
+#endif
+    }()
 
     // MARK: State
     @Environment(\.startTabIdentifier) private var startTabIdentifier
     @State private var selectedTab: Tab = .home
     @State private var appliedStartTab: Bool = false
     @State private var sidebarSelection: SidebarItem? = .root(.home)
-    @State private var usesCompactTabsOverride: Bool = false
-    @State private var recentBudgets: [Budget] = []
-    private let budgetService = BudgetService()
+    @AppStorage(Self.compactTabsStorageKey) private var usesCompactTabsOverride: Bool = false
+    @AppStorage(Self.sidebarVisibilityStorageKey) private var sidebarVisibilityRaw: String = SidebarVisibility.automatic.rawValue
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var isPresentingHelp = false
 
     var body: some View {
         rootBody
             .animation(.easeInOut(duration: 0.25), value: shouldUseCompactTabs)
+            .environment(\.currentRootTab, selectedTab)
+            .environment(\.currentSidebarSelection, sidebarSelection)
+#if targetEnvironment(macCatalyst)
+            .onAppear { updateWindowTitle() }
+            .onChange(of: selectedTab) { _ in updateWindowTitle() }
+            .onChange(of: sidebarSelection) { _ in updateWindowTitle() }
+            .focusedSceneValue(
+                \.helpCommands,
+                HelpCommands(openHelp: { openWindow(id: "help") })
+            )
+#else
+            .sheet(isPresented: $isPresentingHelp) { HelpView() }
+            .focusedSceneValue(
+                \.helpCommands,
+                HelpCommands(openHelp: { isPresentingHelp = true })
+            )
+#endif
     }
+
+#if targetEnvironment(macCatalyst)
+    @MainActor
+    private func updateWindowTitle() {
+        let title = windowTitle
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }?
+            .title = title
+    }
+
+    private var windowTitle: String {
+        switch sidebarSelection {
+        case .root(let tab):
+            return tab.title
+        case .addPlannedExpense:
+            return "Add Planned Expense"
+        case .addVariableExpense:
+            return "Add Variable Expense"
+        case .managePresets:
+            return "Presets"
+        case .manageCategories:
+            return "Categories"
+        case .none:
+            return selectedTab.title
+        }
+    }
+#endif
 
     // MARK: Body builders
     private var prefersCompactTabs: Bool {
@@ -165,21 +240,25 @@ struct RootTabView: View {
     @ViewBuilder
     private var splitViewBody: some View {
         if #available(iOS 16.0, macCatalyst 16.0, macOS 13.0, *) {
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
                 sidebarList
             } detail: {
                 sidebarDetail
             }
             .onAppear {
                 applyStartTabIfNeeded()
-                refreshRecentBudgets()
-            }
-            .onChange(of: dataRevision) { _ in
-                refreshRecentBudgets()
+                columnVisibility = sidebarVisibilityValue(from: sidebarVisibilityRaw)
             }
             .onChange(of: sidebarSelection) { selection in
-                guard case .root(let tab) = selection else { return }
-                selectedTab = tab
+                switch selection {
+                case .root(let tab):
+                    selectedTab = tab
+                default:
+                    break
+                }
+            }
+            .onChange(of: columnVisibility) { visibility in
+                sidebarVisibilityRaw = sidebarVisibilityRawValue(from: visibility)
             }
         } else {
             tabViewBody
@@ -223,20 +302,6 @@ struct RootTabView: View {
                 }
             }
 
-            Section("Budgets") {
-                if recentBudgets.isEmpty {
-                    Text("No recent budgets yet")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(recentBudgets, id: \.objectID) { budget in
-                        let item = SidebarItem.recentBudget(budget.objectID)
-                        sidebarRow(item: item) {
-                            Label(budget.name ?? "Budget", systemImage: "clock.arrow.circlepath")
-                        }
-                    }
-                }
-            }
-
             Section("Quick Links") {
                 let presetsItem = SidebarItem.managePresets
                 sidebarRow(item: presetsItem) {
@@ -276,8 +341,6 @@ struct RootTabView: View {
             decoratedRootContent(AddPlannedExpenseView(onSaved: {}))
         case .addVariableExpense:
             decoratedRootContent(AddUnplannedExpenseView(onSaved: {}))
-        case .recentBudget(let objectID):
-            decoratedRootContent(BudgetDetailsView(budgetID: objectID))
         case .managePresets:
             decoratedRootContent(PresetsView())
         case .manageCategories:
@@ -371,25 +434,11 @@ struct RootTabView: View {
             .accessibilityHidden(true)
     }
 
-    private func refreshRecentBudgets() {
-        guard isWorkspaceReady else {
-            recentBudgets = []
-            return
-        }
-        do {
-            let budgets = try budgetService.fetchAllBudgets(sortByStartDateDescending: true)
-            recentBudgets = Array(budgets.prefix(3))
-        } catch {
-            recentBudgets = []
-        }
-    }
-
     private func sidebarRowBackground(isSelected: Bool) -> some View {
         Group {
             if isSelected {
                 RoundedRectangle(cornerRadius: DesignSystem.Radius.card, style: .continuous)
                     .fill(selectedSidebarTint)
-                    .padding(.horizontal, DesignSystem.Spacing.s)
             } else {
                 Color.clear
             }
@@ -407,9 +456,15 @@ struct RootTabView: View {
         } label: {
             label()
                 .foregroundStyle(.primary)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 4)
         }
         .buttonStyle(.plain)
-        .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == item))
+        .listRowInsets(EdgeInsets(top: 6, leading: DesignSystem.Spacing.s, bottom: 6, trailing: DesignSystem.Spacing.s))
+        .listRowBackground(
+            sidebarRowBackground(isSelected: sidebarSelection == item)
+                .padding(.horizontal, DesignSystem.Spacing.s / 2)
+        )
         if let accessibilityID {
             base.accessibilityIdentifier(accessibilityID)
         } else {
@@ -422,6 +477,26 @@ struct RootTabView: View {
         return tint.opacity(colorScheme == .dark ? 0.32 : 0.18)
     }
 
+    private func sidebarVisibilityValue(from rawValue: String) -> NavigationSplitViewVisibility {
+        switch SidebarVisibility(rawValue: rawValue) {
+        case .all:
+            return .all
+        case .detailOnly:
+            return .detailOnly
+        case .automatic, .none:
+            return .automatic
+        }
+    }
+
+    private func sidebarVisibilityRawValue(from visibility: NavigationSplitViewVisibility) -> String {
+        if visibility == .all {
+            return SidebarVisibility.all.rawValue
+        }
+        if visibility == .detailOnly {
+            return SidebarVisibility.detailOnly.rawValue
+        }
+        return SidebarVisibility.automatic.rawValue
+    }
 }
 
 // MARK: - Tab Metadata

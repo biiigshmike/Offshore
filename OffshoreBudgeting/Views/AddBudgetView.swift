@@ -37,6 +37,7 @@ struct AddBudgetView: View {
     // MARK: Local UI State
     /// Populated if saving fails; presented in a SwiftUI alert.
     @State private var saveErrorMessage: String?
+    @State private var isMenuActive = false
 
     // MARK: Init (ADD)
     /// Use this initializer when **adding** a budget.
@@ -212,6 +213,8 @@ struct AddBudgetView: View {
         .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
         // Keep async hydration for lists/templates.
         .task { await vm.load() }
+        .onAppear { isMenuActive = true }
+        .onDisappear { isMenuActive = false }
         // Present any save error in a standard alert.
         .alert("Couldn’t Save Budget",
                isPresented: Binding(
@@ -222,6 +225,18 @@ struct AddBudgetView: View {
         } message: {
             Text(saveErrorMessage ?? "")
         }
+        .focusedSceneValue(
+            \.formCommands,
+            isMenuActive ? FormCommands(
+                saveTitle: vm.isEditing ? "Save Changes" : "Create Budget",
+                canSave: vm.canSave,
+                save: {
+                    if saveTapped() { dismiss() }
+                },
+                cancelTitle: "Cancel",
+                cancel: { dismiss() }
+            ) : nil
+        )
     }
 
     // MARK: Navigation container

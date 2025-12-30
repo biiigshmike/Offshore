@@ -31,6 +31,7 @@ struct PresetBudgetAssignmentSheet: View {
     @State private var isConfirmingDelete: Bool = false
     @State private var budgetPendingDeletion: NSManagedObjectID?
     @State private var editingBudgetBox: ObjectIDBox?
+    @State private var isMenuActive = false
 
     // MARK: Body
     var body: some View {
@@ -93,7 +94,11 @@ struct PresetBudgetAssignmentSheet: View {
                 }
                 #endif
             }
-            .onAppear { reload() }
+            .onAppear {
+                isMenuActive = true
+                reload()
+            }
+            .onDisappear { isMenuActive = false }
         }
         .ub_navigationBackground(
             theme: themeManager.selectedTheme,
@@ -105,6 +110,20 @@ struct PresetBudgetAssignmentSheet: View {
         } message: {
             Text("This action cannot be undone.")
         }
+        .focusedSceneValue(
+            \.formCommands,
+            isMenuActive ? FormCommands(
+                saveTitle: "Done",
+                canSave: true,
+                save: {
+                    saveContext()
+                    onChangesCommitted?()
+                    dismiss()
+                },
+                cancelTitle: "Cancel",
+                cancel: { dismiss() }
+            ) : nil
+        )
         .sheet(item: $editingBudgetBox) { box in
             if let budget = try? CoreDataService.shared.viewContext.existingObject(with: box.id) as? Budget {
                 let start = budget.startDate ?? Date()

@@ -16,6 +16,7 @@ struct BudgetsView: View {
     @State private var expandedPast = false
     @State private var ubiquitousObserver: NSObjectProtocol?
     @FocusState private var searchFocused: Bool
+    @Environment(\.currentRootTab) private var currentRootTab
 
     // MARK: Services
     private let budgetService = BudgetService()
@@ -23,22 +24,26 @@ struct BudgetsView: View {
     var body: some View {
         content
             .navigationTitle("Budgets")
-            .toolbar { toolbarContent }
-            .task { await loadBudgetsIfNeeded() }
-            .refreshable { await loadBudgets() }
-            .onAppear {
-                loadExpansionState()
-                startObservingUbiquitousChangesIfNeeded()
-            }
-            .onDisappear {
-                stopObservingUbiquitousChanges()
-            }
-            .alert(item: $alert) { alert in
-                Alert(title: Text("Error"),
-                      message: Text(alert.message),
-                      dismissButton: .default(Text("OK")))
-            }
-            .tipsAndHintsOverlay(for: .budgets)
+        .toolbar { toolbarContent }
+        .task { await loadBudgetsIfNeeded() }
+        .refreshable { await loadBudgets() }
+        .onAppear {
+            loadExpansionState()
+            startObservingUbiquitousChangesIfNeeded()
+        }
+        .onDisappear {
+            stopObservingUbiquitousChanges()
+        }
+        .alert(item: $alert) { alert in
+            Alert(title: Text("Error"),
+                  message: Text(alert.message),
+                  dismissButton: .default(Text("OK")))
+        }
+        .tipsAndHintsOverlay(for: .budgets)
+        .focusedSceneValue(
+            \.newItemCommand,
+            currentRootTab == .budgets ? NewItemCommand(title: "New Budget", action: { isPresentingAddBudget = true }) : nil
+        )
     }
 
     @ViewBuilder

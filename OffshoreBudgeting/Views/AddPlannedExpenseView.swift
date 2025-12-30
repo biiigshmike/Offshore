@@ -42,6 +42,7 @@ struct AddPlannedExpenseView: View {
     @State private var budgetSearchText = ""
     @State private var showAllBudgets = false
     @State private var isShowingScopeDialog = false
+    @State private var isMenuActive = false
 
     private var filteredBudgets: [Budget] {
         vm.allBudgets.filter { budgetSearchText.isEmpty || ($0.name ?? "").localizedCaseInsensitiveContains(budgetSearchText) }
@@ -304,11 +305,13 @@ struct AddPlannedExpenseView: View {
         }
         .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
         .onAppear {
+            isMenuActive = true
             vm.attachCardPickerStoreIfNeeded(cardPickerStore)
             vm.startIfNeeded()
             applyInitialCardSelectionIfNeeded()
             applyInitialAssignBudgetToggleIfNeeded()
         }
+        .onDisappear { isMenuActive = false }
         .onChange(of: vm.cardsLoaded) { _ in
             guard vm.cardsLoaded else { return }
             applyDefaultSaveAsGlobalPresetIfNeeded()
@@ -382,6 +385,18 @@ struct AddPlannedExpenseView: View {
             }
             Button("Cancel", role: .cancel) { }
         }
+        .focusedSceneValue(
+            \.formCommands,
+            isMenuActive ? FormCommands(
+                saveTitle: vm.isEditing ? "Save Changes" : "Save",
+                canSave: vm.canSave,
+                save: {
+                    if trySave() { dismiss() }
+                },
+                cancelTitle: "Cancel",
+                cancel: { dismiss() }
+            ) : nil
+        )
     }
 
     // MARK: Actions

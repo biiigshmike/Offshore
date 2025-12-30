@@ -35,6 +35,8 @@ struct CardDetailView: View {
     @State private var isConfirmingDelete: Bool = false
     @State private var deletionError: DeletionError?
     @State private var editingExpense: CardExpense?
+    @State private var isMenuActive = false
+    @State private var budgetDetailCommands: BudgetDetailCommands?
     // Date range pickers
     @State private var startDate: Date = Date()
     @State private var endDate: Date = Date()
@@ -149,6 +151,10 @@ struct CardDetailView: View {
             ignoringSafeArea: .all
         )
         .tipsAndHintsOverlay(for: .cardDetail)
+        .focusedSceneValue(
+            \.budgetDetailCommands,
+            isMenuActive ? budgetDetailCommands : nil
+        )
         
 
     }
@@ -424,6 +430,16 @@ struct CardDetailView: View {
                     endDate = r.end
                 }
             }
+            .onAppear {
+                isMenuActive = true
+                if budgetDetailCommands == nil {
+                    budgetDetailCommands = BudgetDetailCommands(
+                        addPlannedExpense: { isPresentingAddPlanned = true },
+                        addVariableExpense: { isPresentingAddExpense = true }
+                    )
+                }
+            }
+            .onDisappear { isMenuActive = false }
     }
 
     // MARK: Toolbar

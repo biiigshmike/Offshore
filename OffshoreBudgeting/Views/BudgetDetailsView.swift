@@ -25,6 +25,8 @@ struct BudgetDetailsView: View {
     @State private var capOverrides: [String: (min: Double?, max: Double?)] = [:]
     @State private var isConfirmingDelete = false
     @State private var deleteErrorMessage: String?
+    @State private var isMenuActive = false
+    @State private var budgetDetailCommands: BudgetDetailCommands?
     private let budgetService = BudgetService()
 
     init(budgetID: NSManagedObjectID, store: BudgetDetailsViewModelStore? = nil) {
@@ -53,6 +55,16 @@ struct BudgetDetailsView: View {
             sort = vm.sort
             refreshCapOverrides()
         }
+        .onAppear {
+            isMenuActive = true
+            if budgetDetailCommands == nil {
+                budgetDetailCommands = BudgetDetailCommands(
+                    addPlannedExpense: { isPresentingAddPlanned = true },
+                    addVariableExpense: { isPresentingAddVariable = true }
+                )
+            }
+        }
+        .onDisappear { isMenuActive = false }
         .refreshable { await vm.refreshRows() }
         .onChange(of: segment) { vm.selectedSegment = $0 }
         .onChange(of: sort) { vm.sort = $0 }
@@ -100,6 +112,10 @@ struct BudgetDetailsView: View {
             Text(deleteErrorMessage ?? "")
         }
         .toolbar { toolbarContent }
+        .focusedSceneValue(
+            \.budgetDetailCommands,
+            isMenuActive ? budgetDetailCommands : nil
+        )
     }
 
     @ViewBuilder
@@ -188,51 +204,56 @@ struct BudgetDetailsView: View {
         }
     }
 
+    @ViewBuilder
     private var categoryChipsRow: some View {
-        let categories: [BudgetSummary.CategorySpending] = {
-            if let summary = vm.summary {
-                return segment == .planned ? summary.plannedCategoryBreakdown : summary.variableCategoryBreakdown
-            }
-            let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
-            req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
-            req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
-            let items: [ExpenseCategory] = (try? CoreDataService.shared.viewContext.fetch(req)) ?? []
-            return items.map {
-                let name = ($0.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                return BudgetSummary.CategorySpending(categoryURI: $0.objectID.uriRepresentation(), categoryName: name, hexColor: $0.color, amount: 0)
-            }
-        }()
+        switch vm.loadState {
+        case .idle, .loading:
+            ProgressView("Loading Categories…")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        case .failed:
+            Text("Categories unavailable")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        case .loaded:
+            let categories = (vm.summary.map {
+                segment == .planned ? $0.plannedCategoryBreakdown : $0.variableCategoryBreakdown
+            }) ?? []
 
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                ForEach(categories) { cat in
-                    let isSelected = (selectedCategoryURI == cat.categoryURI)
-                    BudgetCategoryChipView(
-                        title: cat.categoryName,
-                        amount: cat.amount,
-                        hex: cat.hexColor,
-                        isSelected: isSelected,
-                        isExceeded: isOverCap(category: cat, segment: segment),
-                        onTap: {
-                            selectedCategoryURI = isSelected ? nil : cat.categoryURI
-                        }
-                    )
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.35)
-                            .onEnded { _ in presentCapGauge(for: cat) }
-                    )
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(categories) { cat in
+                        let isSelected = (selectedCategoryURI == cat.categoryURI)
+                        BudgetCategoryChipView(
+                            title: cat.categoryName,
+                            amount: cat.amount,
+                            hex: cat.hexColor,
+                            isSelected: isSelected,
+                            isExceeded: isOverCap(category: cat, segment: segment),
+                            onTap: {
+                                selectedCategoryURI = isSelected ? nil : cat.categoryURI
+                            }
+                        )
+                        .simultaneousGesture(
+                            LongPressGesture(minimumDuration: 0.35)
+                                .onEnded { _ in presentCapGauge(for: cat) }
+                        )
+                    }
+                    if categories.isEmpty {
+                        Text("No categories yet")
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 8)
+                    }
                 }
-                if categories.isEmpty {
-                    Text("No categories yet")
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, 8)
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 44)
+            .padding(.vertical, 2)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         }
-        .frame(height: 44)
-        .padding(.vertical, 2)
-        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
     }
 
     @ToolbarContentBuilder

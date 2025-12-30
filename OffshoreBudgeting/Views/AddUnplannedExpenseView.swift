@@ -28,6 +28,7 @@ struct AddUnplannedExpenseView: View {
     @StateObject private var vm: AddUnplannedExpenseViewModel
     @EnvironmentObject private var cardPickerStore: CardPickerStore
     @State private var isPresentingAddCard = false
+    @State private var isMenuActive = false
     @State private var didApplyInitialCardSelection = false
     
     // MARK: - Layout
@@ -96,10 +97,12 @@ struct AddUnplannedExpenseView: View {
         }
         .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
         .onAppear {
+            isMenuActive = true
             vm.attachCardPickerStoreIfNeeded(cardPickerStore)
             vm.startIfNeeded()
             applyInitialCardSelectionIfNeeded()
         }
+        .onDisappear { isMenuActive = false }
         .onChange(of: vm.cardsLoaded) { _ in
             applyInitialCardSelectionIfNeeded()
         }
@@ -126,6 +129,18 @@ struct AddUnplannedExpenseView: View {
                 }
             }
         }
+        .focusedSceneValue(
+            \.formCommands,
+            isMenuActive ? FormCommands(
+                saveTitle: vm.isEditing ? "Save Changes" : "Save",
+                canSave: vm.canSave,
+                save: {
+                    if trySave() { dismiss() }
+                },
+                cancelTitle: "Cancel",
+                cancel: { dismiss() }
+            ) : nil
+        )
     }
 
     // MARK: Navigation container

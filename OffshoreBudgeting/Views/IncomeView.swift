@@ -31,6 +31,7 @@ struct IncomeView: View {
 
     @State private var incomePendingDeletion: Income?
     @State private var isConfirmingDelete: Bool = false
+    @Environment(\.currentRootTab) private var currentRootTab
 
     // MARK: Body
     var body: some View {
@@ -43,6 +44,10 @@ struct IncomeView: View {
             calendarScrollDate = normalize(vm.selectedDate ?? Date())
         }
         .tipsAndHintsOverlay(for: .income)
+        .focusedSceneValue(
+            \.newItemCommand,
+            currentRootTab == .income ? NewItemCommand(title: "New Income", action: { addIncome() }) : nil
+        )
         
     }
 

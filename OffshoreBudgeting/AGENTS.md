@@ -64,7 +64,7 @@ Deliver short summary of reasoning and actionable steps
 
 XCODEBUILD:
 
-If asked to run command 'xcodebuild', use Offshore.xcodeproj inside /OffshoreBudgeting with OffshoreBudgeting schema on generic iOS simulator.
+If asked to run command 'xcodebuild', use Offshore.xcodeproj inside /OffshoreBudgeting with OffshoreBudgeting schema on iOS simulator with at least version 16
 
 ## Coding
 - Coding should be reusable, scalable, and OOP-oriented. 
@@ -79,6 +79,10 @@ If asked to run command 'xcodebuild', use Offshore.xcodeproj inside /OffshoreBud
 - Avoid hard-coded device checks when layout modifiers can adapt.
 - Ensure that iOS 26/iPadOS26/macOS 26 Liquid Glass is prioritized and provide legacy fallback for older OSes. The app supports as low as iOS/iPadOS/macOS 16. iOS/iPadOS latest version is 16.6 and macOS latest version is 16.6; due to this, Liquid Glass should only be for OS 26 and then older, legacy OS versions have their UI elements that are consistent with their current OS.
 - I prefer my legacy members to only see plain text buttons while I prefer my iOS26 users to see Liquid Glass buttons.
+- Toolbar icon standard (avoid grey backgrounds):
+  - Use `Buttons.toolbarIcon("plus") { ... }` for toolbar buttons to keep icons plain and match the existing "+" styling.
+  - Only use `Buttons.toolbarIconGlassPreferred` when a glass affordance is explicitly desired.
+  - For `Menu` labels (non-button labels), use a plain `Image(systemName:)` with `.font(.system(size: 16, weight: .semibold))` and `.frame(width: 33, height: 33)`; do not apply glass effects in the label to avoid the light grey symbol background on macOS.
 
 ## Core Data and model notes
 

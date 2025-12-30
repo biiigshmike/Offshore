@@ -28,7 +28,9 @@ struct SettingsView: View {
     @State private var showMergeDone = false
     @State private var showDisableCloudOptions = false
     @State private var isReconfiguringStores = false
+    @State private var isMenuActive = false
     @StateObject private var cloudDiag = CloudDiagnostics.shared
+    @Environment(\.currentRootTab) private var currentRootTab
 
     // Guided walkthrough removed
 
@@ -44,6 +46,8 @@ struct SettingsView: View {
                 }
             }
             .task { await cloudDiag.refresh() }
+            .onAppear { isMenuActive = true }
+            .onDisappear { isMenuActive = false }
             .confirmationDialog("Turn Off iCloud Sync?", isPresented: $showDisableCloudOptions, titleVisibility: .visible) {
                 Button("Switch to Local (Keep Data)", role: .destructive) { disableCloud(eraseLocal: false) }
                 Button("Remove from This Device", role: .destructive) { disableCloud(eraseLocal: true) }
@@ -92,6 +96,19 @@ struct SettingsView: View {
                     }
                 }
             }
+            .focusedSceneValue(
+                \.homePeriodCommands,
+                currentRootTab == .settings && isMenuActive ? HomePeriodCommands(
+                    cyclePeriod: { cyclePeriodSetting() },
+                    setDaily: { setBudgetPeriod(.daily) },
+                    setWeekly: { setBudgetPeriod(.weekly) },
+                    setBiWeekly: { setBudgetPeriod(.biWeekly) },
+                    setMonthly: { setBudgetPeriod(.monthly) },
+                    setQuarterly: { setBudgetPeriod(.quarterly) },
+                    setYearly: { setBudgetPeriod(.yearly) }
+                ) : nil
+            )
+            .focusedSceneValue(\.newItemCommand, nil)
     }
 
     private var settingsList: some View {
@@ -100,6 +117,24 @@ struct SettingsView: View {
             generalSection
             categoriesSection
             presetsSection
+        }
+    }
+
+    private func setBudgetPeriod(_ period: BudgetPeriod) {
+        WorkspaceService.shared.setBudgetPeriod(period, in: viewContext)
+    }
+
+    private func cyclePeriodSetting() {
+        let periods = BudgetPeriod.selectableCases
+        let current = WorkspaceService.shared.currentBudgetPeriod(in: viewContext)
+        guard let currentIndex = periods.firstIndex(of: current) else {
+            setBudgetPeriod(.monthly)
+            return
+        }
+        let nextIndex = periods.index(after: currentIndex)
+        let next = nextIndex == periods.endIndex ? periods.first : periods[nextIndex]
+        if let next {
+            setBudgetPeriod(next)
         }
     }
 

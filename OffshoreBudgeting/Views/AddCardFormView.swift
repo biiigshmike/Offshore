@@ -62,6 +62,7 @@ struct AddCardFormView: View {
     @State private var cardName: String = ""
     @State private var selectedTheme: CardTheme = .rose
     @State private var saveErrorMessage: String?
+    @State private var isMenuActive = false
 
     // MARK: Computed
     /// Trimmed card name for validation.
@@ -171,12 +172,26 @@ struct AddCardFormView: View {
             }
         }
         .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
+        .onAppear { isMenuActive = true }
+        .onDisappear { isMenuActive = false }
         // Error alert (if validation or save logic fails)
         .alert("Error", isPresented: .constant(saveErrorMessage != nil), actions: {
             Button("OK", role: .cancel) { saveErrorMessage = nil }
         }, message: {
             Text(saveErrorMessage ?? "")
         })
+        .focusedSceneValue(
+            \.formCommands,
+            isMenuActive ? FormCommands(
+                saveTitle: mode == .add ? "Create Card" : "Save Changes",
+                canSave: canSave,
+                save: {
+                    if saveTapped() { dismiss() }
+                },
+                cancelTitle: "Cancel",
+                cancel: { dismiss() }
+            ) : nil
+        )
     }
 
     // MARK: Navigation container

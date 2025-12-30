@@ -253,6 +253,7 @@ struct HomeView: View {
     @State private var draggingID: WidgetID?
     @State private var ubiquitousObserver: NSObjectProtocol?
     @State private var storageRefreshToken = UUID()
+    @Environment(\.currentRootTab) private var currentRootTab
 
     private let gridSpacing: CGFloat = 18
     private let gridRowHeight: CGFloat = 170
@@ -420,7 +421,7 @@ struct HomeView: View {
         .onChange(of: vm.period) { _ in syncPickers(with: vm.currentDateRange) }
         .onChange(of: vm.selectedDate) { _ in syncPickers(with: vm.currentDateRange) }
         .onReceive(vm.$customDateRange) { _ in syncPickers(with: vm.currentDateRange) }
-        .onChange(of: vm.state) { _ in Task { await stateDidChange() } }
+        .task(id: vm.state) { await stateDidChange() }
         .onChange(of: shouldSyncWidgets) { _ in handleWidgetSyncPreferenceChange() }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave, object: CoreDataService.shared.viewContext)) { _ in
             Task { await loadAllCards() }
@@ -429,6 +430,18 @@ struct HomeView: View {
         .alert(item: $vm.alert, content: alert(for:))
         .tipsAndHintsOverlay(for: .home)
         .tipsAndHintsOverlay(for: .home, kind: .whatsNew, versionToken: "16")
+        .focusedSceneValue(
+            \.homePeriodCommands,
+            currentRootTab == .home ? HomePeriodCommands(
+                cyclePeriod: { cyclePeriodType() },
+                setDaily: { applyPeriod(.daily) },
+                setWeekly: { applyPeriod(.weekly) },
+                setBiWeekly: { applyPeriod(.biWeekly) },
+                setMonthly: { applyPeriod(.monthly) },
+                setQuarterly: { applyPeriod(.quarterly) },
+                setYearly: { applyPeriod(.yearly) }
+            ) : nil
+        )
     }
 
     // MARK: Content
@@ -879,6 +892,8 @@ struct HomeView: View {
             }
         }
         .buttonStyle(.plain)
+        .allowsHitTesting(!isEditing)
+        .disabled(isEditing)
     }
 
     private func weekdayWidget(for summary: BudgetSummary) -> some View {
@@ -1494,6 +1509,7 @@ struct HomeView: View {
             widgetCard(title: title, subtitle: subtitle, kind: kind, span: span, content: content)
         }
         .buttonStyle(.plain)
+        .allowsHitTesting(!isEditing)
     }
 
     private func widgetCard<Content: View>(title: String, subtitle: String? = nil, kind: HomeWidgetKind, span: WidgetSpan, @ViewBuilder content: () -> Content) -> some View {
@@ -1716,6 +1732,19 @@ struct HomeView: View {
     private func applyPeriod(_ period: BudgetPeriod) {
         vm.updateBudgetPeriod(to: period)
         syncPickers(with: vm.currentDateRange)
+    }
+
+    private func cyclePeriodType() {
+        let periods = BudgetPeriod.selectableCases
+        guard let currentIndex = periods.firstIndex(of: vm.period) else {
+            applyPeriod(.monthly)
+            return
+        }
+        let nextIndex = periods.index(after: currentIndex)
+        let next = nextIndex == periods.endIndex ? periods.first : periods[nextIndex]
+        if let next {
+            applyPeriod(next)
+        }
     }
 
     private func formatCurrency(_ amount: Double) -> String {

@@ -28,7 +28,7 @@ struct RootTabView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.responsiveLayoutContext) private var layoutContext
     let isWorkspaceReady: Bool
-
+    
     // MARK: Tabs
     enum Tab: Hashable, CaseIterable {
         case home
@@ -37,7 +37,7 @@ struct RootTabView: View {
         case cards
         case settings
     }
-
+    
     enum SidebarItem: Hashable {
         case root(Tab)
         case addPlannedExpense
@@ -46,7 +46,7 @@ struct RootTabView: View {
         case managePresets
         case manageCategories
     }
-
+    
     // MARK: State
     @Environment(\.startTabIdentifier) private var startTabIdentifier
     @State private var selectedTab: Tab = .home
@@ -55,12 +55,12 @@ struct RootTabView: View {
     @State private var usesCompactTabsOverride: Bool = false
     @State private var recentBudgets: [Budget] = []
     private let budgetService = BudgetService()
-
+    
     var body: some View {
         rootBody
             .animation(.easeInOut(duration: 0.25), value: shouldUseCompactTabs)
     }
-
+    
     // MARK: Body builders
     private var prefersCompactTabs: Bool {
 #if os(iOS)
@@ -69,15 +69,15 @@ struct RootTabView: View {
         return false
 #endif
     }
-
+    
     private var shouldUseCompactTabs: Bool {
         prefersCompactTabs || usesCompactTabsOverride || isNarrowLayout
     }
-
+    
     private var showsSidebarRestoreControl: Bool {
         usesCompactTabsOverride && !prefersCompactTabs && !isNarrowLayout
     }
-
+    
     private var isNarrowLayout: Bool {
         if horizontalSizeClass == .compact {
             return true
@@ -88,7 +88,7 @@ struct RootTabView: View {
         }
         return false
     }
-
+    
     @ViewBuilder
     private var rootBody: some View {
         if shouldUseCompactTabs {
@@ -99,7 +99,7 @@ struct RootTabView: View {
                 .transition(.opacity)
         }
     }
-
+    
     @ViewBuilder
     private var tabViewBody: some View {
         if #available(iOS 18.0, macCatalyst 18.0, macOS 15.0, *) {
@@ -108,7 +108,7 @@ struct RootTabView: View {
             baseTabView
         }
     }
-
+    
     @available(iOS 18.0, macCatalyst 18.0, macOS 15.0, *)
     @ViewBuilder
     private var adaptiveTabView: some View {
@@ -119,28 +119,28 @@ struct RootTabView: View {
                 }
             }
             .accessibilityIdentifier(Tab.home.accessibilityID)
-
+            
             SwiftUI.Tab(Tab.budgets.title, systemImage: Tab.budgets.systemImage, value: Tab.budgets) {
                 navigationContainer {
                     decoratedTabContent(for: .budgets)
                 }
             }
             .accessibilityIdentifier(Tab.budgets.accessibilityID)
-
+            
             SwiftUI.Tab(Tab.income.title, systemImage: Tab.income.systemImage, value: Tab.income) {
                 navigationContainer {
                     decoratedTabContent(for: .income)
                 }
             }
             .accessibilityIdentifier(Tab.income.accessibilityID)
-
+            
             SwiftUI.Tab(Tab.cards.title, systemImage: Tab.cards.systemImage, value: Tab.cards) {
                 navigationContainer {
                     decoratedTabContent(for: .cards)
                 }
             }
             .accessibilityIdentifier(Tab.cards.accessibilityID)
-
+            
             SwiftUI.Tab(Tab.settings.title, systemImage: Tab.settings.systemImage, value: Tab.settings) {
                 navigationContainer {
                     decoratedTabContent(for: .settings)
@@ -150,7 +150,7 @@ struct RootTabView: View {
         }
         .onAppear { applyStartTabIfNeeded() }
     }
-
+    
     private var baseTabView: some View {
         TabView(selection: $selectedTab) {
             legacyTabViewItem(for: .home)
@@ -161,7 +161,7 @@ struct RootTabView: View {
         }
         .onAppear { applyStartTabIfNeeded() }
     }
-
+    
     @ViewBuilder
     private var splitViewBody: some View {
         if #available(iOS 16.0, macCatalyst 16.0, macOS 13.0, *) {
@@ -185,9 +185,9 @@ struct RootTabView: View {
             tabViewBody
         }
     }
-
+    
     // MARK: - Legacy Tab Items
-
+    
     @ViewBuilder
     private func legacyTabViewItem(for tab: Tab) -> some View {
         navigationContainer {
@@ -199,7 +199,7 @@ struct RootTabView: View {
         }
         .tag(tab)
     }
-
+    
     @ViewBuilder
     private var sidebarList: some View {
         List {
@@ -211,7 +211,7 @@ struct RootTabView: View {
                     }
                 }
             }
-
+            
             Section("Add Expenses") {
                 let plannedItem = SidebarItem.addPlannedExpense
                 sidebarRow(item: plannedItem) {
@@ -222,7 +222,7 @@ struct RootTabView: View {
                     Label("Add Variable Expense", systemImage: "plus.circle")
                 }
             }
-
+            
             Section("Quick Links") {
                 let presetsItem = SidebarItem.managePresets
                 sidebarRow(item: presetsItem) {
@@ -252,16 +252,26 @@ struct RootTabView: View {
             }
         }
     }
-
+    
     @ViewBuilder
     private var sidebarDetail: some View {
         switch sidebarSelection {
         case .root(let tab):
             decoratedRootContent(tabContent(for: tab))
         case .addPlannedExpense:
-            decoratedRootContent(AddPlannedExpenseView(onSaved: {}))
+            decoratedRootContent(
+                AddPlannedExpenseView(
+                    onSaved: {},
+                    onDismiss: { sidebarSelection = .root(selectedTab) }
+                )
+            )
         case .addVariableExpense:
-            decoratedRootContent(AddUnplannedExpenseView(onSaved: {}))
+            decoratedRootContent(
+                AddUnplannedExpenseView(
+                    onSaved: {},
+                    onDismiss: { sidebarSelection = .root(selectedTab) }
+                )
+            )
         case .recentBudget(let objectID):
             decoratedRootContent(BudgetDetailsView(budgetID: objectID))
         case .managePresets:
@@ -272,14 +282,14 @@ struct RootTabView: View {
             decoratedRootContent(tabContent(for: selectedTab))
         }
     }
-
+    
     // MARK: - Decoration & Navigation Containers
-
+    
     @ViewBuilder
     private func decoratedTabContent(for tab: Tab) -> some View {
         decoratedRootContent(tabContent(for: tab))
     }
-
+    
     @ViewBuilder
     private func decoratedRootContent<Content: View>(_ content: Content) -> some View {
         let base = content
@@ -301,7 +311,7 @@ struct RootTabView: View {
                     }
                 }
             }
-
+        
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             base
         } else if #available(iOS 16.0, macCatalyst 16.0, macOS 13.0, *) {
@@ -312,7 +322,7 @@ struct RootTabView: View {
             base
         }
     }
-
+    
     @ViewBuilder
     private func tabContent(for tab: Tab) -> some View {
         if isWorkspaceReady {
@@ -321,7 +331,7 @@ struct RootTabView: View {
             loadingPlaceholder()
         }
     }
-
+    
     @ViewBuilder
     private func readyTabContent(for tab: Tab) -> some View {
         switch tab {
@@ -340,7 +350,7 @@ struct RootTabView: View {
             SettingsView()
         }
     }
-
+    
     @ViewBuilder
     private func navigationContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         if #available(iOS 16.0, macCatalyst 16.0, *) {
@@ -350,13 +360,13 @@ struct RootTabView: View {
                 .navigationViewStyle(StackNavigationViewStyle())
         }
     }
-
+    
     private func loadingPlaceholder() -> some View {
         Color.clear
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityHidden(true)
     }
-
+    
     private func refreshRecentBudgets() {
         guard isWorkspaceReady else {
             recentBudgets = []
@@ -369,7 +379,7 @@ struct RootTabView: View {
             recentBudgets = []
         }
     }
-
+    
     private func sidebarRowBackground(isSelected: Bool) -> some View {
         Group {
             if isSelected {
@@ -381,7 +391,7 @@ struct RootTabView: View {
             }
         }
     }
-
+    
     @ViewBuilder
     private func sidebarRow<Label: View>(
         item: SidebarItem,
@@ -394,20 +404,20 @@ struct RootTabView: View {
             label()
                 .foregroundStyle(.primary)
         }
-        .buttonStyle(.plain)
-        .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == item))
+            .buttonStyle(.plain)
+            .listRowBackground(sidebarRowBackground(isSelected: sidebarSelection == item))
         if let accessibilityID {
             base.accessibilityIdentifier(accessibilityID)
         } else {
             base
         }
     }
-
+    
     private var selectedSidebarTint: Color {
         let tint = themeManager.selectedTheme.resolvedTint
         return tint.opacity(colorScheme == .dark ? 0.32 : 0.18)
     }
-
+    
 }
 
 // MARK: - Tab Metadata
@@ -421,7 +431,7 @@ extension RootTabView.Tab {
         case .settings: return "Settings"
         }
     }
-
+    
     var systemImage: String {
         switch self {
         case .home: return "house"
@@ -431,7 +441,7 @@ extension RootTabView.Tab {
         case .settings: return "gear"
         }
     }
-
+    
     var accessibilityID: String {
         switch self {
         case .home: return "tab_home"
@@ -453,7 +463,7 @@ private extension RootTabView {
             appliedStartTab = true
         }
     }
-
+    
     func mapStartTab(key: String) -> Tab? {
         switch key.lowercased() {
         case "home": return .home

@@ -23,6 +23,7 @@ struct AddUnplannedExpenseView: View {
     let initialCardID: NSManagedObjectID?
     let initialDate: Date?
     let onSaved: () -> Void
+    let onDismiss: () -> Void
 
     // MARK: State
     @StateObject private var vm: AddUnplannedExpenseViewModel
@@ -41,12 +42,14 @@ struct AddUnplannedExpenseView: View {
          allowedCardIDs: Set<NSManagedObjectID>? = nil,
          initialCardID: NSManagedObjectID? = nil,
          initialDate: Date? = nil,
-         onSaved: @escaping () -> Void) {
+        onSaved: @escaping () -> Void,
+         onDismiss: @escaping () -> Void = {}) {
         self.unplannedExpenseID = unplannedExpenseID
         self.allowedCardIDs = allowedCardIDs
         self.initialCardID = initialCardID
         self.initialDate = initialDate
         self.onSaved = onSaved
+        self.onDismiss = onDismiss
 
         let model = AddUnplannedExpenseViewModel(
             unplannedExpenseID: unplannedExpenseID,
@@ -66,13 +69,19 @@ struct AddUnplannedExpenseView: View {
                 .navigationTitle(vm.isEditing ? "Edit Variable Expense" : "Add Variable Expense")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { dismiss() }
+                        Button("Cancel") {
+                            onDismiss()
+                            dismiss()
+                        }
                     }
                     // Editing: single trailing action
                     ToolbarItem(placement: .confirmationAction) {
                         if vm.isEditing {
                             Button("Save Changes") {
-                                if trySave() { dismiss() }
+                                if trySave() {
+                                    onDismiss()
+                                    dismiss()
+                                }
                             }
                             .disabled(!vm.canSave)
                         }
@@ -81,7 +90,10 @@ struct AddUnplannedExpenseView: View {
                     if !vm.isEditing {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Save") {
-                                if trySave() { dismiss() }
+                                if trySave() {
+                                    onDismiss()
+                                    dismiss()
+                                }
                             }
                             .disabled(!vm.canSave)
                         }

@@ -23,6 +23,8 @@ struct AddPlannedExpenseView: View {
     let showAssignBudgetToggle: Bool
     /// Called after a successful save.
     let onSaved: () -> Void
+    /// Called when the view should be dismissed by a parent container.
+    let onDismiss: () -> Void
     /// Optional card to preselect on first load.
     let initialCardID: NSManagedObjectID?
 
@@ -66,6 +68,7 @@ struct AddPlannedExpenseView: View {
         defaultSaveAsGlobalPreset: Bool = false,
         showAssignBudgetToggle: Bool = false,
         onSaved: @escaping () -> Void,
+        onDismiss: @escaping () -> Void = {},
         initialCardID: NSManagedObjectID? = nil
     ) {
         self.plannedExpenseID = plannedExpenseID
@@ -73,6 +76,7 @@ struct AddPlannedExpenseView: View {
         self.defaultSaveAsGlobalPreset = defaultSaveAsGlobalPreset
         self.showAssignBudgetToggle = showAssignBudgetToggle
         self.onSaved = onSaved
+        self.onDismiss = onDismiss
         self.initialCardID = initialCardID
         let shouldStartAssigning: Bool
         if !showAssignBudgetToggle {
@@ -274,13 +278,19 @@ struct AddPlannedExpenseView: View {
             .navigationTitle(vm.isEditing ? "Edit Planned Expense" : "Add Planned Expense")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        onDismiss()
+                        dismiss()
+                    }
                 }
                 // Editing: single trailing action
                 ToolbarItem(placement: .confirmationAction) {
                     if vm.isEditing {
                         Button("Save Changes") {
-                            if trySave() { dismiss() }
+                            if trySave() {
+                                onDismiss()
+                                dismiss()
+                            }
                         }
                         .disabled(!vm.canSave)
                     }
@@ -362,21 +372,25 @@ struct AddPlannedExpenseView: View {
         ) {
             Button("Only this expense") {
                 if performSave(scope: .onlyThis) {
+                    onDismiss()
                     dismiss()
                 }
             }
             Button("Past instances") {
                 if performSave(scope: .past(referenceDate: vm.transactionDate)) {
+                    onDismiss()
                     dismiss()
                 }
             }
             Button("Future instances") {
                 if performSave(scope: .future(referenceDate: vm.transactionDate)) {
+                    onDismiss()
                     dismiss()
                 }
             }
             Button("All instances") {
                 if performSave(scope: .all(referenceDate: vm.transactionDate)) {
+                    onDismiss()
                     dismiss()
                 }
             }

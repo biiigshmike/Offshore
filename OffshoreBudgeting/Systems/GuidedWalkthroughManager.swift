@@ -199,7 +199,7 @@ enum TipsCatalog {
     private static func whatsNewContent(for screen: TipsScreen, versionToken: String?) -> TipsContent? {
         guard let versionToken else { return nil }
         switch versionToken {
-        case "16":
+        case "2.0.1":
             switch screen {
             case .home:
                 let info = Bundle.main.infoDictionary
@@ -430,7 +430,7 @@ private struct TipsItemRow: View {
             Image(systemName: item.symbolName)
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(Color(.systemRed))
-                .frame(width: 28, alignment: .center)
+                .frame(width: 44, alignment: .center)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)

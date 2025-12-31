@@ -534,7 +534,7 @@ private struct AppInfoView: View {
         let info = Bundle.main.infoDictionary
         let version = info?["CFBundleShortVersionString"] as? String ?? "-"
         let build = info?["CFBundleVersion"] as? String ?? "-"
-        return "Version \(version) (\(build))"
+        return "Version \(version).\(build)"
     }
 
     private var appInfoIconSize: CGFloat {

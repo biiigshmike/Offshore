@@ -823,10 +823,14 @@ struct BudgetDetailsView: View {
                                     in: .capsule
                                 )
                             )
+                            .accessibilityLabel("Minimum Amount")
+                            .accessibilityHint("Enter the minimum spending limit.")
                     } else {
                         TextField("0.00", text: $minText)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(.roundedBorder)
+                            .accessibilityLabel("Minimum Amount")
+                            .accessibilityHint("Enter the minimum spending limit.")
                     }
                 }
 
@@ -846,10 +850,14 @@ struct BudgetDetailsView: View {
                                     in: .capsule
                                 )
                             )
+                            .accessibilityLabel("Maximum Amount")
+                            .accessibilityHint("Leave empty for no maximum.")
                     } else {
                         TextField("Leave Empty for No Maximum Amount", text: $maxText)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(.roundedBorder)
+                            .accessibilityLabel("Maximum Amount")
+                            .accessibilityHint("Leave empty for no maximum.")
                     }
                 }
             }

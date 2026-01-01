@@ -470,6 +470,7 @@ struct AddPlannedExpenseView: View {
                     .textInputAutocapitalization(.never)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityLabel("Search Budgets")
             }
 
             // Inline, multi-select list with trailing checkmarks
@@ -495,6 +496,7 @@ struct AddPlannedExpenseView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             if vm.isBudgetSelected(budget.objectID) {
                                 Image(systemName: "checkmark")
+                                    .hideDecorative()
                             }
                         }
                     }
@@ -778,6 +780,7 @@ private struct CategoryChip: View {
             Circle()
                 .fill(accentColor)
                 .frame(width: 10, height: 10)
+                .hideDecorative()
             Text(name)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)

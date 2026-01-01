@@ -561,6 +561,7 @@ private struct CategoryChip: View {
             Circle()
                 .fill(accentColor)
                 .frame(width: 10, height: 10)
+                .hideDecorative()
             Text(name)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)

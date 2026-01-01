@@ -30,11 +30,17 @@ struct ManageBudgetCardsSheet: View {
         NavigationView {
             List {
                 ForEach(cards, id: \.objectID) { card in
+                    let name = card.name ?? "Untitled"
+                    let attached = isAttached(card)
                     HStack {
-                        Text(card.name ?? "Untitled")
+                        Text(name)
+                            .accessibilityHidden(true)
                         Spacer()
                         Toggle("", isOn: binding(for: card))
                             .labelsHidden()
+                            .accessibilityLabel("Track \(name)")
+                            .accessibilityValue(attached ? "Selected" : "Not Selected")
+                            .accessibilityHint("Toggles whether this card is included in the budget.")
                     }
                 }
             }

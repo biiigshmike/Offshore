@@ -65,10 +65,9 @@ struct ManageBudgetPresetsSheet: View {
 
     // MARK: - Rows
     private func presetRow(for template: PlannedExpense) -> some View {
-        let name = template.descriptionText ?? "Untitled Preset"
-        return HStack(spacing: 12) {
+        HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(name)
+                Text(template.descriptionText ?? "Untitled Preset")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
@@ -83,15 +82,11 @@ struct ManageBudgetPresetsSheet: View {
                 }
                 .accessibilityElement(children: .combine)
             }
-            .accessibilityHidden(true)
 
             Spacer(minLength: 12)
 
             Toggle("", isOn: binding(for: template))
                 .labelsHidden()
-                .accessibilityLabel(name)
-                .accessibilityValue("Planned \(CurrencyFormatter.shared.string(template.plannedAmount)), Actual \(CurrencyFormatter.shared.string(template.actualAmount))")
-                .accessibilityHint("Toggles whether this preset is assigned to the budget.")
         }
         .padding(.vertical, 6)
         .contentShape(Rectangle())
@@ -169,9 +164,8 @@ struct ManageBudgetPresetsSheet: View {
     private var emptyState: some View {
         VStack(spacing: DS.Spacing.m) {
             Image(systemName: "list.bullet.rectangle")
-                .font(.title2)
+                .font(.system(size: 44, weight: .regular))
                 .foregroundStyle(.secondary)
-                .hideDecorative()
             Text("No Presets Available")
                 .font(.headline)
             Text("Create presets from the Presets tab to assign them to this budget.")

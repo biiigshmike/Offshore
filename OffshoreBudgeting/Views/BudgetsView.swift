@@ -16,7 +16,6 @@ struct BudgetsView: View {
     @State private var expandedPast = false
     @State private var ubiquitousObserver: NSObjectProtocol?
     @FocusState private var searchFocused: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // MARK: Services
     private let budgetService = BudgetService()
@@ -85,7 +84,7 @@ struct BudgetsView: View {
         }
         ToolbarItem(placement: .navigationBarTrailing) {
             Buttons.toolbarIcon("plus") { isPresentingAddBudget = true }
-                .iconButtonA11y(label: "Add Budget", hint: "Creates a new budget.")
+                .accessibilityLabel("Add Budget")
         }
     }
 
@@ -280,12 +279,10 @@ struct BudgetsView: View {
                 Image(systemName: "chevron.right")
                     .rotationEffect(isExpanded ? .degrees(90) : .zero)
                     .font(.system(size: 12, weight: .semibold))
-                    .hideDecorative()
             }
         }
         .buttonStyle(.plain)
         .textCase(nil)
-        .accessibilityHint(Text(isExpanded ? "Collapses the section." : "Expands the section."))
     }
 
     private func sectionTitle(title: String, count: Int) -> String {
@@ -309,11 +306,9 @@ struct BudgetsView: View {
             HStack(spacing: 6) {
                 if isSearching {
                     Buttons.toolbarIcon("xmark") { closeSearch() }
-                        .iconButtonA11y(label: "Close Search", hint: "Hides the search field.")
                     glassSearchField
                 } else {
                     Buttons.toolbarIcon("magnifyingglass") { openSearch() }
-                        .iconButtonA11y(label: "Search Budgets", hint: "Shows the search field.")
                 }
             }
         }
@@ -323,11 +318,9 @@ struct BudgetsView: View {
         HStack(spacing: 6) {
             if isSearching {
                 Buttons.toolbarIcon("xmark") { closeSearch() }
-                    .iconButtonA11y(label: "Close Search", hint: "Hides the search field.")
                 legacySearchField
             } else {
                 Buttons.toolbarIcon("magnifyingglass") { openSearch() }
-                    .iconButtonA11y(label: "Search Budgets", hint: "Shows the search field.")
             }
         }
     }
@@ -374,21 +367,21 @@ struct BudgetsView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .iconButtonA11y(label: "Clear Search", hint: "Clears the search text.")
+                .accessibilityLabel("Clear Search")
             }
         }
         .accessibilityElement(children: .contain)
     }
 
     private func openSearch() {
-        withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.85)) {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
             isSearching = true
         }
         searchFocused = true
     }
 
     private func closeSearch() {
-        withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.85)) {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
             isSearching = false
         }
         searchText = ""
@@ -496,12 +489,6 @@ private struct BudgetRow: View {
     }()
 
     var body: some View {
-        let dateText: String = {
-            if let start = budget.startDate, let end = budget.endDate {
-                return dateFormatter.string(from: start, to: end)
-            }
-            return "No dates"
-        }()
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.headline)
@@ -512,7 +499,6 @@ private struct BudgetRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityRow(label: title, value: dateText)
     }
 
     private var title: String {

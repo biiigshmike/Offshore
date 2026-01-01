@@ -348,10 +348,9 @@ struct BudgetDetailsView: View {
                 Button("Add Variable Expense") { isPresentingAddVariable = true }
             } label: {
                 Image(systemName: "plus")
-                    .font(.body.weight(.semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
-            .iconButtonA11y(label: "Add", hint: "Shows add options.")
 
             Menu {
                 Button("Manage Cards") { isPresentingManageCards = true }
@@ -362,10 +361,9 @@ struct BudgetDetailsView: View {
                 Button("Delete Budget", role: .destructive) { isConfirmingDelete = true }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.body.weight(.semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
-            .iconButtonA11y(label: "Budget Actions", hint: "Shows budget options.")
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
@@ -760,9 +758,6 @@ struct BudgetDetailsView: View {
                                 endPoint: .trailing
                             )
                         )
-                        .accessibilityLabel(Text("Current spending"))
-                        .accessibilityValue(Text(formatCurrency(data.current)))
-                        .accessibilityHint(Text("Shows current spending within the cap range."))
 
                         HStack {
                             Text(formatCurrency(lowerBound)).foregroundStyle(.secondary)
@@ -823,14 +818,10 @@ struct BudgetDetailsView: View {
                                     in: .capsule
                                 )
                             )
-                            .accessibilityLabel("Minimum Amount")
-                            .accessibilityHint("Enter the minimum spending limit.")
                     } else {
                         TextField("0.00", text: $minText)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(.roundedBorder)
-                            .accessibilityLabel("Minimum Amount")
-                            .accessibilityHint("Enter the minimum spending limit.")
                     }
                 }
 
@@ -850,14 +841,10 @@ struct BudgetDetailsView: View {
                                     in: .capsule
                                 )
                             )
-                            .accessibilityLabel("Maximum Amount")
-                            .accessibilityHint("Leave empty for no maximum.")
                     } else {
                         TextField("Leave Empty for No Maximum Amount", text: $maxText)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(.roundedBorder)
-                            .accessibilityLabel("Maximum Amount")
-                            .accessibilityHint("Leave empty for no maximum.")
                     }
                 }
             }

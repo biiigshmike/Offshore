@@ -122,11 +122,9 @@ struct AddBudgetView: View {
                 HStack(spacing: DS.Spacing.m) {
                     DatePicker("Start", selection: $vm.startDate, displayedComponents: [.date])
                         .labelsHidden()
-                        .accessibilityLabel("Start Date")
                         .datePickerStyle(.compact)
                     DatePicker("End", selection: $vm.endDate, displayedComponents: [.date])
                         .labelsHidden()
-                        .accessibilityLabel("End Date")
                         .datePickerStyle(.compact)
                 }
             } header: {
@@ -143,11 +141,7 @@ struct AddBudgetView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     // Toggle All (button)
-                    toggleAllRowButton(
-                        action: toggleAllCards,
-                        accessibilityLabel: "Toggle All Cards",
-                        accessibilityHint: "Selects or deselects every card."
-                    )
+                    toggleAllRowButton(action: toggleAllCards)
 
                     ForEach(vm.allCards, id: \.objectID) { card in
                         let isTracking = Binding(
@@ -177,11 +171,7 @@ struct AddBudgetView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     // Toggle All (button)
-                    toggleAllRowButton(
-                        action: toggleAllPresets,
-                        accessibilityLabel: "Toggle All Presets",
-                        accessibilityHint: "Selects or deselects every preset."
-                    )
+                    toggleAllRowButton(action: toggleAllPresets)
 
                     ForEach(vm.globalPlannedExpenseTemplates, id: \.objectID) { template in
                         let isSelected = Binding(
@@ -280,11 +270,7 @@ struct AddBudgetView: View {
     }
 
     @ViewBuilder
-    private func toggleAllRowButton(
-        action: @escaping () -> Void,
-        accessibilityLabel: String,
-        accessibilityHint: String
-    ) -> some View {
+    private func toggleAllRowButton(action: @escaping () -> Void) -> some View {
         let label = Text("Toggle All")
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity)
@@ -296,8 +282,6 @@ struct AddBudgetView: View {
             }
             .buttonStyle(.glassProminent)
             .tint(Color.green.opacity(0.75))
-            .accessibilityLabel(accessibilityLabel)
-            .accessibilityHint(accessibilityHint)
         } else {
             Button(action: action) {
                 label
@@ -321,8 +305,6 @@ struct AddBudgetView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .accessibilityLabel(accessibilityLabel)
-            .accessibilityHint(accessibilityHint)
         }
     }
 }

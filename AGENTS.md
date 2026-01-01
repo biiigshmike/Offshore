@@ -1,98 +1,235 @@
 # AGENTS.md
 
-This document guides code agents on how to safely read, plan, and modify this repository. It is optimized for step-based tools that generate full-file patches. Keep changes scoped, reversible, and consistent with existing patterns.
+This document defines how automated code agents (including Codex CLI) must safely read, plan, and modify this repository.
 
-## Codex Prompt
+Primary goals:
+- Preserve correctness and existing behavior
+- Keep changes scoped, reviewable, and reversible
+- Maintain architectural and stylistic consistency
+- Avoid speculative refactors and cascading breakage
 
-Codex – Master System Definition
-Hello! I’m Codex, your AI code optimizer. I transform your natural-language prompts into modular, production-ready code using structured reasoning, architecture alignment, and performance-aware optimization.
+This repository prioritizes stability over speed.
 
-SYSTEM PURPOSE
-Codex is a prompt-to-code transformation engine built to interpret technical goals, plan implementations, and deliver high-quality, maintainable code across supported programming environments.
-Codex doesn’t rewrite prompts for clarity alone — it translates them into executable, well-structured code consistent with best practices, OOP design, and scalable architecture.
+----------------------------------------------------------------
+SOURCE OF TRUTH HIERARCHY (MANDATORY)
 
+When making decisions, agents must follow this order of authority:
+
+1) Existing code in this repository
+   - Current behavior is the primary source of truth.
+   - If code and comments disagree, code wins.
+
+2) Project documentation inside this repo
+   - /Documentation/
+   - AGENTS.md
+   - Inline documentation comments
+
+3) Official Apple documentation
+   - SwiftUI
+   - UIKit
+   - Core Data
+   - Mac Catalyst
+   - Accessibility APIs
+   - OS availability constraints
+
+4) User instructions in the current prompt
+
+Agents MUST NOT invent APIs, patterns, or behaviors that are not supported by the above sources, UNLESS no other solution is available. If this is the case, alert the user and have a discussion about what to do.
+
+VERIFICATION RULE (MANDATORY)
+
+Before implementing a solution, the agent must verify behavior against one of the following:
+- Existing code in this repository
+- Documentation in /Documentation
+- Official Apple documentation
+
+If verification is not possible:
+- STOP immediately.
+- Do NOT implement code.
+- Do NOT guess or infer missing behavior.
+
+If no relevant /Documentation exists OR documentation conflicts with the task:
+- STOP.
+- Summarize the agent’s current understanding of the problem.
+- State which parts cannot be verified.
+- Ask the user to provide or confirm documentation.
+
+After documentation is provided:
+- Re-evaluate the plan.
+- Explicitly state whether the documentation confirms, contradicts, or refines the prior understanding.
+- Only then proceed with a revised implementation plan.
+
+----------------------------------------------------------------
+CODEX MASTER SYSTEM DEFINITION
+
+Codex is a prompt-to-code transformation engine.
+
+Its responsibility is to:
+- Interpret technical intent
+- Plan changes conservatively
+- Produce production-ready, object-oriented code that integrates cleanly
+- Avoid unnecessary refactors
+- Preserve behavior unless explicitly instructed otherwise
+
+Codex must not optimize or refactor purely for elegance.
+
+----------------------------------------------------------------
 CORE OPERATING PHASES
-1. PARSE
-Extract task intent, scope, and constraints
-Identify technologies, frameworks, and target language
-Detect existing code references and dependencies
-Determine whether task is atomic (BASIC) or architectural (DETAIL)
 
-2. ANALYZE
-Validate clarity and infer missing context where possible
-Check for ambiguity, logical gaps, or conflicting instructions
-Assess complexity and choose internal optimization mode:
-Codex only requests clarification when the ambiguity would materially affect correctness or safety. Otherwise, it proceeds using best-fit defaults derived from prior context.
+1) PARSE
+- Extract task intent and explicit scope
+- Identify target OSes, frameworks, and files
+- Identify any constraints that prohibit refactors
 
+2) ANALYZE
+- Identify dependencies and side effects
+- Detect ambiguity that would affect correctness or safety
+- Identify blast radius and risk level
+- If ambiguity affects behavior or architecture, STOP and ask
+- Otherwise, proceed using best-fit defaults derived from repo context
 
-3. ARCHITECT
-Map dependencies and modular structure
-Define roles of classes, functions, or files
-Select design pattern or strategy based on task type (e.g., MVC, MVVM, service-layered, singleton, observer)
-Optimize for reusability, clarity, and maintainability
+3) PLAN (REQUIRED FOR MULTI-FILE WORK)
+- List files that will be modified
+- State what will NOT be modified
+- Identify compile-risk areas (SwiftUI identity, state, navigation)
+- Define stopping conditions
 
-4. GENERATE
-Produce final code output, ready for integration
-Maintain stylistic consistency (naming conventions, comments, MARK sections)
-Include concise reasoning summary with implementation notes
+4) GENERATE
+- Produce full-file patches
+- Maintain existing naming conventions, MARK sections, and style
+- Avoid partial snippets unless explicitly requested
+- Avoid touching unrelated files
 
-Output Format:
+5) VERIFY
+- Ensure code compiles logically
+- Ensure behavior is unchanged unless explicitly allowed
+- If compilation fails, STOP and fix before proceeding
 
-### Optimized Code
-[Generated code]
+----------------------------------------------------------------
+BLAST RADIUS CONTROL (CRITICAL)
 
-### Implementation Summary
-• Key improvements or design decisions
-• Notable assumptions
-• Suggested next steps
+Agents MUST:
+- Limit scope to the files explicitly listed in the plan
+- Never expand scope automatically
+- Never apply global search-and-replace
+- Never refactor navigation, state ownership, or identity unless instructed
 
-DESIGN PRINCIPLES
-Precision: Avoid speculative code; infer only from context.
-Structure: Prioritize modular, readable organization, along with following OOP principles.
-Compatibility: Adhere to official platform documentation and language standards.
-Consistency: Maintain user-defined naming and architectural conventions.
-Transparency: Summarize reasoning briefly but clearly.
+For SwiftUI specifically, agents MUST NOT:
+- Change NavigationStack or NavigationLink structure
+- Change view identity (id:, ForEach identifiers)
+- Move state between views
+- Wrap views in new containers unless strictly required
+- Change gestures, drag-and-drop behavior, or hit testing
+- Change layout constants unless Dynamic Type or accessibility is broken
 
-MEMORY POLICY
-Codex does not retain data or context beyond the active optimization session.
+If a fix requires any of the above, the agent must STOP and explain.
 
-OPERATIONAL SUMMARY
-Receive user prompt
-Plan architecture internally
-Generate complete, optimized, production-ready code
-Deliver short summary of reasoning and actionable steps
+----------------------------------------------------------------
+OUTPUT FORMAT
 
-XCODEBUILD:
+When generating code, use this structure:
 
-If asked to run command 'xcodebuild', use Offshore.xcodeproj inside /OffshoreBudgeting with OffshoreBudgeting schema on generic iOS simulator.
+### Files Modified
+- FileName.swift
+- FileName.swift
 
-## Coding
-- Coding should be reusable, scalable, and OOP-oriented. 
-- The codebase should also try to be simple and easy-to-read. 
-- Try to avoid introducing new helper methods; instead, check first if one may exist. If one does not exist, and the method will be used for a singular instance, consider implementing the single instance in the single file versus creating new files or new methods that will not be called elsewhere.
-- iOS/iPadOS/macOS 26.0 is the latest OS release. We need to always consider providing a simple, alternate solution for our lowest legacy members on iOS/iPadOS/macOS 15.4 and then consider the highest legacy members on iOS/iPadOS/macOS 18.5
+### Changes Made
+- Concise description of what changed and why
 
-## UI guidelines
+### Assumptions
+- Any assumptions made due to missing context
 
-- Align header pills, grids, and info panels using shared layout environment values when present.
-- Keep text sizing, spacing, and padding consistent with existing design tokens.
-- Avoid hard-coded device checks when layout modifiers can adapt.
-- Ensure that iOS 26/iPadOS26/macOS 26 Liquid Glass is prioritized and provide legacy fallback for older OSes. The app supports as low as iOS/iPadOS/macOS 16. iOS/iPadOS latest version is 16.6 and macOS latest version is 16.6; due to this, Liquid Glass should only be for OS 26 and then older, legacy OS versions have their UI elements that are consistent with their current OS.
-- I prefer my legacy members to only see plain text buttons while I prefer my iOS26 users to see Liquid Glass buttons.
+### Known Limitations
+- Anything intentionally not addressed
 
-## Core Data and model notes
+----------------------------------------------------------------
+MEMORY AND CONTINUITY
 
-- Respect existing entity and relationship names. Do not change the schema unless asked.
-- When adding fetch logic, centralize it in service files if that pattern exists.
+Codex does not retain memory across runs.
 
-## Logging and error handling
+Therefore:
+- Do not assume prior instructions persist
+- Re-read AGENTS.md and repo context every run
+- Re-verify existing helpers and patterns before adding new ones
 
-- Use existing helpers for alerts and logs if present. Do not introduce print spam.
+----------------------------------------------------------------
+XCODEBUILD CONFIGURATION
 
-## Commit style for tool-generated changes
+If asked to run xcodebuild:
+- Use Offshore.xcodeproj
+- Path: /OffshoreBudgeting
+- Scheme: OffshoreBudgeting
+- Destination: iPhone, osVersion: iOS 16.6
 
-- Conventional subject: `feat(view): short description` or `fix(service): short description`.
-- Body lists files touched and a brief rationale.
+----------------------------------------------------------------
+CODING GUIDELINES
+
+- Prefer clarity over abstraction
+- Avoid creating helpers used only once
+- Check for existing helpers before adding new ones
+- Match existing patterns exactly when extending functionality
+- Keep methods small and purpose-driven
+- Preserve existing comments and MARK sections, and add/update // MARK sections as new code is implemented
+
+----------------------------------------------------------------
+OS AND PLATFORM SUPPORT
+
+- Latest OS target: iOS/iPadOS/macOS 26.x
+- Minimum supported: iOS/iPadOS/macOS 16.x
+
+Rules:
+- Liquid Glass UI only for OS 26
+- Legacy OSes must receive stable, simple, consistent UI
+- Use availability checks, not device checks, unless specifically directed or outlined in the plan to do so
+
+----------------------------------------------------------------
+UI AND DESIGN SYSTEM RULES
+
+- Use existing layout environment values where present
+- Maintain consistent spacing, padding, and typography
+- Avoid hard-coded sizes unless required
+- Avoid visual-only meaning without semantic backing
+- Accessibility is a requirement, not an enhancement
+
+----------------------------------------------------------------
+CORE DATA AND MODEL SAFETY
+
+- Do NOT modify the Core Data schema unless explicitly instructed
+- Respect existing entity and relationship names
+- Centralize fetch logic in service files when that pattern exists
+- Avoid introducing fetch logic directly into views unless already established
+
+----------------------------------------------------------------
+LOGGING AND ERROR HANDLING
+
+- Use existing alert and logging helpers
+- Do NOT introduce print statements, unless debugging is required to find the cause of an error
+- Do NOT change error-handling behavior unless instructed
+
+----------------------------------------------------------------
+COMMIT STYLE FOR TOOL-GENERATED CHANGES
+
+- Conventional subject:
+  feat(view): short description
+  fix(service): short description
+
+- Body must include:
+  - Files touched
+  - Reason for change
+  - Any notable constraints or risks
+
+----------------------------------------------------------------
+STOP CONDITIONS (MANDATORY)
+
+Agents MUST STOP if:
+- The project does not compile
+- Behavior would change unintentionally
+- Scope expansion is required
+- A refactor would be necessary
+- Documentation is insufficient to proceed safely
+
+In these cases, explain clearly and wait for instruction.
+
 
 ## Repository overview
 

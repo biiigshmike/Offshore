@@ -226,6 +226,7 @@ struct HomeView: View {
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.platformCapabilities) private var capabilities
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
 
@@ -239,6 +240,11 @@ struct HomeView: View {
     private static let defaultWidgets: [WidgetID] = [
         .income, .expenseToIncome, .savings, .nextPlanned, .categorySpotlight, .dayOfWeek, .availability, .scenario
     ]
+    private static let spendBarThicknessScale: CGFloat = 0.65
+
+    fileprivate static func adjustedSpendBarThickness(_ base: CGFloat) -> CGFloat {
+        max(base * spendBarThicknessScale, 6)
+    }
 
     private enum WidgetStorageKey {
         static let pinnedLocal = "homePinnedWidgetIDs"
@@ -535,8 +541,8 @@ struct HomeView: View {
                         widgetCell(for: item)
                     }
                 }
-                .animation(.spring(response: 0.25, dampingFraction: 0.9), value: widgetOrder)
-                .animation(.spring(response: 0.25, dampingFraction: 0.9), value: pinnedIDs)
+                .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.9), value: widgetOrder)
+                .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.9), value: pinnedIDs)
             } else {
                 // Fallback to original stack on older OS versions.
                 LazyVStack(spacing: 12) {
@@ -560,6 +566,7 @@ struct HomeView: View {
                                 Text(item.title)
                                 Spacer()
                                 Image(systemName: "pin.fill")
+                                    .hideDecorative()
                             }
                             .padding(.vertical, 10)
                             .padding(.horizontal, 12)
@@ -585,7 +592,7 @@ struct HomeView: View {
         if capabilities.supportsOS26Translucency,
            #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             Button(isEditing ? "Done" : "Edit") {
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                withAnimation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.9)) {
                     isEditing.toggle()
                     draggingID = nil
                 }
@@ -595,7 +602,7 @@ struct HomeView: View {
             .foregroundStyle(.primary)
         } else {
             Button(isEditing ? "Done" : "Edit") {
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                withAnimation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.9)) {
                     isEditing.toggle()
                     draggingID = nil
                 }
@@ -899,7 +906,8 @@ struct HomeView: View {
                             summary: summary,
                             period: previewPeriod,
                             orientation: orientation,
-                            maxColors: 4
+                            maxColors: 4,
+                            currencyFormatter: formatCurrency
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
@@ -931,16 +939,19 @@ struct HomeView: View {
         let period: BudgetPeriod
         let orientation: SpendBarOrientation
         let maxColors: Int
+        let currencyFormatter: (Double) -> String
 
         var body: some View {
             GeometryReader { geo in
                 let spacing: CGFloat = 8
                 let count = max(buckets.count, 1)
+                let displayLabels = buckets.map { displayLabel($0.label, period: period) }
+                let accessibilityValue = accessibilitySummary()
                 if orientation == .horizontal {
                     let rowHeight = max((geo.size.height - spacing * CGFloat(count - 1)) / CGFloat(count), 14)
-                    let labelWidth: CGFloat = 40
-                    let barMaxWidth = max(geo.size.width - labelWidth - 8, 20)
-                    VStack(alignment: .leading, spacing: spacing) {
+                    let baseThickness = max(rowHeight - 6, 6)
+                    let barThickness = HomeView.adjustedSpendBarThickness(baseThickness)
+                    Chart {
                         ForEach(buckets) { item in
                             let norm = max(min(item.amount / maxAmount, 1), 0)
                             let gradientColors = spendGradientColors(for: item, summary: summary, maxColors: maxColors)
@@ -949,27 +960,38 @@ struct HomeView: View {
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
-                            HStack(spacing: 6) {
-                                Text(displayLabel(item.label, period: period))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .frame(width: labelWidth, alignment: .leading)
-                                Rectangle()
-                                    .fill(gradient)
-                                    .frame(width: max(barMaxWidth * CGFloat(norm), 6), height: max(rowHeight - 6, 6))
-                                    .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
-                            }
-                            .frame(height: rowHeight)
+                            BarMark(
+                                x: .value("Amount", item.amount),
+                                y: .value("Period", displayLabel(item.label, period: period)),
+                                height: .fixed(barThickness)
+                            )
+                            .foregroundStyle(gradient)
+                            .cornerRadius(3)
                         }
                     }
+                    .chartXScale(domain: 0...maxAmount)
+                    .chartXAxis(.hidden)
+                    .chartYAxis {
+                        AxisMarks(values: displayLabels) { value in
+                            AxisValueLabel {
+                                if let label = value.as(String.self) {
+                                    Text(label)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                        }
+                    }
+                    .accessibilityLabel(Text("Spending by label"))
+                    .accessibilityValue(Text(accessibilityValue))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 } else {
                     let minBarWidth: CGFloat = 10
                     let barWidth = max((geo.size.width - spacing * CGFloat(count - 1)) / CGFloat(count), minBarWidth)
-                    let labelHeight: CGFloat = 16
-                    let barAreaHeight = max(60, geo.size.height - labelHeight)
-                    HStack(alignment: .bottom, spacing: spacing) {
+                    let baseThickness = max(barWidth, 6)
+                    let barThickness = HomeView.adjustedSpendBarThickness(baseThickness)
+                    Chart {
                         ForEach(buckets) { item in
                             let norm = max(min(item.amount / maxAmount, 1), 0)
                             let gradientColors = spendGradientColors(for: item, summary: summary, maxColors: maxColors)
@@ -978,20 +1000,32 @@ struct HomeView: View {
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
-                            VStack(spacing: 4) {
-                                Rectangle()
-                                    .fill(gradient)
-                                    .frame(width: barWidth, height: max(CGFloat(norm) * (barAreaHeight - 8), 6))
-                                    .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
-                                Text(displayLabel(item.label, period: period))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                                    .frame(width: barWidth, alignment: .center)
+                            BarMark(
+                                x: .value("Period", displayLabel(item.label, period: period)),
+                                y: .value("Amount", item.amount),
+                                width: .fixed(barThickness)
+                            )
+                            .foregroundStyle(gradient)
+                            .cornerRadius(3)
+                        }
+                    }
+                    .chartYScale(domain: 0...maxAmount)
+                    .chartYAxis(.hidden)
+                    .chartXAxis {
+                        AxisMarks(values: displayLabels) { value in
+                            AxisValueLabel {
+                                if let label = value.as(String.self) {
+                                    Text(label)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
+                                }
                             }
                         }
                     }
+                    .accessibilityLabel(Text("Spending by label"))
+                    .accessibilityValue(Text(accessibilityValue))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 }
             }
@@ -1002,6 +1036,16 @@ struct HomeView: View {
                 return String(first)
             }
             return label
+        }
+
+        private func accessibilitySummary() -> String {
+            guard !buckets.isEmpty else { return "No spending data." }
+            let entries = buckets.map { "\($0.label) \(currencyFormatter($0.amount))" }
+            let preview = entries.prefix(4).joined(separator: ", ")
+            if entries.count > 4 {
+                return "Grouped by label. \(preview), plus \(entries.count - 4) more."
+            }
+            return "Grouped by label. \(preview)."
         }
     }
 
@@ -1063,7 +1107,16 @@ struct HomeView: View {
                     draggingID = item.id
                     return NSItemProvider(object: item.id.storageKey as NSString)
                 }
-                .onDrop(of: [UTType.text], delegate: WidgetDropDelegate(target: item.id, order: $widgetOrder, dragging: $draggingID, persist: persistOrder))
+                .onDrop(
+                    of: [UTType.text],
+                    delegate: WidgetDropDelegate(
+                        target: item.id,
+                        order: $widgetOrder,
+                        dragging: $draggingID,
+                        reduceMotion: reduceMotion,
+                        persist: persistOrder
+                    )
+                )
         } else {
             base
         }
@@ -1084,6 +1137,10 @@ struct HomeView: View {
                 .background(.ultraThinMaterial, in: Circle())
         }
         .buttonStyle(.plain)
+        .iconButtonA11y(
+            label: isPinned ? "Unpin widget" : "Pin widget",
+            hint: isPinned ? "Removes this widget from the home screen." : "Adds this widget to the home screen."
+        )
         .padding(6)
     }
 
@@ -1261,6 +1318,7 @@ struct HomeView: View {
         let target: WidgetID
         @Binding var order: [WidgetID]
         @Binding var dragging: WidgetID?
+        let reduceMotion: Bool
         let persist: () -> Void
 
         func validateDrop(info: DropInfo) -> Bool {
@@ -1290,7 +1348,7 @@ struct HomeView: View {
             let item = mutableOrder.remove(at: fromIndex)
             let destination = toIndex > fromIndex ? toIndex - 1 : toIndex
             mutableOrder.insert(item, at: destination)
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.9)) {
                 order = mutableOrder
             }
         }
@@ -1399,6 +1457,7 @@ struct HomeView: View {
                                             .frame(width: idx == availabilityPage ? 20 : 9, height: 7)
                                     }
                                 }
+                                .accessibilityHidden(true)
 
                                 availabilityNavButton("chevron.right", isDisabled: availabilityPage >= pages.count - 1) {
                                     availabilityPage = min(pages.count - 1, availabilityPage + 1)
@@ -1442,6 +1501,10 @@ struct HomeView: View {
 
     @ViewBuilder
     private func availabilityNavButton(_ systemName: String, isDisabled: Bool, action: @escaping () -> Void) -> some View {
+        let label = systemName == "chevron.left" ? "Previous page" : "Next page"
+        let hint = systemName == "chevron.left"
+            ? "Shows the previous category availability page."
+            : "Shows the next category availability page."
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.body.weight(.semibold))
@@ -1462,6 +1525,7 @@ struct HomeView: View {
                 )
         }
         .buttonStyle(.plain)
+        .iconButtonA11y(label: label, hint: hint)
         .opacity(isDisabled ? 0.45 : 1)
         .disabled(isDisabled)
     }
@@ -1515,6 +1579,7 @@ struct HomeView: View {
                     Image(systemName: "chevron.right")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
+                        .hideDecorative()
                 }
                 body
                 Spacer(minLength: 0)
@@ -1653,6 +1718,7 @@ struct HomeView: View {
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
+            .iconButtonA11y(label: "Apply date range", hint: "Updates the widgets to the selected range.")
             .disabled(disabled)
         } else {
             Button(action: applyCustomRangeFromPickers) {
@@ -1660,6 +1726,7 @@ struct HomeView: View {
                     .font(.headline.weight(.semibold))
             }
             .buttonStyle(.plain)
+            .iconButtonA11y(label: "Apply date range", hint: "Updates the widgets to the selected range.")
             .disabled(disabled)
         }
     }
@@ -1678,6 +1745,7 @@ struct HomeView: View {
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
+            .iconButtonA11y(label: "Choose period", hint: "Shows period options.")
         } else {
             Menu {
                 periodMenuItems
@@ -1685,22 +1753,26 @@ struct HomeView: View {
                 Image(systemName: "calendar")
                     .font(.headline.weight(.semibold))
             }
+            .iconButtonA11y(label: "Choose period", hint: "Shows period options.")
         }
     }
 
     @ViewBuilder
     private var periodMenuItems: some View {
         ForEach(BudgetPeriod.selectableCases) { period in
+            let isSelected = period == vm.period && !vm.isUsingCustomRange
             Button {
                 applyPeriod(period)
             } label: {
                 HStack {
                     Text(period.displayName)
-                    if period == vm.period, !vm.isUsingCustomRange {
+                    if isSelected {
                         Image(systemName: "checkmark")
+                            .hideDecorative()
                     }
                 }
             }
+            .accessibilityLabel(Text(isSelected ? "\(period.displayName), selected" : period.displayName))
         }
     }
 
@@ -2045,6 +2117,7 @@ private struct MetricDetailView: View {
     @State private var scenarioWidth: CGFloat = 0
     @AppStorage("homeAvailabilitySegment") private var detailAvailabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var detailAvailabilitySegment: CategoryAvailabilitySegment {
         CategoryAvailabilitySegment(rawValue: detailAvailabilitySegmentRawValue) ?? .combined
     }
@@ -2210,87 +2283,109 @@ private struct MetricDetailView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        Chart(section.buckets) { item in
-                            let norm = max(min(item.amount / maxAmount, 1), 0)
-                            let gradientColors = spendGradientColors(for: item, summary: summary, maxColors: 4)
-                            let gradient = LinearGradient(
-                                colors: gradientColors.map { $0.opacity(0.4 + 0.5 * norm) },
-                                startPoint: orientation == .horizontal ? .leading : .top,
-                                endPoint: orientation == .horizontal ? .trailing : .bottom
-                            )
-                            if orientation == .horizontal {
-                                BarMark(
-                                    x: .value("Amount", item.amount),
-                                    y: .value("Period", item.label)
+                        GeometryReader { geo in
+                            let spacing: CGFloat = 8
+                            let count = max(section.buckets.count, 1)
+                            let displayLabels = section.buckets.map(\.label)
+                            let barThickness: CGFloat = {
+                                if orientation == .horizontal {
+                                    let rowHeight = max((geo.size.height - spacing * CGFloat(count - 1)) / CGFloat(count), 14)
+                                    let baseThickness = max(rowHeight - 6, 6)
+                                    return HomeView.adjustedSpendBarThickness(baseThickness)
+                                } else {
+                                    let minBarWidth: CGFloat = 10
+                                    let barWidth = max((geo.size.width - spacing * CGFloat(count - 1)) / CGFloat(count), minBarWidth)
+                                    let baseThickness = max(barWidth, 6)
+                                    return HomeView.adjustedSpendBarThickness(baseThickness)
+                                }
+                            }()
+                            let chart = Chart(section.buckets) { item in
+                                let norm = max(min(item.amount / maxAmount, 1), 0)
+                                let gradientColors = spendGradientColors(for: item, summary: summary, maxColors: 4)
+                                let gradient = LinearGradient(
+                                    colors: gradientColors.map { $0.opacity(0.4 + 0.5 * norm) },
+                                    startPoint: orientation == .horizontal ? .leading : .top,
+                                    endPoint: orientation == .horizontal ? .trailing : .bottom
                                 )
-                                .foregroundStyle(gradient)
-                                .cornerRadius(3)
-                            } else {
-                                BarMark(
-                                    x: .value("Period", item.label),
-                                    y: .value("Amount", item.amount)
-                                )
-                                .foregroundStyle(gradient)
-                                .cornerRadius(3)
+                                if orientation == .horizontal {
+                                    BarMark(
+                                        x: .value("Amount", item.amount),
+                                        y: .value("Period", item.label),
+                                        height: .fixed(barThickness)
+                                    )
+                                    .foregroundStyle(gradient)
+                                    .cornerRadius(3)
+                                } else {
+                                    BarMark(
+                                        x: .value("Period", item.label),
+                                        y: .value("Amount", item.amount),
+                                        width: .fixed(barThickness)
+                                    )
+                                    .foregroundStyle(gradient)
+                                    .cornerRadius(3)
+                                }
                             }
-                        }
-                        .chartOverlay { proxy in
-                            GeometryReader { geo in
-                                Rectangle().fill(.clear).contentShape(Rectangle())
-                                    .simultaneousGesture(
-                                        SpatialTapGesture()
-                                            .onEnded { value in
-                                                let origin = geo[proxy.plotAreaFrame].origin
-                                                let location = CGPoint(
-                                                    x: value.location.x - origin.x,
-                                                    y: value.location.y - origin.y
-                                                )
-                                                if orientation == .horizontal {
-                                                    if let label: String = proxy.value(atY: location.y) {
-                                                        toggleSpendSelection(in: section, label: label)
-                                                    }
-                                                } else {
-                                                    if let label: String = proxy.value(atX: location.x) {
-                                                        toggleSpendSelection(in: section, label: label)
+                            .chartOverlay { proxy in
+                                GeometryReader { geo in
+                                    Rectangle().fill(.clear).contentShape(Rectangle())
+                                        .simultaneousGesture(
+                                            SpatialTapGesture()
+                                                .onEnded { value in
+                                                    let origin = geo[proxy.plotAreaFrame].origin
+                                                    let location = CGPoint(
+                                                        x: value.location.x - origin.x,
+                                                        y: value.location.y - origin.y
+                                                    )
+                                                    if orientation == .horizontal {
+                                                        if let label: String = proxy.value(atY: location.y) {
+                                                            toggleSpendSelection(in: section, label: label)
+                                                        }
+                                                    } else {
+                                                        if let label: String = proxy.value(atX: location.x) {
+                                                            toggleSpendSelection(in: section, label: label)
+                                                        }
                                                     }
                                                 }
-                                            }
-                                    )
-                            }
-                        }
-                        .chartYAxis {
-                            if orientation == .horizontal {
-                                AxisMarks(position: .leading, values: section.buckets.map(\.label)) { _ in
-                                    AxisValueLabel()
-                                }
-                            } else {
-                                AxisMarks(position: .leading) { value in
-                                    if let val = value.as(Double.self) {
-                                        AxisGridLine()
-                                        AxisTick()
-                                        AxisValueLabel(formatCurrency(val))
-                                    }
+                                        )
                                 }
                             }
-                        }
-                        .chartXAxis {
-                            if orientation == .horizontal {
-                                AxisMarks(position: .bottom) { value in
-                                    if let val = value.as(Double.self) {
-                                        AxisGridLine()
-                                        AxisTick()
-                                        AxisValueLabel(formatCurrency(val))
-                                    }
-                                }
-                            } else {
-                                AxisMarks(position: .bottom, values: section.buckets.map(\.label)) { value in
-                                    if let label = value.as(String.self) {
-                                        AxisTick()
+                            .chartYAxis {
+                                if orientation == .horizontal {
+                                    AxisMarks(values: displayLabels) { value in
                                         AxisValueLabel {
-                                            Text(String(label.prefix(1)))
+                                            if let label = value.as(String.self) {
+                                                Text(displayLabel(label, period: resolved))
+                                                    .font(.caption2)
+                                                    .foregroundStyle(.secondary)
+                                                    .lineLimit(1)
+                                            }
                                         }
                                     }
                                 }
+                            }
+                            .chartXAxis {
+                                if orientation == .vertical {
+                                    AxisMarks(values: displayLabels) { value in
+                                        AxisValueLabel {
+                                            if let label = value.as(String.self) {
+                                                Text(displayLabel(label, period: resolved))
+                                                    .font(.caption2)
+                                                    .foregroundStyle(.secondary)
+                                                    .lineLimit(1)
+                                                    .minimumScaleFactor(0.8)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            .accessibilityLabel(Text("Day-of-week spend"))
+                            .accessibilityValue(Text(weekdaySectionSummary(section)))
+                            if orientation == .horizontal {
+                                chart
+                                    .chartXScale(domain: 0...maxAmount)
+                            } else {
+                                chart
+                                    .chartYScale(domain: 0...maxAmount)
                             }
                         }
                         .frame(height: orientation == .horizontal ? 180 : 200)
@@ -2326,9 +2421,11 @@ private struct MetricDetailView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(filtered) { cap in
+                    let statusText = cap.over ? "Over cap" : (cap.near ? "Near cap" : "Within cap")
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Circle().fill(cap.color).frame(width: 10, height: 10)
+                                .hideDecorative()
                             Text(cap.name)
                                 .font(.ubDetailLabel.weight(.semibold))
                             Spacer()
@@ -2358,9 +2455,19 @@ private struct MetricDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(cap.name))
+                    .accessibilityValue(Text("\(statusText), Spent \(formatCurrency(cap.amount)), Cap \(formatCurrency(cap.cap))"))
                 }
             }
         }
+    }
+
+    private func displayLabel(_ label: String, period: BudgetPeriod) -> String {
+        if period == .yearly, let first = label.first {
+            return String(first)
+        }
+        return label
     }
 
 
@@ -2437,7 +2544,7 @@ private struct MetricDetailView: View {
                     },
                     onDelete: {
                         deletePlannedExpense(expense)
-                        withAnimation { hasDeletedNextExpense = true }
+                        withAnimation(reduceMotion ? nil : .default) { hasDeletedNextExpense = true }
                     }
                 )
             } else {
@@ -2472,7 +2579,7 @@ private struct MetricDetailView: View {
                         }
                     }
                     heatmapCategoryButton(title: showAllCategories ? "Hide All Categories" : "Show All Categories") {
-                        withAnimation(.spring()) { showAllCategories.toggle() }
+                        withAnimation(reduceMotion ? nil : .spring()) { showAllCategories.toggle() }
                     }
                     if showAllCategories {
                         categoriesCompactList(allCategories, total: totalForList)
@@ -2512,6 +2619,7 @@ private struct MetricDetailView: View {
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                            .accessibilityHint(Text(isExpanded ? "Collapses category details." : "Expands category details."))
 
                         if isExpanded {
                             expandedCategoryExpensesView
@@ -2600,6 +2708,9 @@ private struct MetricDetailView: View {
                 .monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(expense.title))
+        .accessibilityValue(Text("\(expenseDateString(expense.date)), \(formatCurrency(expense.amount))"))
     }
 
     @ViewBuilder
@@ -3016,6 +3127,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             Text(value)
                 .font(.ubMetricValue)
         }
+        .combineChildrenForA11y()
     }
 
     // MARK: Income Sections
@@ -3247,6 +3359,12 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                             )
                     }
                 }
+                .accessibilityLabel(Text("Income timeline"))
+                .accessibilityValue(Text(timelineAccessibilitySummary(
+                    plannedSeries: plannedSeries,
+                    actualSeries: actualLineSeries,
+                    receiptPoints: receiptPoints
+                )))
 
                 if let selected = timelineSelection {
                     Text("\(dateString(selected.date)) • \(formatCurrency(selected.value))")
@@ -3299,6 +3417,8 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                         }
                     }
                 }
+                .accessibilityLabel(Text("Income by period"))
+                .accessibilityValue(Text(incomeMoMSummary(buckets: incomeBuckets)))
                 .frame(height: 180)
             }
         }
@@ -3420,6 +3540,61 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         let end = startOfDay(range.upperBound)
         if start == end { return [start] }
         return [start, end]
+    }
+
+    private func timelineAccessibilitySummary(
+        plannedSeries: [DatedValue],
+        actualSeries: [DatedValue],
+        receiptPoints: [DatedValue]
+    ) -> String {
+        var parts: [String] = []
+        if let latestDate = (actualSeries.last?.date ?? plannedSeries.last?.date) {
+            parts.append(dateString(latestDate))
+        }
+        if let planned = plannedSeries.last?.value {
+            parts.append("Planned \(formatCurrency(planned))")
+        }
+        if let actual = actualSeries.last?.value {
+            parts.append("Actual \(formatCurrency(actual))")
+        }
+        if !receiptPoints.isEmpty {
+            parts.append("\(receiptPoints.count) receipts")
+        }
+        return parts.isEmpty ? "No timeline data." : parts.joined(separator: ", ")
+    }
+
+    private func incomeMoMSummary(buckets: [IncomeBucket]) -> String {
+        guard let latest = buckets.last else { return "No income history." }
+        return "Latest \(latest.label): \(formatCurrency(latest.total))"
+    }
+
+    private func weekdaySectionSummary(_ section: SpendChartSection) -> String {
+        guard let maxItem = section.buckets.max(by: { $0.amount < $1.amount }) else {
+            return "No spending data."
+        }
+        return "Highest \(maxItem.label): \(formatCurrency(maxItem.amount))"
+    }
+
+    private func expenseIncomeSummary(expensePoints: [DatedValue], incomePoints: [DatedValue], plannedPoints: [DatedValue]) -> String {
+        var parts: [String] = []
+        if let latestDate = (expensePoints.last?.date ?? incomePoints.last?.date ?? plannedPoints.last?.date) {
+            parts.append(dateString(latestDate))
+        }
+        if let expense = expensePoints.last?.value {
+            parts.append("Expenses \(formatCurrency(expense))")
+        }
+        if let income = incomePoints.last?.value {
+            parts.append("Income \(formatCurrency(income))")
+        }
+        if let planned = plannedPoints.last?.value {
+            parts.append("Planned \(formatCurrency(planned))")
+        }
+        return parts.isEmpty ? "No expense or income data." : parts.joined(separator: ", ")
+    }
+
+    private func savingsSummary(points: [SavingsPoint]) -> String {
+        guard let latest = points.last else { return "No savings data." }
+        return "\(dateString(latest.date)), actual \(formatCurrency(latest.actual)), projected \(formatCurrency(latest.projected))"
     }
 
     // MARK: Timeline & Pace Helpers
@@ -4015,6 +4190,12 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                         )
                 }
             }
+            .accessibilityLabel(Text("Expense and income trend"))
+            .accessibilityValue(Text(expenseIncomeSummary(
+                expensePoints: expensePoints,
+                incomePoints: incomePoints,
+                plannedPoints: plannedPoints
+            )))
 
             HStack(spacing: 12) {
                 Label("Expenses", systemImage: "circle.fill")
@@ -4128,6 +4309,8 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                             )
                     }
                 }
+                .accessibilityLabel(Text("Savings trend"))
+                .accessibilityValue(Text(savingsSummary(points: points)))
 
                 HStack(spacing: 12) {
                     Label("Actual", systemImage: "circle.fill")
@@ -4173,6 +4356,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         let share = max(min(cat.amount / max(total, 1), 1), 0)
         return HStack {
             Circle().fill(color).frame(width: 10, height: 10)
+                .hideDecorative()
             Text(cat.categoryName)
                 .font(.subheadline.weight(.semibold))
             Spacer()
@@ -4182,6 +4366,9 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(cat.categoryName))
+        .accessibilityValue(Text("\(formatCurrency(cat.amount)), \(String(format: "%.0f%%", share * 100))"))
     }
 
 }
@@ -4225,6 +4412,11 @@ private struct NextPlannedDetailRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityRow(
+            label: snapshot.title,
+            value: "\(shortDate(snapshot.date)), Planned \(formatCurrency(snapshot.plannedAmount)), Actual \(formatCurrency(snapshot.actualAmount))",
+            hint: "Swipe for actions."
+        )
         .contentShape(Rectangle())
         .unifiedSwipeActions(
             UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
@@ -4301,6 +4493,7 @@ private struct PresetExpenseRowView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .combineChildrenForA11y()
     }
 }
 
@@ -4332,6 +4525,7 @@ private struct NextPlannedExpenseWidgetRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .combineChildrenForA11y()
     }
 
     @ViewBuilder
@@ -4365,6 +4559,7 @@ private struct NextPlannedPresetsView: View {
     @State private var hasDeletedNextExpense = false
     @State private var editingExpenseBox: ExpenseBox?
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private struct ExpenseBox: Identifiable {
         let id: NSManagedObjectID
@@ -4401,7 +4596,7 @@ private struct NextPlannedPresetsView: View {
                     onEdit: { presentEditor(for: nextExpense) },
                     onDelete: {
                         deletePlannedExpense(for: nextExpense)
-                        withAnimation { hasDeletedNextExpense = true }
+                        withAnimation(reduceMotion ? nil : .default) { hasDeletedNextExpense = true }
                     }
                 )
             }
@@ -5051,18 +5246,14 @@ private struct CategoryDonutView: View {
                     )
                     .foregroundStyle(style(for: slice))
                     .shadow(
-                        color: slice.name == "Savings"
-                            ? (savingsColor ?? Color.green).opacity(0.45)
-                            : .clear,
-                        radius: slice.name == "Savings" ? 2.5 : 0,
+                        color: glowColor(for: slice)?.opacity(0.45) ?? .clear,
+                        radius: glowColor(for: slice) != nil ? 2.5 : 0,
                         x: 0,
                         y: 0
                     )
                     .shadow(
-                        color: slice.name == "Savings"
-                            ? (savingsColor ?? Color.green).opacity(0.3)
-                            : .clear,
-                        radius: slice.name == "Savings" ? 6 : 0,
+                        color: glowColor(for: slice)?.opacity(0.3) ?? .clear,
+                        radius: glowColor(for: slice) != nil ? 6 : 0,
                         x: 0,
                         y: 0
                     )
@@ -5078,7 +5269,7 @@ private struct CategoryDonutView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 8)
                             .opacity(0.9)
-                            .shadow(color: savingsColor?.opacity(slice.name == "Savings" ? 0.35 : 0) ?? .clear, radius: 4, x: 0, y: 0)
+                            .shadow(color: glowColor(for: slice)?.opacity(0.35) ?? .clear, radius: 4, x: 0, y: 0)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -5107,6 +5298,9 @@ private struct CategoryDonutView: View {
                     .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(centerTitle))
+        .accessibilityValue(Text(accessibilitySummary))
     }
 
     private var centerStyle: AnyShapeStyle {
@@ -5119,6 +5313,32 @@ private struct CategoryDonutView: View {
         return AnyShapeStyle(uniformAngularGradient(Color.primary))
     }
 
+    private var accessibilitySummary: String {
+        let topSlices = slices.sorted { $0.amount > $1.amount }.prefix(3)
+        let topText = topSlices.map { "\($0.name) \(formatCurrency($0.amount))" }.joined(separator: ", ")
+        if topText.isEmpty {
+            return centerValue
+        }
+        return "\(centerValue). Top categories: \(topText)"
+    }
+
+    private func formatCurrency(_ amount: Double) -> String {
+        if #available(iOS 15.0, macCatalyst 15.0, *) {
+            let currencyCode: String
+            if #available(iOS 16.0, macCatalyst 16.0, *) {
+                currencyCode = Locale.current.currency?.identifier ?? "USD"
+            } else {
+                currencyCode = Locale.current.currencyCode ?? "USD"
+            }
+            return amount.formatted(.currency(code: currencyCode))
+        } else {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .currency
+            formatter.currencyCode = Locale.current.currencyCode ?? "USD"
+            return formatter.string(from: amount as NSNumber) ?? String(format: "%.2f", amount)
+        }
+    }
+
     private func style(for slice: CategorySlice) -> AnyShapeStyle {
         if slice.name == "Savings" {
             if let savingsColor {
@@ -5126,6 +5346,16 @@ private struct CategoryDonutView: View {
             }
         }
         return AnyShapeStyle(uniformAngularGradient(slice.color))
+    }
+
+    private func glowColor(for slice: CategorySlice) -> Color? {
+        if slice.name == "Savings" {
+            return savingsColor ?? Color.green
+        }
+        if slice.name == "Deficit" {
+            return slice.color
+        }
+        return nil
     }
 
     private var specialOutline: (start: Angle, end: Angle, color: Color)? {
@@ -5178,6 +5408,7 @@ private struct CategoryTopRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Circle().fill(slice.color).frame(width: 10, height: 10)
+                    .hideDecorative()
                 Text(slice.name)
                     .font(.subheadline.weight(.semibold))
                 Spacer()
@@ -5194,6 +5425,9 @@ private struct CategoryTopRow: View {
             }
             .frame(height: 8)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(slice.name))
+        .accessibilityValue(Text("\(formatCurrency(slice.amount)), \(String(format: "%.0f%%", share * 100))"))
     }
 
     private func formatCurrency(_ amount: Double) -> String {

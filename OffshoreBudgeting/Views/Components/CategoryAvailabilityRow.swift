@@ -11,9 +11,18 @@ struct CategoryAvailabilityRow: View {
             }
             return item.available
         }()
+        let maxText = item.cap.map { currencyFormatter($0) } ?? "No max"
+        let availableText = currencyFormatter(availableDisplay)
+        let spentText = currencyFormatter(item.spent)
+        let statusText: String = {
+            if item.over { return "Over cap" }
+            if item.near { return "Near cap" }
+            return ""
+        }()
 
         HStack(alignment: .center, spacing: 12) {
             Circle().fill(item.color.opacity(0.75)).frame(width: 12, height: 12)
+                .hideDecorative()
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.name)
                     .font(.ubDetailLabel.weight(.semibold))
@@ -46,5 +55,13 @@ struct CategoryAvailabilityRow: View {
             }
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(item.name))
+        .accessibilityValue(Text([
+            "Max \(maxText)",
+            "Available \(availableText)",
+            "Spent \(spentText)",
+            statusText
+        ].filter { !$0.isEmpty }.joined(separator: ", ")))
     }
 }

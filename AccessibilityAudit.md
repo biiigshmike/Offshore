@@ -28,3 +28,11 @@
 - [ ] VoiceOver pass completed.
 - [ ] Switch Control pass completed.
 - [ ] Reduced Motion and Increased Contrast verified.
+
+## Phase A Patterns (Home, Budgets, Budget Details)
+- Icon-only buttons use `iconButtonA11y(label:hint:)` with specific labels and concise hints.
+- Decorative icons/shapes use `hideDecorative()` to avoid duplicate announcements.
+- Interactive rows use `accessibilityRow(label:value:hint:)` to combine content into a single element.
+- Static multi-line blocks use `combineChildrenForA11y()` or explicit label/value to avoid fragmented focus.
+- Charts/gauges provide `accessibilityLabel` and `accessibilityValue` summaries (latest values or top categories).
+- Animations respect Reduce Motion by passing `nil` when `accessibilityReduceMotion` is enabled.

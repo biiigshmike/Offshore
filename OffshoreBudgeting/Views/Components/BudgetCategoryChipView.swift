@@ -13,8 +13,12 @@ struct BudgetCategoryChipView: View {
 
     var body: some View {
         let dot = UBColorFromHex(hex) ?? .secondary
+        let valueText = formatCurrency(amount)
+        let statusText = isExceeded ? "Over cap" : ""
+        let hintText = isSelected ? "Selected. Double-tap to clear filter." : "Filters by category."
         let chipLabel = HStack(spacing: 8) {
             Circle().fill(dot).frame(width: 8, height: 8)
+                .hideDecorative()
             Text(title).font(.subheadline.weight(.medium))
             Text(formatCurrency(amount))
                 .font(.subheadline.weight(.semibold))
@@ -42,12 +46,22 @@ struct BudgetCategoryChipView: View {
             .clipShape(Capsule())
             .compositingGroup()
             .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .accessibilityRow(
+                label: title,
+                value: [valueText, statusText].filter { !$0.isEmpty }.joined(separator: ", "),
+                hint: hintText
+            )
         } else {
             Button(action: onTap) {
                 chipLabel
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .accessibilityRow(
+                label: title,
+                value: [valueText, statusText].filter { !$0.isEmpty }.joined(separator: ", "),
+                hint: hintText
+            )
             .frame(minHeight: 44, maxHeight: 44)
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)

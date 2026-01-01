@@ -351,6 +351,7 @@ struct BudgetDetailsView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
+            .iconButtonA11y(label: "Add", hint: "Shows add options.")
 
             Menu {
                 Button("Manage Cards") { isPresentingManageCards = true }
@@ -364,6 +365,7 @@ struct BudgetDetailsView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
+            .iconButtonA11y(label: "Budget Actions", hint: "Shows budget options.")
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
@@ -758,6 +760,9 @@ struct BudgetDetailsView: View {
                                 endPoint: .trailing
                             )
                         )
+                        .accessibilityLabel(Text("Current spending"))
+                        .accessibilityValue(Text(formatCurrency(data.current)))
+                        .accessibilityHint(Text("Shows current spending within the cap range."))
 
                         HStack {
                             Text(formatCurrency(lowerBound)).foregroundStyle(.secondary)

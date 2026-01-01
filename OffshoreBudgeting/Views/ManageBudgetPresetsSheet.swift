@@ -169,7 +169,7 @@ struct ManageBudgetPresetsSheet: View {
     private var emptyState: some View {
         VStack(spacing: DS.Spacing.m) {
             Image(systemName: "list.bullet.rectangle")
-                .font(.system(size: 44, weight: .regular))
+                .font(.title2)
                 .foregroundStyle(.secondary)
                 .hideDecorative()
             Text("No Presets Available")

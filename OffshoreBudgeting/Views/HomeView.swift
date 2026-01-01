@@ -9,6 +9,8 @@ import UIKit
 import AppKit
 #endif
 
+private let homeSecondaryTextColor = Color.primary.opacity(0.85)
+
 // MARK: - Shared Models
 /// Generic spend bucket used across widget + detail charts.
 private struct SpendBucket: Identifiable {
@@ -326,18 +328,7 @@ struct HomeView: View {
         case expenseToIncome, savingsOutlook
 
         var titleColor: Color {
-            switch self {
-            case .budgets: return HomePalette.budgets
-            case .income:  return HomePalette.income
-            case .presets: return HomePalette.presets
-            case .cards:   return HomePalette.cards
-            case .dayOfWeek: return HomePalette.presets
-            case .caps: return HomePalette.presets
-            case .availability: return HomePalette.presets
-            case .scenario: return HomePalette.income
-            case .expenseToIncome: return HomePalette.budgets
-            case .savingsOutlook: return HomePalette.budgets
-            }
+            Color.primary
         }
     }
 
@@ -461,7 +452,6 @@ struct HomeView: View {
         let rangeLabel = Text(rangeDescription(currentRange))
             .font(.headline.weight(.semibold))
             .lineLimit(isCompactDateRow ? 2 : 1)
-            .minimumScaleFactor(0.75)
             .multilineTextAlignment(.leading)
 
         let controls = dateRowControls(disabled: applyDisabled)
@@ -531,6 +521,7 @@ struct HomeView: View {
             HStack {
                 Text("Widgets")
                     .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
                 Spacer()
                 editWidgetsButton
             }
@@ -597,9 +588,12 @@ struct HomeView: View {
                     draggingID = nil
                 }
             }
+            .font(.body.weight(.semibold))
             .buttonStyle(.glass)
             .tint(.clear)
             .foregroundStyle(.primary)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
         } else {
             Button(isEditing ? "Done" : "Edit") {
                 withAnimation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.9)) {
@@ -607,7 +601,12 @@ struct HomeView: View {
                     draggingID = nil
                 }
             }
+            .font(.body.weight(.semibold))
             .buttonStyle(.plain)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
         }
     }
 
@@ -621,24 +620,24 @@ struct HomeView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Actual Income")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                            .foregroundStyle(widgetSecondaryTextColor)
                         Text(formatCurrency(summary.actualIncomeTotal))
                             .font(.headline)
                     }
                     Spacer()
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Planned Income")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                            .foregroundStyle(widgetSecondaryTextColor)
                         Text(formatCurrency(summary.potentialIncomeTotal))
                             .font(.headline)
                     }
                 }
                 HStack(spacing: 8) {
                     Text("0%")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.callout)
+                        .foregroundStyle(widgetSecondaryTextColor)
                     Gauge(value: percent, in: 0...1) {
                         EmptyView()
                     }
@@ -646,7 +645,7 @@ struct HomeView: View {
                     .tint(Gradient(colors: [HomeView.HomePalette.income.opacity(0.25), HomeView.HomePalette.income]))
                     .frame(maxWidth: .infinity)
                     Text(String(format: "%.0f%%", percent * 100))
-                        .font(.footnote.weight(.semibold))
+                        .font(.callout.weight(.semibold))
                         .foregroundStyle(.primary)
                 }
             }
@@ -671,24 +670,24 @@ struct HomeView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Expenses")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                            .foregroundStyle(widgetSecondaryTextColor)
                         Text(formatCurrency(metrics.expenses))
                             .font(.headline)
                     }
                     Spacer()
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Actual Income")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                            .foregroundStyle(widgetSecondaryTextColor)
                         Text(formatCurrency(summary.actualIncomeTotal))
                             .font(.headline)
                     }
                 }
                 HStack(spacing: 8) {
                     Text("0%")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.callout)
+                        .foregroundStyle(widgetSecondaryTextColor)
                     Gauge(value: gaugeValue, in: 0...1) {
                         EmptyView()
                     }
@@ -696,7 +695,7 @@ struct HomeView: View {
                     .tint(Gradient(colors: [tint.opacity(0.25), tint]))
                     .frame(maxWidth: .infinity)
                     Text(hasReceived ? String(format: "%.0f%%", receivedPercent) : "—")
-                        .font(.footnote.weight(.semibold))
+                        .font(.callout.weight(.semibold))
                         .foregroundStyle(overReceived ? .red : .primary)
                 }
             }
@@ -740,16 +739,16 @@ struct HomeView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Projected Savings")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                            .foregroundStyle(widgetSecondaryTextColor)
                         Text(formatCurrency(projected))
                             .font(.headline)
                     }
                     Spacer()
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Actual Savings")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                            .foregroundStyle(widgetSecondaryTextColor)
                         Text(formatCurrency(actual))
                             .font(.headline)
                             .foregroundStyle(statusTint)
@@ -758,36 +757,36 @@ struct HomeView: View {
                 if projectedPositive {
                     HStack(spacing: 8) {
                         Text("0%")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                            .foregroundStyle(widgetSecondaryTextColor)
                         Gauge(value: progressValue, in: 0...1) {
                             EmptyView()
                         }
                         .gaugeStyle(.accessoryLinear)
                         .tint(Gradient(colors: [statusTint.opacity(0.25), statusTint]))
                         .frame(maxWidth: .infinity)
-                    Text(percentLabel)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(statusTint)
-                }
-            } else {
-                HStack(spacing: 8) {
-                    Text("-100%")
-                        .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        Text(percentLabel)
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(statusTint)
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        Text("-100%")
+                            .font(.callout)
+                            .foregroundStyle(widgetSecondaryTextColor)
                         Gauge(value: deficitRecovery, in: 0...1) {
                             EmptyView()
                         }
                         .gaugeStyle(.accessoryLinear)
                         .tint(Gradient(colors: [deficitTint.opacity(0.25), deficitTint]))
                         .frame(maxWidth: .infinity)
-                    Text(deficitLabel)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(deficitTint)
+                        Text(deficitLabel)
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(deficitTint)
+                    }
                 }
             }
         }
-    }
     }
 
 
@@ -810,7 +809,7 @@ struct HomeView: View {
                     )
                 } else {
                     Text("No planned expenses in this range.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(homeSecondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -852,14 +851,14 @@ struct HomeView: View {
 
                         Text("Top \(min(3, slices.count)) categories in this range.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(homeSecondaryTextColor)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             } else {
                 Text("Add expenses to see category trends.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -879,7 +878,7 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if let balance = card.balance {
                         Text("\(formatCurrency(balance))")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.title2.weight(.bold))
                     }
                 }
                 .frame(maxHeight: .infinity, alignment: .topLeading)
@@ -892,7 +891,7 @@ struct HomeView: View {
         return widgetLink(title: "Day of Week Spend", subtitle: weekdayRangeLabel, kind: .dayOfWeek, span: WidgetSpan(width: 1, height: 2), summary: summary) {
             if self.widgetBuckets.isEmpty {
                 Text("No spending yet.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 let previewPeriod = resolvedPeriod(vm.period, range: currentRange)
@@ -914,7 +913,7 @@ struct HomeView: View {
                         if let maxItem = self.widgetBuckets.max(by: { $0.amount < $1.amount }) {
                             Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(homeSecondaryTextColor)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
@@ -977,7 +976,7 @@ struct HomeView: View {
                                 if let label = value.as(String.self) {
                                     Text(label)
                                         .font(.caption2)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(homeSecondaryTextColor)
                                         .lineLimit(1)
                                 }
                             }
@@ -1017,9 +1016,9 @@ struct HomeView: View {
                                 if let label = value.as(String.self) {
                                     Text(label)
                                         .font(.caption2)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(homeSecondaryTextColor)
                                         .lineLimit(1)
-                                        .minimumScaleFactor(0.8)
+                                        
                                 }
                             }
                         }
@@ -1406,7 +1405,7 @@ struct HomeView: View {
                         Spacer()
                     }
                     .font(.ubCaption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
                     .padding(.horizontal, 14)
                     .padding(.bottom, 6)
 
@@ -1416,7 +1415,7 @@ struct HomeView: View {
 
                     if pages.isEmpty {
                         Text("No categories yet.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(homeSecondaryTextColor)
                             .font(.ubCaption)
                             .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
                             .padding(.vertical, tabPadding)
@@ -1464,7 +1463,7 @@ struct HomeView: View {
                                 }
                             }
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(homeSecondaryTextColor)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
                             Spacer(minLength: 0)
@@ -1486,13 +1485,13 @@ struct HomeView: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(savingsColor)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    
                 Text("Actual Savings")
                     .font(.ubCaption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
                 Text("Tap to plan scenarios and see how much you can still save.")
                     .font(.ubCaption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .center)
@@ -1572,13 +1571,13 @@ struct HomeView: View {
                         if let subtitle {
                             Text(subtitle)
                                 .font(.ubWidgetSubtitle)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(widgetSecondaryTextColor)
                         }
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(homeSecondaryTextColor)
                         .hideDecorative()
                 }
                 body
@@ -1649,6 +1648,10 @@ struct HomeView: View {
         return widgetRangeLabel
     }
 
+    private var widgetSecondaryTextColor: Color {
+        homeSecondaryTextColor
+    }
+
     private var heatmapBackground: some View {
         LinearGradient(
             colors: [
@@ -1670,7 +1673,7 @@ struct HomeView: View {
                 .font(.headline)
             Text("Set a budget for the \(vm.period.displayName.lowercased()) window or pick a custom date range to see widgets.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(homeSecondaryTextColor)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
@@ -1719,6 +1722,8 @@ struct HomeView: View {
             .buttonBorderShape(.circle)
             .tint(.accentColor)
             .iconButtonA11y(label: "Apply date range", hint: "Updates the widgets to the selected range.")
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
             .disabled(disabled)
         } else {
             Button(action: applyCustomRangeFromPickers) {
@@ -1727,6 +1732,8 @@ struct HomeView: View {
             }
             .buttonStyle(.plain)
             .iconButtonA11y(label: "Apply date range", hint: "Updates the widgets to the selected range.")
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
             .disabled(disabled)
         }
     }
@@ -2270,7 +2277,7 @@ private struct MetricDetailView: View {
                 .font(.headline)
             if spendSections.isEmpty {
                 Text("No spending in this range.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
             } else {
                 ForEach(spendSections) { section in
                     let orientation = detailBarOrientation(for: resolved, bucketCount: section.buckets.count)
@@ -2281,7 +2288,7 @@ private struct MetricDetailView: View {
                         if let subtitle = section.subtitle {
                             Text(subtitle)
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(homeSecondaryTextColor)
                         }
                         GeometryReader { geo in
                             let spacing: CGFloat = 8
@@ -2356,7 +2363,7 @@ private struct MetricDetailView: View {
                                             if let label = value.as(String.self) {
                                                 Text(displayLabel(label, period: resolved))
                                                     .font(.caption2)
-                                                    .foregroundStyle(.secondary)
+                                                    .foregroundStyle(homeSecondaryTextColor)
                                                     .lineLimit(1)
                                             }
                                         }
@@ -2370,9 +2377,9 @@ private struct MetricDetailView: View {
                                             if let label = value.as(String.self) {
                                                 Text(displayLabel(label, period: resolved))
                                                     .font(.caption2)
-                                                    .foregroundStyle(.secondary)
+                                                    .foregroundStyle(homeSecondaryTextColor)
                                                     .lineLimit(1)
-                                                    .minimumScaleFactor(0.8)
+                                                    
                                             }
                                         }
                                     }
@@ -2395,7 +2402,7 @@ private struct MetricDetailView: View {
                         if let maxItem = section.buckets.max(by: { $0.amount < $1.amount }) {
                             Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(homeSecondaryTextColor)
                         }
                     }
                 }
@@ -2418,7 +2425,7 @@ private struct MetricDetailView: View {
             .padding(.trailing, 6)
             if filtered.isEmpty {
                 Text("No caps found for this range.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
             } else {
                 ForEach(filtered) { cap in
                     let statusText = cap.over ? "Over cap" : (cap.near ? "Near cap" : "Within cap")
@@ -2448,11 +2455,11 @@ private struct MetricDetailView: View {
                         HStack {
                             Text("Spent: \(formatCurrency(cap.amount))")
                                 .font(.ubCaption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(homeSecondaryTextColor)
                             Spacer()
                             Text("Cap: \(formatCurrency(cap.cap))")
                                 .font(.ubCaption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(homeSecondaryTextColor)
                         }
                     }
                     .accessibilityElement(children: .ignore)
@@ -2549,7 +2556,7 @@ private struct MetricDetailView: View {
                 )
             } else {
                 Text("No planned expenses in this range.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
             }
         }
     }
@@ -2587,7 +2594,7 @@ private struct MetricDetailView: View {
                 }
             } else {
                 Text("No category data in this range.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
             }
         }
     }
@@ -2606,7 +2613,7 @@ private struct MetricDetailView: View {
             if items.isEmpty {
                 Text("No categories or caps available.")
                     .font(.ubBody)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
             } else {
                 VStack(spacing: 10) {
                     ForEach(items) { item in
@@ -2648,7 +2655,7 @@ private struct MetricDetailView: View {
             if items.isEmpty {
                 Text("No categories or caps available.")
                     .font(.ubBody)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
             } else {
                 scenarioPlanner(items: items, remainingIncome: remainingIncome, segment: segment)
             }
@@ -2675,7 +2682,7 @@ private struct MetricDetailView: View {
             } else if expandedCategoryExpenses.isEmpty {
                 Text("No expenses in this range.")
                     .font(.ubCaption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.leading, 22)
             } else {
@@ -2699,7 +2706,7 @@ private struct MetricDetailView: View {
                     categoryExpenseCardPreview(expense.card)
                     Text(expenseDateString(expense.date))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(homeSecondaryTextColor)
                 }
             }
             Spacer(minLength: 8)
@@ -2856,7 +2863,7 @@ private struct MetricDetailView: View {
                 .font(.ubSectionTitle)
             Text("Adjust category allocations to see how much you could still save.")
                 .font(.ubBody)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(homeSecondaryTextColor)
 
             HStack {
                 Text(potentialSavings >= 0 ? "Potential Savings" : "Over-allocated")
@@ -2881,7 +2888,7 @@ private struct MetricDetailView: View {
                         .buttonStyle(.plain)
                 }
             }
-            .foregroundStyle(.secondary)
+            .foregroundStyle(homeSecondaryTextColor)
             .frame(maxWidth: .infinity, alignment: .leading)
             .disabled(scenarioAllocations.isEmpty)
             .opacity(scenarioAllocations.isEmpty ? 0.5 : 1)
@@ -3122,7 +3129,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         HStack {
             Text(label)
                 .font(.ubBody)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(homeSecondaryTextColor)
             Spacer()
             Text(value)
                 .font(.ubMetricValue)
@@ -3275,7 +3282,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private var timelineChart: some View {
         if incomeTimeline.isEmpty {
             Text("No income in this range.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(homeSecondaryTextColor)
         } else {
             let plannedLineColor = HomeView.HomePalette.income
             let actualLineColor = Color.gray
@@ -3369,7 +3376,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 if let selected = timelineSelection {
                     Text("\(dateString(selected.date)) • \(formatCurrency(selected.value))")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(homeSecondaryTextColor)
                 } else {
                     HStack(spacing: 16) {
                         Label("Planned Income", systemImage: "circle.fill")
@@ -3399,7 +3406,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             }
             if incomeBuckets.isEmpty {
                 Text("No income history for this period size.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
             } else {
                 Chart(incomeBuckets) { bucket in
                     BarMark(
@@ -3951,7 +3958,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                                     .frame(width: 6, height: 6)
                                 Text(name)
                                 Text(formatCurrency(entry.value))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(homeSecondaryTextColor)
                             }
                         }
                     }
@@ -4119,7 +4126,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private func expenseIncomeChart(expensePoints: [DatedValue], incomePoints: [DatedValue], plannedPoints: [DatedValue]) -> some View {
         if expensePoints.isEmpty && incomePoints.isEmpty && plannedPoints.isEmpty {
             Text("Not enough data for this range.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(homeSecondaryTextColor)
         } else {
             let chartPoints =
                 expensePoints.map { ExpenseIncomePoint(date: $0.date, value: $0.value, series: .expenses) } +
@@ -4218,11 +4225,11 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 let plannedText = planned.map { formatCurrency($0.value) } ?? "—"
                 Text("\(dateString(selected.date)) • Exp \(expenseText) • Inc \(incomeText) • Plan \(plannedText)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
             } else if let latestExpense, let latestIncome, let latestPlanned {
                 Text("Latest: \(dateString(latestExpense.date)) • Exp \(formatCurrency(latestExpense.value)) • Inc \(formatCurrency(latestIncome.value)) • Plan \(formatCurrency(latestPlanned.value))")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
             }
         }
     }
@@ -4231,7 +4238,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private func savingsChart(points: [SavingsPoint]) -> some View {
         if points.isEmpty {
             Text("Not enough data for this range.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(homeSecondaryTextColor)
         } else {
             let sampled = smoothSavings(points, maxCount: 14)
             let minVal = sampled.map { min($0.actual, $0.projected) }.min() ?? 0
@@ -4324,7 +4331,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     if let selected = savingsSelection {
                         Text("\(dateString(selected.date)) • \(formatCurrency(selected.actual)) / \(formatCurrency(selected.projected))")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(homeSecondaryTextColor)
                     }
                 }
             }
@@ -4364,7 +4371,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 .font(.subheadline)
             Text(String(format: "%.0f%%", share * 100))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(homeSecondaryTextColor)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(cat.categoryName))
@@ -4400,7 +4407,7 @@ private struct NextPlannedDetailRow: View {
                         .frame(width: symbolWidth, alignment: .leading)
                     Text(shortDate(snapshot.date))
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(homeSecondaryTextColor)
                 }
             }
             Spacer(minLength: 8)
@@ -4486,10 +4493,10 @@ private struct PresetExpenseRowView: View {
             HStack(spacing: 12) {
                 Text(amountText)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
                 Text(dateText)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -4515,7 +4522,7 @@ private struct NextPlannedExpenseWidgetRow: View {
                     .lineLimit(1)
                 Text(dateText)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
                 Text(plannedText)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
@@ -5291,7 +5298,7 @@ private struct CategoryDonutView: View {
             VStack(spacing: 4) {
                 Text(centerTitle)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
                 Text(centerValue)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(centerStyle)
@@ -5414,7 +5421,7 @@ private struct CategoryTopRow: View {
                 Spacer()
                 Text(String(format: "%.0f%%", share * 100))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(homeSecondaryTextColor)
                 Text(formatCurrency(slice.amount))
                     .font(.subheadline)
             }
@@ -5504,7 +5511,7 @@ struct PlannedRowsList: View {
     var body: some View {
         if rows.isEmpty {
             Text("No planned expenses in this period.\nPress the + to add a planned expense.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(homeSecondaryTextColor)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
                 .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
@@ -5547,7 +5554,7 @@ struct PlannedRowsList: View {
                             .frame(width: symbolWidth, alignment: .leading)
                             Text(Self.dateString(exp.transactionDate))
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(homeSecondaryTextColor)
                         }
                     }
                     Spacer(minLength: 8)
@@ -5715,7 +5722,7 @@ struct VariableRowsList: View {
     var body: some View {
         if rows.isEmpty {
             Text("No variable expenses in this period.\nTrack purchases as they happen.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(homeSecondaryTextColor)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
                 .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
@@ -5758,7 +5765,7 @@ struct VariableRowsList: View {
                             .frame(width: symbolWidth, alignment: .leading)
                             Text(Self.dateString(exp.transactionDate))
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(homeSecondaryTextColor)
                         }
                     }
                     Spacer(minLength: 8)

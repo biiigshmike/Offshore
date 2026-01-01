@@ -348,7 +348,7 @@ struct BudgetDetailsView: View {
                 Button("Add Variable Expense") { isPresentingAddVariable = true }
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.body.weight(.semibold))
                     .frame(width: 30, height: 30)
             }
             .iconButtonA11y(label: "Add", hint: "Shows add options.")
@@ -362,7 +362,7 @@ struct BudgetDetailsView: View {
                 Button("Delete Budget", role: .destructive) { isConfirmingDelete = true }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.body.weight(.semibold))
                     .frame(width: 30, height: 30)
             }
             .iconButtonA11y(label: "Budget Actions", hint: "Shows budget options.")

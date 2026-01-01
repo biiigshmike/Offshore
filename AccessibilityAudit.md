@@ -17,6 +17,7 @@
 
 ## Dynamic Type & Layout
 - [ ] Text scales appropriately at larger sizes.
+- [ ] Text uses Dynamic Type styles (avoid fixed-size fonts).
 - [ ] Content remains readable without truncation at large sizes.
 - [ ] Controls remain reachable without overlap.
 

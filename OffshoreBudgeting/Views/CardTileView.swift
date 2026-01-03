@@ -184,7 +184,7 @@ private extension CardTileView {
             Circle()
                 .fill(card.theme.selectionAccentColor.opacity(0.92))
             Image(systemName: "checkmark")
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(card.theme.selectionGlyphColor)
         }
         .frame(width: 28, height: 28)

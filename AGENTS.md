@@ -159,7 +159,7 @@ If asked to run xcodebuild:
 - Use Offshore.xcodeproj
 - Path: /OffshoreBudgeting
 - Scheme: OffshoreBudgeting
-- Destination: iPhone, osVersion: iOS 16.6
+- Destination: iPhone 16, osVersion: iOS 18.5
 
 ----------------------------------------------------------------
 CODING GUIDELINES

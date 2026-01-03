@@ -226,6 +226,7 @@ struct HomeView: View {
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.platformCapabilities) private var capabilities
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
 
@@ -254,11 +255,18 @@ struct HomeView: View {
     @State private var ubiquitousObserver: NSObjectProtocol?
     @State private var storageRefreshToken = UUID()
 
-    private let gridSpacing: CGFloat = 18
-    private let gridRowHeight: CGFloat = 170
+    @ScaledMetric(relativeTo: .body) private var gridSpacing: CGFloat = 18
+    @ScaledMetric(relativeTo: .body) private var gridRowHeight: CGFloat = 170
+    @ScaledMetric(relativeTo: .body) private var availabilityButtonSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 120
+    @ScaledMetric(relativeTo: .body) private var cardPreviewHeight: CGFloat = 76
 
     private var isCompactDateRow: Bool {
         horizontalSizeClass == .compact
+    }
+
+    private var isHighContrast: Bool {
+        colorSchemeContrast == .increased
     }
 
     private var shouldSyncWidgets: Bool {
@@ -319,7 +327,7 @@ struct HomeView: View {
         case dayOfWeek, caps, availability, scenario
         case expenseToIncome, savingsOutlook
 
-        var titleColor: Color {
+        var baseTitleColor: Color {
             switch self {
             case .budgets: return HomePalette.budgets
             case .income:  return HomePalette.income
@@ -332,6 +340,10 @@ struct HomeView: View {
             case .expenseToIncome: return HomePalette.budgets
             case .savingsOutlook: return HomePalette.budgets
             }
+        }
+
+        var highContrastTitleColor: Color {
+            return .primary
         }
     }
 
@@ -455,7 +467,6 @@ struct HomeView: View {
         let rangeLabel = Text(rangeDescription(currentRange))
             .font(.headline.weight(.semibold))
             .lineLimit(isCompactDateRow ? 2 : 1)
-            .minimumScaleFactor(0.75)
             .multilineTextAlignment(.leading)
 
         let controls = dateRowControls(disabled: applyDisabled)
@@ -525,6 +536,11 @@ struct HomeView: View {
             HStack {
                 Text("Widgets")
                     .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, isHighContrast ? 8 : 0)
+                    .padding(.vertical, isHighContrast ? 4 : 0)
+                    .background(isHighContrast ? Color.primary.opacity(0.2) : Color.clear)
+                    .clipShape(Capsule())
                 Spacer()
                 editWidgetsButton
             }
@@ -593,6 +609,10 @@ struct HomeView: View {
             .buttonStyle(.glass)
             .tint(.clear)
             .foregroundStyle(.primary)
+            .padding(.horizontal, isHighContrast ? 10 : 0)
+            .padding(.vertical, isHighContrast ? 6 : 0)
+            .background(isHighContrast ? Color.primary.opacity(0.2) : Color.clear)
+            .clipShape(Capsule())
         } else {
             Button(isEditing ? "Done" : "Edit") {
                 withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
@@ -601,37 +621,42 @@ struct HomeView: View {
                 }
             }
             .buttonStyle(.plain)
+            .foregroundStyle(.primary)
+            .padding(.horizontal, isHighContrast ? 10 : 0)
+            .padding(.vertical, isHighContrast ? 6 : 0)
+            .background(isHighContrast ? Color.primary.opacity(0.2) : Color.clear)
+            .clipShape(Capsule())
         }
     }
 
     // MARK: Widgets
     // MARK: Clarify help guide: % = received / planned
     private func incomeWidget(for summary: BudgetSummary) -> some View {
-        widgetLink(title: "Income", subtitle: widgetRangeLabel, kind: .income, span: WidgetSpan(width: 1, height: 1), summary: summary) {
+        widgetLink(title: "Income", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .income, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
                 let total = max(summary.potentialIncomeTotal, 1)
                 let percent = min(max(summary.actualIncomeTotal / total, 0), 1)
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Actual Income")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
                         Text(formatCurrency(summary.actualIncomeTotal))
                             .font(.headline)
                     }
                     Spacer()
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Planned Income")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
                         Text(formatCurrency(summary.potentialIncomeTotal))
                             .font(.headline)
                     }
                 }
                 HStack(spacing: 8) {
                     Text("0%")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
                     Gauge(value: percent, in: 0...1) {
                         EmptyView()
                     }
@@ -639,7 +664,7 @@ struct HomeView: View {
                     .tint(Gradient(colors: [HomeView.HomePalette.income.opacity(0.25), HomeView.HomePalette.income]))
                     .frame(maxWidth: .infinity)
                     Text(String(format: "%.0f%%", percent * 100))
-                        .font(.footnote.weight(.semibold))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.primary)
                 }
             }
@@ -659,38 +684,41 @@ struct HomeView: View {
         let gaugeValue = hasReceived ? min(receivedPercent / 100, 1) : (metrics.expenses > 0 ? 1 : 0)
         let overReceived = (metrics.percentOfReceived ?? 0) > 100
         let tint: Color = overReceived ? .red : .green
-        return widgetLink(title: "Expense to Income", subtitle: widgetRangeLabel, kind: .expenseToIncome, span: WidgetSpan(width: 1, height: 1), summary: summary) {
+        return widgetLink(title: "Expense to Income", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .expenseToIncome, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Expenses")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
                         Text(formatCurrency(metrics.expenses))
                             .font(.headline)
                     }
                     Spacer()
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Actual Income")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
                         Text(formatCurrency(summary.actualIncomeTotal))
                             .font(.headline)
                     }
                 }
                 HStack(spacing: 8) {
                     Text("0%")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
                     Gauge(value: gaugeValue, in: 0...1) {
                         EmptyView()
                     }
                     .gaugeStyle(.accessoryLinear)
                     .tint(Gradient(colors: [tint.opacity(0.25), tint]))
                     .frame(maxWidth: .infinity)
+                    let percentColor: Color = isHighContrast
+                        ? Color.primary
+                        : (overReceived ? Color.red : Color.primary)
                     Text(hasReceived ? String(format: "%.0f%%", receivedPercent) : "—")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(overReceived ? .red : .primary)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(percentColor)
                 }
             }
         }
@@ -728,59 +756,59 @@ struct HomeView: View {
             if deficitRecovery >= 0.5 { return .orange }
             return .red
         }()
-        return widgetLink(title: "Savings Outlook", subtitle: widgetRangeLabel, kind: .savingsOutlook, span: WidgetSpan(width: 1, height: 1), summary: summary) {
+        return widgetLink(title: "Savings Outlook", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .savingsOutlook, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Projected Savings")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
                         Text(formatCurrency(projected))
                             .font(.headline)
                     }
                     Spacer()
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Actual Savings")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
                         Text(formatCurrency(actual))
                             .font(.headline)
-                            .foregroundStyle(statusTint)
+                            .foregroundStyle(isHighContrast ? .primary : statusTint)
                     }
                 }
                 if projectedPositive {
                     HStack(spacing: 8) {
                         Text("0%")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
                         Gauge(value: progressValue, in: 0...1) {
                             EmptyView()
                         }
                         .gaugeStyle(.accessoryLinear)
                         .tint(Gradient(colors: [statusTint.opacity(0.25), statusTint]))
                         .frame(maxWidth: .infinity)
-                    Text(percentLabel)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(statusTint)
-                }
-            } else {
-                HStack(spacing: 8) {
-                    Text("-100%")
-                        .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        Text(percentLabel)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(isHighContrast ? .primary : statusTint)
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        Text("-100%")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
                         Gauge(value: deficitRecovery, in: 0...1) {
                             EmptyView()
                         }
                         .gaugeStyle(.accessoryLinear)
                         .tint(Gradient(colors: [deficitTint.opacity(0.25), deficitTint]))
                         .frame(maxWidth: .infinity)
-                    Text(deficitLabel)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(deficitTint)
+                        Text(deficitLabel)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(isHighContrast ? .primary : deficitTint)
+                    }
                 }
             }
         }
-    }
     }
 
 
@@ -790,7 +818,7 @@ struct HomeView: View {
             NextPlannedPresetsView(summaryID: summary.id, nextExpense: snapshot)
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         } label: {
-            widgetCard(title: "Next Planned Expense", subtitle: widgetRangeLabel, kind: .cards, span: WidgetSpan(width: 1, height: 1)) {
+            widgetCard(title: "Next Planned Expense", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .cards, span: WidgetSpan(width: 1, height: 1)) {
                 if let snapshot {
                     let expense = fetchPlannedExpense(from: snapshot.expenseURI)
                     let cardItem = detachedCardItem(from: expense?.card)
@@ -828,7 +856,7 @@ struct HomeView: View {
         let totalExpenses = categories.map(\.amount).reduce(0, +)
         let slices = categorySlices(from: categories, limit: 3)
         let topCategory = categories.first ?? summary.plannedCategoryBreakdown.first ?? summary.categoryBreakdown.first
-        return widgetLink(title: "Category Spotlight", subtitle: widgetRangeLabel, kind: .presets, span: WidgetSpan(width: 1, height: 2), summary: summary, topCategory: topCategory) {
+        return widgetLink(title: "Category Spotlight", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .presets, span: WidgetSpan(width: 1, height: 2), summary: summary, topCategory: topCategory) {
             if let top = slices.first, totalExpenses > 0 {
                 GeometryReader { geo in
                     let donutHeight = max(200, geo.size.height * 0.72)
@@ -872,7 +900,8 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if let balance = card.balance {
                         Text("\(formatCurrency(balance))")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.title.weight(.bold))
+                            .fontDesign(.rounded)
                     }
                 }
                 .frame(maxHeight: .infinity, alignment: .topLeading)
@@ -882,7 +911,7 @@ struct HomeView: View {
     }
 
     private func weekdayWidget(for summary: BudgetSummary) -> some View {
-        return widgetLink(title: "Day of Week Spend", subtitle: weekdayRangeLabel, kind: .dayOfWeek, span: WidgetSpan(width: 1, height: 2), summary: summary) {
+        return widgetLink(title: "Day of Week Spend", subtitle: weekdayRangeLabel, subtitleColor: .primary, kind: .dayOfWeek, span: WidgetSpan(width: 1, height: 2), summary: summary) {
             if self.widgetBuckets.isEmpty {
                 Text("No spending yet.")
                     .foregroundStyle(.secondary)
@@ -905,8 +934,8 @@ struct HomeView: View {
 
                         if let maxItem = self.widgetBuckets.max(by: { $0.amount < $1.amount }) {
                             Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
@@ -987,7 +1016,6 @@ struct HomeView: View {
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
                                     .frame(width: barWidth, alignment: .center)
                             }
                         }
@@ -1302,7 +1330,7 @@ struct HomeView: View {
         let maxRowsPerPage: Int = 6
         let tabPadding: CGFloat = 12
 
-        return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, kind: .availability, span: WidgetSpan(width: 1, height: 3), summary: summary) {
+        return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .availability, span: WidgetSpan(width: 1, height: 3), summary: summary) {
             GeometryReader { geo in
                 let segment = availabilitySegment
                 let items = categoryAvailability(for: summary, segment: segment)
@@ -1421,19 +1449,18 @@ struct HomeView: View {
     private func scenarioWidget(for summary: BudgetSummary) -> some View {
         let actualSavings = summary.actualSavingsTotal
         let savingsColor: Color = actualSavings < 0 ? .red : .green
-        return widgetLink(title: "What If?", subtitle: widgetRangeLabel, kind: .scenario, span: WidgetSpan(width: 1, height: 1), summary: summary) {
+        return widgetLink(title: "What If?", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .scenario, span: WidgetSpan(width: 1, height: 1), summary: summary) {
             VStack(alignment: .center, spacing: 6) {
                 Text(formatCurrency(actualSavings))
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(savingsColor)
+                    .foregroundStyle(isHighContrast ? .primary : savingsColor)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
                 Text("Actual Savings")
-                    .font(.ubCaption)
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
                 Text("Tap to plan scenarios and see how much you can still save.")
-                    .font(.ubCaption)
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .center)
@@ -1446,7 +1473,7 @@ struct HomeView: View {
             Image(systemName: systemName)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(.primary)
-                .frame(width: 32, height: 32)
+                .frame(width: availabilityButtonSize, height: availabilityButtonSize)
                 .background(
                     Group {
                         if #available(iOS 26.0, macCatalyst 26.0, *) {
@@ -1471,6 +1498,7 @@ struct HomeView: View {
     private func widgetLink<Content: View>(
         title: String,
         subtitle: String? = nil,
+        subtitleColor: Color = .secondary,
         kind: HomeWidgetKind,
         span: WidgetSpan,
         summary: BudgetSummary,
@@ -1491,38 +1519,35 @@ struct HomeView: View {
                 capStatuses: capStatuses
             )
         } label: {
-            widgetCard(title: title, subtitle: subtitle, kind: kind, span: span, content: content)
+            widgetCard(title: title, subtitle: subtitle, subtitleColor: subtitleColor, kind: kind, span: span, content: content)
         }
         .buttonStyle(.plain)
     }
 
-    private func widgetCard<Content: View>(title: String, subtitle: String? = nil, kind: HomeWidgetKind, span: WidgetSpan, @ViewBuilder content: () -> Content) -> some View {
+    private func widgetCard<Content: View>(title: String, subtitle: String? = nil, subtitleColor: Color = .secondary, kind: HomeWidgetKind, span: WidgetSpan, @ViewBuilder content: () -> Content) -> some View {
         let body = content()
-        return GeometryReader { geo in
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(title)
-                            .font(.ubWidgetTitle)
-                            .foregroundStyle(kind.titleColor)
-                        if let subtitle {
-                            Text(subtitle)
-                                .font(.ubWidgetSubtitle)
-                                .foregroundStyle(.secondary)
-                        }
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.ubWidgetTitle)
+                        .foregroundStyle(isHighContrast ? kind.highContrastTitleColor : kind.baseTitleColor)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.ubWidgetSubtitle)
+                            .foregroundStyle(subtitleColor)
                     }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
                 }
-                body
-                Spacer(minLength: 0)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
-            .padding(16)
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+            body
+            Spacer(minLength: 0)
         }
-        .frame(minHeight: CGFloat(max(span.height, 1)) * gridRowHeight, alignment: .topLeading)
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: CGFloat(max(span.height, 1)) * gridRowHeight, alignment: .topLeading)
         .background(cardBackground(kind: kind))
     }
 
@@ -1645,10 +1670,15 @@ struct HomeView: View {
     private func applyButton(_ disabled: Bool) -> some View {
         if #available(iOS 26.0, macCatalyst 26.0, *) {
             Button(action: applyCustomRangeFromPickers) {
-                Image(systemName: "arrow.right")
-                    .font(.headline.weight(.semibold))
-                    .frame(width: 36, height: 36)
-                    .glassEffect(.regular.tint(.clear).interactive(true))
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .glassEffect(.regular, in: .rect(cornerRadius: 22))
+                    Image(systemName: "arrow.right")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
@@ -1656,8 +1686,14 @@ struct HomeView: View {
             .disabled(disabled)
         } else {
             Button(action: applyCustomRangeFromPickers) {
-                Image(systemName: "arrow.right")
-                    .font(.headline.weight(.semibold))
+                ZStack {
+                    Circle()
+                        .fill(Color.primary.opacity(0.08))
+                    Image(systemName: "arrow.right")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
             .disabled(disabled)
@@ -1670,10 +1706,15 @@ struct HomeView: View {
             Menu {
                 periodMenuItems
             } label: {
-                Image(systemName: "calendar")
-                    .font(.headline.weight(.semibold))
-                    .frame(width: 36, height: 36)
-                    .glassEffect(.regular.tint(.clear).interactive(true))
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .glassEffect(.regular, in: .rect(cornerRadius: 22))
+                    Image(systemName: "calendar")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
@@ -1682,8 +1723,14 @@ struct HomeView: View {
             Menu {
                 periodMenuItems
             } label: {
-                Image(systemName: "calendar")
-                    .font(.headline.weight(.semibold))
+                ZStack {
+                    Circle()
+                        .fill(Color.primary.opacity(0.08))
+                    Image(systemName: "calendar")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: 44, height: 44)
             }
         }
     }
@@ -4311,6 +4358,8 @@ private struct NextPlannedExpenseWidgetRow: View {
     let dateText: String
     let plannedText: String
     let actualText: String
+    @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 120
+    @ScaledMetric(relativeTo: .body) private var cardPreviewHeight: CGFloat = 76
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -4338,7 +4387,7 @@ private struct NextPlannedExpenseWidgetRow: View {
     private var cardPreview: some View {
         if let cardItem {
             CardTileView(card: cardItem, isInteractive: false, enableMotionShine: true, showsBaseShadow: false)
-                .frame(width: 120)
+                .frame(width: cardPreviewWidth)
         } else {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color.secondary.opacity(0.12))
@@ -4346,7 +4395,7 @@ private struct NextPlannedExpenseWidgetRow: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .stroke(Color.primary.opacity(0.12), lineWidth: 1)
                 )
-                .frame(width: 120, height: 76)
+                .frame(width: cardPreviewWidth, height: cardPreviewHeight)
         }
     }
 }

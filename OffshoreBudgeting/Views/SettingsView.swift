@@ -373,21 +373,27 @@ private struct SettingsRowLabel: View {
     let title: String
     var showsChevron: Bool = true
     var iconStyle: SettingsIconStyle = .gray
+    @ScaledMetric(relativeTo: .body) private var iconTextSpacing: CGFloat = 16
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: iconTextSpacing) {
             SettingsIconTile(
                 systemName: iconSystemName,
                 style: iconStyle
             )
             Text(title)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
             if showsChevron {
                 Image(systemName: "chevron.right")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(title))
     }
 }
 
@@ -444,20 +450,24 @@ private enum SettingsIconStyle {
 private struct SettingsIconTile: View {
     let systemName: String
     let style: SettingsIconStyle
+    @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 28
+    @ScaledMetric(relativeTo: .body) private var cornerRadius: CGFloat = 7
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(style.background)
             Image(systemName: systemName)
                 .symbolRenderingMode(.monochrome)
+                .font(.body.weight(.semibold))
                 .foregroundStyle(style.tint)
         }
-        .frame(width: 28, height: 28)
+        .frame(width: iconSize, height: iconSize)
         .overlay(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .stroke(style.tint.opacity(style.usesStroke ? 0.25 : 0), lineWidth: 0.5)
         )
+        .accessibilityHidden(true)
     }
 }
 
@@ -475,12 +485,18 @@ private struct AppInfoRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(appName)
                     .font(.headline)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text("About")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.vertical, 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(appName), About"))
     }
 }
 
@@ -572,7 +588,7 @@ private struct GeneralSettingsView: View {
                 let label = Text("Delete Data & Reset")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: 44, maxHeight: 44)
+                    .frame(minHeight: 44)
 
                 if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
                     Button(role: .destructive) {
@@ -621,7 +637,7 @@ private struct GeneralSettingsView: View {
         let label = Text("Reset Tips & Hints")
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 44, maxHeight: 44)
+            .frame(minHeight: 44)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button {
@@ -727,7 +743,7 @@ private struct NotificationsSettingsView: View {
         }
         .font(.subheadline.weight(.semibold))
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 44, maxHeight: 44)
+        .frame(minHeight: 44)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button {
@@ -767,7 +783,7 @@ private struct NotificationsSettingsView: View {
         let label = Text("Open System Settings")
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 44, maxHeight: 44)
+            .frame(minHeight: 44)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: openSystemSettings) {
@@ -915,7 +931,7 @@ private struct ICloudSettingsView: View {
                 .font(.headline)
         }
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 44, maxHeight: 44)
+        .frame(minHeight: 44)
 
         if cloudToggle,
            capabilities.supportsOS26Translucency,

@@ -117,6 +117,7 @@ struct HelpView: View {
 //                NavigationLink("Shortcuts & Gestures") { tips }
 //            }
         }
+        .listStyle(.insetGrouped)
         .alert("Repeat Onboarding?", isPresented: $showOnboardingAlert) {
             Button("Go", role: .destructive) { didCompleteOnboarding = false }
             Button("Cancel", role: .cancel) {}
@@ -425,7 +426,7 @@ struct HelpView: View {
         let label = Text("Repeat Onboarding")
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 44, maxHeight: 44)
+            .frame(minHeight: 44)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button {
@@ -531,39 +532,45 @@ private struct HelpRowLabel: View {
     let iconSystemName: String
     let title: String
     let iconStyle: HelpIconStyle
+    @ScaledMetric(relativeTo: .body) private var iconTextSpacing: CGFloat = 16
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: iconTextSpacing) {
             HelpIconTile(
                 systemName: iconSystemName,
                 style: iconStyle
             )
             Text(title)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
-            Image(systemName: "chevron.right")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(title))
     }
 }
 
 private struct HelpIconTile: View {
     let systemName: String
     let style: HelpIconStyle
+    @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 28
+    @ScaledMetric(relativeTo: .body) private var cornerRadius: CGFloat = 7
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(style.background)
             Image(systemName: systemName)
                 .symbolRenderingMode(.monochrome)
+                .font(.body.weight(.semibold))
                 .foregroundStyle(style.tint)
         }
-        .frame(width: 28, height: 28)
+        .frame(width: iconSize, height: iconSize)
         .overlay(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .stroke(style.tint.opacity(style.usesStroke ? 0.25 : 0), lineWidth: 0.5)
         )
+        .accessibilityHidden(true)
     }
 }
 

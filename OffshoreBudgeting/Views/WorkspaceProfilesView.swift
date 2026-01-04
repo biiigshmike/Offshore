@@ -13,6 +13,8 @@ struct WorkspaceMenuButton: View {
     
     @State private var showAdd = false
     @State private var showManage = false
+    @ScaledMetric(relativeTo: .body) private var menuButtonSize: CGFloat = 33
+    @ScaledMetric(relativeTo: .body) private var menuButtonPadding: CGFloat = 6
     
     var body: some View {
         Menu {
@@ -57,8 +59,9 @@ struct WorkspaceMenuButton: View {
     @ViewBuilder
     private var workspaceMenuLabel: some View {
         Image(systemName: "person.3.fill")
-            .font(.system(size: 16, weight: .semibold))
-            .frame(width: 33, height: 33)
+            .font(.body.weight(.semibold))
+            .padding(menuButtonPadding)
+            .frame(minWidth: menuButtonSize, minHeight: menuButtonSize)
         //        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
         //            let label = Label("Profile", systemImage: "person.3.fill")
         //                .labelStyle(.iconOnly)

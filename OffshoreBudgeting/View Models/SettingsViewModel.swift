@@ -73,13 +73,17 @@ struct SettingsIcon: View {
     var tint: Color = .primary
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @ScaledMetric(relativeTo: .body) private var compactDimension: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var regularDimension: CGFloat = 48
+    @ScaledMetric(relativeTo: .body) private var compactCornerRadius: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var regularCornerRadius: CGFloat = 16
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: iconCornerRadius, style: .continuous)
                 .fill(themeManager.selectedTheme.secondaryBackground)
             Image(systemName: systemName)
-                .font(.system(size: symbolSize, weight: .semibold, design: .rounded))
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(tint)
         }
         .frame(width: iconDimension, height: iconDimension)
@@ -94,9 +98,8 @@ struct SettingsIcon: View {
         #endif
     }
 
-    private var iconDimension: CGFloat { isCompact ? 40 : 48 }
-    private var symbolSize: CGFloat { isCompact ? 20 : 24 }
-    private var iconCornerRadius: CGFloat { isCompact ? 14 : 16 }
+    private var iconDimension: CGFloat { isCompact ? compactDimension : regularDimension }
+    private var iconCornerRadius: CGFloat { isCompact ? compactCornerRadius : regularCornerRadius }
 }
 
 // MARK: - SettingsCard
@@ -216,6 +219,10 @@ struct SettingsRow<Trailing: View>: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @ScaledMetric(relativeTo: .body) private var compactRowPadding: CGFloat = 10
+    @ScaledMetric(relativeTo: .body) private var regularRowPadding: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var compactRowMinHeight: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var regularRowMinHeight: CGFloat = 48
 
     init(title: String, detail: String? = nil, showsTopDivider: Bool = true, @ViewBuilder trailing: () -> Trailing) {
         self.title = title
@@ -229,10 +236,14 @@ struct SettingsRow<Trailing: View>: View {
             Text(title)
                 .font(.body)
                 .foregroundStyle(themeManager.selectedTheme.primaryTextColor(for: colorScheme))
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
             if let detail {
                 Text(detail)
                     .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             trailing
         }
@@ -257,6 +268,6 @@ struct SettingsRow<Trailing: View>: View {
         #endif
     }
 
-    private var rowHorizontalPadding: CGFloat { isCompact ? 10 : 14 }
-    private var rowMinHeight: CGFloat { isCompact ? 40 : 48 }
+    private var rowHorizontalPadding: CGFloat { isCompact ? compactRowPadding : regularRowPadding }
+    private var rowMinHeight: CGFloat { isCompact ? compactRowMinHeight : regularRowMinHeight }
 }

@@ -94,6 +94,23 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
   - Category Availability rows now render a progress bar even when no cap is set (uses remaining income as the denominator) to keep visual alignment consistent.
   - Category Availability paging restored (5 rows per page) with HIG-sized chevron buttons; glass buttons on iOS 26 and plain SF symbols on legacy OSes.
 
+### Session 8
+- Date: 2026-01-03
+- Scope: Category Availability layout stabilization
+- Notes:
+  - Fixed widget height across pages by locking the non-accessibility list height to 5 rows + spacing + padding.
+  - Accessibility sizes use flexible height (no placeholders) to avoid compression at large Dynamic Type sizes.
+  - Added per-row breathing room that scales with accessibility size (normal +10, accessibility +20).
+
+### Session 9
+- Date: 2026-01-03
+- Scope: SettingsView accessibility sweep
+- Notes:
+  - Removed fixed symbol font sizes from settings icons and toolbar menu button; icons now scale with Dynamic Type and use `@ScaledMetric` for tile sizes.
+  - Increased icon/text spacing in settings rows and allowed titles to wrap without truncation.
+  - Added explicit accessibility labels for settings rows and the App Info row; decorative icons hidden from VoiceOver.
+  - Removed fixed max-height constraints on settings action buttons to avoid clipping at larger text sizes.
+
 ## Extraction Algorithm (HomeView Report)
 1) Read the HTML report and locate the embedded `rootObject` JSON payload.
 2) Parse `_axKeyAllScreens[0]._axKeyAllIssues` to collect each issue.
@@ -114,6 +131,16 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
    - Hit target warning -> apply arrow button in date range controls.
 4) Propose a pattern-based fix plan that addresses all repeated elements in one pass.
 5) Draft proposed code changes (no edits) with exact file locations before implementation.
+
+## Patterns and Heuristics
+- Dynamic Type warnings: eliminate fixed font sizes; use Dynamic Type styles and `@ScaledMetric` for spacing, chart sizes, and row heights.
+- Accessibility sizes: prefer stacked layouts, remove line limits, and allow containers to grow instead of forcing fixed heights.
+- Non-accessibility sizes: stabilize layout by fixing list/widget heights and using placeholder rows to avoid page-to-page shifts.
+- Hit targets: icon-only actions need a visible 44x44 container; keep symbol size tied to Dynamic Type (e.g., `.title3/.title2`).
+- Contrast: preserve the default palette; only change colors in Increased Contrast mode.
+- List chevrons: use the system NavigationLink chevron; remove custom inner chevrons to avoid duplication.
+- Pagination: use fixed page sizes with HIG-sized left/right buttons; ensure symbols remain visible in light/dark via `.primary` and a subtle background on legacy.
+- VoiceOver: add explicit labels and hints for icon-only controls (edit, pin/unpin, apply, calendar, search, etc.).
 
 ## Views
 

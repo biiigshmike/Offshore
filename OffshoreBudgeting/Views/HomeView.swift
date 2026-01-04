@@ -226,6 +226,7 @@ struct HomeView: View {
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.platformCapabilities) private var capabilities
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
@@ -258,6 +259,14 @@ struct HomeView: View {
     @ScaledMetric(relativeTo: .body) private var gridSpacing: CGFloat = 18
     @ScaledMetric(relativeTo: .body) private var gridRowHeight: CGFloat = 170
     @ScaledMetric(relativeTo: .body) private var availabilityButtonSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .body) private var availabilityRowHeight: CGFloat = 64
+    @ScaledMetric(relativeTo: .body) private var availabilityRowSpacing: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var availabilityTabPadding: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var availabilityHeaderAllowance: CGFloat = 32
+    @ScaledMetric(relativeTo: .body) private var availabilityControlsAllowance: CGFloat = 96
+    @ScaledMetric(relativeTo: .body) private var categorySpotlightHeight: CGFloat = 200
+    @ScaledMetric(relativeTo: .body) private var dayOfWeekChartHeight: CGFloat = 140
+    @ScaledMetric(relativeTo: .body) private var dateActionButtonSize: CGFloat = 44
     @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 120
     @ScaledMetric(relativeTo: .body) private var cardPreviewHeight: CGFloat = 76
 
@@ -267,6 +276,14 @@ struct HomeView: View {
 
     private var isHighContrast: Bool {
         colorSchemeContrast == .increased
+    }
+
+    private var isLargeText: Bool {
+        dynamicTypeSize >= .xxxLarge
+    }
+
+    private var isAccessibilitySize: Bool {
+        isLargeText || dynamicTypeSize.isAccessibilitySize
     }
 
     private var shouldSyncWidgets: Bool {
@@ -416,15 +433,7 @@ struct HomeView: View {
             heatmapBackground
                 .ignoresSafeArea()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    dateRow
-                    contentBody
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 32)
-            }
+            listContent
         }
         .navigationTitle("Home")
         .refreshable { await vm.refresh() }
@@ -445,34 +454,78 @@ struct HomeView: View {
 
     // MARK: Content
     @ViewBuilder
-    private var contentBody: some View {
+    private var contentSections: some View {
         switch vm.state {
         case .initial, .loading:
-            ProgressView("Loading budgets…")
-                .frame(maxWidth: .infinity, alignment: .leading)
+            Section {
+                ProgressView("Loading budgets…")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .listRowInsets(listRowInsets)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .ub_preOS26ListRowBackground(.clear)
+            }
         case .empty:
-            emptyState
+            Section {
+                emptyState
+                    .listRowInsets(listRowInsets)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .ub_preOS26ListRowBackground(.clear)
+            }
         case .loaded:
             if let summary = primarySummary {
-                widgetGrid(for: summary)
+                widgetListSections(for: summary)
             } else {
-                emptyState
+                Section {
+                    emptyState
+                        .listRowInsets(listRowInsets)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .ub_preOS26ListRowBackground(.clear)
+                }
             }
         }
     }
 
     @ViewBuilder
+    private var listContent: some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            listBody
+                .scrollContentBackground(.hidden)
+        } else {
+            listBody
+        }
+    }
+
+    private var listBody: some View {
+        List {
+            Section {
+                dateRow
+                    .listRowInsets(listRowInsets)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .ub_preOS26ListRowBackground(.clear)
+            }
+
+            contentSections
+        }
+        .ub_listStyleLiquidAware()
+    }
+
+    @ViewBuilder
     private var dateRow: some View {
         let applyDisabled = startDateSelection > endDateSelection
+        let useCompactLayout = isCompactDateRow || isAccessibilitySize
         let rangeLabel = Text(rangeDescription(currentRange))
             .font(.headline.weight(.semibold))
-            .lineLimit(isCompactDateRow ? 2 : 1)
+            .lineLimit(isAccessibilitySize ? nil : (useCompactLayout ? 2 : 1))
             .multilineTextAlignment(.leading)
 
-        let controls = dateRowControls(disabled: applyDisabled)
+        let controls = dateRowControls(disabled: applyDisabled, compactLayout: useCompactLayout)
 
         Group {
-            if isCompactDateRow {
+            if useCompactLayout {
                 VStack(alignment: .leading, spacing: 12) {
                     rangeLabel
                     controls
@@ -486,22 +539,54 @@ struct HomeView: View {
             }
         }
         .padding(12)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(glassRowBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     @ViewBuilder
-    private func dateRowControls(disabled: Bool) -> some View {
-        HStack(spacing: 8) {
-            DatePicker("Start date", selection: $startDateSelection, displayedComponents: [.date])
+    private func dateRowControls(disabled: Bool, compactLayout: Bool) -> some View {
+        Group {
+            if compactLayout {
+                VStack(alignment: .leading, spacing: 8) {
+                    datePickerRow(title: "Start date", selection: $startDateSelection)
+                    datePickerRow(title: "End date", selection: $endDateSelection)
+                    HStack(spacing: 16) {
+                        applyButton(disabled)
+                        periodMenu
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                HStack(spacing: 8) {
+                    DatePicker("Start date", selection: $startDateSelection, displayedComponents: [.date])
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+                    DatePicker("End date", selection: $endDateSelection, displayedComponents: [.date])
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+                    applyButton(disabled)
+                    periodMenu
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func datePickerRow(title: String, selection: Binding<Date>) -> some View {
+        if isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                DatePicker("", selection: selection, displayedComponents: [.date])
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+            }
+        } else {
+            DatePicker(title, selection: selection, displayedComponents: [.date])
                 .labelsHidden()
                 .datePickerStyle(.compact)
-            DatePicker("End date", selection: $endDateSelection, displayedComponents: [.date])
-                .labelsHidden()
-                .datePickerStyle(.compact)
-            applyButton(disabled)
-            periodMenu
         }
     }
 
@@ -527,47 +612,31 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private func widgetGrid(for summary: BudgetSummary) -> some View {
+    private func widgetListSections(for summary: BudgetSummary) -> some View {
         let items = widgetItems(for: summary)
         let visibleItems = orderedVisibleItems(from: items)
         let libraryItems = items.filter { !pinnedIDs.contains($0.id) }
 
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Widgets")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, isHighContrast ? 8 : 0)
-                    .padding(.vertical, isHighContrast ? 4 : 0)
-                    .background(isHighContrast ? Color.primary.opacity(0.2) : Color.clear)
-                    .clipShape(Capsule())
-                Spacer()
-                editWidgetsButton
-            }
-
-            if #available(iOS 16.0, macOS 13.0, macCatalyst 16.0, *) {
-                WidgetGridLayout(columns: columnCount, spacing: gridSpacing, rowHeight: gridRowHeight) {
-                    ForEach(visibleItems) { item in
-                        widgetCell(for: item)
-                    }
-                }
-                .animation(.spring(response: 0.25, dampingFraction: 0.9), value: widgetOrder)
-                .animation(.spring(response: 0.25, dampingFraction: 0.9), value: pinnedIDs)
-            } else {
-                // Fallback to original stack on older OS versions.
-                LazyVStack(spacing: 12) {
-                    ForEach(visibleItems) { item in
-                        widgetCell(for: item)
-                    }
+        Group {
+            Section(header: widgetsHeader) {
+                ForEach(visibleItems) { item in
+                    widgetCell(for: item)
+                        .listRowInsets(listRowInsets)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .ub_preOS26ListRowBackground(.clear)
                 }
             }
 
             if isEditing && !libraryItems.isEmpty {
-                Divider()
-                    .padding(.vertical, 4)
-                Text("Add widgets")
-                    .font(.subheadline.weight(.semibold))
-                LazyVStack(alignment: .leading, spacing: 8) {
+                Section {
+                    Text("Add widgets")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .listRowInsets(listRowInsets)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .ub_preOS26ListRowBackground(.clear)
                     ForEach(libraryItems) { item in
                         Button {
                             pinWidget(item.id)
@@ -583,6 +652,10 @@ struct HomeView: View {
                             .background(cardBackground(kind: item.kind))
                         }
                         .buttonStyle(.plain)
+                        .listRowInsets(listRowInsets)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .ub_preOS26ListRowBackground(.clear)
                     }
                 }
             }
@@ -594,6 +667,28 @@ struct HomeView: View {
         .onChange(of: storageRefreshToken) { _ in
             initializeLayoutStateIfNeeded(with: items)
         }
+    }
+
+    private var widgetsHeader: some View {
+        HStack {
+            Text("Widgets")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, isHighContrast ? 8 : 0)
+                .padding(.vertical, isHighContrast ? 4 : 0)
+                .background(isHighContrast ? Color.primary.opacity(0.2) : Color.clear)
+                .clipShape(Capsule())
+            Spacer()
+            editWidgetsButton
+        }
+        .listRowInsets(listRowInsets)
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+        .ub_preOS26ListRowBackground(.clear)
+    }
+
+    private var listRowInsets: EdgeInsets {
+        EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)
     }
 
     @ViewBuilder
@@ -858,25 +953,22 @@ struct HomeView: View {
         let topCategory = categories.first ?? summary.plannedCategoryBreakdown.first ?? summary.categoryBreakdown.first
         return widgetLink(title: "Category Spotlight", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .presets, span: WidgetSpan(width: 1, height: 2), summary: summary, topCategory: topCategory) {
             if let top = slices.first, totalExpenses > 0 {
-                GeometryReader { geo in
-                    let donutHeight = max(200, geo.size.height * 0.72)
-                    VStack(alignment: .leading, spacing: 8) {
-                        CategoryDonutView(
-                            slices: slices,
-                            total: totalExpenses,
-                            centerTitle: top.name,
-                            centerValue: formatCurrency(top.amount)
-                        )
-                        .frame(height: donutHeight)
+                let donutHeight = isAccessibilitySize ? max(categorySpotlightHeight * 0.7, 140) : categorySpotlightHeight
+                VStack(alignment: .leading, spacing: 8) {
+                    CategoryDonutView(
+                        slices: slices,
+                        total: totalExpenses,
+                        centerTitle: top.name,
+                        centerValue: formatCurrency(top.amount)
+                    )
+                    .frame(height: donutHeight)
 
-                        Spacer(minLength: 4)
-
-                        Text("Top \(min(3, slices.count)) categories in this range.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    Text("Top \(min(3, slices.count)) categories in this range.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
                 Text("Add expenses to see category trends.")
@@ -904,7 +996,6 @@ struct HomeView: View {
                             .fontDesign(.rounded)
                     }
                 }
-                .frame(maxHeight: .infinity, alignment: .topLeading)
             }
         }
         .buttonStyle(.plain)
@@ -920,27 +1011,28 @@ struct HomeView: View {
                 let previewPeriod = resolvedPeriod(vm.period, range: currentRange)
                 let orientation = previewBarOrientation(for: previewPeriod, bucketCount: widgetBuckets.count)
                 let maxAmount = max(self.widgetBuckets.map(\.amount).max() ?? 1, 1)
-                GeometryReader { geo in
-                    VStack(alignment: .leading, spacing: 8) {
-                        SpendBucketChart(
-                            buckets: widgetBuckets,
-                            maxAmount: maxAmount,
-                            summary: summary,
-                            period: previewPeriod,
-                            orientation: orientation,
-                            maxColors: 4
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                let chartHeight = isAccessibilitySize ? max(dayOfWeekChartHeight * 0.7, 120) : dayOfWeekChartHeight
+                VStack(alignment: .leading, spacing: 8) {
+                    SpendBucketChart(
+                        buckets: widgetBuckets,
+                        maxAmount: maxAmount,
+                        summary: summary,
+                        period: previewPeriod,
+                        orientation: orientation,
+                        maxColors: 4
+                    )
+                    .frame(height: chartHeight)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
 
-                        if let maxItem = self.widgetBuckets.max(by: { $0.amount < $1.amount }) {
-                            Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.primary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+                    if let maxItem = self.widgetBuckets.max(by: { $0.amount < $1.amount }) {
+                        Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .frame(maxHeight: .infinity)
             }
         }
     }
@@ -960,15 +1052,22 @@ struct HomeView: View {
         let period: BudgetPeriod
         let orientation: SpendBarOrientation
         let maxColors: Int
+        @ScaledMetric(relativeTo: .body) private var spacing: CGFloat = 8
+        @ScaledMetric(relativeTo: .body) private var labelWidth: CGFloat = 60
+        @ScaledMetric(relativeTo: .body) private var labelWidthAccessibility: CGFloat = 84
+        @ScaledMetric(relativeTo: .body) private var minRowHeight: CGFloat = 14
+        @ScaledMetric(relativeTo: .body) private var minBarWidth: CGFloat = 10
+        @ScaledMetric(relativeTo: .body) private var labelHeight: CGFloat = 16
+        @ScaledMetric(relativeTo: .body) private var minBarAreaHeight: CGFloat = 60
+        @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
         var body: some View {
             GeometryReader { geo in
-                let spacing: CGFloat = 8
                 let count = max(buckets.count, 1)
+                let resolvedLabelWidth = dynamicTypeSize.isAccessibilitySize ? labelWidthAccessibility : labelWidth
                 if orientation == .horizontal {
-                    let rowHeight = max((geo.size.height - spacing * CGFloat(count - 1)) / CGFloat(count), 14)
-                    let labelWidth: CGFloat = 40
-                    let barMaxWidth = max(geo.size.width - labelWidth - 8, 20)
+                    let rowHeight = max((geo.size.height - spacing * CGFloat(count - 1)) / CGFloat(count), minRowHeight)
+                    let barMaxWidth = max(geo.size.width - resolvedLabelWidth - 8, 20)
                     VStack(alignment: .leading, spacing: spacing) {
                         ForEach(buckets) { item in
                             let norm = max(min(item.amount / maxAmount, 1), 0)
@@ -982,8 +1081,9 @@ struct HomeView: View {
                                 Text(displayLabel(item.label, period: period))
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .frame(width: labelWidth, alignment: .leading)
+                                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                                    .minimumScaleFactor(0.75)
+                                    .frame(width: resolvedLabelWidth, alignment: .leading)
                                 Rectangle()
                                     .fill(gradient)
                                     .frame(width: max(barMaxWidth * CGFloat(norm), 6), height: max(rowHeight - 6, 6))
@@ -994,10 +1094,8 @@ struct HomeView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 } else {
-                    let minBarWidth: CGFloat = 10
                     let barWidth = max((geo.size.width - spacing * CGFloat(count - 1)) / CGFloat(count), minBarWidth)
-                    let labelHeight: CGFloat = 16
-                    let barAreaHeight = max(60, geo.size.height - labelHeight)
+                    let barAreaHeight = max(minBarAreaHeight, geo.size.height - labelHeight)
                     HStack(alignment: .bottom, spacing: spacing) {
                         ForEach(buckets) { item in
                             let norm = max(min(item.amount / maxAmount, 1), 0)
@@ -1325,123 +1423,174 @@ struct HomeView: View {
     }
 
     private func categoryAvailabilityWidget(for summary: BudgetSummary) -> some View {
-        let rowHeight: CGFloat = 64
-        let rowSpacing: CGFloat = 8
+        let rowHeight = availabilityRowHeight
+        let rowSpacing = availabilityRowSpacing
         let maxRowsPerPage: Int = 6
-        let tabPadding: CGFloat = 12
+        let tabPadding = availabilityTabPadding
 
         return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .availability, span: WidgetSpan(width: 1, height: 3), summary: summary) {
-            GeometryReader { geo in
-                let segment = availabilitySegment
-                let items = categoryAvailability(for: summary, segment: segment)
-                let statuses = capStatuses.filter { $0.segment == segment }
-                let overCount = statuses.filter { $0.over }.count
-                let nearCount = statuses.filter { $0.near && !$0.over }.count
-                let headerAllowance: CGFloat = 32
-                let controlsAllowance: CGFloat = 96
-                let availableHeight = max(0, geo.size.height - headerAllowance - controlsAllowance)
-                let slotHeight = rowHeight + rowSpacing
-                let rowsThatFit = max(3, Int(floor((availableHeight + rowSpacing) / slotHeight)))
-                let pageSize = max(3, min(rowsThatFit, maxRowsPerPage))
-                let pages = stride(from: 0, to: items.count, by: pageSize).map { idx in
-                    Array(items[idx..<min(idx + pageSize, items.count)])
-                }
-                let pageSelection = Binding(
-                    get: { min(availabilityPage, max(pages.count - 1, 0)) },
-                    set: { availabilityPage = $0 }
-                )
-                let maxRowsOnPage = pages.map(\.count).max() ?? 0
-                let tabHeight = max(0, CGFloat(maxRowsOnPage) * rowHeight + CGFloat(max(maxRowsOnPage - 1, 0)) * rowSpacing + tabPadding * 2)
+            let segment = availabilitySegment
+            let items = categoryAvailability(for: summary, segment: segment)
+            let statuses = capStatuses.filter { $0.segment == segment }
+            let overCount = statuses.filter { $0.over }.count
+            let nearCount = statuses.filter { $0.near && !$0.over }.count
 
+            if isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 0) {
-                    PillSegmentedControl(selection: availabilitySegmentBinding) {
-                        ForEach(CategoryAvailabilitySegment.allCases) { segment in
-                            Text(segment.title).tag(segment)
+                    VStack(alignment: .leading, spacing: 10) {
+                        PillSegmentedControl(selection: availabilitySegmentBinding) {
+                            ForEach(CategoryAvailabilitySegment.allCases) { segment in
+                                Text(segment.title).tag(segment)
+                            }
                         }
+                        .ubSegmentedGlassStyle()
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Circle().fill(Color.red.opacity(0.2)).frame(width: 10, height: 10)
+                                Text("Over: \(overCount)")
+                            }
+                            HStack(spacing: 6) {
+                                Circle().fill(Color.orange.opacity(0.25)).frame(width: 10, height: 10)
+                                Text("Near: \(nearCount)")
+                            }
+                        }
+                        .font(.ubCaption)
+                        .foregroundStyle(.secondary)
                     }
-                    .ubSegmentedGlassStyle()
                     .padding(.horizontal, 14)
                     .padding(.top, 10)
                     .padding(.bottom, 10)
-
-                    HStack(spacing: 14) {
-                        HStack(spacing: 6) {
-                            Circle().fill(Color.red.opacity(0.2)).frame(width: 10, height: 10)
-                            Text("Over: \(overCount)")
-                        }
-                        HStack(spacing: 6) {
-                            Circle().fill(Color.orange.opacity(0.25)).frame(width: 10, height: 10)
-                            Text("Near: \(nearCount)")
-                        }
-                        Spacer()
-                    }
-                    .font(.ubCaption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 6)
 
                     Divider()
                         .padding(.horizontal, 14)
                         .opacity(0.35)
 
-                    if pages.isEmpty {
+                    if items.isEmpty {
                         Text("No categories yet.")
                             .foregroundStyle(.secondary)
                             .font(.ubCaption)
                             .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
                             .padding(.vertical, tabPadding)
                     } else {
-                        TabView(selection: pageSelection) {
-                            ForEach(Array(pages.enumerated()), id: \.offset) { idx, page in
-                                VStack(spacing: rowSpacing) {
-                                    ForEach(page) { item in
-                                        CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
-                                    }
-                                }
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, tabPadding)
-                                .tag(idx)
+                        VStack(spacing: rowSpacing) {
+                            ForEach(items) { item in
+                                CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
                             }
                         }
-                        .tabViewStyle(.page(indexDisplayMode: .never))
-                        .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .never))
-                        .frame(height: min(tabHeight, availableHeight), alignment: .top)
-                    }
-
-                    if !pages.isEmpty && pages.count > 1 {
-                        Divider()
-                            .padding(.horizontal, 14)
-                            .opacity(0.35)
-
-                        HStack {
-                            Spacer(minLength: 0)
-                            HStack(spacing: 12) {
-                                availabilityNavButton("chevron.left", isDisabled: availabilityPage == 0) {
-                                    availabilityPage = max(0, availabilityPage - 1)
-                                }
-
-                                HStack(spacing: 8) {
-                                    ForEach(0..<pages.count, id: \.self) { idx in
-                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                            .fill(idx == availabilityPage ? Color.primary.opacity(0.9) : Color.primary.opacity(0.35))
-                                            .frame(width: idx == availabilityPage ? 20 : 9, height: 7)
-                                    }
-                                }
-
-                                availabilityNavButton("chevron.right", isDisabled: availabilityPage >= pages.count - 1) {
-                                    availabilityPage = min(pages.count - 1, availabilityPage + 1)
-                                }
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            Spacer(minLength: 0)
-                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, tabPadding)
                     }
                 }
                 .padding(.top, 6)
                 .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
+            } else {
+                GeometryReader { geo in
+                    let availableHeight = max(0, geo.size.height - availabilityHeaderAllowance - availabilityControlsAllowance)
+                    let slotHeight = rowHeight + rowSpacing
+                    let rowsThatFit = max(3, Int(floor((availableHeight + rowSpacing) / slotHeight)))
+                    let pageSize = max(3, min(rowsThatFit, maxRowsPerPage))
+                    let pages = stride(from: 0, to: items.count, by: pageSize).map { idx in
+                        Array(items[idx..<min(idx + pageSize, items.count)])
+                    }
+                    let pageSelection = Binding(
+                        get: { min(availabilityPage, max(pages.count - 1, 0)) },
+                        set: { availabilityPage = $0 }
+                    )
+                    let maxRowsOnPage = pages.map(\.count).max() ?? 0
+                    let tabHeight = max(0, CGFloat(maxRowsOnPage) * rowHeight + CGFloat(max(maxRowsOnPage - 1, 0)) * rowSpacing + tabPadding * 2)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        PillSegmentedControl(selection: availabilitySegmentBinding) {
+                            ForEach(CategoryAvailabilitySegment.allCases) { segment in
+                                Text(segment.title).tag(segment)
+                            }
+                        }
+                        .ubSegmentedGlassStyle()
+                        .padding(.horizontal, 14)
+                        .padding(.top, 10)
+                        .padding(.bottom, 10)
+
+                        HStack(spacing: 14) {
+                            HStack(spacing: 6) {
+                                Circle().fill(Color.red.opacity(0.2)).frame(width: 10, height: 10)
+                                Text("Over: \(overCount)")
+                            }
+                            HStack(spacing: 6) {
+                                Circle().fill(Color.orange.opacity(0.25)).frame(width: 10, height: 10)
+                                Text("Near: \(nearCount)")
+                            }
+                            Spacer()
+                        }
+                        .font(.ubCaption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 6)
+
+                        Divider()
+                            .padding(.horizontal, 14)
+                            .opacity(0.35)
+
+                        if pages.isEmpty {
+                            Text("No categories yet.")
+                                .foregroundStyle(.secondary)
+                                .font(.ubCaption)
+                                .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
+                                .padding(.vertical, tabPadding)
+                        } else {
+                            TabView(selection: pageSelection) {
+                                ForEach(Array(pages.enumerated()), id: \.offset) { idx, page in
+                                    VStack(spacing: rowSpacing) {
+                                        ForEach(page) { item in
+                                            CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
+                                                .frame(minHeight: rowHeight, alignment: .center)
+                                        }
+                                    }
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, tabPadding)
+                                    .tag(idx)
+                                }
+                            }
+                            .tabViewStyle(.page(indexDisplayMode: .never))
+                            .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .never))
+                            .frame(height: min(tabHeight, availableHeight), alignment: .top)
+                        }
+
+                        if !pages.isEmpty && pages.count > 1 {
+                            Divider()
+                                .padding(.horizontal, 14)
+                                .opacity(0.35)
+
+                            HStack {
+                                Spacer(minLength: 0)
+                                HStack(spacing: 12) {
+                                    availabilityNavButton("chevron.left", isDisabled: availabilityPage == 0) {
+                                        availabilityPage = max(0, availabilityPage - 1)
+                                    }
+
+                                    HStack(spacing: 8) {
+                                        ForEach(0..<pages.count, id: \.self) { idx in
+                                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                                .fill(idx == availabilityPage ? Color.primary.opacity(0.9) : Color.primary.opacity(0.35))
+                                                .frame(width: idx == availabilityPage ? 20 : 9, height: 7)
+                                        }
+                                    }
+
+                                    availabilityNavButton("chevron.right", isDisabled: availabilityPage >= pages.count - 1) {
+                                        availabilityPage = min(pages.count - 1, availabilityPage + 1)
+                                    }
+                                }
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                Spacer(minLength: 0)
+                            }
+                        }
+                    }
+                    .padding(.top, 6)
+                    .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
+                }
             }
         }
     }
@@ -1454,14 +1603,14 @@ struct HomeView: View {
                 Text(formatCurrency(actualSavings))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(isHighContrast ? .primary : savingsColor)
-                    .lineLimit(1)
+                    .lineLimit(isAccessibilitySize ? nil : 1)
                 Text("Actual Savings")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
                 Text("Tap to plan scenarios and see how much you can still save.")
                     .font(.subheadline)
                     .foregroundStyle(.primary)
-                    .lineLimit(2)
+                    .lineLimit(isAccessibilitySize ? nil : 2)
             }
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -1527,27 +1676,24 @@ struct HomeView: View {
     private func widgetCard<Content: View>(title: String, subtitle: String? = nil, subtitleColor: Color = .secondary, kind: HomeWidgetKind, span: WidgetSpan, @ViewBuilder content: () -> Content) -> some View {
         let body = content()
         return VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.ubWidgetTitle)
                         .foregroundStyle(isHighContrast ? kind.highContrastTitleColor : kind.baseTitleColor)
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.ubWidgetSubtitle)
-                            .foregroundStyle(subtitleColor)
-                    }
+                        .lineLimit(isAccessibilitySize ? nil : 2)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.ubWidgetSubtitle)
+                        .foregroundStyle(subtitleColor)
+                        .lineLimit(isAccessibilitySize ? nil : 2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
             }
             body
-            Spacer(minLength: 0)
         }
         .padding(16)
-        .frame(maxWidth: .infinity, minHeight: CGFloat(max(span.height, 1)) * gridRowHeight, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(cardBackground(kind: kind))
     }
 
@@ -1666,36 +1812,44 @@ struct HomeView: View {
         return "\(start) - \(end)"
     }
 
+    private var dateActionSymbolFont: Font {
+        isAccessibilitySize ? .title2.weight(.semibold) : .title3.weight(.semibold)
+    }
+
     @ViewBuilder
     private func applyButton(_ disabled: Bool) -> some View {
         if #available(iOS 26.0, macCatalyst 26.0, *) {
             Button(action: applyCustomRangeFromPickers) {
+                let buttonSize = dateActionButtonSize
                 ZStack {
                     Circle()
                         .fill(.ultraThinMaterial)
-                        .glassEffect(.regular, in: .rect(cornerRadius: 22))
+                        .glassEffect(.regular, in: .rect(cornerRadius: buttonSize / 2))
                     Image(systemName: "arrow.right")
-                        .font(.title3.weight(.semibold))
+                        .font(dateActionSymbolFont)
                         .foregroundStyle(.primary)
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: buttonSize, height: buttonSize)
             }
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
+            .frame(minWidth: 44, minHeight: 44)
             .disabled(disabled)
         } else {
             Button(action: applyCustomRangeFromPickers) {
+                let buttonSize = dateActionButtonSize
                 ZStack {
                     Circle()
                         .fill(Color.primary.opacity(0.08))
                     Image(systemName: "arrow.right")
-                        .font(.title3.weight(.semibold))
+                        .font(dateActionSymbolFont)
                         .foregroundStyle(.primary)
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: buttonSize, height: buttonSize)
             }
             .buttonStyle(.plain)
+            .frame(minWidth: 44, minHeight: 44)
             .disabled(disabled)
         }
     }
@@ -1706,32 +1860,36 @@ struct HomeView: View {
             Menu {
                 periodMenuItems
             } label: {
+                let buttonSize = dateActionButtonSize
                 ZStack {
                     Circle()
                         .fill(.ultraThinMaterial)
-                        .glassEffect(.regular, in: .rect(cornerRadius: 22))
+                        .glassEffect(.regular, in: .rect(cornerRadius: buttonSize / 2))
                     Image(systemName: "calendar")
-                        .font(.title3.weight(.semibold))
+                        .font(dateActionSymbolFont)
                         .foregroundStyle(.primary)
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: buttonSize, height: buttonSize)
             }
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
+            .frame(minWidth: 44, minHeight: 44)
         } else {
             Menu {
                 periodMenuItems
             } label: {
+                let buttonSize = dateActionButtonSize
                 ZStack {
                     Circle()
                         .fill(Color.primary.opacity(0.08))
                     Image(systemName: "calendar")
-                        .font(.title3.weight(.semibold))
+                        .font(dateActionSymbolFont)
                         .foregroundStyle(.primary)
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: buttonSize, height: buttonSize)
             }
+            .frame(minWidth: 44, minHeight: 44)
         }
     }
 
@@ -2092,6 +2250,7 @@ private struct MetricDetailView: View {
     @State private var scenarioWidth: CGFloat = 0
     @AppStorage("homeAvailabilitySegment") private var detailAvailabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private var detailAvailabilitySegment: CategoryAvailabilitySegment {
         CategoryAvailabilitySegment(rawValue: detailAvailabilitySegmentRawValue) ?? .combined
     }
@@ -2100,6 +2259,14 @@ private struct MetricDetailView: View {
             get: { detailAvailabilitySegment },
             set: { detailAvailabilitySegmentRawValue = $0.rawValue }
         )
+    }
+
+    private var isLargeText: Bool {
+        dynamicTypeSize >= .xxxLarge
+    }
+
+    private var isAccessibilitySize: Bool {
+        isLargeText || dynamicTypeSize.isAccessibilitySize
     }
 
     private func condensedReceivedSeries() -> [DatedValue] {
@@ -2633,7 +2800,7 @@ private struct MetricDetailView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(expense.title)
                     .font(.subheadline.weight(.semibold))
-                    .lineLimit(2)
+                    .lineLimit(isAccessibilitySize ? nil : 2)
                 HStack(spacing: 6) {
                     categoryExpenseCardPreview(expense.card)
                     Text(expenseDateString(expense.date))
@@ -2887,9 +3054,9 @@ private struct MetricDetailView: View {
                 HStack(spacing: 6) {
                     Circle().fill(item.color).frame(width: 10, height: 10)
                     Text(item.name)
-                }
-                    .font(.ubDetailLabel.weight(.semibold))
-                    .lineLimit(1)
+            }
+                .font(.ubDetailLabel.weight(.semibold))
+                .lineLimit(isAccessibilitySize ? nil : 1)
             }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) {
@@ -4360,34 +4527,61 @@ private struct NextPlannedExpenseWidgetRow: View {
     let actualText: String
     @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 120
     @ScaledMetric(relativeTo: .body) private var cardPreviewHeight: CGFloat = 76
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var isAccessibilitySize: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
+
+    private var isCompactWidth: Bool {
+        horizontalSizeClass == .compact
+    }
+
+    private var previewWidth: CGFloat {
+        isAccessibilitySize || isCompactWidth ? cardPreviewWidth * 0.8 : cardPreviewWidth
+    }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            cardPreview
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                Text(dateText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(plannedText)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Text(actualText)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
+        Group {
+            if isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 12) {
+                    cardPreview
+                    details
+                }
+            } else {
+                HStack(alignment: .top, spacing: 12) {
+                    cardPreview
+                    details
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var details: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(isAccessibilitySize || isCompactWidth ? nil : 1)
+            Text(dateText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(plannedText)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
+            Text(actualText)
+                .font(.caption)
+                .foregroundStyle(.primary)
+        }
     }
 
     @ViewBuilder
     private var cardPreview: some View {
         if let cardItem {
             CardTileView(card: cardItem, isInteractive: false, enableMotionShine: true, showsBaseShadow: false)
-                .frame(width: cardPreviewWidth)
+                .frame(width: previewWidth)
         } else {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color.secondary.opacity(0.12))
@@ -4395,7 +4589,7 @@ private struct NextPlannedExpenseWidgetRow: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .stroke(Color.primary.opacity(0.12), lineWidth: 1)
                 )
-                .frame(width: cardPreviewWidth, height: cardPreviewHeight)
+                .frame(width: previewWidth, height: cardPreviewHeight)
         }
     }
 }

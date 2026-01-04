@@ -18,6 +18,14 @@ struct CategoryAvailabilityRow: View {
             }
             return item.available
         }()
+        let progressTotal: Double = {
+            if let cap = item.cap {
+                return max(cap, 1)
+            }
+            let total = item.spent + max(availableDisplay, 0)
+            return max(total, 1)
+        }()
+        let progressValue = min(max(item.spent, 0) / progressTotal, 1)
 
         Group {
             if useStackedLayout {
@@ -46,11 +54,9 @@ struct CategoryAvailabilityRow: View {
                         Text("Spent \(currencyFormatter(item.spent))")
                             .font(.ubCaption)
                             .foregroundStyle(item.over ? Color.red : (item.near ? Color.orange : .secondary))
-                        if let cap = item.cap {
-                            ProgressView(value: min(item.spent / max(cap, 1), 1))
-                                .tint(item.color)
-                                .frame(maxWidth: .infinity)
-                        }
+                        ProgressView(value: progressValue)
+                            .tint(item.color)
+                            .frame(maxWidth: .infinity)
                     }
                 }
             } else {
@@ -80,11 +86,9 @@ struct CategoryAvailabilityRow: View {
                         Text("Spent \(currencyFormatter(item.spent))")
                             .font(.ubCaption)
                             .foregroundStyle(item.over ? Color.red : (item.near ? Color.orange : .secondary))
-                        if let cap = item.cap {
-                            ProgressView(value: min(item.spent / max(cap, 1), 1))
-                                .tint(item.color)
-                                .frame(width: progressWidth)
-                        }
+                        ProgressView(value: progressValue)
+                            .tint(item.color)
+                            .frame(width: progressWidth)
                     }
                 }
             }

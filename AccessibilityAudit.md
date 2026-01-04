@@ -91,6 +91,8 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
   - Category Availability widget: removed paging in non-accessibility sizes so the container grows with content; rows now list vertically like the accessibility version.
   - Widgets header controls: Edit/Done button now includes explicit VoiceOver label/hint.
   - Widget pin controls: added VoiceOver labels/hints for pin/unpin actions, including widget title in the announcement.
+  - Category Availability rows now render a progress bar even when no cap is set (uses remaining income as the denominator) to keep visual alignment consistent.
+  - Category Availability paging restored (5 rows per page) with HIG-sized chevron buttons; glass buttons on iOS 26 and plain SF symbols on legacy OSes.
 
 ## Extraction Algorithm (HomeView Report)
 1) Read the HTML report and locate the embedded `rootObject` JSON payload.

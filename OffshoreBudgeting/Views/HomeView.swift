@@ -220,6 +220,7 @@ struct HomeView: View {
     @State private var widgetBuckets: [SpendBucket] = []
     @State private var weekdayRangeOverride: ClosedRange<Date>? = nil
     @State private var capStatuses: [CapStatus] = []
+    @State private var availabilityPage: Int = 0
     @State private var startDateSelection: Date = Date()
     @State private var endDateSelection: Date = Date()
 
@@ -1464,6 +1465,7 @@ struct HomeView: View {
         let rowHeight = availabilityRowHeight
         let rowSpacing = availabilityRowSpacing
         let tabPadding = availabilityTabPadding
+        let pageSize = 5
 
         return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .availability, span: WidgetSpan(width: 1, height: 3), summary: summary) {
             let segment = availabilitySegment
@@ -1471,6 +1473,12 @@ struct HomeView: View {
             let statuses = capStatuses.filter { $0.segment == segment }
             let overCount = statuses.filter { $0.over }.count
             let nearCount = statuses.filter { $0.near && !$0.over }.count
+            let pages = stride(from: 0, to: items.count, by: pageSize).map { idx in
+                Array(items[idx..<min(idx + pageSize, items.count)])
+            }
+            let pageCount = pages.count
+            let currentPageIndex = min(availabilityPage, max(pageCount - 1, 0))
+            let pageItems = pages.isEmpty ? [] : pages[currentPageIndex]
 
             if isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 0) {
@@ -1503,7 +1511,7 @@ struct HomeView: View {
                         .padding(.horizontal, 14)
                         .opacity(0.35)
 
-                    if items.isEmpty {
+                    if pageItems.isEmpty {
                         Text("No categories yet.")
                             .foregroundStyle(.secondary)
                             .font(.ubCaption)
@@ -1511,15 +1519,46 @@ struct HomeView: View {
                             .padding(.vertical, tabPadding)
                     } else {
                         VStack(spacing: rowSpacing) {
-                            ForEach(items) { item in
+                            ForEach(pageItems) { item in
                                 CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
+                                    .frame(minHeight: rowHeight, alignment: .center)
+                            }
+                            let missingRows = max(0, pageSize - pageItems.count)
+                            ForEach(0..<missingRows, id: \.self) { _ in
+                                Color.clear
+                                    .frame(minHeight: rowHeight)
                             }
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, tabPadding)
                     }
+
+                    if pageCount > 1 {
+                        Divider()
+                            .padding(.horizontal, 14)
+                            .opacity(0.35)
+
+                        HStack {
+                            Spacer(minLength: 0)
+                            HStack(spacing: 16) {
+                                availabilityNavButton("chevron.left", isDisabled: currentPageIndex == 0) {
+                                    availabilityPage = max(currentPageIndex - 1, 0)
+                                }
+                                availabilityNavButton("chevron.right", isDisabled: currentPageIndex >= pageCount - 1) {
+                                    availabilityPage = min(currentPageIndex + 1, pageCount - 1)
+                                }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            Spacer(minLength: 0)
+                        }
+                    }
                 }
                 .padding(.top, 6)
+                .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
+                .onChange(of: pageCount) { _ in
+                    availabilityPage = min(availabilityPage, max(pageCount - 1, 0))
+                }
             } else {
                 VStack(alignment: .leading, spacing: 0) {
                     PillSegmentedControl(selection: availabilitySegmentBinding) {
@@ -1552,7 +1591,7 @@ struct HomeView: View {
                         .padding(.horizontal, 14)
                         .opacity(0.35)
 
-                    if items.isEmpty {
+                    if pageItems.isEmpty {
                         Text("No categories yet.")
                             .foregroundStyle(.secondary)
                             .font(.ubCaption)
@@ -1560,16 +1599,46 @@ struct HomeView: View {
                             .padding(.vertical, tabPadding)
                     } else {
                         VStack(spacing: rowSpacing) {
-                            ForEach(items) { item in
+                            ForEach(pageItems) { item in
                                 CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
                                     .frame(minHeight: rowHeight, alignment: .center)
+                            }
+                            let missingRows = max(0, pageSize - pageItems.count)
+                            ForEach(0..<missingRows, id: \.self) { _ in
+                                Color.clear
+                                    .frame(minHeight: rowHeight)
                             }
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, tabPadding)
                     }
+
+                    if pageCount > 1 {
+                        Divider()
+                            .padding(.horizontal, 14)
+                            .opacity(0.35)
+
+                        HStack {
+                            Spacer(minLength: 0)
+                            HStack(spacing: 16) {
+                                availabilityNavButton("chevron.left", isDisabled: currentPageIndex == 0) {
+                                    availabilityPage = max(currentPageIndex - 1, 0)
+                                }
+                                availabilityNavButton("chevron.right", isDisabled: currentPageIndex >= pageCount - 1) {
+                                    availabilityPage = min(currentPageIndex + 1, pageCount - 1)
+                                }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            Spacer(minLength: 0)
+                        }
+                    }
                 }
                 .padding(.top, 6)
+                .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
+                .onChange(of: pageCount) { _ in
+                    availabilityPage = min(availabilityPage, max(pageCount - 1, 0))
+                }
             }
         }
     }
@@ -1592,6 +1661,44 @@ struct HomeView: View {
                     .lineLimit(isAccessibilitySize ? nil : 2)
             }
             .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+
+    @ViewBuilder
+    private func availabilityNavButton(_ systemName: String, isDisabled: Bool, action: @escaping () -> Void) -> some View {
+        if capabilities.supportsOS26Translucency,
+           #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
+            Button(action: action) {
+                let buttonSize: CGFloat = 44
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .glassEffect(.regular, in: .rect(cornerRadius: buttonSize / 2))
+                    Image(systemName: systemName)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: buttonSize, height: buttonSize)
+            }
+            .buttonBorderShape(.circle)
+            .buttonStyle(.plain)
+            .disabled(isDisabled)
+            .opacity(isDisabled ? 0.4 : 1)
+        } else {
+            Button(action: action) {
+                let buttonSize: CGFloat = 44
+                ZStack {
+                    Circle()
+                        .fill(Color.primary.opacity(0.08))
+                    Image(systemName: systemName)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: buttonSize, height: buttonSize)
+            }
+            .buttonStyle(.plain)
+            .disabled(isDisabled)
+            .opacity(isDisabled ? 0.4 : 1)
         }
     }
 

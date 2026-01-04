@@ -1463,7 +1463,7 @@ struct HomeView: View {
 
     private func categoryAvailabilityWidget(for summary: BudgetSummary) -> some View {
         let rowHeight = availabilityRowHeight
-        let rowSpacing = availabilityRowSpacing
+        let rowSpacing = availabilityRowSpacing + (isAccessibilitySize ? 20 : 10)
         let tabPadding = availabilityTabPadding
         let pageSize = 5
 
@@ -1479,6 +1479,8 @@ struct HomeView: View {
             let pageCount = pages.count
             let currentPageIndex = min(availabilityPage, max(pageCount - 1, 0))
             let pageItems = pages.isEmpty ? [] : pages[currentPageIndex]
+            let listHeight = CGFloat(pageSize) * rowHeight + CGFloat(max(pageSize - 1, 0)) * rowSpacing + tabPadding * 2
+            let rowMinHeight: CGFloat? = isAccessibilitySize ? nil : rowHeight
 
             if isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 0) {
@@ -1521,12 +1523,7 @@ struct HomeView: View {
                         VStack(spacing: rowSpacing) {
                             ForEach(pageItems) { item in
                                 CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
-                                    .frame(minHeight: rowHeight, alignment: .center)
-                            }
-                            let missingRows = max(0, pageSize - pageItems.count)
-                            ForEach(0..<missingRows, id: \.self) { _ in
-                                Color.clear
-                                    .frame(minHeight: rowHeight)
+                                    .frame(minHeight: rowMinHeight, alignment: .center)
                             }
                         }
                         .padding(.horizontal, 14)
@@ -1601,7 +1598,7 @@ struct HomeView: View {
                         VStack(spacing: rowSpacing) {
                             ForEach(pageItems) { item in
                                 CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
-                                    .frame(minHeight: rowHeight, alignment: .center)
+                                    .frame(minHeight: rowMinHeight, alignment: .center)
                             }
                             let missingRows = max(0, pageSize - pageItems.count)
                             ForEach(0..<missingRows, id: \.self) { _ in
@@ -1611,6 +1608,7 @@ struct HomeView: View {
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, tabPadding)
+                        .frame(height: listHeight, alignment: .top)
                     }
 
                     if pageCount > 1 {

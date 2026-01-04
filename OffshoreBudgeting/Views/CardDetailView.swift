@@ -8,6 +8,7 @@
 
 import SwiftUI
 import CoreData
+import UniformTypeIdentifiers
 
 // MARK: - CardDetailView
 struct CardDetailView: View {
@@ -35,6 +36,9 @@ struct CardDetailView: View {
     @State private var isConfirmingDelete: Bool = false
     @State private var deletionError: DeletionError?
     @State private var editingExpense: CardExpense?
+    @State private var isPresentingImportPicker: Bool = false
+    @State private var isPresentingImportSheet: Bool = false
+    @State private var importFileURL: URL?
     // Date range pickers
     @State private var startDate: Date = Date()
     @State private var endDate: Date = Date()
@@ -142,6 +146,26 @@ struct CardDetailView: View {
                 message: Text(error.message),
                 dismissButton: .cancel(Text("OK"))
             )
+        }
+        .fileImporter(
+            isPresented: $isPresentingImportPicker,
+            allowedContentTypes: [.commaSeparatedText],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                importFileURL = urls.first
+                isPresentingImportSheet = importFileURL != nil
+            case .failure:
+                importFileURL = nil
+                isPresentingImportSheet = false
+            }
+        }
+        .sheet(isPresented: $isPresentingImportSheet, onDismiss: { importFileURL = nil }) {
+            if let url = importFileURL {
+                ExpenseImportView(card: cardSnapshot, fileURL: url) { refreshCardDetails() }
+                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            }
         }
         .ub_surfaceBackground(
             themeManager.selectedTheme,
@@ -443,6 +467,9 @@ struct CardDetailView: View {
                 }
                 Button("Add Variable Expense") {
                     isPresentingAddExpense = true
+                }
+                Button("Import Expenses") {
+                    isPresentingImportPicker = true
                 }
             } label: {
                 Image(systemName: "plus")

@@ -278,11 +278,14 @@ struct BudgetsView: View {
                 Spacer()
                 Image(systemName: "chevron.right")
                     .rotationEffect(isExpanded ? .degrees(90) : .zero)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.caption.weight(.semibold))
             }
         }
         .buttonStyle(.plain)
         .textCase(nil)
+        .accessibilityLabel(Text(sectionTitle(title: title, count: count)))
+        .accessibilityValue(isExpanded ? Text("Expanded") : Text("Collapsed"))
+        .accessibilityHint(Text(isExpanded ? "Double tap to collapse section" : "Double tap to expand section"))
     }
 
     private func sectionTitle(title: String, count: Int) -> String {
@@ -306,9 +309,11 @@ struct BudgetsView: View {
             HStack(spacing: 6) {
                 if isSearching {
                     Buttons.toolbarIcon("xmark") { closeSearch() }
+                        .accessibilityLabel("Close Search")
                     glassSearchField
                 } else {
                     Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                        .accessibilityLabel("Search Budgets")
                 }
             }
         }
@@ -318,9 +323,11 @@ struct BudgetsView: View {
         HStack(spacing: 6) {
             if isSearching {
                 Buttons.toolbarIcon("xmark") { closeSearch() }
+                    .accessibilityLabel("Close Search")
                 legacySearchField
             } else {
                 Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                    .accessibilityLabel("Search Budgets")
             }
         }
     }
@@ -360,10 +367,11 @@ struct BudgetsView: View {
                 .textFieldStyle(.plain)
                 .focused($searchFocused)
                 .frame(minWidth: 140, maxWidth: 220)
+                .accessibilityLabel("Search Budgets")
             if !searchText.isEmpty {
                 Button(action: { searchText = "" }) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
@@ -499,11 +507,20 @@ private struct BudgetRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(accessibilityLabelText))
     }
 
     private var title: String {
         let raw = budget.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return raw.isEmpty ? "Untitled Budget" : raw
+    }
+
+    private var accessibilityLabelText: String {
+        if let start = budget.startDate, let end = budget.endDate {
+            return "\(title), \(dateFormatter.string(from: start, to: end))"
+        }
+        return title
     }
 }
 

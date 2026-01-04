@@ -68,6 +68,30 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
   - Some warnings correspond to system UI (status bar time and tab bar icons) and are not app-controlled.
   - HomeView text uses Dynamic Type styles throughout; remaining “Dynamic Type unsupported” warnings likely reflect Accessibility Inspector false positives for styled SwiftUI containers.
 
+### Session 6
+- Date: 2026-01-03
+- Scope: BudgetsView (AuditReport_2026-01-03_17-09-32.html)
+- Notes:
+  - Mapped 3 Dynamic Type warnings to: section header “Active Budgets”, budget row title (“January 2026”), and budget row date range (“Jan 1 – 31, 2026”).
+  - All mapped texts use Dynamic Type styles (`.headline` / `.subheadline`) and scale correctly in the simulator.
+  - Replaced fixed icon sizes (chevron + clear search icon) with Dynamic Type caption styles to reduce false positives.
+  - Result: Accessibility Inspector still reports “Dynamic Type unsupported” despite correct scaling. Treated as Inspector noise for grouped list styling; UI accepted as-is.
+  - VoiceOver pass:
+    - Section headers announce title + expanded/collapsed state with a hint.
+    - Search toolbar icons labeled (“Search Budgets” / “Close Search”).
+    - Search field labeled explicitly.
+    - Budget rows announce a combined label (title + date range).
+
+### Session 7
+- Date: 2026-01-03
+- Scope: HomeView layout cleanup + VoiceOver labels
+- Notes:
+  - Date row controls: added a horizontal-first layout so compact mode keeps start/end pickers side-by-side when possible, with a two-row fallback before the fully stacked layout.
+  - Apply and calendar buttons: visual circle size clamped to 44pt minimum and labels/hints added for VoiceOver.
+  - Category Availability widget: removed paging in non-accessibility sizes so the container grows with content; rows now list vertically like the accessibility version.
+  - Widgets header controls: Edit/Done button now includes explicit VoiceOver label/hint.
+  - Widget pin controls: added VoiceOver labels/hints for pin/unpin actions, including widget title in the announcement.
+
 ## Extraction Algorithm (HomeView Report)
 1) Read the HTML report and locate the embedded `rootObject` JSON payload.
 2) Parse `_axKeyAllScreens[0]._axKeyAllIssues` to collect each issue.

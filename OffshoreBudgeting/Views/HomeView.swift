@@ -220,7 +220,6 @@ struct HomeView: View {
     @State private var widgetBuckets: [SpendBucket] = []
     @State private var weekdayRangeOverride: ClosedRange<Date>? = nil
     @State private var capStatuses: [CapStatus] = []
-    @State private var availabilityPage: Int = 0
     @State private var startDateSelection: Date = Date()
     @State private var endDateSelection: Date = Date()
 
@@ -258,12 +257,9 @@ struct HomeView: View {
 
     @ScaledMetric(relativeTo: .body) private var gridSpacing: CGFloat = 18
     @ScaledMetric(relativeTo: .body) private var gridRowHeight: CGFloat = 170
-    @ScaledMetric(relativeTo: .body) private var availabilityButtonSize: CGFloat = 32
     @ScaledMetric(relativeTo: .body) private var availabilityRowHeight: CGFloat = 64
     @ScaledMetric(relativeTo: .body) private var availabilityRowSpacing: CGFloat = 8
     @ScaledMetric(relativeTo: .body) private var availabilityTabPadding: CGFloat = 12
-    @ScaledMetric(relativeTo: .body) private var availabilityHeaderAllowance: CGFloat = 32
-    @ScaledMetric(relativeTo: .body) private var availabilityControlsAllowance: CGFloat = 96
     @ScaledMetric(relativeTo: .body) private var categorySpotlightHeight: CGFloat = 200
     @ScaledMetric(relativeTo: .body) private var dayOfWeekChartHeight: CGFloat = 140
     @ScaledMetric(relativeTo: .body) private var dateActionButtonSize: CGFloat = 44
@@ -548,23 +544,57 @@ struct HomeView: View {
     private func dateRowControls(disabled: Bool, compactLayout: Bool) -> some View {
         Group {
             if compactLayout {
-                VStack(alignment: .leading, spacing: 8) {
-                    datePickerRow(title: "Start date", selection: $startDateSelection)
-                    datePickerRow(title: "End date", selection: $endDateSelection)
-                    HStack(spacing: 16) {
-                        applyButton(disabled)
-                        periodMenu
+                if isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 8) {
+                        datePickerRow(title: "Start date", selection: $startDateSelection)
+                        datePickerRow(title: "End date", selection: $endDateSelection)
+                        HStack(spacing: 16) {
+                            applyButton(disabled)
+                            periodMenu
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) {
+                            datePickerRow(title: "Start date", selection: $startDateSelection)
+                            datePickerRow(title: "End date", selection: $endDateSelection)
+                            applyButton(disabled)
+                            periodMenu
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                datePickerRow(title: "Start date", selection: $startDateSelection)
+                                datePickerRow(title: "End date", selection: $endDateSelection)
+                            }
+                            HStack(spacing: 12) {
+                                applyButton(disabled)
+                                periodMenu
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        VStack(alignment: .leading, spacing: 8) {
+                            datePickerRow(title: "Start date", selection: $startDateSelection)
+                            datePickerRow(title: "End date", selection: $endDateSelection)
+                            HStack(spacing: 12) {
+                                applyButton(disabled)
+                                periodMenu
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
                 }
             } else {
                 HStack(spacing: 8) {
                     DatePicker("Start date", selection: $startDateSelection, displayedComponents: [.date])
                         .labelsHidden()
                         .datePickerStyle(.compact)
+                        .accessibilityLabel("Start date")
                     DatePicker("End date", selection: $endDateSelection, displayedComponents: [.date])
                         .labelsHidden()
                         .datePickerStyle(.compact)
+                        .accessibilityLabel("End date")
                     applyButton(disabled)
                     periodMenu
                 }
@@ -582,11 +612,13 @@ struct HomeView: View {
                 DatePicker("", selection: selection, displayedComponents: [.date])
                     .labelsHidden()
                     .datePickerStyle(.compact)
+                    .accessibilityLabel(Text(title))
             }
         } else {
             DatePicker(title, selection: selection, displayedComponents: [.date])
                 .labelsHidden()
                 .datePickerStyle(.compact)
+                .accessibilityLabel(Text(title))
         }
     }
 
@@ -708,6 +740,8 @@ struct HomeView: View {
             .padding(.vertical, isHighContrast ? 6 : 0)
             .background(isHighContrast ? Color.primary.opacity(0.2) : Color.clear)
             .clipShape(Capsule())
+            .accessibilityLabel(isEditing ? "Done editing widgets" : "Edit widgets")
+            .accessibilityHint("Reorder or add widgets.")
         } else {
             Button(isEditing ? "Done" : "Edit") {
                 withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
@@ -721,6 +755,8 @@ struct HomeView: View {
             .padding(.vertical, isHighContrast ? 6 : 0)
             .background(isHighContrast ? Color.primary.opacity(0.2) : Color.clear)
             .clipShape(Capsule())
+            .accessibilityLabel(isEditing ? "Done editing widgets" : "Edit widgets")
+            .accessibilityHint("Reorder or add widgets.")
         }
     }
 
@@ -1177,7 +1213,7 @@ struct HomeView: View {
             .layoutValue(key: WidgetSpanKey.self, value: item.span)
             .overlay(alignment: .topTrailing) {
                 if isEditing {
-                    pinToggle(for: item.id, isPinned: pinnedIDs.contains(item.id))
+                    pinToggle(for: item.id, title: item.title, isPinned: pinnedIDs.contains(item.id))
                 }
             }
             .opacity(draggingID == item.id ? 0.65 : 1)
@@ -1196,7 +1232,7 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private func pinToggle(for id: WidgetID, isPinned: Bool) -> some View {
+    private func pinToggle(for id: WidgetID, title: String, isPinned: Bool) -> some View {
         Button {
             if isPinned {
                 unpinWidget(id)
@@ -1211,6 +1247,8 @@ struct HomeView: View {
         }
         .buttonStyle(.plain)
         .padding(6)
+        .accessibilityLabel(isPinned ? "Unpin \(title)" : "Pin \(title)")
+        .accessibilityHint(isPinned ? "Removes this widget from the list." : "Keeps this widget in the list.")
     }
 
     private func pinWidget(_ id: WidgetID) {
@@ -1425,7 +1463,6 @@ struct HomeView: View {
     private func categoryAvailabilityWidget(for summary: BudgetSummary) -> some View {
         let rowHeight = availabilityRowHeight
         let rowSpacing = availabilityRowSpacing
-        let maxRowsPerPage: Int = 6
         let tabPadding = availabilityTabPadding
 
         return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .availability, span: WidgetSpan(width: 1, height: 3), summary: summary) {
@@ -1483,114 +1520,56 @@ struct HomeView: View {
                     }
                 }
                 .padding(.top, 6)
-                .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
             } else {
-                GeometryReader { geo in
-                    let availableHeight = max(0, geo.size.height - availabilityHeaderAllowance - availabilityControlsAllowance)
-                    let slotHeight = rowHeight + rowSpacing
-                    let rowsThatFit = max(3, Int(floor((availableHeight + rowSpacing) / slotHeight)))
-                    let pageSize = max(3, min(rowsThatFit, maxRowsPerPage))
-                    let pages = stride(from: 0, to: items.count, by: pageSize).map { idx in
-                        Array(items[idx..<min(idx + pageSize, items.count)])
-                    }
-                    let pageSelection = Binding(
-                        get: { min(availabilityPage, max(pages.count - 1, 0)) },
-                        set: { availabilityPage = $0 }
-                    )
-                    let maxRowsOnPage = pages.map(\.count).max() ?? 0
-                    let tabHeight = max(0, CGFloat(maxRowsOnPage) * rowHeight + CGFloat(max(maxRowsOnPage - 1, 0)) * rowSpacing + tabPadding * 2)
-
-                    VStack(alignment: .leading, spacing: 0) {
-                        PillSegmentedControl(selection: availabilitySegmentBinding) {
-                            ForEach(CategoryAvailabilitySegment.allCases) { segment in
-                                Text(segment.title).tag(segment)
-                            }
-                        }
-                        .ubSegmentedGlassStyle()
-                        .padding(.horizontal, 14)
-                        .padding(.top, 10)
-                        .padding(.bottom, 10)
-
-                        HStack(spacing: 14) {
-                            HStack(spacing: 6) {
-                                Circle().fill(Color.red.opacity(0.2)).frame(width: 10, height: 10)
-                                Text("Over: \(overCount)")
-                            }
-                            HStack(spacing: 6) {
-                                Circle().fill(Color.orange.opacity(0.25)).frame(width: 10, height: 10)
-                                Text("Near: \(nearCount)")
-                            }
-                            Spacer()
-                        }
-                        .font(.ubCaption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 6)
-
-                        Divider()
-                            .padding(.horizontal, 14)
-                            .opacity(0.35)
-
-                        if pages.isEmpty {
-                            Text("No categories yet.")
-                                .foregroundStyle(.secondary)
-                                .font(.ubCaption)
-                                .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
-                                .padding(.vertical, tabPadding)
-                        } else {
-                            TabView(selection: pageSelection) {
-                                ForEach(Array(pages.enumerated()), id: \.offset) { idx, page in
-                                    VStack(spacing: rowSpacing) {
-                                        ForEach(page) { item in
-                                            CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
-                                                .frame(minHeight: rowHeight, alignment: .center)
-                                        }
-                                    }
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, tabPadding)
-                                    .tag(idx)
-                                }
-                            }
-                            .tabViewStyle(.page(indexDisplayMode: .never))
-                            .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .never))
-                            .frame(height: min(tabHeight, availableHeight), alignment: .top)
-                        }
-
-                        if !pages.isEmpty && pages.count > 1 {
-                            Divider()
-                                .padding(.horizontal, 14)
-                                .opacity(0.35)
-
-                            HStack {
-                                Spacer(minLength: 0)
-                                HStack(spacing: 12) {
-                                    availabilityNavButton("chevron.left", isDisabled: availabilityPage == 0) {
-                                        availabilityPage = max(0, availabilityPage - 1)
-                                    }
-
-                                    HStack(spacing: 8) {
-                                        ForEach(0..<pages.count, id: \.self) { idx in
-                                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                                .fill(idx == availabilityPage ? Color.primary.opacity(0.9) : Color.primary.opacity(0.35))
-                                                .frame(width: idx == availabilityPage ? 20 : 9, height: 7)
-                                        }
-                                    }
-
-                                    availabilityNavButton("chevron.right", isDisabled: availabilityPage >= pages.count - 1) {
-                                        availabilityPage = min(pages.count - 1, availabilityPage + 1)
-                                    }
-                                }
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                Spacer(minLength: 0)
-                            }
+                VStack(alignment: .leading, spacing: 0) {
+                    PillSegmentedControl(selection: availabilitySegmentBinding) {
+                        ForEach(CategoryAvailabilitySegment.allCases) { segment in
+                            Text(segment.title).tag(segment)
                         }
                     }
-                    .padding(.top, 6)
-                    .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
+                    .ubSegmentedGlassStyle()
+                    .padding(.horizontal, 14)
+                    .padding(.top, 10)
+                    .padding(.bottom, 10)
+
+                    HStack(spacing: 14) {
+                        HStack(spacing: 6) {
+                            Circle().fill(Color.red.opacity(0.2)).frame(width: 10, height: 10)
+                            Text("Over: \(overCount)")
+                        }
+                        HStack(spacing: 6) {
+                            Circle().fill(Color.orange.opacity(0.25)).frame(width: 10, height: 10)
+                            Text("Near: \(nearCount)")
+                        }
+                        Spacer()
+                    }
+                    .font(.ubCaption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 6)
+
+                    Divider()
+                        .padding(.horizontal, 14)
+                        .opacity(0.35)
+
+                    if items.isEmpty {
+                        Text("No categories yet.")
+                            .foregroundStyle(.secondary)
+                            .font(.ubCaption)
+                            .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
+                            .padding(.vertical, tabPadding)
+                    } else {
+                        VStack(spacing: rowSpacing) {
+                            ForEach(items) { item in
+                                CategoryAvailabilityRow(item: item, currencyFormatter: formatCurrency)
+                                    .frame(minHeight: rowHeight, alignment: .center)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, tabPadding)
+                    }
                 }
+                .padding(.top, 6)
             }
         }
     }
@@ -1614,32 +1593,6 @@ struct HomeView: View {
             }
             .frame(maxWidth: .infinity, alignment: .center)
         }
-    }
-
-    @ViewBuilder
-    private func availabilityNavButton(_ systemName: String, isDisabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.primary)
-                .frame(width: availabilityButtonSize, height: availabilityButtonSize)
-                .background(
-                    Group {
-                        if #available(iOS 26.0, macCatalyst 26.0, *) {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .glassEffect(.regular, in: .rect(cornerRadius: 16))
-                        } else {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.primary.opacity(0.08))
-                        }
-                    }
-                    .opacity(isDisabled ? 0.45 : 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .opacity(isDisabled ? 0.45 : 1)
-        .disabled(isDisabled)
     }
 
 
@@ -1820,7 +1773,7 @@ struct HomeView: View {
     private func applyButton(_ disabled: Bool) -> some View {
         if #available(iOS 26.0, macCatalyst 26.0, *) {
             Button(action: applyCustomRangeFromPickers) {
-                let buttonSize = dateActionButtonSize
+                let buttonSize = max(dateActionButtonSize, 44)
                 ZStack {
                     Circle()
                         .fill(.ultraThinMaterial)
@@ -1835,10 +1788,12 @@ struct HomeView: View {
             .buttonBorderShape(.circle)
             .tint(.accentColor)
             .frame(minWidth: 44, minHeight: 44)
+            .accessibilityLabel("Apply date range")
+            .accessibilityHint("Updates widgets for the selected dates.")
             .disabled(disabled)
         } else {
             Button(action: applyCustomRangeFromPickers) {
-                let buttonSize = dateActionButtonSize
+                let buttonSize = max(dateActionButtonSize, 44)
                 ZStack {
                     Circle()
                         .fill(Color.primary.opacity(0.08))
@@ -1850,6 +1805,8 @@ struct HomeView: View {
             }
             .buttonStyle(.plain)
             .frame(minWidth: 44, minHeight: 44)
+            .accessibilityLabel("Apply date range")
+            .accessibilityHint("Updates widgets for the selected dates.")
             .disabled(disabled)
         }
     }
@@ -1860,7 +1817,7 @@ struct HomeView: View {
             Menu {
                 periodMenuItems
             } label: {
-                let buttonSize = dateActionButtonSize
+                let buttonSize = max(dateActionButtonSize, 44)
                 ZStack {
                     Circle()
                         .fill(.ultraThinMaterial)
@@ -1875,11 +1832,13 @@ struct HomeView: View {
             .buttonBorderShape(.circle)
             .tint(.accentColor)
             .frame(minWidth: 44, minHeight: 44)
+            .accessibilityLabel("Date presets")
+            .accessibilityHint("Choose a preset date range.")
         } else {
             Menu {
                 periodMenuItems
             } label: {
-                let buttonSize = dateActionButtonSize
+                let buttonSize = max(dateActionButtonSize, 44)
                 ZStack {
                     Circle()
                         .fill(Color.primary.opacity(0.08))
@@ -1890,6 +1849,8 @@ struct HomeView: View {
                 .frame(width: buttonSize, height: buttonSize)
             }
             .frame(minWidth: 44, minHeight: 44)
+            .accessibilityLabel("Date presets")
+            .accessibilityHint("Choose a preset date range.")
         }
     }
 

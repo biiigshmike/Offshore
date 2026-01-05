@@ -735,6 +735,7 @@ struct HomeView: View {
                 }
             }
             .buttonStyle(.glass)
+            .buttonBorderShape(.capsule)
             .tint(.clear)
             .foregroundStyle(.primary)
             .padding(.horizontal, isHighContrast ? 10 : 0)
@@ -751,6 +752,7 @@ struct HomeView: View {
                 }
             }
             .buttonStyle(.plain)
+            .buttonBorderShape(.capsule)
             .foregroundStyle(.primary)
             .padding(.horizontal, isHighContrast ? 10 : 0)
             .padding(.vertical, isHighContrast ? 6 : 0)

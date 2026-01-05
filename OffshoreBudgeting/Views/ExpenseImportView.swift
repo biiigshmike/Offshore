@@ -27,7 +27,9 @@ struct ExpenseImportView: View {
     @State private var isReadyExpanded = true
     @State private var isPossibleExpanded = true
     @State private var isNeedsExpanded = true
+    @State private var isPaymentsExpanded = true
     @State private var isCreditsExpanded = true
+    @ScaledMetric private var categoryDotSize: CGFloat = 10
 
     @Environment(\.dismiss) private var dismiss
 
@@ -128,7 +130,7 @@ struct ExpenseImportView: View {
                     if isReadyExpanded {
                         ForEach(viewModel.readyRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
-                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id), showCreditHint: false)
+                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
                             }
                         }
                     }
@@ -140,7 +142,7 @@ struct ExpenseImportView: View {
                     if isPossibleExpanded {
                         ForEach(viewModel.possibleMatchRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
-                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id), showCreditHint: false)
+                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
                             }
                         }
                     }
@@ -152,7 +154,19 @@ struct ExpenseImportView: View {
                     if isNeedsExpanded {
                         ForEach(viewModel.missingDataRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
-                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id), showCreditHint: false)
+                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !viewModel.paymentRowIDs.isEmpty {
+                Section(header: sectionHeader(title: "Payments", isExpanded: $isPaymentsExpanded)) {
+                    if isPaymentsExpanded {
+                        ForEach(viewModel.paymentRowIDs, id: \.self) { id in
+                            if let binding = binding(for: id) {
+                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
                             }
                         }
                     }
@@ -164,7 +178,7 @@ struct ExpenseImportView: View {
                     if isCreditsExpanded {
                         ForEach(viewModel.creditRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
-                                importRowView(binding, isSelectable: false, showCreditHint: true)
+                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
                             }
                         }
                     }
@@ -175,10 +189,9 @@ struct ExpenseImportView: View {
     }
 
     @ViewBuilder
-    private func importRowView(_ row: Binding<ExpenseImportViewModel.ImportRow>, isSelectable: Bool, showCreditHint: Bool) -> some View {
+    private func importRowView(_ row: Binding<ExpenseImportViewModel.ImportRow>, isSelectable: Bool) -> some View {
         let selectedCategoryName = viewModel.categoryName(for: row.wrappedValue.selectedCategoryID)
         let selectedCategoryHex = viewModel.categoryHex(for: row.wrappedValue.selectedCategoryID)
-        let isDisabled = !isSelectable && showCreditHint
         let isSelected = selectedIDs.contains(row.wrappedValue.id)
 
         HStack(alignment: .top, spacing: 12) {
@@ -201,6 +214,7 @@ struct ExpenseImportView: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
+                badgeRow(for: row)
                 TextField("Expense Description", text: row.descriptionText)
                     .autocorrectionDisabled(true)
                     .textInputAutocapitalization(.never)
@@ -226,25 +240,21 @@ struct ExpenseImportView: View {
                         row.matchQuality.wrappedValue = .none
                     }
             } label: {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(UBColorFromHex(selectedCategoryHex) ?? .secondary)
-                        .frame(width: 10, height: 10)
-                    Text(selectedCategoryName)
-                        .font(.subheadline)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.secondary.opacity(0.08))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                menuLabel(
+                    content: HStack(spacing: 8) {
+                        Circle()
+                            .fill(UBColorFromHex(selectedCategoryHex) ?? .secondary)
+                            .frame(width: categoryDotSize, height: categoryDotSize)
+                        Text(selectedCategoryName)
+                            .font(.subheadline)
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
                 )
             }
             .accessibilityLabel("Category")
+            .ub_menuButtonStyle()
 
                 if !row.wrappedValue.categoryNameFromCSV.isEmpty {
                     Text("CSV Category: \(row.wrappedValue.categoryNameFromCSV)")
@@ -255,17 +265,9 @@ struct ExpenseImportView: View {
                 Toggle("Save as Preset Planned Expense?", isOn: row.isPreset)
                     .accessibilityLabel("Save as Preset Planned Expense")
 
-                if showCreditHint {
-                    Text("Credits not supported")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel("Credits not supported")
-                }
             }
         }
         .padding(.vertical, 4)
-        .disabled(isDisabled)
-        .opacity(isDisabled ? 0.6 : 1.0)
         .listRowBackground(isSelected ? Color.secondary.opacity(0.08) : Color.clear)
         .accessibilityElement(children: .contain)
     }
@@ -364,6 +366,76 @@ struct ExpenseImportView: View {
         .accessibilityLabel(isExpanded.wrappedValue ? "Collapse \(title)" : "Expand \(title)")
     }
 
+    private func badgeRow(for row: Binding<ExpenseImportViewModel.ImportRow>) -> some View {
+        HStack(spacing: 8) {
+            Menu {
+                Button("Variable") { row.isPreset.wrappedValue = false }
+                Button("Preset") { row.isPreset.wrappedValue = true }
+            } label: {
+                menuBadge(text: row.wrappedValue.isPreset ? "Preset" : "Variable")
+            }
+            .accessibilityLabel("Expense Type")
+            .ub_menuButtonStyle()
+
+            Menu {
+                Button("Debit") { row.importKind.wrappedValue = .debit }
+                Button("Credit") { row.importKind.wrappedValue = .credit }
+                Button("Payment") { row.importKind.wrappedValue = .payment }
+            } label: {
+                menuBadge(text: kindLabel(for: row.wrappedValue.importKind))
+            }
+            .accessibilityLabel("Transaction Type")
+            .ub_menuButtonStyle()
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func menuBadge(text: String) -> some View {
+        menuLabel(
+            content: HStack(spacing: 6) {
+                Text(text)
+                    .font(.caption.weight(.semibold))
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+        )
+        .accessibilityLabel(text)
+    }
+
+    private func kindLabel(for kind: ExpenseImportViewModel.ImportKind) -> String {
+        switch kind {
+        case .debit: return "Debit"
+        case .credit: return "Credit"
+        case .payment: return "Payment"
+        }
+    }
+
+    @ViewBuilder
+    private func menuLabel<Content: View>(content: Content) -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            content
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .glassEffect(.regular.tint(.clear).interactive(true))
+                .clipShape(Capsule())
+                .contentShape(Capsule())
+        } else {
+            content
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.secondary.opacity(0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+    }
+
     private func toggleSelection(for id: UUID, isSelectable: Bool) {
         guard editMode == .active, isSelectable else { return }
         if selectedIDs.contains(id) {
@@ -429,6 +501,21 @@ private struct CategoryPickerSheet: View {
             }
         }
         .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
+    }
+}
+
+// MARK: - Menu Button Style
+private extension View {
+    @ViewBuilder
+    func ub_menuButtonStyle() -> some View {
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            self
+                .buttonStyle(.plain)
+                .buttonBorderShape(.capsule)
+        } else {
+            self
+                .buttonStyle(.plain)
+        }
     }
 }
 

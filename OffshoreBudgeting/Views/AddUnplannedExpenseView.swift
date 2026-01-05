@@ -34,7 +34,7 @@ struct AddUnplannedExpenseView: View {
     // MARK: - Layout
     /// Height of the card picker row.  This matches the tile height defined in
     /// `CardPickerRow` so adjustments remain centralized.
-    private let cardRowHeight: CGFloat = 160
+    @ScaledMetric(relativeTo: .body) private var cardRowHeight: CGFloat = 160
 
 
     // MARK: Init
@@ -159,13 +159,14 @@ struct AddUnplannedExpenseView: View {
                 if !vm.cardsLoaded {
                     ProgressView()
                         .frame(maxWidth: .infinity)
-                        .frame(height: cardRowHeight)
+                        .frame(minHeight: cardRowHeight)
                 } else if vm.allCards.isEmpty {
                     VStack(spacing: DS.Spacing.m) {
                         Text("No cards yet. Add one to assign this expense.")
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .frame(height: 44)
+                            .frame(minHeight: 44)
+                            .fixedSize(horizontal: false, vertical: true)
                         GlassCTAButton(
                             maxWidth: .infinity,
                             height: 44,
@@ -183,7 +184,7 @@ struct AddUnplannedExpenseView: View {
                         selectedCardID: $vm.selectedCardID
                     )
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .frame(height: cardRowHeight)
+                    .frame(minHeight: cardRowHeight)
                     .scrollIndicators(.hidden)
                 }
             } header: {
@@ -504,19 +505,20 @@ private struct AddCategoryPill: View {
     var fillsWidth: Bool = false
     var onTap: () -> Void
     @EnvironmentObject private var themeManager: ThemeManager
+    @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 44
 
     var body: some View {
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             let label = Label("Add", systemImage: "plus")
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 12)
-                .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 44, alignment: .center)
+                .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: minHeight, alignment: .center)
                 .glassEffect(.regular.tint(.clear).interactive(true))
             Button(action: onTap) {
                 label
             }
             .buttonStyle(.plain)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, maxHeight: 44, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: minHeight, alignment: .center)
             .clipShape(Capsule())
             .compositingGroup()
             .accessibilityLabel("Add Category")
@@ -525,7 +527,7 @@ private struct AddCategoryPill: View {
                 Label("Add", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 12)
-                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 44, alignment: .center)
+                    .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: minHeight, alignment: .center)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(UIColor { traits in
@@ -537,7 +539,7 @@ private struct AddCategoryPill: View {
             }
             .buttonStyle(.plain)
             .controlSize(.regular)
-            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 44, maxHeight: 44, alignment: .center)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: minHeight, alignment: .center)
             .accessibilityLabel("Add Category")
         }
     }
@@ -551,22 +553,28 @@ private struct CategoryChip: View {
     let colorHex: String
     let isSelected: Bool
     let action: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .subheadline) private var dotSize: CGFloat = 10
+    @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 44
 
     var body: some View {
         let accentColor = UBColorFromHex(colorHex) ?? .secondary
         let glassTintColor = accentColor.opacity(0.25)
         let legacyShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+        let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
 
         let label = HStack(spacing: DS.Spacing.s) {
             Circle()
                 .fill(accentColor)
-                .frame(width: 10, height: 10)
+                .frame(width: dotSize, height: dotSize)
             Text(name)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 12)
-        .frame(minHeight: 44, maxHeight: 44)
+        .padding(.vertical, isAccessibilitySize ? DS.Spacing.xs : 0)
+        .frame(minHeight: minHeight)
 
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             Button(action: action) {
@@ -576,13 +584,15 @@ private struct CategoryChip: View {
                             .tint(isSelected ? glassTintColor : .none)
                             .interactive(true)
                     )
-                    .frame(minHeight: 44, maxHeight: 44)
+                    .frame(minHeight: minHeight)
                     .clipShape(Capsule())
                     .compositingGroup()
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .accessibilityLabel(name)
+            .accessibilityHint("Select category")
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(maxHeight: 44)
+            .frame(minHeight: minHeight)
             .buttonStyle(.plain)
 
             .buttonBorderShape(.capsule)
@@ -592,8 +602,10 @@ private struct CategoryChip: View {
                 label
             }
             .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .accessibilityLabel(name)
+            .accessibilityHint("Select category")
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(maxHeight: 44)
+            .frame(minHeight: minHeight)
             .buttonStyle(.plain)
             .background(
                 legacyShape.fill(isSelected ? glassTintColor : neutralFill)

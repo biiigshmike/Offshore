@@ -275,6 +275,18 @@ extension CardTheme {
             NoiseOverlay(cornerRadius: cornerRadius, opacity: opacity)
         }
     }
+
+    /// Background overlay used to adapt card themes for light/dark mode and increased contrast.
+    func adaptiveOverlay(for colorScheme: ColorScheme, isHighContrast: Bool) -> Color {
+        let base: Color = colorScheme == .dark ? .black : .white
+        let baseOpacity: Double = colorScheme == .dark ? 0.18 : 0.04
+        let contrastBoost: Double = {
+            guard isHighContrast else { return 0 }
+            return colorScheme == .dark ? 0.16 : 0.12
+        }()
+        let opacity = min(0.5, baseOpacity + contrastBoost)
+        return base.opacity(opacity)
+    }
 }
 
 // MARK: - Pattern Implementations (SwiftUI-only; iOS/macOS)

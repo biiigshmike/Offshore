@@ -32,7 +32,15 @@ final class ExpenseImportViewModel: ObservableObject {
         case ready
         case possible
         case needsMoreData
+        case payments
         case credits
+    }
+
+    // MARK: - ImportKind
+    enum ImportKind: Equatable {
+        case debit
+        case credit
+        case payment
     }
 
     // MARK: - ImportRow
@@ -45,7 +53,7 @@ final class ExpenseImportViewModel: ObservableObject {
         var selectedCategoryID: NSManagedObjectID?
         var matchQuality: MatchQuality
         var isPreset: Bool
-        var creditHint: Bool
+        var importKind: ImportKind
         var sourceLine: Int
         var initialBucket: ImportBucket
 
@@ -53,11 +61,8 @@ final class ExpenseImportViewModel: ObservableObject {
             ExpenseImportViewModel.parseAmount(amountText)
         }
 
-        var isCredit: Bool {
-            if creditHint { return true }
-            guard let value = amountValue else { return false }
-            return value < 0
-        }
+        var isCredit: Bool { importKind == .credit }
+        var isPayment: Bool { importKind == .payment }
 
         var isMissingCoreFields: Bool {
             let trimmed = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -74,7 +79,12 @@ final class ExpenseImportViewModel: ObservableObject {
 
         var normalizedAmountForImport: Double? {
             guard let value = amountValue else { return nil }
-            return abs(value)
+            switch importKind {
+            case .debit:
+                return abs(value)
+            case .credit, .payment:
+                return -abs(value)
+            }
         }
     }
 
@@ -161,6 +171,12 @@ final class ExpenseImportViewModel: ObservableObject {
             .map { $0.id }
     }
 
+    var paymentRowIDs: [UUID] {
+        rows.filter { $0.initialBucket == .payments }
+            .sorted { $0.sourceLine < $1.sourceLine }
+            .map { $0.id }
+    }
+
     var creditRowIDs: [UUID] {
         rows.filter { $0.initialBucket == .credits }
             .sorted { $0.sourceLine < $1.sourceLine }
@@ -175,8 +191,7 @@ final class ExpenseImportViewModel: ObservableObject {
 
     var selectableRowIDs: Set<UUID> {
         let ids = rows.filter {
-            !shouldBeInCredits($0)
-            && !$0.isMissingData
+            !$0.isMissingData
             && $0.selectedCategoryID != nil
         }.map { $0.id }
         return Set(ids)
@@ -184,7 +199,7 @@ final class ExpenseImportViewModel: ObservableObject {
 
     var defaultSelectedIDs: Set<UUID> {
         let ids = rows.filter {
-            !shouldBeInCredits($0)
+            $0.importKind == .debit
             && !$0.isMissingData
             && $0.matchQuality == .exact
         }.map { $0.id }
@@ -205,8 +220,7 @@ final class ExpenseImportViewModel: ObservableObject {
     func importRows(with ids: Set<UUID>) throws {
         let importable = rows.filter { ids.contains($0.id) }
         let rowsToImport = importable.filter {
-            !$0.isCredit
-            && !$0.isMissingData
+            !$0.isMissingData
             && $0.selectedCategoryID != nil
         }
 
@@ -261,13 +275,13 @@ final class ExpenseImportViewModel: ObservableObject {
     }
 
     func hasMissingCategory(in ids: Set<UUID>) -> Bool {
-        rows.contains { ids.contains($0.id) && !$0.isCredit && !$0.isMissingData && $0.selectedCategoryID == nil }
+        rows.contains { ids.contains($0.id) && !$0.isMissingData && $0.selectedCategoryID == nil }
     }
 
     func assignCategoryToAllSelected(ids: Set<UUID>, categoryID: NSManagedObjectID) {
         for index in rows.indices {
             let rowID = rows[index].id
-            guard ids.contains(rowID), !rows[index].isCredit, !rows[index].isMissingData else { continue }
+            guard ids.contains(rowID), !rows[index].isMissingData else { continue }
             rows[index].selectedCategoryID = categoryID
             rows[index].matchQuality = .none
         }
@@ -462,7 +476,7 @@ final class ExpenseImportViewModel: ObservableObject {
             let typeString = value(at: typeIndex, in: row)
             let date = parseDate(dateString)
 
-            let creditHint = isCreditHint(type: typeString, category: categoryName)
+            let kind = importKind(amountText: amountString, type: typeString, category: categoryName)
 
             return ImportRow(
                 id: UUID(),
@@ -473,7 +487,7 @@ final class ExpenseImportViewModel: ObservableObject {
                 selectedCategoryID: nil,
                 matchQuality: .none,
                 isPreset: false,
-                creditHint: creditHint,
+                importKind: kind,
                 sourceLine: line,
                 initialBucket: .needsMoreData
             )
@@ -484,10 +498,12 @@ final class ExpenseImportViewModel: ObservableObject {
         for index in rows.indices {
             let row = rows[index]
             let bucket: ImportBucket
-            if shouldBeInCredits(row) {
-                bucket = .credits
-            } else if row.isMissingData || row.selectedCategoryID == nil {
+            if row.isMissingData || row.selectedCategoryID == nil {
                 bucket = .needsMoreData
+            } else if row.isPayment {
+                bucket = .payments
+            } else if shouldBeInCredits(row) {
+                bucket = .credits
             } else if row.matchQuality == .suggested {
                 bucket = .possible
             } else {
@@ -598,12 +614,21 @@ final class ExpenseImportViewModel: ObservableObject {
         return nil
     }
 
-    private func isCreditHint(type: String, category: String) -> Bool {
+    private func importKind(amountText: String, type: String, category: String) -> ImportKind {
         let combined = [type, category].joined(separator: " ").lowercased()
-        if combined.contains("credit") { return true }
-        if combined.contains("payment") { return true }
-        if combined.contains("refund") { return true }
-        return false
+        if combined.contains("payment") || combined.contains("payments") {
+            return .payment
+        }
+        if hasLeadingPlus(amountText) { return .credit }
+        if combined.contains("credit") || combined.contains("refund") {
+            return .credit
+        }
+        return .debit
+    }
+
+    private func hasLeadingPlus(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.hasPrefix("+")
     }
 
     // MARK: Amount Parsing

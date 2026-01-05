@@ -15,6 +15,7 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
 - Reports/AuditReport_2026-01-03_13-12-13.html
 - Reports/AuditReport_2026-01-03_15-49-13.html
 - Reports/AuditReport_2026-01-03_16-28-16.html
+- Reports/AuditReport_2026-01-04_17-49-22.html
 
 ## Audit Log
 
@@ -41,6 +42,15 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
   - Extracted issue thumbnails and index sheet at `Reports/a11y_thumbs_2026-01-03_12-58-34/index_sheet.jpg`.
   - Dynamic Type warnings map to date range labels, widget titles, percentage labels, and currency values.
   - Planned to reflow the widget grid into a stacked list and relax line limits at accessibility sizes.
+
+### Session 4
+- Date:
+- Scope: Expense import menus (button shapes)
+- Notes:
+  - On iOS with Button Shapes enabled, Menu controls can render an oversized oblong outline around custom capsule/rounded-rect labels.
+  - Fix: apply `.buttonStyle(.plain)` and `.buttonBorderShape(.capsule)` to Menu labels so the accessibility outline matches the visual capsule/rounded-rect.
+  - Code: `OffshoreBudgeting/Views/ExpenseImportView.swift`
+  - Verify: Enable Button Shapes in Accessibility settings and confirm menu outlines match the label shape.
 
 ### Session 4
 - Date: 2026-01-03
@@ -111,6 +121,25 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
   - Added explicit accessibility labels for settings rows and the App Info row; decorative icons hidden from VoiceOver.
   - Removed fixed max-height constraints on settings action buttons to avoid clipping at larger text sizes.
 
+### Session 10
+- Date: 2026-01-03
+- Scope: CardsView + CardTileView accessibility sweep (pre-CardDetail)
+- Notes:
+  - Card tile backgrounds now adapt to light/dark and Increased Contrast via a subtle theme overlay.
+  - Card title respects Reduce Motion by disabling holographic motion and falling back to static text when needed.
+  - Card title allows wrapping at accessibility sizes and scales with Dynamic Type; padding uses `@ScaledMetric`.
+  - Cards grid sizes (tile width/height/spacing) now scale with Dynamic Type to reduce clipping.
+  - Theme swatches in Add Card preview use the same adaptive overlay for visual consistency.
+
+### Session 11
+- Date: 2026-01-04
+- Scope: AddPlannedExpenseView + AddUnplannedExpenseView (AuditReport_2026-01-04_17-49-22.html)
+- Notes:
+  - Card picker rows now scale with Dynamic Type using `@ScaledMetric` and flexible min-heights to avoid clipping at largest text sizes.
+  - Category chips use scaled dot sizes and flexible chip heights; vertical padding increases at accessibility sizes to prevent text clipping.
+  - Added explicit VoiceOver labels/hints for category chips (select action).
+  - Fixed-height text in the empty card state replaced with a minimum height to allow wrapping at large text sizes.
+
 ## Extraction Algorithm (HomeView Report)
 1) Read the HTML report and locate the embedded `rootObject` JSON payload.
 2) Parse `_axKeyAllScreens[0]._axKeyAllIssues` to collect each issue.
@@ -132,6 +161,11 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
 4) Propose a pattern-based fix plan that addresses all repeated elements in one pass.
 5) Draft proposed code changes (no edits) with exact file locations before implementation.
 
+## Audit Checklist
+- Verify Button Shapes outlines match visible button/menu shapes (especially `Menu` labels and capsule buttons).
+- Verify Dynamic Type scaling with large sizes (no clipped text; list rows expand).
+- Verify contrast for secondary labels against glass/overlay backgrounds.
+
 ## Patterns and Heuristics
 - Dynamic Type warnings: eliminate fixed font sizes; use Dynamic Type styles and `@ScaledMetric` for spacing, chart sizes, and row heights.
 - Accessibility sizes: prefer stacked layouts, remove line limits, and allow containers to grow instead of forcing fixed heights.
@@ -151,6 +185,11 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
 - Fix:
 - Verification:
 - Status:
+
+### ExpenseImportView
+- Issue: Menu buttons show oversized oblong outlines with Button Shapes enabled, making labels look detached.
+- Fix: Apply `.buttonStyle(.plain)` + `.buttonBorderShape(.capsule)` via a shared helper for Menu labels.
+- Verification: Toggle Button Shapes and confirm the outline matches the capsule/rounded-rect menu label.
 
 ### HomeView
 - Issue:

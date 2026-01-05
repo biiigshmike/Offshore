@@ -26,6 +26,7 @@ struct CardDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
     private var confirmBeforeDelete: Bool = true
     @State private var isSearchActive: Bool = false
@@ -50,6 +51,8 @@ struct CardDetailView: View {
     // @State private var headerOffset: CGFloat = 0
 
     private let initialHeaderTopPadding: CGFloat = 16
+    @ScaledMetric(relativeTo: .body) private var dateActionButtonSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .subheadline) private var categoryChipDotSize: CGFloat = 10
     
     // MARK: Init
     init(card: CardItem,
@@ -216,19 +219,44 @@ struct CardDetailView: View {
             // Date Range + Presets
             Section {
                 let rowMaxWidth = cardMaxWidth ?? resolvedDateRowMaxWidth(in: layoutContext)
-                HStack(spacing: 10) {
-                    HStack(spacing: 8) {
-                        DatePicker("Start", selection: $startDate, displayedComponents: .date)
-                            .labelsHidden()
-                        DatePicker("End", selection: $endDate, displayedComponents: .date)
-                            .labelsHidden()
-                    }
-                    Spacer(minLength: 0)
-                    HStack(spacing: 8) {
-                        // Go button: liquid glass circular on OS 26, rounded rect legacy
-                        goButton
-                        // Calendar menu: liquid glass circular on OS 26, plain legacy
-                        calendarMenu
+                let startPicker = DatePicker("Start", selection: $startDate, displayedComponents: .date)
+                    .labelsHidden()
+                    .font(.body)
+                    .accessibilityLabel("Start date")
+                let endPicker = DatePicker("End", selection: $endDate, displayedComponents: .date)
+                    .labelsHidden()
+                    .font(.body)
+                    .accessibilityLabel("End date")
+
+                Group {
+                    if isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                startPicker
+                                endPicker
+                            }
+                            HStack(spacing: 12) {
+                                // Go button: liquid glass circular on OS 26, rounded rect legacy
+                                goButton
+                                // Calendar menu: liquid glass circular on OS 26, plain legacy
+                                calendarMenu
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    } else {
+                        HStack(spacing: 10) {
+                            HStack(spacing: 8) {
+                                startPicker
+                                endPicker
+                            }
+                            Spacer(minLength: 0)
+                            HStack(spacing: 8) {
+                                // Go button: liquid glass circular on OS 26, rounded rect legacy
+                                goButton
+                                // Calendar menu: liquid glass circular on OS 26, plain legacy
+                                calendarMenu
+                            }
+                        }
                     }
                 }
                 .frame(maxWidth: rowMaxWidth)
@@ -238,8 +266,9 @@ struct CardDetailView: View {
             Section {
                 let row = VStack(alignment: .leading, spacing: 8) {
                     Text(viewModel.filteredTotal, format: .currency(code: currencyCode))
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityLabel(Text("Total spent \(viewModel.filteredTotal, format: .currency(code: currencyCode))"))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 8)
@@ -583,27 +612,36 @@ struct CardDetailView: View {
     private var goButton: some View {
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: applyDateRange) {
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 44, height: 44)
-                    .glassEffect(.regular.tint(.clear).interactive(true))
+                let buttonSize = max(dateActionButtonSize, 44)
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .glassEffect(.regular, in: .rect(cornerRadius: buttonSize / 2))
+                    Image(systemName: "arrow.right")
+                        .font(dateActionSymbolFont)
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: buttonSize, height: buttonSize)
             }
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
+            .frame(minWidth: 44, minHeight: 44)
             .accessibilityLabel("Apply date range")
         } else {
-            let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
             Button(action: applyDateRange) {
-                Text("Go").font(.subheadline.weight(.semibold))
-                    .frame(minWidth: 44)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(shape.fill(Color.secondary.opacity(0.12)))
-                    .contentShape(shape)
+                let buttonSize = max(dateActionButtonSize, 44)
+                ZStack {
+                    Circle()
+                        .fill(Color.primary.opacity(0.08))
+                    Image(systemName: "arrow.right")
+                        .font(dateActionSymbolFont)
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: buttonSize, height: buttonSize)
             }
             .buttonStyle(.plain)
-            .overlay(shape.stroke(Color.secondary.opacity(0.18), lineWidth: 0.5))
+            .frame(minWidth: 44, minHeight: 44)
             .accessibilityLabel("Apply date range")
         }
     }
@@ -618,14 +656,21 @@ struct CardDetailView: View {
                 Button("Quarterly") { setPreset(.quarterly) }
                 Button("Yearly") { setPreset(.yearly) }
             } label: {
-                Image(systemName: "calendar")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 44, height: 44)
-                    .glassEffect(.regular.tint(.clear).interactive(true))
+                let buttonSize = max(dateActionButtonSize, 44)
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .glassEffect(.regular, in: .rect(cornerRadius: buttonSize / 2))
+                    Image(systemName: "calendar")
+                        .font(dateActionSymbolFont)
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: buttonSize, height: buttonSize)
             }
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
+            .frame(minWidth: 44, minHeight: 44)
             .accessibilityLabel("Select date preset")
         } else {
             Menu {
@@ -635,10 +680,17 @@ struct CardDetailView: View {
                 Button("Quarterly") { setPreset(.quarterly) }
                 Button("Yearly") { setPreset(.yearly) }
             } label: {
-                Image(systemName: "calendar")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 33, height: 33)
+                let buttonSize = max(dateActionButtonSize, 44)
+                ZStack {
+                    Circle()
+                        .fill(Color.primary.opacity(0.08))
+                    Image(systemName: "calendar")
+                        .font(dateActionSymbolFont)
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: buttonSize, height: buttonSize)
             }
+            .frame(minWidth: 44, minHeight: 44)
             .accessibilityLabel("Select date preset")
         }
     }
@@ -688,6 +740,14 @@ struct CardDetailView: View {
     private func boundedCardWidth(for availableWidth: CGFloat, upperBound: CGFloat) -> CGFloat? {
         guard availableWidth > 0 else { return upperBound }
         return min(availableWidth, upperBound)
+    }
+
+    private var isAccessibilitySize: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
+
+    private var dateActionSymbolFont: Font {
+        isAccessibilitySize ? .title2.weight(.semibold) : .title3.weight(.semibold)
     }
 
     // MARK: Heatmap Helpers (Total Spent)
@@ -785,6 +845,7 @@ struct CardDetailView: View {
 private struct ExpenseRow: View {
     let expense: CardExpense
     let currencyCode: String
+    @ScaledMetric(relativeTo: .caption) private var categoryDotSize: CGFloat = 8
     private let df: DateFormatter = {
         let d = DateFormatter()
         d.dateStyle = .medium
@@ -803,7 +864,7 @@ private struct ExpenseRow: View {
                     }()
                     Circle()
                         .fill(catColor)
-                        .frame(width: 8, height: 8)
+                        .frame(width: categoryDotSize, height: categoryDotSize)
                     Text(catName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -872,7 +933,7 @@ private extension CardDetailView {
         let legacyShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
 
         let label = HStack(spacing: DS.Spacing.s) {
-            Circle().fill(accentColor).frame(width: 10, height: 10)
+            Circle().fill(accentColor).frame(width: categoryChipDotSize, height: categoryChipDotSize)
             Text(cat.name).font(.subheadline.weight(.medium))
             Text(cat.amount, format: .currency(code: currencyCode)).font(.subheadline.weight(.semibold))
         }

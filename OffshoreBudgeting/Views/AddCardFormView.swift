@@ -215,6 +215,8 @@ private struct ThemeSwatch: View {
     let theme: CardTheme
     let isSelected: Bool
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
     var body: some View {
         ZStack {
@@ -222,6 +224,8 @@ private struct ThemeSwatch: View {
             ZStack {
                 RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
                     .fill(theme.backgroundStyle(for: themeManager.selectedTheme))
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .fill(theme.adaptiveOverlay(for: colorScheme, isHighContrast: colorSchemeContrast == .increased))
                 RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
                     .stroke(Color.white.opacity(0.06), lineWidth: 1)
             }

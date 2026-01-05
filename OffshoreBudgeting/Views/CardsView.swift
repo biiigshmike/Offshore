@@ -15,11 +15,41 @@ struct CardsView: View {
     @State private var detailCard: CardItem? = nil
     @State private var editingCard: CardItem? = nil
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.responsiveLayoutContext) private var layoutContext
 
     // MARK: Grid
-    private let columns = [GridItem(.adaptive(minimum: 260, maximum: 260), spacing: 16)]
-    private let cardHeight: CGFloat = 160
+    @ScaledMetric(relativeTo: .body) private var cardWidth: CGFloat = 260
+    @ScaledMetric(relativeTo: .body) private var cardHeight: CGFloat = 160
+    @ScaledMetric(relativeTo: .body) private var gridSpacing: CGFloat = 16
+    @ScaledMetric(relativeTo: .body) private var gridPadding: CGFloat = 16
 
+    private var usesSingleColumn: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
+
+    private var gridSpacingValue: CGFloat {
+        usesSingleColumn ? gridSpacing * 0.75 : gridSpacing
+    }
+
+    private var availableGridWidth: CGFloat {
+        let safeArea = layoutContext.safeArea
+        let insets = safeArea.leading + safeArea.trailing
+        let width = layoutContext.containerSize.width - insets - (gridPadding * 2)
+        return max(width, 0)
+    }
+
+    private var cappedCardWidth: CGFloat {
+        guard availableGridWidth > 0 else { return cardWidth }
+        return min(cardWidth, availableGridWidth)
+    }
+
+    private var columns: [GridItem] {
+        if usesSingleColumn {
+            return [GridItem(.flexible(minimum: cappedCardWidth, maximum: max(availableGridWidth, cappedCardWidth)), spacing: gridSpacingValue)]
+        }
+        return [GridItem(.adaptive(minimum: cappedCardWidth, maximum: cappedCardWidth), spacing: gridSpacingValue)]
+    }
     
 
     var body: some View {
@@ -41,7 +71,7 @@ struct CardsView: View {
                             case .initial:
                                 Color.clear.frame(height: 1)
                             case .loading:
-                                LazyVGrid(columns: columns, spacing: 16) {
+                                LazyVGrid(columns: columns, spacing: gridSpacingValue) {
                                     ForEach(0..<2, id: \.self) { _ in
                                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                                             .fill(Color.primary.opacity(0.06))
@@ -49,12 +79,12 @@ struct CardsView: View {
                                             .redacted(reason: .placeholder)
                                     }
                                 }
-                                .padding(.horizontal, 16)
-                                .padding(.top, 16)
+                                .padding(.horizontal, gridPadding)
+                                .padding(.top, gridPadding)
                             case .empty:
                                 EmptyView()
                             case .loaded(let cards):
-                                LazyVGrid(columns: columns, spacing: 16) {
+                                LazyVGrid(columns: columns, spacing: gridSpacingValue) {
                                     ForEach(cards) { card in
                                         NavigationLink(value: card) {
                                             CardTileView(
@@ -63,12 +93,12 @@ struct CardsView: View {
                                                 onTap: { /* handled by NavigationLink */ },
                                                 isInteractive: false,
                                                 enableMotionShine: true,
-                                                showsBaseShadow: false
+                                            showsBaseShadow: false
                                             )
-                                            .frame(height: cardHeight)
-                                            
+                                            .frame(maxWidth: usesSingleColumn ? .infinity : nil)
+                                            .frame(minHeight: cardHeight)
                                         }
-                                        
+                                        .buttonStyle(.plain)
                                         .contextMenu {
                                             Button("Edit", systemImage: "pencil") { editingCard = card }
                                             Button("Delete", systemImage: "trash", role: .destructive) {
@@ -77,8 +107,8 @@ struct CardsView: View {
                                         }
                                     }
                                 }
-                                .padding(.horizontal, 16)
-                                .padding(.top, 16)
+                                .padding(.horizontal, gridPadding)
+                                .padding(.top, gridPadding)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .top)

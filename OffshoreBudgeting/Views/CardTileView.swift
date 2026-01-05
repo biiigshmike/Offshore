@@ -39,10 +39,16 @@ struct CardTileView: View {
     var showsBaseShadow: Bool = true
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     // MARK: Layout
     private let cornerRadius: CGFloat = DS.Radius.card
     private let aspectRatio: CGFloat = 1.586 // credit card proportion
+    @ScaledMetric(relativeTo: .body) private var titlePadding: CGFloat = DS.Spacing.l
+    @ScaledMetric(relativeTo: .body) private var minimumTileHeight: CGFloat = 160
 
     // MARK: Body
     var body: some View {
@@ -63,32 +69,51 @@ struct CardTileView: View {
 
 // MARK: - Computed Views
 private extension CardTileView {
+    var isHighContrast: Bool {
+        colorSchemeContrast == .increased
+    }
+
+    var isAccessibilitySize: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
+
     // MARK: Tile Visual
+    @ViewBuilder
     var tileVisual: some View {
-        ZStack(alignment: .bottomLeading) {
+        let tileBase =
+            ZStack(alignment: .bottomLeading) {
 
-            // MARK: Card Background (STATIC gradient + pattern)
-            ZStack {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(backgroundStyle)
-                card.theme
-                    .patternOverlay(cornerRadius: cornerRadius)
-                    .blendMode(.overlay)
+                // MARK: Card Background (STATIC gradient + pattern)
+                ZStack {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(backgroundStyle)
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(card.theme.adaptiveOverlay(for: colorScheme, isHighContrast: isHighContrast))
+                    card.theme
+                        .patternOverlay(cornerRadius: cornerRadius)
+                        .blendMode(.overlay)
+                }
+
+                // MARK: Title (Metallic shimmer stays)
+                cardTitle
+                    .lineLimit(isAccessibilitySize ? 3 : 2)
+                    .minimumScaleFactor(isAccessibilitySize ? 1 : 0.82)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+                    .padding(.all, titlePadding)
             }
+            .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay(selectionFillOverlay)
+            .overlay(selectionRingOverlay) // <- inner visible ring
+            .overlay(selectionGlowOverlay) // <- outer glow (pretty when not clipped)
+            .overlay(thinEdgeOverlay)
+            //.shadow(color: .black.opacity(showsBaseShadow ? 0.20 : 0), radius: showsBaseShadow ? 6 : 0, x: 0, y: showsBaseShadow ? 4 : 0)
 
-            // MARK: Title (Metallic shimmer stays)
-            cardTitle
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-                .padding(.all, DS.Spacing.l)
+        if isAccessibilitySize {
+            tileBase.frame(minHeight: minimumTileHeight)
+        } else {
+            tileBase.aspectRatio(aspectRatio, contentMode: .fit)
         }
-        .aspectRatio(aspectRatio, contentMode: .fit)
-        .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .overlay(selectionFillOverlay)
-        .overlay(selectionRingOverlay) // <- inner visible ring
-        .overlay(selectionGlowOverlay) // <- outer glow (pretty when not clipped)
-        .overlay(thinEdgeOverlay)
-        //.shadow(color: .black.opacity(showsBaseShadow ? 0.20 : 0), radius: showsBaseShadow ? 6 : 0, x: 0, y: showsBaseShadow ? 4 : 0)
     }
 
     // MARK: Background Gradient (STATIC)
@@ -160,22 +185,26 @@ private extension CardTileView {
 
     // MARK: Title builder
     var cardTitle: some View {
-        Group {
-            if enableMotionShine {
+        let titleFont = Font.system(.title, design: .rounded).weight(.semibold)
+        let titleColor: Color = isHighContrast ? .primary : UBTypography.cardTitleStatic
+        let allowMotionShine = enableMotionShine && !reduceMotion && !isHighContrast
+        let titleView = Group {
+            if allowMotionShine {
                 HolographicMetallicText(
                     text: card.name,
-                    titleFont: Font.system(.title, design: .rounded).weight(.semibold),
+                    titleFont: titleFont,
                     shimmerResponsiveness: 1.5,
                     maxMetallicOpacity: 0.6,
                     maxShineOpacity: 0.7
                 )
             } else {
                 Text(card.name)
-                    .font(.system(.title, design: .rounded).weight(.semibold))
-                    .foregroundStyle(UBTypography.cardTitleStatic)
+                    .font(titleFont)
+                    .foregroundStyle(titleColor)
                     .ub_cardTitleShadow()
             }
         }
+        return titleView
     }
 
     // MARK: Selection Badge

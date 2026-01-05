@@ -34,7 +34,7 @@ struct CardPickerRow: View {
     // MARK: Layout
     // Card tile height. Adjust here rather than inside individual views so
     // tweaks remain consistent across the app.
-    private let tileHeight: CGFloat = 160
+    @ScaledMetric(relativeTo: .body) private var tileHeight: CGFloat = 160
 
     // MARK: Body
     var body: some View {
@@ -60,7 +60,7 @@ struct CardPickerRow: View {
                             enableMotionShine: true,
                             showsBaseShadow: false
                         )
-                        .frame(height: tileHeight)
+                        .frame(minHeight: tileHeight)
                         .id(idString)
                     }
                 }

@@ -55,6 +55,9 @@ final class SettingsViewModel: ObservableObject {
             AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue: false,
             AppSettingsKeys.enableDailyReminder.rawValue: false,
             AppSettingsKeys.enablePlannedIncomeReminder.rawValue: false,
+            AppSettingsKeys.enablePresetExpenseDueReminder.rawValue: false,
+            AppSettingsKeys.silencePresetWithActualAmount.rawValue: false,
+            AppSettingsKeys.excludeNonGlobalPresetExpenses.rawValue: false,
             AppSettingsKeys.notificationReminderTimeMinutes.rawValue: 20 * 60
         ])
     }

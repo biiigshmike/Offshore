@@ -59,6 +59,11 @@ public final class AppLockViewModel: ObservableObject {
     /// Manually lock the UI (e.g., on cold start or when app resigns active).
     public func lock() {
         guard isLockEnabled else { return }
+        var deviceAuthError: BiometricError?
+        guard biometricManager.canEvaluateDeviceOwnerAuthentication(errorOut: &deviceAuthError) else {
+            disableLockForUnavailableAuth(deviceAuthError)
+            return
+        }
         isLocked = true
     }
 
@@ -82,7 +87,7 @@ public final class AppLockViewModel: ObservableObject {
 
         var deviceAuthError: BiometricError?
         guard biometricManager.canEvaluateDeviceOwnerAuthentication(errorOut: &deviceAuthError) else {
-            lastErrorMessage = deviceAuthError?.localizedDescription ?? "Device authentication unavailable."
+            disableLockForUnavailableAuth(deviceAuthError)
             return
         }
 
@@ -158,6 +163,12 @@ public final class AppLockViewModel: ObservableObject {
             return .deviceOwnerAuthenticationWithBiometrics
         }
         return .deviceOwnerAuthentication
+    }
+
+    private func disableLockForUnavailableAuth(_ error: BiometricError?) {
+        lastErrorMessage = error?.localizedDescription ?? "Device authentication unavailable."
+        isLockEnabled = false
+        isLocked = false
     }
 
     // MARK: Lifecycle Selectors (UIKit)

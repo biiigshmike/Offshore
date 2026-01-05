@@ -11,20 +11,25 @@ final class LocalNotificationScheduler {
     private let calendar: Calendar
     private let defaults: UserDefaults
     private let incomeService: IncomeService
+    private let plannedExpenseService: PlannedExpenseService
 
     private let dailyReminderPrefix = "dailyReminder-"
     private let plannedIncomePrefix = "plannedIncome-"
+    private let presetExpensePrefix = "presetExpense-"
     private let dailyLookaheadDays = 30
     private let plannedIncomeLookaheadDays = 45
+    private let presetExpenseLookaheadDays = 45
 
     private init(center: UNUserNotificationCenter = .current(),
                  calendar: Calendar = .current,
                  defaults: UserDefaults = .standard,
-                 incomeService: IncomeService = IncomeService()) {
+                 incomeService: IncomeService = IncomeService(),
+                 plannedExpenseService: PlannedExpenseService = PlannedExpenseService()) {
         self.center = center
         self.calendar = calendar
         self.defaults = defaults
         self.incomeService = incomeService
+        self.plannedExpenseService = plannedExpenseService
     }
 
     func requestAuthorization() async -> Bool {
@@ -46,6 +51,7 @@ final class LocalNotificationScheduler {
     func refreshAll() async {
         await refreshDailyReminder()
         await refreshPlannedIncomeReminders()
+        await refreshPresetExpenseReminders()
     }
 
     func refreshDailyReminder() async {
@@ -87,6 +93,31 @@ final class LocalNotificationScheduler {
         }
     }
 
+    func refreshPresetExpenseReminders() async {
+        await removePendingRequests(prefix: presetExpensePrefix)
+        guard defaults.bool(forKey: AppSettingsKeys.enablePresetExpenseDueReminder.rawValue) else { return }
+
+        let now = Date()
+        let (hour, minute) = reminderTimeComponents()
+        let start = calendar.startOfDay(for: now)
+        guard let end = calendar.date(byAdding: .day, value: presetExpenseLookaheadDays, to: start) else { return }
+
+        let interval = DateInterval(start: start, end: end)
+        let expenses = (try? plannedExpenseService.fetchAll(in: interval, sortedByDateAscending: true)) ?? []
+        let excludeNonGlobal = defaults.bool(forKey: AppSettingsKeys.excludeNonGlobalPresetExpenses.rawValue)
+        let silenceIfActual = defaults.bool(forKey: AppSettingsKeys.silencePresetWithActualAmount.rawValue)
+
+        for expense in expenses {
+            if excludeNonGlobal && expense.isGlobal == false { continue }
+            if silenceIfActual && expense.actualAmount > 0 { continue }
+            guard let transactionDate = expense.transactionDate else { continue }
+            let day = calendar.startOfDay(for: transactionDate)
+            guard let fireDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day),
+                  fireDate > now else { continue }
+            schedulePresetExpenseReminder(on: fireDate, expense: expense)
+        }
+    }
+
     private func scheduleDailyReminder(on date: Date) {
         let content = UNMutableNotificationContent()
         content.title = "Log Variable Expenses"
@@ -109,6 +140,21 @@ final class LocalNotificationScheduler {
         let trigger = UNCalendarNotificationTrigger(dateMatching: calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date),
                                                     repeats: false)
         let identifier = plannedIncomePrefix + dayIdentifier(for: day)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        center.add(request)
+    }
+
+    private func schedulePresetExpenseReminder(on date: Date, expense: PlannedExpense) {
+        let content = UNMutableNotificationContent()
+        let name = (expense.descriptionText ?? "Preset Expense").trimmingCharacters(in: .whitespacesAndNewlines)
+        let titleBase = name.isEmpty ? "Preset Expense" : name
+        content.title = "\(titleBase) Due Today"
+        content.body = "This preset expense is due today. Log it to keep your budgets accurate."
+        content.sound = .default
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date),
+                                                    repeats: false)
+        let identifier = presetExpensePrefix + expenseIdentifier(expense) + "-" + dayIdentifier(for: date)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
         center.add(request)
     }
@@ -147,6 +193,13 @@ final class LocalNotificationScheduler {
         let month = comps.month ?? 0
         let day = comps.day ?? 0
         return String(format: "%04d-%02d-%02d", year, month, day)
+    }
+
+    private func expenseIdentifier(_ expense: PlannedExpense) -> String {
+        if let id = expense.id {
+            return id.uuidString
+        }
+        return String(expense.objectID.hashValue)
     }
 
     private func groupIncomesByDay(_ incomes: [Income]) -> [Date: (hasPlanned: Bool, hasActual: Bool)] {

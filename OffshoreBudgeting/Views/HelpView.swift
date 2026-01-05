@@ -9,6 +9,15 @@ struct HelpView: View {
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
     @State private var showOnboardingAlert = false
     let wrapsInNavigation: Bool
+    private enum HelpRoute: Hashable {
+        case intro
+        case home
+        case budgets
+        case income
+        case cards
+        case presets
+        case settings
+    }
 
     init(wrapsInNavigation: Bool = true) {
         self.wrapsInNavigation = wrapsInNavigation
@@ -49,9 +58,7 @@ struct HelpView: View {
         List {
             // MARK: Getting Started
             Section("Getting Started") {
-                NavigationLink {
-                    intro
-                } label: {
+                NavigationLink(value: HelpRoute.intro) {
                     HelpRowLabel(
                         iconSystemName: "exclamationmark.bubble",
                         title: "Introduction",
@@ -66,54 +73,42 @@ struct HelpView: View {
 
             // MARK: Core Screens
             Section("Core Screens") {
-                NavigationLink {
-                    home
-                } label: {
+                NavigationLink(value: HelpRoute.home) {
                     HelpRowLabel(
                         iconSystemName: "house.fill",
                         title: "Home",
                         iconStyle: .purple
                     )
                 }
-                NavigationLink {
-                    budgets
-                } label: {
+                NavigationLink(value: HelpRoute.budgets) {
                     HelpRowLabel(
                         iconSystemName: "chart.pie.fill",
                         title: "Budgets",
                         iconStyle: .blue
                     )
                 }
-                NavigationLink {
-                    income
-                } label: {
+                NavigationLink(value: HelpRoute.income) {
                     HelpRowLabel(
                         iconSystemName: "calendar",
                         title: "Income",
                         iconStyle: .red
                     )
                 }
-                NavigationLink {
-                    cards
-                } label: {
+                NavigationLink(value: HelpRoute.cards) {
                     HelpRowLabel(
                         iconSystemName: "creditcard.fill",
                         title: "Cards",
                         iconStyle: .green
                     )
                 }
-                NavigationLink {
-                    presets
-                } label: {
+                NavigationLink(value: HelpRoute.presets) {
                     HelpRowLabel(
                         iconSystemName: "list.bullet.rectangle",
                         title: "Presets",
                         iconStyle: .orange
                     )
                 }
-                NavigationLink {
-                    settings
-                } label: {
+                NavigationLink(value: HelpRoute.settings) {
                     HelpRowLabel(
                         iconSystemName: "gear",
                         title: "Settings",
@@ -128,6 +123,24 @@ struct HelpView: View {
 //            }
         }
         .listStyle(.insetGrouped)
+        .navigationDestination(for: HelpRoute.self) { route in
+            switch route {
+            case .intro:
+                intro
+            case .home:
+                home
+            case .budgets:
+                budgets
+            case .income:
+                income
+            case .cards:
+                cards
+            case .presets:
+                presets
+            case .settings:
+                settings
+            }
+        }
         .alert("Repeat Onboarding?", isPresented: $showOnboardingAlert) {
             Button("Go", role: .destructive) { didCompleteOnboarding = false }
             Button("Cancel", role: .cancel) {}

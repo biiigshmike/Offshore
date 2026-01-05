@@ -24,6 +24,9 @@ struct BudgetsView: View {
         content
             .navigationTitle("Budgets")
             .toolbar { toolbarContent }
+            .navigationDestination(for: NSManagedObjectID.self) { budgetID in
+                BudgetDetailsView(budgetID: budgetID)
+            }
             .task { await loadBudgetsIfNeeded() }
             .refreshable { await loadBudgets() }
             .onAppear {
@@ -256,7 +259,7 @@ struct BudgetsView: View {
             ) {
                 if isExpanded {
                     ForEach(budgets, id: \.objectID) { budget in
-                        NavigationLink(destination: BudgetDetailsView(budgetID: budget.objectID)) {
+                        NavigationLink(value: budget.objectID) {
                             BudgetRow(budget: budget)
                         }
                     }

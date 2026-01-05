@@ -31,6 +31,17 @@ struct SettingsView: View {
     @State private var isReconfiguringStores = false
     @StateObject private var cloudDiag = CloudDiagnostics.shared
 
+    private enum SettingsRoute: Hashable {
+        case appInfo
+        case help
+        case general
+        case privacy
+        case notifications
+        case icloud
+        case categories
+        case presets
+    }
+
     // Guided walkthrough removed
 
     var body: some View { settingsContent }
@@ -42,6 +53,47 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     WorkspaceMenuButton()
+                }
+            }
+            .navigationDestination(for: SettingsRoute.self) { route in
+                switch route {
+                case .appInfo:
+                    AppInfoView(
+                        appName: appDisplayName,
+                        appIconGraphic: appIconGraphic,
+                        appStoreURL: appStoreURL,
+                        developerURL: developerURL
+                    )
+                case .help:
+                    HelpView(wrapsInNavigation: false)
+                case .general:
+                    GeneralSettingsView(
+                        vm: vm,
+                        showResetAlert: $showResetAlert
+                    )
+                case .privacy:
+                    PrivacySettingsView(
+                        biometricName: biometricName,
+                        biometricIconName: biometricIconName,
+                        isLockEnabled: $isLockEnabled,
+                        useBiometrics: $useBiometrics
+                    )
+                case .notifications:
+                    NotificationsSettingsView()
+                case .icloud:
+                    ICloudSettingsView(
+                        cloudToggle: cloudToggleBinding,
+                        widgetSyncToggle: $vm.syncHomeWidgetsAcrossDevices,
+                        isForceReuploading: isForceReuploading,
+                        isReconfiguringStores: isReconfiguringStores,
+                        onForceRefresh: { showForceReuploadConfirm = true }
+                    )
+                case .categories:
+                    ExpenseCategoryManagerView(wrapsInNavigation: false)
+                        .environment(\.managedObjectContext, viewContext)
+                case .presets:
+                    PresetsView()
+                        .environment(\.managedObjectContext, viewContext)
                 }
             }
             .task { await cloudDiag.refresh() }
@@ -107,21 +159,14 @@ struct SettingsView: View {
     @ViewBuilder
     private var appSection: some View {
         Section {
-            NavigationLink {
-                AppInfoView(
-                    appName: appDisplayName,
-                    appIconGraphic: appIconGraphic,
-                    appStoreURL: appStoreURL,
-                    developerURL: developerURL
-                )
-            } label: {
+            NavigationLink(value: SettingsRoute.appInfo) {
                 AppInfoRow(
                     appName: appDisplayName,
                     appIconGraphic: appIconGraphic
                 )
             }
 
-            NavigationLink(destination: HelpView(wrapsInNavigation: false)) {
+            NavigationLink(value: SettingsRoute.help) {
                 SettingsRowLabel(
                     iconSystemName: "questionmark.circle",
                     title: "Help",
@@ -135,12 +180,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var generalSection: some View {
         Section {
-            NavigationLink {
-                GeneralSettingsView(
-                    vm: vm,
-                    showResetAlert: $showResetAlert
-                )
-            } label: {
+            NavigationLink(value: SettingsRoute.general) {
                 SettingsRowLabel(
                     iconSystemName: "gear",
                     title: "General",
@@ -149,14 +189,7 @@ struct SettingsView: View {
                 )
             }
 
-            NavigationLink {
-                PrivacySettingsView(
-                    biometricName: biometricName,
-                    biometricIconName: biometricIconName,
-                    isLockEnabled: $isLockEnabled,
-                    useBiometrics: $useBiometrics
-                )
-            } label: {
+            NavigationLink(value: SettingsRoute.privacy) {
                 SettingsRowLabel(
                     iconSystemName: biometricIconName,
                     title: "Privacy",
@@ -165,9 +198,7 @@ struct SettingsView: View {
                 )
             }
 
-            NavigationLink {
-                NotificationsSettingsView()
-            } label: {
+            NavigationLink(value: SettingsRoute.notifications) {
                 SettingsRowLabel(
                     iconSystemName: "bell.badge",
                     title: "Notifications",
@@ -176,15 +207,7 @@ struct SettingsView: View {
                 )
             }
 
-            NavigationLink {
-                ICloudSettingsView(
-                    cloudToggle: cloudToggleBinding,
-                    widgetSyncToggle: $vm.syncHomeWidgetsAcrossDevices,
-                    isForceReuploading: isForceReuploading,
-                    isReconfiguringStores: isReconfiguringStores,
-                    onForceRefresh: { showForceReuploadConfirm = true }
-                )
-            } label: {
+            NavigationLink(value: SettingsRoute.icloud) {
                 SettingsRowLabel(
                     iconSystemName: "icloud",
                     title: "iCloud",
@@ -198,10 +221,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var categoriesSection: some View {
         Section {
-            NavigationLink {
-                ExpenseCategoryManagerView(wrapsInNavigation: false)
-                    .environment(\.managedObjectContext, viewContext)
-            } label: {
+            NavigationLink(value: SettingsRoute.categories) {
                 SettingsRowLabel(
                     iconSystemName: "tag",
                     title: "Manage Categories",
@@ -215,10 +235,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var presetsSection: some View {
         Section {
-            NavigationLink {
-                PresetsView()
-                    .environment(\.managedObjectContext, viewContext)
-            } label: {
+            NavigationLink(value: SettingsRoute.presets) {
                 SettingsRowLabel(
                     iconSystemName: "list.bullet.rectangle",
                     title: "Manage Presets",
@@ -804,6 +821,9 @@ private struct PrivacySettingsView: View {
 private struct NotificationsSettingsView: View {
     @AppStorage(AppSettingsKeys.enableDailyReminder.rawValue) private var enableDailyReminder: Bool = false
     @AppStorage(AppSettingsKeys.enablePlannedIncomeReminder.rawValue) private var enablePlannedIncomeReminder: Bool = false
+    @AppStorage(AppSettingsKeys.enablePresetExpenseDueReminder.rawValue) private var enablePresetExpenseDueReminder: Bool = false
+    @AppStorage(AppSettingsKeys.silencePresetWithActualAmount.rawValue) private var silencePresetWithActualAmount: Bool = false
+    @AppStorage(AppSettingsKeys.excludeNonGlobalPresetExpenses.rawValue) private var excludeNonGlobalPresetExpenses: Bool = false
     @AppStorage(AppSettingsKeys.notificationReminderTimeMinutes.rawValue) private var reminderTimeMinutes: Int = 20 * 60
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @State private var showPermissionAlert = false
@@ -812,9 +832,23 @@ private struct NotificationsSettingsView: View {
 
     var body: some View {
         List {
-            Section {
+            Section("Expenses") {
                 Toggle("Daily Expense Reminder", isOn: $enableDailyReminder)
+            }
+
+            Section("Income") {
                 Toggle("Planned Income Reminder", isOn: $enablePlannedIncomeReminder)
+            }
+
+            Section("Presets") {
+                Toggle("Preset Expense Due Reminder", isOn: $enablePresetExpenseDueReminder)
+                Toggle("Silence If Actual Amount > 0", isOn: $silencePresetWithActualAmount)
+                    .disabled(!enablePresetExpenseDueReminder)
+                Toggle("Exclude Non-global Preset Expenses", isOn: $excludeNonGlobalPresetExpenses)
+                    .disabled(!enablePresetExpenseDueReminder)
+            }
+
+            Section {
                 DatePicker("Reminder Time", selection: reminderTimeBinding, displayedComponents: .hourAndMinute)
             } footer: {
                 Text("Reminders are scheduled locally and never leave the device.")
@@ -833,6 +867,9 @@ private struct NotificationsSettingsView: View {
         .task { await refreshAuthorizationStatus() }
         .onChange(of: enableDailyReminder) { _ in handleReminderToggleChange() }
         .onChange(of: enablePlannedIncomeReminder) { _ in handleReminderToggleChange() }
+        .onChange(of: enablePresetExpenseDueReminder) { _ in handleReminderToggleChange() }
+        .onChange(of: silencePresetWithActualAmount) { _ in Task { await LocalNotificationScheduler.shared.refreshAll() } }
+        .onChange(of: excludeNonGlobalPresetExpenses) { _ in Task { await LocalNotificationScheduler.shared.refreshAll() } }
         .onChange(of: reminderTimeMinutes) { _ in Task { await LocalNotificationScheduler.shared.refreshAll() } }
         .alert("Notifications Disabled", isPresented: $showPermissionAlert) {
             Button("Open Settings") { openSystemSettings() }
@@ -949,7 +986,7 @@ private struct NotificationsSettingsView: View {
     private func handleReminderToggleChange() {
         Task {
             await refreshAuthorizationStatus()
-            guard enableDailyReminder || enablePlannedIncomeReminder else {
+            guard enableDailyReminder || enablePlannedIncomeReminder || enablePresetExpenseDueReminder else {
                 await LocalNotificationScheduler.shared.refreshAll()
                 return
             }
@@ -989,6 +1026,7 @@ private struct NotificationsSettingsView: View {
     private func disableRemindersAndAlert() async {
         enableDailyReminder = false
         enablePlannedIncomeReminder = false
+        enablePresetExpenseDueReminder = false
         showPermissionAlert = true
     }
 

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-enum AppUpdateLog_2_0_2 {
+enum AppUpdateLog_2_1 {
     static func content(for screen: TipsScreen) -> TipsContent? {
         switch screen {
         case .home:
@@ -30,12 +30,12 @@ enum AppUpdateLog_2_0_2 {
                     TipsItem(
                         symbolName: "hand.raised.circle.fill",
                         title: "Privacy",
-                        detail: "Fixed a bug that resulted in Biometrics being asked on devices that were not enrolled. App can now be locked with your device's passcode, if enabled. And then if Face ID or Touch ID are available, you will be able to toggle it on once you toggle Lock App in Settings > Privacy."
+                        detail: "Fixed a bug that resulted in Biometrics being asked on devices that were not enrolled. App can now be locked with your device's passcode, if enabled."
                     ),
                     TipsItem(
                         symbolName: "lightbulb.fill",
                         title: "Tips & Hints",
-                        detail: "Fixed an error where Tips & Hints for each screen would appear after updating the app to a new version. Hints should now only show for the first time per screen and or if you press the Reset Tips & Hints button in Settings > General."
+                        detail: "Fixed an error where Tips & Hints for each screen would appear after updating the app to a new version. Hints should now only show for the first time per screen and or if you press the Reset Tips & Hints button in Settings > General.\nNote: What's New alerts will show if significant updates were made on the latest update."
                     ),
                     TipsItem(
                         symbolName: "sidebar.left",

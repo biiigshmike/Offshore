@@ -339,7 +339,7 @@ struct HomeView: View {
         static let cards   = Color(red: 0.97, green: 0.62, blue: 0.25)
     }
 
-    enum HomeWidgetKind {
+    enum HomeWidgetKind: Hashable {
         case budgets, income, presets, cards
         case dayOfWeek, caps, availability, scenario
         case expenseToIncome, savingsOutlook
@@ -362,6 +362,16 @@ struct HomeView: View {
         var highContrastTitleColor: Color {
             return .primary
         }
+    }
+
+    private struct HomeMetricRoute: Hashable {
+        let budgetID: NSManagedObjectID
+        let title: String
+        let kind: HomeWidgetKind
+    }
+
+    private struct NextPlannedRoute: Hashable {
+        let budgetID: NSManagedObjectID
     }
 
     private enum WidgetID: Hashable {
@@ -456,6 +466,36 @@ struct HomeView: View {
         }
         .onDisappear { stopObservingWidgetSync() }
         .alert(item: $vm.alert, content: alert(for:))
+        .navigationDestination(for: HomeMetricRoute.self) { route in
+            if let summary = summaries.first(where: { $0.id == route.budgetID }) {
+                let topCategory = summary.categoryBreakdown.first ?? summary.plannedCategoryBreakdown.first ?? summary.categoryBreakdown.first
+                MetricDetailView(
+                    title: route.title,
+                    kind: route.kind,
+                    range: currentRange,
+                    period: vm.period,
+                    summary: summary,
+                    nextExpense: nil,
+                    topCategory: route.kind == .presets ? topCategory : nil,
+                    capStatuses: nil
+                )
+            } else {
+                Color.clear
+                    .navigationTitle(route.title)
+            }
+        }
+        .navigationDestination(for: NextPlannedRoute.self) { route in
+            let snapshot = (nextPlannedSnapshot?.budgetID == route.budgetID) ? nextPlannedSnapshot : nil
+            NextPlannedPresetsView(summaryID: route.budgetID, nextExpense: snapshot)
+                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+        }
+        .navigationDestination(for: CardItem.self) { card in
+            CardDetailView(
+                card: card,
+                isPresentingAddExpense: .constant(false),
+                onDone: {}
+            )
+        }
         .tipsAndHintsOverlay(for: .home)
         .tipsAndHintsOverlay(for: .home, kind: .whatsNew, versionToken: whatsNewVersionToken)
     }
@@ -959,10 +999,7 @@ struct HomeView: View {
 
     private func nextPlannedExpenseWidget(for summary: BudgetSummary) -> some View {
         let snapshot = (nextPlannedSnapshot?.budgetID == summary.id) ? nextPlannedSnapshot : nil
-        return NavigationLink {
-            NextPlannedPresetsView(summaryID: summary.id, nextExpense: snapshot)
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        } label: {
+        return NavigationLink(value: NextPlannedRoute(budgetID: summary.id)) {
             widgetCard(title: "Next Planned Expense", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .cards, span: WidgetSpan(width: 1, height: 1)) {
                 if let snapshot {
                     let expense = fetchPlannedExpense(from: snapshot.expenseURI)
@@ -1029,13 +1066,7 @@ struct HomeView: View {
     }
 
     private func cardWidget(card: CardItem, summary: BudgetSummary) -> some View {
-        NavigationLink {
-            CardDetailView(
-                card: card,
-                isPresentingAddExpense: .constant(false),
-                onDone: {}
-            )
-        } label: {
+        NavigationLink(value: card) {
             widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, span: WidgetSpan(width: 1, height: 2)) {
                 VStack(alignment: .leading, spacing: 8) {
                     CardTileView(card: card, isInteractive: false, enableMotionShine: true, showsBaseShadow: false)
@@ -1734,18 +1765,7 @@ struct HomeView: View {
         capStatuses: [CapStatus]? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
-        NavigationLink {
-            MetricDetailView(
-                title: title,
-                kind: kind,
-                range: currentRange,
-                period: vm.period,
-                summary: summary,
-                nextExpense: snapshot,
-                topCategory: topCategory,
-                capStatuses: capStatuses
-            )
-        } label: {
+        NavigationLink(value: HomeMetricRoute(budgetID: summary.id, title: title, kind: kind)) {
             widgetCard(title: title, subtitle: subtitle, subtitleColor: subtitleColor, kind: kind, span: span, content: content)
         }
         .buttonStyle(.plain)
@@ -2286,7 +2306,7 @@ struct HomeView: View {
     }
 
     // MARK: Snapshot
-    struct PlannedExpenseSnapshot: Identifiable {
+    struct PlannedExpenseSnapshot: Identifiable, Hashable {
         let id = UUID()
         let budgetID: NSManagedObjectID
         let expenseURI: URL

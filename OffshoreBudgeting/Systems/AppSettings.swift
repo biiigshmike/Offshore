@@ -13,6 +13,9 @@ enum AppSettingsKeys: String {
     case syncHomeWidgetsAcrossDevices
     case enableDailyReminder
     case enablePlannedIncomeReminder
+    case enablePresetExpenseDueReminder
+    case silencePresetWithActualAmount
+    case excludeNonGlobalPresetExpenses
     case notificationReminderTimeMinutes
     case lastAppOpenDate
     case lastExpenseAddedDate

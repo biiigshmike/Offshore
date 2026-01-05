@@ -54,6 +54,7 @@ struct RootTabView: View {
     @State private var sidebarSelection: SidebarItem? = .root(.home)
     @State private var usesCompactTabsOverride: Bool = false
     @State private var recentBudgets: [Budget] = []
+    @State private var sidebarPath = NavigationPath()
     private let budgetService = BudgetService()
     
     var body: some View {
@@ -168,7 +169,7 @@ struct RootTabView: View {
             NavigationSplitView {
                 sidebarList
             } detail: {
-                NavigationStack {
+                NavigationStack(path: $sidebarPath) {
                     sidebarDetail
                 }
             }
@@ -180,6 +181,7 @@ struct RootTabView: View {
                 refreshRecentBudgets()
             }
             .onChange(of: sidebarSelection) { selection in
+                sidebarPath = NavigationPath()
                 guard case .root(let tab) = selection else { return }
                 selectedTab = tab
             }

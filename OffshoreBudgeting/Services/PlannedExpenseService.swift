@@ -69,6 +69,25 @@ final class PlannedExpenseService {
         }
         return try expenseRepo.fetchAll(sortDescriptors: [sort])
     }
+
+    // MARK: fetchAll(in:sortedByDateAscending:)
+    /// Fetch all planned expenses constrained to a date interval (inclusive).
+    /// - Parameters:
+    ///   - interval: Date interval filter (inclusive).
+    ///   - sortedByDateAscending: Sort ascending (default true).
+    func fetchAll(in interval: DateInterval,
+                  sortedByDateAscending: Bool = true) throws -> [PlannedExpense] {
+        let base = NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@",
+                               interval.start as CVarArg, interval.end as CVarArg)
+        let predicate: NSPredicate
+        if let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() {
+            predicate = WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        } else {
+            predicate = base
+        }
+        let sort = NSSortDescriptor(key: "transactionDate", ascending: sortedByDateAscending)
+        return try expenseRepo.fetchAll(predicate: predicate, sortDescriptors: [sort])
+    }
     
     // MARK: find(byID:)
     /// Find a PlannedExpense by UUID.

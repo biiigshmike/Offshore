@@ -167,6 +167,30 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
   - Category Availability rows allow “Available” values to wrap at accessibility sizes.
   - Day-of-week chart labels clamp to a smaller width at accessibility sizes to preserve bar width.
 
+### Session 15
+- Date: 2026-01-04
+- Scope: HomeView (pt2 detail metrics) + PresetsView rows
+- Notes:
+  - Detail metric titles now allow multi-line wrapping; long labels no longer collapse into single-letter columns.
+  - Metric rows stack label/value at accessibility sizes to prevent currency overlaps.
+  - Chart legends use scaled dot/line symbols and stack vertically at accessibility sizes; latest/selected summaries wrap.
+  - Detail charts use scaled heights and provide a single accessibility element with summary labels to avoid tiny-hit-area warnings.
+  - Category/legend dots in detail views now share a single scaled size; top-category rows allow multi-line titles.
+  - Next Planned Expense detail row now scales its category dot and card preview indicator with Dynamic Type.
+  - Preset rows switch to a stacked layout at accessibility sizes; Assigned Budgets badge and amounts allow vertical growth.
+
+### Session 16
+- Date: 2026-01-04
+- Scope: HomeView detail metrics (titles/axes) + Day-of-Week widget labels
+- Notes:
+  - Removed duplicate in-content titles so detail screens rely on the navigation title; nav title allows multi-line wrapping.
+  - Income detail header now uses a stacked layout when needed to prevent Trend picker overlap.
+  - Chart axes use smaller currency labels and fewer x-axis ticks at accessibility sizes to avoid truncation.
+  - Savings/Income/Expense charts use scaled heights for large Dynamic Type to preserve x-axis labels.
+  - Day-of-week widget labels no longer scale unevenly; they wrap instead of shrinking.
+  - Category spotlight rows stack values at accessibility sizes to prevent name clipping.
+  - Scenario “Potential Savings” section stacks in accessibility sizes to avoid truncation.
+
 ## Extraction Algorithm (HomeView Report)
 1) Read the HTML report and locate the embedded `rootObject` JSON payload.
 2) Parse `_axKeyAllScreens[0]._axKeyAllIssues` to collect each issue.

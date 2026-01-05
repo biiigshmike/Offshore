@@ -21,6 +21,7 @@ import AppKit
 struct PresetRowView: View {
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     // MARK: Inputs
     let item: PresetListItem
     let onAssignTapped: (PlannedExpense) -> Void
@@ -28,54 +29,97 @@ struct PresetRowView: View {
     // MARK: Body
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            titleRow
+            amountsRow
+        }
+        .padding(.vertical, 4)
+    }
 
-            // MARK: Title + Assigned Budgets Badge
-            HStack(alignment: .center, spacing: 12) {
-                Text(item.name)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                    .allowsTightening(true)
+    private var isAccessibilitySize: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
 
-                Spacer(minLength: 12)
-
-                Button {
-                    onAssignTapped(item.template)
-                } label: {
-                    AssignedBudgetsBadge(
-                        title: "Assigned Budgets",
-                        count: item.assignedCount,
-                        colorScheme: colorScheme
-                    )
-                }
-                .buttonStyle(.plain)
-                .layoutPriority(2)
-                .accessibilityLabel("Assigned Budgets: \(item.assignedCount)")
-            }
-
-            // MARK: Amounts + Next Date
-            HStack(alignment: .top, spacing: 12) {
-                HStack(spacing: 32) {
-                    LabeledAmountBlock(title: "PLANNED", value: item.plannedCurrency)
-                    LabeledAmountBlock(title: "ACTUAL", value: item.actualCurrency)
-                }
-
-                Spacer(minLength: 12)
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("NEXT DATE")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-
-                    Text(item.nextDateLabel)
-                        .font(.body)
+    // MARK: Title + Assigned Budgets Badge
+    private var titleRow: some View {
+        Group {
+            if isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(item.name)
+                        .font(.title3.weight(.semibold))
                         .foregroundStyle(.primary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    assignButton
+                }
+            } else {
+                HStack(alignment: .center, spacing: 12) {
+                    Text(item.name)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .allowsTightening(true)
+
+                    Spacer(minLength: 12)
+                    assignButton
                 }
             }
         }
-        .padding(.vertical, 4)
+    }
+
+    private var assignButton: some View {
+        Button {
+            onAssignTapped(item.template)
+        } label: {
+            AssignedBudgetsBadge(
+                title: "Assigned Budgets",
+                count: item.assignedCount,
+                colorScheme: colorScheme
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Assigned Budgets: \(item.assignedCount)")
+    }
+
+    // MARK: Amounts + Next Date
+    private var amountsRow: some View {
+        Group {
+            if isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 24) {
+                        LabeledAmountBlock(title: "PLANNED", value: item.plannedCurrency)
+                        LabeledAmountBlock(title: "ACTUAL", value: item.actualCurrency)
+                    }
+                    nextDateBlock(alignment: .leading)
+                }
+            } else {
+                HStack(alignment: .top, spacing: 12) {
+                    HStack(spacing: 32) {
+                        LabeledAmountBlock(title: "PLANNED", value: item.plannedCurrency)
+                        LabeledAmountBlock(title: "ACTUAL", value: item.actualCurrency)
+                    }
+
+                    Spacer(minLength: 12)
+
+                    nextDateBlock(alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    private func nextDateBlock(alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 4) {
+            Text("NEXT DATE")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            Text(item.nextDateLabel)
+                .font(.body)
+                .foregroundStyle(.primary)
+                .lineLimit(isAccessibilitySize ? nil : 1)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
 }
@@ -85,6 +129,11 @@ struct PresetRowView: View {
 private struct LabeledAmountBlock: View {
     let title: String
     let value: String
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var isAccessibilitySize: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -95,6 +144,8 @@ private struct LabeledAmountBlock: View {
             Text(value)
                 .font(.body)
                 .foregroundStyle(.primary)
+                .lineLimit(isAccessibilitySize ? nil : 1)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -104,13 +155,19 @@ private struct AssignedBudgetsBadge: View {
     let title: String
     let count: Int
     let colorScheme: ColorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var countCircleSize: CGFloat = 28
+
+    private var isAccessibilitySize: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
 
     var body: some View {
         HStack(spacing: 10) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(titleColor)
-                .lineLimit(1)
+                .lineLimit(isAccessibilitySize ? nil : 1)
                 .minimumScaleFactor(0.85)
                 .allowsTightening(true)
 
@@ -122,11 +179,11 @@ private struct AssignedBudgetsBadge: View {
                     .font(.footnote.weight(.bold))
                     .foregroundStyle(circleForegroundColor)
             }
-            .frame(width: 28, height: 28)
+            .frame(width: countCircleSize, height: countCircleSize)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .fixedSize(horizontal: true, vertical: false)
+        .fixedSize(horizontal: !isAccessibilitySize, vertical: false)
     }
 
     private var titleColor: Color {

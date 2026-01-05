@@ -141,7 +141,7 @@ struct IncomeView: View {
             Spacer(minLength: calendarNavSpacing)
             navIcon("chevron.backward") { goToPreviousDay() }
             Spacer(minLength: calendarNavSpacing)
-            navLabel("Today") { goToToday() }
+            navIcon("circle.fill") { goToToday() }
             Spacer(minLength: calendarNavSpacing)
             navIcon("chevron.forward") { goToNextDay() }
             Spacer(minLength: calendarNavSpacing)
@@ -158,9 +158,9 @@ struct IncomeView: View {
                 navIcon("chevron.forward.2") { goToNextMonth() }
             }
             HStack {
-                Spacer(minLength: 0)
-                navLabel("Today") { goToToday() }
-                Spacer(minLength: 0)
+                Spacer(minLength: calendarNavSpacing)
+                navIcon("circle.fill") { goToToday() }
+                Spacer(minLength: calendarNavSpacing)
             }
             HStack {
                 navIcon("chevron.backward") { goToPreviousWeek() }

@@ -261,7 +261,7 @@ struct HomeView: View {
     @ScaledMetric(relativeTo: .body) private var availabilityRowHeight: CGFloat = 64
     @ScaledMetric(relativeTo: .body) private var availabilityRowSpacing: CGFloat = 8
     @ScaledMetric(relativeTo: .body) private var availabilityTabPadding: CGFloat = 12
-    @ScaledMetric(relativeTo: .body) private var availabilityStatusDotSize: CGFloat = 10
+    @ScaledMetric(relativeTo: .body) private var availabilityStatusDotSize: CGFloat = 12
     @ScaledMetric(relativeTo: .body) private var categorySpotlightHeight: CGFloat = 200
     @ScaledMetric(relativeTo: .body) private var dayOfWeekChartHeight: CGFloat = 140
     @ScaledMetric(relativeTo: .body) private var dateActionButtonSize: CGFloat = 44
@@ -1109,7 +1109,8 @@ struct HomeView: View {
                     ? min(baseLabelWidth, max(48, geo.size.width * 0.25))
                     : baseLabelWidth
                 if orientation == .horizontal {
-                    let rowHeight = max((geo.size.height - spacing * CGFloat(count - 1)) / CGFloat(count), minRowHeight)
+                    let minLabelHeight = labelHeight * (dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                    let rowHeight = max((geo.size.height - spacing * CGFloat(count - 1)) / CGFloat(count), max(minRowHeight, minLabelHeight))
                     let barMaxWidth = max(geo.size.width - resolvedLabelWidth - 8, 20)
                     VStack(alignment: .leading, spacing: spacing) {
                         ForEach(buckets) { item in
@@ -1124,9 +1125,8 @@ struct HomeView: View {
                                 Text(displayLabel(item.label, period: period))
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 0.5 : 0.75)
-                                    .allowsTightening(true)
+                                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                                    .fixedSize(horizontal: false, vertical: true)
                                     .frame(width: resolvedLabelWidth, alignment: .leading)
                                 Rectangle()
                                     .fill(gradient)
@@ -2324,6 +2324,10 @@ private struct MetricDetailView: View {
     @AppStorage("homeAvailabilitySegment") private var detailAvailabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var legendDotSize: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var legendLineWidth: CGFloat = 18
+    @ScaledMetric(relativeTo: .body) private var legendLineHeight: CGFloat = 3
+    @ScaledMetric(relativeTo: .body) private var detailChartHeight: CGFloat = 200
     private var detailAvailabilitySegment: CategoryAvailabilitySegment {
         CategoryAvailabilitySegment(rawValue: detailAvailabilitySegmentRawValue) ?? .combined
     }
@@ -2340,6 +2344,10 @@ private struct MetricDetailView: View {
 
     private var isAccessibilitySize: Bool {
         isLargeText || dynamicTypeSize.isAccessibilitySize
+    }
+
+    private var resolvedDetailChartHeight: CGFloat {
+        isAccessibilitySize ? detailChartHeight * 1.25 : detailChartHeight
     }
 
     private func condensedReceivedSeries() -> [DatedValue] {
@@ -2424,6 +2432,16 @@ private struct MetricDetailView: View {
         content
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                if isAccessibilitySize {
+                    ToolbarItem(placement: .principal) {
+                        Text(title)
+                            .font(.headline)
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+            }
             .task { await loadSeriesIfNeeded() }
     }
 
@@ -2480,8 +2498,6 @@ private struct MetricDetailView: View {
     private var weekdayContent: some View {
         let resolved = resolvedPeriod(period, range: range)
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Day-of-Week Spend")
-                .font(.headline)
             if spendSections.isEmpty {
                 Text("No spending in this range.")
                     .foregroundStyle(.secondary)
@@ -2547,15 +2563,24 @@ private struct MetricDetailView: View {
                         }
                         .chartYAxis {
                             if orientation == .horizontal {
-                                AxisMarks(position: .leading, values: section.buckets.map(\.label)) { _ in
-                                    AxisValueLabel()
+                                AxisMarks(position: .leading, values: section.buckets.map(\.label)) { value in
+                                    if let label = value.as(String.self) {
+                                        AxisValueLabel {
+                                            Text(label)
+                                                .font(.caption2)
+                                                .lineLimit(isAccessibilitySize ? 2 : 1)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                    } else {
+                                        AxisValueLabel()
+                                    }
                                 }
                             } else {
                                 AxisMarks(position: .leading) { value in
                                     if let val = value.as(Double.self) {
                                         AxisGridLine()
                                         AxisTick()
-                                        AxisValueLabel(formatCurrency(val))
+                                        AxisValueLabel { axisCurrencyLabel(val) }
                                     }
                                 }
                             }
@@ -2566,7 +2591,7 @@ private struct MetricDetailView: View {
                                     if let val = value.as(Double.self) {
                                         AxisGridLine()
                                         AxisTick()
-                                        AxisValueLabel(formatCurrency(val))
+                                        AxisValueLabel { axisCurrencyLabel(val) }
                                     }
                                 }
                             } else {
@@ -2575,19 +2600,26 @@ private struct MetricDetailView: View {
                                         AxisTick()
                                         AxisValueLabel {
                                             Text(String(label.prefix(1)))
+                                                .font(.caption2)
+                                                .lineLimit(1)
                                         }
                                     }
                                 }
                             }
                         }
-                        .frame(height: orientation == .horizontal ? 180 : 200)
+                        .frame(height: orientation == .horizontal ? resolvedDetailChartHeight * 0.9 : resolvedDetailChartHeight)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("\(section.title) spending chart")
+                        .accessibilityValue("Shows spending totals by period.")
                         if selectedSpendSectionID == section.id, let bucket = selectedSpendBucket {
                             spendCategoryChips(for: bucket)
                         }
                         if let maxItem = section.buckets.max(by: { $0.amount < $1.amount }) {
-                            Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
+                        Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
@@ -2601,6 +2633,8 @@ private struct MetricDetailView: View {
         return VStack(alignment: .leading, spacing: 12) {
             Text("Category Caps & Alerts")
                 .font(.ubSectionTitle)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
             PillSegmentedControl(selection: detailAvailabilitySegmentBinding) {
                 ForEach(CategoryAvailabilitySegment.allCases) { segment in
                     Text(segment.title).tag(segment)
@@ -2615,9 +2649,11 @@ private struct MetricDetailView: View {
                 ForEach(filtered) { cap in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Circle().fill(cap.color).frame(width: 10, height: 10)
+                            Circle().fill(cap.color).frame(width: legendDotSize, height: legendDotSize)
                             Text(cap.name)
                                 .font(.ubDetailLabel.weight(.semibold))
+                                .lineLimit(isAccessibilitySize ? nil : 1)
+                                .fixedSize(horizontal: false, vertical: true)
                             Spacer()
                             if cap.over {
                                 Text("Over")
@@ -2664,11 +2700,7 @@ private struct MetricDetailView: View {
             ? (remainingIncome / summary.actualIncomeTotal) * 100
             : 0
         return VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Expense to Income")
-                    .font(.headline)
-                expenseIncomeChart(expensePoints: expensePoints, incomePoints: incomePoints, plannedPoints: plannedPoints)
-            }
+            expenseIncomeChart(expensePoints: expensePoints, incomePoints: incomePoints, plannedPoints: plannedPoints)
             VStack(alignment: .leading, spacing: 8) {
                 metricRow(label: "Expenses", value: formatCurrency(expenses))
                 metricRow(label: "Actual Income", value: formatCurrency(summary.actualIncomeTotal))
@@ -2693,11 +2725,7 @@ private struct MetricDetailView: View {
         let actualSavings = summary.actualSavingsTotal
 
         return VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Savings Outlook")
-                    .font(.headline)
-                savingsChart(points: savingsPoints)
-            }
+            savingsChart(points: savingsPoints)
             VStack(alignment: .leading, spacing: 8) {
                 metricRow(label: "Projected Savings", value: formatCurrency(projected))
                 metricRow(label: "Actual Savings", value: formatCurrency(actualSavings))
@@ -3028,20 +3056,33 @@ private struct MetricDetailView: View {
 
         VStack(alignment: .leading, spacing: 12) {
             Divider().padding(.top, 4)
-            Text("What If? Scenario Planner")
-                .font(.ubSectionTitle)
             Text("Adjust category allocations to see how much you could still save.")
                 .font(.ubBody)
                 .foregroundStyle(.secondary)
 
-            HStack {
-                Text(potentialSavings >= 0 ? "Potential Savings" : "Over-allocated")
-                    .font(.ubDetailLabel.weight(.semibold))
-                Spacer()
-                Text(formatCurrency(potentialSavings))
-                    .font(.ubMetricValue)
-                    .foregroundStyle(savingsTextStyle)
-                    .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
+            Group {
+                if isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(potentialSavings >= 0 ? "Potential Savings" : "Over-allocated")
+                            .font(.ubDetailLabel.weight(.semibold))
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(formatCurrency(potentialSavings))
+                            .font(.ubMetricValue)
+                            .foregroundStyle(savingsTextStyle)
+                            .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
+                    }
+                } else {
+                    HStack {
+                        Text(potentialSavings >= 0 ? "Potential Savings" : "Over-allocated")
+                            .font(.ubDetailLabel.weight(.semibold))
+                        Spacer()
+                        Text(formatCurrency(potentialSavings))
+                            .font(.ubMetricValue)
+                            .foregroundStyle(savingsTextStyle)
+                            .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
+                    }
+                }
             }
             Group {
                 if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
@@ -3123,9 +3164,9 @@ private struct MetricDetailView: View {
         let binding = allocationBinding(for: item, segment: segment)
 
         return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
+                HStack(alignment: .firstTextBaseline) {
                 HStack(spacing: 6) {
-                    Circle().fill(item.color).frame(width: 10, height: 10)
+                    Circle().fill(item.color).frame(width: legendDotSize, height: legendDotSize)
                     Text(item.name)
             }
                 .font(.ubDetailLabel.weight(.semibold))
@@ -3295,22 +3336,85 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
     // MARK: Helpers
     private func metricRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(.ubBody)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .font(.ubMetricValue)
+        Group {
+            if isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(label)
+                        .font(.ubBody)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(value)
+                        .font(.ubMetricValue)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                HStack {
+                    Text(label)
+                        .font(.ubBody)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                    Spacer()
+                    Text(value)
+                        .font(.ubMetricValue)
+                }
+            }
         }
+    }
+
+    private enum LegendSymbol {
+        case dot
+        case line
+    }
+
+    private func legendRow(label: String, color: Color, symbol: LegendSymbol) -> some View {
+        HStack(spacing: 6) {
+            legendSymbolView(symbol: symbol, color: color)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(color)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder
+    private func legendSymbolView(symbol: LegendSymbol, color: Color) -> some View {
+        switch symbol {
+        case .dot:
+            Circle()
+                .fill(color)
+                .frame(width: legendDotSize, height: legendDotSize)
+        case .line:
+            let lineHeight = max(2, legendLineHeight)
+            RoundedRectangle(cornerRadius: lineHeight / 2, style: .continuous)
+                .fill(color)
+                .frame(width: legendLineWidth, height: lineHeight)
+        }
+    }
+
+    private func axisCurrencyLabel(_ value: Double) -> some View {
+        Text(formatCurrency(value))
+            .font(.caption2)
+            .lineLimit(1)
+            .minimumScaleFactor(isAccessibilitySize ? 0.6 : 0.8)
+    }
+
+    private func axisDateLabel(_ date: Date) -> some View {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return Text(formatter.string(from: date))
+            .font(.caption2)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: Income Sections
     private func incomeTimelineSection(total: Double) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Timeline & Pace")
-                    .font(.ubSectionTitle)
                 Spacer()
                 paceBadge(total: total)
             }
@@ -3506,18 +3610,27 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     "Actual Income": actualLineColor.opacity(0.9)
                 ])
                 .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: 3))
+                    AxisMarks(values: .automatic(desiredCount: isAccessibilitySize ? 2 : 3)) { value in
+                        if let date = value.as(Date.self) {
+                            AxisValueLabel { axisDateLabel(date) }
+                        } else {
+                            AxisValueLabel()
+                        }
+                    }
                 }
                 .chartYAxis {
                     AxisMarks(position: .leading) { value in
                         if let val = value.as(Double.self) {
                             AxisGridLine()
                             AxisTick()
-                            AxisValueLabel(formatCurrency(val))
+                            AxisValueLabel { axisCurrencyLabel(val) }
                         }
                     }
                 }
-                .frame(height: 220)
+                .frame(height: resolvedDetailChartHeight)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Income timeline chart")
+                .accessibilityValue("Shows planned income and actual income over time.")
                 .chartOverlay { proxy in
                     GeometryReader { geo in
                         Rectangle().fill(.clear).contentShape(Rectangle())
@@ -3539,14 +3652,21 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     Text("\(dateString(selected.date)) • \(formatCurrency(selected.value))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    HStack(spacing: 16) {
-                        Label("Planned Income", systemImage: "circle.fill")
-                            .foregroundStyle(plannedLineColor)
-                            .font(.caption)
-                        Label("Actual Income", systemImage: "circle.fill")
-                            .foregroundStyle(actualLineColor.opacity(0.9))
-                            .font(.caption)
+                    Group {
+                        if isAccessibilitySize {
+                            VStack(alignment: .leading, spacing: 6) {
+                                legendRow(label: "Planned Income", color: plannedLineColor, symbol: .dot)
+                                legendRow(label: "Actual Income", color: actualLineColor.opacity(0.9), symbol: .dot)
+                            }
+                        } else {
+                            HStack(spacing: 16) {
+                                legendRow(label: "Planned Income", color: plannedLineColor, symbol: .dot)
+                                legendRow(label: "Actual Income", color: actualLineColor.opacity(0.9), symbol: .dot)
+                            }
+                        }
                     }
                 }
             }
@@ -3555,16 +3675,33 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
     private var incomeMoMSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Trends")
-                    .font(.ubSectionTitle)
-                Spacer()
-                Picker("Period", selection: $comparisonPeriod) {
-                    ForEach(IncomeComparisonPeriod.allCases) { period in
-                        Text(period.title).tag(period)
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text("Trends")
+                        .font(.ubSectionTitle)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Picker("Period", selection: $comparisonPeriod) {
+                        ForEach(IncomeComparisonPeriod.allCases) { period in
+                            Text(period.title).tag(period)
+                        }
                     }
+                    .pickerStyle(.menu)
                 }
-                .pickerStyle(.menu)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Trends")
+                        .font(.ubSectionTitle)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Picker("Period", selection: $comparisonPeriod) {
+                        ForEach(IncomeComparisonPeriod.allCases) { period in
+                            Text(period.title).tag(period)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
             }
             if incomeBuckets.isEmpty {
                 Text("No income history for this period size.")
@@ -3577,16 +3714,33 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     )
                     .foregroundStyle(HomeView.HomePalette.income.opacity(0.8))
                 }
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: isAccessibilitySize ? 2 : 4)) { value in
+                        if let label = value.as(String.self) {
+                            AxisValueLabel {
+                                Text(label)
+                                    .font(.caption2)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        } else {
+                            AxisValueLabel()
+                        }
+                    }
+                }
                 .chartYAxis {
                     AxisMarks(position: .leading) { value in
                         if let val = value.as(Double.self) {
                             AxisGridLine()
                             AxisTick()
-                            AxisValueLabel(formatCurrency(val))
+                            AxisValueLabel { axisCurrencyLabel(val) }
                         }
                     }
                 }
-                .frame(height: 180)
+                .frame(height: resolvedDetailChartHeight * 0.9)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Income trends chart")
+                .accessibilityValue("Shows income totals by period.")
             }
         }
     }
@@ -4278,14 +4432,23 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     if let val = value.as(Double.self) {
                         AxisGridLine()
                         AxisTick()
-                        AxisValueLabel(formatCurrency(val))
+                        AxisValueLabel { axisCurrencyLabel(val) }
                     }
                 }
             }
             .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 3))
+                AxisMarks(values: .automatic(desiredCount: isAccessibilitySize ? 2 : 3)) { value in
+                    if let date = value.as(Date.self) {
+                        AxisValueLabel { axisDateLabel(date) }
+                    } else {
+                        AxisValueLabel()
+                    }
+                }
             }
-            .frame(height: 200)
+            .frame(height: resolvedDetailChartHeight)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Expense to income chart")
+            .accessibilityValue("Shows expenses, actual income, and planned income for the selected range.")
             .chartOverlay { proxy in
                 GeometryReader { geo in
                     Rectangle().fill(.clear).contentShape(Rectangle())
@@ -4303,16 +4466,20 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 }
             }
 
-            HStack(spacing: 12) {
-                Label("Expenses", systemImage: "circle.fill")
-                    .foregroundStyle(lineColor)
-                    .font(.caption)
-                Label("Actual Income", systemImage: "circle.fill")
-                    .foregroundStyle(incomeColor)
-                    .font(.caption)
-                Label("Planned Income", systemImage: "line.diagonal")
-                    .foregroundStyle(plannedColor)
-                    .font(.caption)
+            Group {
+                if isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 6) {
+                        legendRow(label: "Expenses", color: lineColor, symbol: .dot)
+                        legendRow(label: "Actual Income", color: incomeColor, symbol: .dot)
+                        legendRow(label: "Planned Income", color: plannedColor, symbol: .line)
+                    }
+                } else {
+                    HStack(spacing: 12) {
+                        legendRow(label: "Expenses", color: lineColor, symbol: .dot)
+                        legendRow(label: "Actual Income", color: incomeColor, symbol: .dot)
+                        legendRow(label: "Planned Income", color: plannedColor, symbol: .line)
+                    }
+                }
             }
 
             if let selected = ratioSelection {
@@ -4325,10 +4492,14 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 Text("\(dateString(selected.date)) • Exp \(expenseText) • Inc \(incomeText) • Plan \(plannedText)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             } else if let latestExpense, let latestIncome, let latestPlanned {
                 Text("Latest: \(dateString(latestExpense.date)) • Exp \(formatCurrency(latestExpense.value)) • Inc \(formatCurrency(latestIncome.value)) • Plan \(formatCurrency(latestPlanned.value))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -4389,16 +4560,28 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 .chartYScale(domain: domain)
                 .chartXAxisLabel("Date")
                 .chartYAxisLabel("Savings")
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: isAccessibilitySize ? 2 : 3)) { value in
+                        if let date = value.as(Date.self) {
+                            AxisValueLabel { axisDateLabel(date) }
+                        } else {
+                            AxisValueLabel()
+                        }
+                    }
+                }
                 .chartYAxis {
                     AxisMarks(position: .leading) { value in
                         if let val = value.as(Double.self) {
                             AxisGridLine()
                             AxisTick()
-                            AxisValueLabel(formatCurrency(val))
+                            AxisValueLabel { axisCurrencyLabel(val) }
                         }
                     }
                 }
-                .frame(height: 220)
+                .frame(height: resolvedDetailChartHeight)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Savings chart")
+                .accessibilityValue("Shows actual and projected savings over time.")
                 .chartOverlay { proxy in
                     GeometryReader { geo in
                         Rectangle().fill(.clear).contentShape(Rectangle())
@@ -4416,19 +4599,31 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     }
                 }
 
-                HStack(spacing: 12) {
-                    Label("Actual", systemImage: "circle.fill")
-                        .labelStyle(.titleAndIcon)
-                        .foregroundStyle(actualColor)
-                        .font(.caption)
-                    Label("Projected", systemImage: "circle.fill")
-                        .labelStyle(.titleAndIcon)
-                        .foregroundStyle(projectedColor)
-                        .font(.caption)
-                    if let selected = savingsSelection {
-                        Text("\(dateString(selected.date)) • \(formatCurrency(selected.actual)) / \(formatCurrency(selected.projected))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                Group {
+                    if isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 6) {
+                            legendRow(label: "Actual", color: actualColor, symbol: .dot)
+                            legendRow(label: "Projected", color: projectedColor, symbol: .dot)
+                            if let selected = savingsSelection {
+                                Text("\(dateString(selected.date)) • \(formatCurrency(selected.actual)) / \(formatCurrency(selected.projected))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(nil)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    } else {
+                        HStack(spacing: 12) {
+                            legendRow(label: "Actual", color: actualColor, symbol: .dot)
+                            legendRow(label: "Projected", color: projectedColor, symbol: .dot)
+                            if let selected = savingsSelection {
+                                Text("\(dateString(selected.date)) • \(formatCurrency(selected.actual)) / \(formatCurrency(selected.projected))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(nil)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
                     }
                 }
             }
@@ -4458,16 +4653,39 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private func categoryRow(_ cat: BudgetSummary.CategorySpending, total: Double) -> some View {
         let color = UBColorFromHex(cat.hexColor) ?? HomeView.HomePalette.presets
         let share = max(min(cat.amount / max(total, 1), 1), 0)
-        return HStack {
-            Circle().fill(color).frame(width: 10, height: 10)
-            Text(cat.categoryName)
-                .font(.subheadline.weight(.semibold))
-            Spacer()
-            Text(formatCurrency(cat.amount))
-                .font(.subheadline)
-            Text(String(format: "%.0f%%", share * 100))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        return Group {
+            if isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Circle().fill(color).frame(width: legendDotSize, height: legendDotSize)
+                        Text(cat.categoryName)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    HStack(spacing: 8) {
+                        Text(formatCurrency(cat.amount))
+                            .font(.subheadline)
+                        Text(String(format: "%.0f%%", share * 100))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                HStack {
+                    Circle().fill(color).frame(width: legendDotSize, height: legendDotSize)
+                    Text(cat.categoryName)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Text(formatCurrency(cat.amount))
+                        .font(.subheadline)
+                    Text(String(format: "%.0f%%", share * 100))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
@@ -4483,17 +4701,22 @@ private struct NextPlannedDetailRow: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
     @State private var showDeleteAlert = false
+    @ScaledMetric(relativeTo: .body) private var symbolWidth: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var cardIndicatorWidth: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var cardIndicatorHeight: CGFloat = 8
 
     var body: some View {
-        let symbolWidth: CGFloat = 14
         let dotColor = UBColorFromHex(expense?.expenseCategory?.color) ?? .secondary
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Circle().fill(dotColor).frame(width: 8, height: 8)
+                    Circle().fill(dotColor).frame(width: dotSize, height: dotSize)
                         .frame(width: symbolWidth, alignment: .leading)
                     Text(snapshot.title)
                         .font(.headline)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     cardIndicator
@@ -4540,11 +4763,11 @@ private struct NextPlannedDetailRow: View {
                         RoundedRectangle(cornerRadius: 2, style: .continuous)
                             .stroke(Color.primary.opacity(0.18), lineWidth: 1)
                     )
-                    .frame(width: 12, height: 8)
+                    .frame(width: cardIndicatorWidth, height: cardIndicatorHeight)
             } else {
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                     .stroke(Color.primary.opacity(0.12), lineWidth: 1)
-                    .frame(width: 12, height: 8)
+                    .frame(width: cardIndicatorWidth, height: cardIndicatorHeight)
             }
         }
     }
@@ -4715,6 +4938,8 @@ private struct NextPlannedPresetsView: View {
                 Text("Next Planned Expense")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(HomeView.HomePalette.cards)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                 NextPlannedDetailRow(
                     snapshot: nextExpense,
                     expense: expense,
@@ -5492,20 +5717,49 @@ private struct DonutSliceOutline: Shape {
 private struct CategoryTopRow: View {
     let slice: CategorySlice
     let total: Double
+    @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 12
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var isAccessibilitySize: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
 
     var body: some View {
         let share = max(min(slice.amount / max(total, 1), 1), 0)
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Circle().fill(slice.color).frame(width: 10, height: 10)
-                Text(slice.name)
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text(String(format: "%.0f%%", share * 100))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(formatCurrency(slice.amount))
-                    .font(.subheadline)
+            Group {
+                if isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Circle().fill(slice.color).frame(width: dotSize, height: dotSize)
+                            Text(slice.name)
+                                .font(.subheadline.weight(.semibold))
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        HStack(spacing: 8) {
+                            Text(String(format: "%.0f%%", share * 100))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(formatCurrency(slice.amount))
+                                .font(.subheadline)
+                        }
+                    }
+                } else {
+                    HStack {
+                        Circle().fill(slice.color).frame(width: dotSize, height: dotSize)
+                        Text(slice.name)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                        Text(String(format: "%.0f%%", share * 100))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(formatCurrency(slice.amount))
+                            .font(.subheadline)
+                    }
+                }
             }
             GeometryReader { geo in
                 RoundedRectangle(cornerRadius: 4, style: .continuous)

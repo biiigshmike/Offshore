@@ -39,6 +39,11 @@ struct ExpenseCategoryManagerView: View {
     @State private var categoryToDelete: ExpenseCategory?
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
     @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
+    let wrapsInNavigation: Bool
+
+    init(wrapsInNavigation: Bool = true) {
+        self.wrapsInNavigation = wrapsInNavigation
+    }
     
     // MARK: Body
     var body: some View {
@@ -178,7 +183,9 @@ struct ExpenseCategoryManagerView: View {
     // MARK: Navigation container
     @ViewBuilder
     private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
+        if !wrapsInNavigation {
+            content()
+        } else if #available(iOS 16.0, macCatalyst 16.0, *) {
             NavigationStack { content() }
         } else {
             NavigationView { content() }

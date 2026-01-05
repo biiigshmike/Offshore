@@ -27,6 +27,8 @@ struct AddPlannedExpenseView: View {
     let onDismiss: () -> Void
     /// Optional card to preselect on first load.
     let initialCardID: NSManagedObjectID?
+    /// Wraps the content in a navigation container when presented standalone.
+    let wrapsInNavigation: Bool
 
     // MARK: State
     /// We don't call `dismiss()` directly anymore (the scaffold handles it),
@@ -69,7 +71,8 @@ struct AddPlannedExpenseView: View {
         showAssignBudgetToggle: Bool = false,
         onSaved: @escaping () -> Void,
         onDismiss: @escaping () -> Void = {},
-        initialCardID: NSManagedObjectID? = nil
+        initialCardID: NSManagedObjectID? = nil,
+        wrapsInNavigation: Bool = true
     ) {
         self.plannedExpenseID = plannedExpenseID
         self.preselectedBudgetID = preselectedBudgetID
@@ -78,6 +81,7 @@ struct AddPlannedExpenseView: View {
         self.onSaved = onSaved
         self.onDismiss = onDismiss
         self.initialCardID = initialCardID
+        self.wrapsInNavigation = wrapsInNavigation
         let shouldStartAssigning: Bool
         if !showAssignBudgetToggle {
             shouldStartAssigning = true
@@ -554,7 +558,9 @@ struct AddPlannedExpenseView: View {
 private extension AddPlannedExpenseView {
     @ViewBuilder
     func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
+        if !wrapsInNavigation {
+            content()
+        } else if #available(iOS 16.0, macCatalyst 16.0, *) {
             NavigationStack { content() }
         } else {
             NavigationView { content() }

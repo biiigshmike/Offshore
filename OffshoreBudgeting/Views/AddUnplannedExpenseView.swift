@@ -24,6 +24,7 @@ struct AddUnplannedExpenseView: View {
     let initialDate: Date?
     let onSaved: () -> Void
     let onDismiss: () -> Void
+    let wrapsInNavigation: Bool
 
     // MARK: State
     @StateObject private var vm: AddUnplannedExpenseViewModel
@@ -42,14 +43,16 @@ struct AddUnplannedExpenseView: View {
          allowedCardIDs: Set<NSManagedObjectID>? = nil,
          initialCardID: NSManagedObjectID? = nil,
          initialDate: Date? = nil,
-        onSaved: @escaping () -> Void,
-         onDismiss: @escaping () -> Void = {}) {
+         onSaved: @escaping () -> Void,
+         onDismiss: @escaping () -> Void = {},
+         wrapsInNavigation: Bool = true) {
         self.unplannedExpenseID = unplannedExpenseID
         self.allowedCardIDs = allowedCardIDs
         self.initialCardID = initialCardID
         self.initialDate = initialDate
         self.onSaved = onSaved
         self.onDismiss = onDismiss
+        self.wrapsInNavigation = wrapsInNavigation
 
         let model = AddUnplannedExpenseViewModel(
             unplannedExpenseID: unplannedExpenseID,
@@ -143,7 +146,9 @@ struct AddUnplannedExpenseView: View {
     // MARK: Navigation container
     @ViewBuilder
     private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
+        if !wrapsInNavigation {
+            content()
+        } else if #available(iOS 16.0, macCatalyst 16.0, *) {
             NavigationStack { content() }
         } else {
             NavigationView { content() }

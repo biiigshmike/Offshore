@@ -168,7 +168,9 @@ struct RootTabView: View {
             NavigationSplitView {
                 sidebarList
             } detail: {
-                sidebarDetail
+                NavigationStack {
+                    sidebarDetail
+                }
             }
             .onAppear {
                 applyStartTabIfNeeded()
@@ -262,14 +264,16 @@ struct RootTabView: View {
             decoratedRootContent(
                 AddPlannedExpenseView(
                     onSaved: {},
-                    onDismiss: { sidebarSelection = .root(selectedTab) }
+                    onDismiss: { sidebarSelection = .root(selectedTab) },
+                    wrapsInNavigation: false
                 )
             )
         case .addVariableExpense:
             decoratedRootContent(
                 AddUnplannedExpenseView(
                     onSaved: {},
-                    onDismiss: { sidebarSelection = .root(selectedTab) }
+                    onDismiss: { sidebarSelection = .root(selectedTab) },
+                    wrapsInNavigation: false
                 )
             )
         case .recentBudget(let objectID):
@@ -277,7 +281,7 @@ struct RootTabView: View {
         case .managePresets:
             decoratedRootContent(PresetsView())
         case .manageCategories:
-            decoratedRootContent(ExpenseCategoryManagerView())
+            decoratedRootContent(ExpenseCategoryManagerView(wrapsInNavigation: false))
         case .none:
             decoratedRootContent(tabContent(for: selectedTab))
         }

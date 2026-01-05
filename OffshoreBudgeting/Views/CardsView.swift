@@ -59,107 +59,104 @@ struct CardsView: View {
 
     @ViewBuilder
     private var cardsContent: some View {
-        navigationContainer {
-            Group {
-                if case .empty = vm.state {
-                    UBEmptyState(message: "No cards found. Tap + to create a card.")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                } else {
-                    ScrollView {
-                        Group {
-                            switch vm.state {
-                            case .initial:
-                                Color.clear.frame(height: 1)
-                            case .loading:
-                                LazyVGrid(columns: columns, spacing: gridSpacingValue) {
-                                    ForEach(0..<2, id: \.self) { _ in
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .fill(Color.primary.opacity(0.06))
-                                            .frame(height: cardHeight)
-                                            .redacted(reason: .placeholder)
-                                    }
+        Group {
+            if case .empty = vm.state {
+                UBEmptyState(message: "No cards found. Tap + to create a card.")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            } else {
+                ScrollView {
+                    Group {
+                        switch vm.state {
+                        case .initial:
+                            Color.clear.frame(height: 1)
+                        case .loading:
+                            LazyVGrid(columns: columns, spacing: gridSpacingValue) {
+                                ForEach(0..<2, id: \.self) { _ in
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(Color.primary.opacity(0.06))
+                                        .frame(height: cardHeight)
+                                        .redacted(reason: .placeholder)
                                 }
-                                .padding(.horizontal, gridPadding)
-                                .padding(.top, gridPadding)
-                            case .empty:
-                                EmptyView()
-                            case .loaded(let cards):
-                                LazyVGrid(columns: columns, spacing: gridSpacingValue) {
-                                    ForEach(cards) { card in
-                                        NavigationLink(value: card) {
-                                            CardTileView(
-                                                card: card,
-                                                isSelected: false,
-                                                onTap: { /* handled by NavigationLink */ },
-                                                isInteractive: false,
-                                                enableMotionShine: true,
-                                            showsBaseShadow: false
-                                            )
-                                            .frame(maxWidth: usesSingleColumn ? .infinity : nil)
-                                            .frame(minHeight: cardHeight)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .contextMenu {
-                                            Button("Edit", systemImage: "pencil") { editingCard = card }
-                                            Button("Delete", systemImage: "trash", role: .destructive) {
-                                                vm.requestDelete(card: card)
-                                            }
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, gridPadding)
-                                .padding(.top, gridPadding)
                             }
+                            .padding(.horizontal, gridPadding)
+                            .padding(.top, gridPadding)
+                        case .empty:
+                            EmptyView()
+                        case .loaded(let cards):
+                            LazyVGrid(columns: columns, spacing: gridSpacingValue) {
+                                ForEach(cards) { card in
+                                    NavigationLink(value: card) {
+                                        CardTileView(
+                                            card: card,
+                                            isSelected: false,
+                                            onTap: { /* handled by NavigationLink */ },
+                                            isInteractive: false,
+                                            enableMotionShine: true,
+                                            showsBaseShadow: false
+                                        )
+                                        .frame(maxWidth: usesSingleColumn ? .infinity : nil)
+                                        .frame(minHeight: cardHeight)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .contextMenu {
+                                        Button("Edit", systemImage: "pencil") { editingCard = card }
+                                        Button("Delete", systemImage: "trash", role: .destructive) {
+                                            vm.requestDelete(card: card)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, gridPadding)
+                            .padding(.top, gridPadding)
                         }
-                        .frame(maxWidth: .infinity, alignment: .top)
                     }
-                    .refreshable {
-                        // Pull-to-refresh: nudge CloudKit and reload cards
-                        CloudSyncAccelerator.shared.nudgeOnForeground()
-                        await vm.refresh()
-                    }
+                    .frame(maxWidth: .infinity, alignment: .top)
+                }
+                .refreshable {
+                    // Pull-to-refresh: nudge CloudKit and reload cards
+                    CloudSyncAccelerator.shared.nudgeOnForeground()
+                    await vm.refresh()
                 }
             }
-            
-            .navigationTitle("Cards")
-            .toolbar { toolbarContent }
-            .onAppear { vm.startIfNeeded() }
-            .sheet(isPresented: $isPresentingAddCard) {
-                AddCardFormView { newName, theme in
-                    Task { await vm.addCard(name: newName, theme: theme) }
-                }
+        }
+        .navigationTitle("Cards")
+        .toolbar { toolbarContent }
+        .onAppear { vm.startIfNeeded() }
+        .sheet(isPresented: $isPresentingAddCard) {
+            AddCardFormView { newName, theme in
+                Task { await vm.addCard(name: newName, theme: theme) }
             }
-            .onChange(of: detailCard) { newValue in
-                if newValue == nil {
-                    isPresentingCardVariableExpense = false
-                }
+        }
+        .onChange(of: detailCard) { newValue in
+            if newValue == nil {
+                isPresentingCardVariableExpense = false
             }
-            .alert(item: $vm.alert) { alert in
-                switch alert.kind {
-                case .error(let message):
-                    return Alert(title: Text("Error"), message: Text(message), dismissButton: .default(Text("OK")))
-                case .confirmDelete(let card):
-                    return Alert(
-                        title: Text("Delete “\(card.name)”?"),
-                        message: Text("This will delete the card and all of its expenses."),
-                        primaryButton: .destructive(Text("Delete"), action: { Task { await vm.confirmDelete(card: card) } }),
-                        secondaryButton: .cancel()
-                    )
-                case .rename:
-                    return Alert(title: Text("Rename Card"), message: Text("Use Edit instead."), dismissButton: .default(Text("OK")))
-                }
-            }
-            .navigationDestination(for: CardItem.self) { card in
-                CardDetailView(
-                    card: card,
-                    isPresentingAddExpense: $isPresentingCardVariableExpense,
-                    onDone: { detailCard = nil }
+        }
+        .alert(item: $vm.alert) { alert in
+            switch alert.kind {
+            case .error(let message):
+                return Alert(title: Text("Error"), message: Text(message), dismissButton: .default(Text("OK")))
+            case .confirmDelete(let card):
+                return Alert(
+                    title: Text("Delete “\(card.name)”?"),
+                    message: Text("This will delete the card and all of its expenses."),
+                    primaryButton: .destructive(Text("Delete"), action: { Task { await vm.confirmDelete(card: card) } }),
+                    secondaryButton: .cancel()
                 )
+            case .rename:
+                return Alert(title: Text("Rename Card"), message: Text("Use Edit instead."), dismissButton: .default(Text("OK")))
             }
-            .sheet(item: $editingCard) { card in
-                AddCardFormView(mode: .edit, editingCard: card) { name, theme in
-                    Task { await vm.edit(card: card, name: name, theme: theme) }
-                }
+        }
+        .navigationDestination(for: CardItem.self) { card in
+            CardDetailView(
+                card: card,
+                isPresentingAddExpense: $isPresentingCardVariableExpense,
+                onDone: { detailCard = nil }
+            )
+        }
+        .sheet(item: $editingCard) { card in
+            AddCardFormView(mode: .edit, editingCard: card) { name, theme in
+                Task { await vm.edit(card: card, name: name, theme: theme) }
             }
         }
     }
@@ -177,20 +174,6 @@ struct CardsView: View {
         Buttons.toolbarIcon("plus") { isPresentingAddCard = true }
         .accessibilityLabel("Add Card")
         
-    }
-
-    // MARK: Navigation container
-    @ViewBuilder
-    private func navigationContainer<Inner: View>(@ViewBuilder content: () -> Inner) -> some View {
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
-            NavigationStack {
-                content()
-            }
-        } else {
-            NavigationView {
-                content()
-            }
-        }
     }
 
     // Guided walkthrough removed

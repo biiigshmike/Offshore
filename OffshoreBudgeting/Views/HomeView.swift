@@ -428,6 +428,14 @@ struct HomeView: View {
         }
     }
 
+    private var whatsNewVersionToken: String? {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String
+        let build = info?["CFBundleVersion"] as? String
+        guard let version, !version.isEmpty, let build, !build.isEmpty else { return nil }
+        return "\(version).\(build)"
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             heatmapBackground
@@ -449,7 +457,7 @@ struct HomeView: View {
         .onDisappear { stopObservingWidgetSync() }
         .alert(item: $vm.alert, content: alert(for:))
         .tipsAndHintsOverlay(for: .home)
-        .tipsAndHintsOverlay(for: .home, kind: .whatsNew, versionToken: "2.0.1")
+        .tipsAndHintsOverlay(for: .home, kind: .whatsNew, versionToken: whatsNewVersionToken)
     }
 
     // MARK: Content

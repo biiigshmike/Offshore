@@ -8,20 +8,30 @@ struct HelpView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
     @State private var showOnboardingAlert = false
+    let wrapsInNavigation: Bool
+
+    init(wrapsInNavigation: Bool = true) {
+        self.wrapsInNavigation = wrapsInNavigation
+    }
 
     var body: some View {
         Group {
-            if #available(iOS 16.0, macCatalyst 16.0, *) {
-                NavigationStack {
-                    helpMenu
-                        .navigationTitle("Help")
+            if wrapsInNavigation {
+                if #available(iOS 16.0, macCatalyst 16.0, *) {
+                    NavigationStack {
+                        helpMenu
+                            .navigationTitle("Help")
+                    }
+                } else {
+                    NavigationView {
+                        helpMenu
+                            .navigationBarTitle("Help")
+                    }
+                    .navigationViewStyle(StackNavigationViewStyle())
                 }
             } else {
-                NavigationView {
-                    helpMenu
-                        .navigationBarTitle("Help")
-                }
-                .navigationViewStyle(StackNavigationViewStyle())
+                helpMenu
+                    .navigationTitle("Help")
             }
         }
         .ub_navigationBackground(

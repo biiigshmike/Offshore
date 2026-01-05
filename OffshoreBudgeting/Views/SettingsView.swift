@@ -121,7 +121,7 @@ struct SettingsView: View {
                 )
             }
 
-            NavigationLink(destination: HelpView()) {
+            NavigationLink(destination: HelpView(wrapsInNavigation: false)) {
                 SettingsRowLabel(
                     iconSystemName: "questionmark.circle",
                     title: "Help",
@@ -199,7 +199,7 @@ struct SettingsView: View {
     private var categoriesSection: some View {
         Section {
             NavigationLink {
-                ExpenseCategoryManagerView()
+                ExpenseCategoryManagerView(wrapsInNavigation: false)
                     .environment(\.managedObjectContext, viewContext)
             } label: {
                 SettingsRowLabel(
@@ -543,6 +543,18 @@ private struct AppInfoView: View {
                     )
                 }
             }
+
+            Section {
+                NavigationLink {
+                    ReleaseLogsView()
+                } label: {
+                    SettingsRowLabel(
+                        iconSystemName: "list.clipboard",
+                        title: "Release Logs",
+                        showsChevron: false
+                    )
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("About")
@@ -552,7 +564,7 @@ private struct AppInfoView: View {
         let info = Bundle.main.infoDictionary
         let version = info?["CFBundleShortVersionString"] as? String ?? "-"
         let build = info?["CFBundleVersion"] as? String ?? "-"
-        return "Version \(version).\(build)"
+        return "Version \(version) • Build \(build)"
     }
 
     private var appInfoIconSize: CGFloat {
@@ -565,6 +577,59 @@ private struct AppInfoView: View {
         #endif
         let scaled = min(width * 0.36, 200)
         return max(120, scaled)
+    }
+}
+
+private struct ReleaseLogsView: View {
+    var body: some View {
+        List {
+            ForEach(AppUpdateLogs.releaseLogs) { log in
+                Section(header: Text(releaseTitle(for: log.versionToken))) {
+                    ForEach(log.content.items) { item in
+                        ReleaseLogItemRow(item: item)
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle("Release Logs")
+    }
+
+    private func releaseTitle(for versionToken: String) -> String {
+        let parts = versionToken.split(separator: ".")
+        guard parts.count >= 2 else { return "What's New • \(versionToken)" }
+        let build = String(parts.last ?? "")
+        let version = parts.dropLast().joined(separator: ".")
+        return "What's New • \(version) (Build \(build))"
+    }
+}
+
+private struct ReleaseLogItemRow: View {
+    let item: TipsItem
+    @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 22
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: item.symbolName)
+                .font(.system(size: iconSize, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: iconSize + 12, alignment: .center)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(item.title)
+                    .font(.headline)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(item.detail)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
     }
 }
 

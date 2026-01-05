@@ -78,7 +78,7 @@ private struct CategoriesStep2: View {
     var body: some View {
         navigationContainer {
             ZStack(alignment: .bottom) {
-                ExpenseCategoryManagerView()
+                ExpenseCategoryManagerView(wrapsInNavigation: false)
                 OnboardingButtonsRow2(back: "Back", nextTitle: "Done", onBack: onBack, onNext: onNext)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 12)

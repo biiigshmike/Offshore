@@ -8,7 +8,6 @@
 //
 
 import SwiftUI
-import LocalAuthentication
 
 // MARK: - AppLockView
 /// A full-screen lock overlay that integrates with AppLockViewModel.
@@ -34,12 +33,17 @@ public struct AppLockView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                Image(systemName: iconName)
+                Image(systemName: viewModel.lockIconName)
                     .font(.system(size: 44, weight: .regular, design: .rounded))
                     .accessibilityHidden(true)
 
                 Text("Offshore Budgeting is Locked")
                     .font(.title3)
+                    .multilineTextAlignment(.center)
+
+                Text(viewModel.lockSubtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
 
                 if let error = viewModel.lastErrorMessage {
@@ -58,12 +62,4 @@ public struct AppLockView: View {
         .accessibilityAddTraits(.isModal)
     }
 
-    // MARK: Helpers
-    private var iconName: String {
-        switch BiometricAuthenticationManager.shared.supportedBiometryType() {
-        case .faceID: return "faceid"
-        case .touchID: return "touchid"
-        default: return "lock.fill"
-        }
-    }
 }

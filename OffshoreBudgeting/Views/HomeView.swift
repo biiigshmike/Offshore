@@ -264,6 +264,8 @@ struct HomeView: View {
     @ScaledMetric(relativeTo: .body) private var availabilityStatusDotSize: CGFloat = 12
     @ScaledMetric(relativeTo: .body) private var categorySpotlightHeight: CGFloat = 200
     @ScaledMetric(relativeTo: .body) private var dayOfWeekChartHeight: CGFloat = 140
+    @ScaledMetric(relativeTo: .body) private var dayOfWeekRowHeight: CGFloat = 24
+    @ScaledMetric(relativeTo: .body) private var dayOfWeekRowSpacing: CGFloat = 8
     @ScaledMetric(relativeTo: .body) private var dateActionButtonSize: CGFloat = 44
     @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 120
     @ScaledMetric(relativeTo: .body) private var cardPreviewHeight: CGFloat = 76
@@ -1051,7 +1053,10 @@ struct HomeView: View {
                 let previewPeriod = resolvedPeriod(vm.period, range: currentRange)
                 let orientation = previewBarOrientation(for: previewPeriod, bucketCount: widgetBuckets.count)
                 let maxAmount = max(self.widgetBuckets.map(\.amount).max() ?? 1, 1)
-                let chartHeight = isAccessibilitySize ? max(dayOfWeekChartHeight * 0.7, 120) : dayOfWeekChartHeight
+                let rowCount = max(widgetBuckets.count, 1)
+                let rowHeight = isAccessibilitySize ? dayOfWeekRowHeight * 1.35 : dayOfWeekRowHeight
+                let stackedHeight = CGFloat(rowCount) * rowHeight + CGFloat(max(rowCount - 1, 0)) * dayOfWeekRowSpacing
+                let chartHeight = max(dayOfWeekChartHeight, stackedHeight)
                 VStack(alignment: .leading, spacing: 8) {
                     SpendBucketChart(
                         buckets: widgetBuckets,
@@ -2328,6 +2333,8 @@ private struct MetricDetailView: View {
     @ScaledMetric(relativeTo: .body) private var legendLineWidth: CGFloat = 18
     @ScaledMetric(relativeTo: .body) private var legendLineHeight: CGFloat = 3
     @ScaledMetric(relativeTo: .body) private var detailChartHeight: CGFloat = 200
+    @ScaledMetric(relativeTo: .body) private var detailDayRowHeight: CGFloat = 28
+    @ScaledMetric(relativeTo: .body) private var detailDayRowSpacing: CGFloat = 10
     private var detailAvailabilitySegment: CategoryAvailabilitySegment {
         CategoryAvailabilitySegment(rawValue: detailAvailabilitySegmentRawValue) ?? .combined
     }
@@ -2503,8 +2510,12 @@ private struct MetricDetailView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(spendSections) { section in
-                    let orientation = detailBarOrientation(for: resolved, bucketCount: section.buckets.count)
+                    let orientation = isAccessibilitySize ? .horizontal : detailBarOrientation(for: resolved, bucketCount: section.buckets.count)
                     let maxAmount = max(section.buckets.map(\.amount).max() ?? 1, 1)
+                    let rowCount = max(section.buckets.count, 1)
+                    let rowHeight = isAccessibilitySize ? detailDayRowHeight * 1.25 : detailDayRowHeight
+                    let stackedHeight = CGFloat(rowCount) * rowHeight + CGFloat(max(rowCount - 1, 0)) * detailDayRowSpacing
+                    let chartHeight = orientation == .horizontal ? max(resolvedDetailChartHeight, stackedHeight) : resolvedDetailChartHeight
                     VStack(alignment: .leading, spacing: 8) {
                         Text(section.title)
                             .font(.subheadline.weight(.semibold))
@@ -2513,57 +2524,101 @@ private struct MetricDetailView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        Chart(section.buckets) { item in
-                            let norm = max(min(item.amount / maxAmount, 1), 0)
-                            let gradientColors = spendGradientColors(for: item, summary: summary, maxColors: 4)
-                            let gradient = LinearGradient(
-                                colors: gradientColors.map { $0.opacity(0.4 + 0.5 * norm) },
-                                startPoint: orientation == .horizontal ? .leading : .top,
-                                endPoint: orientation == .horizontal ? .trailing : .bottom
-                            )
-                            if orientation == .horizontal {
-                                BarMark(
-                                    x: .value("Amount", item.amount),
-                                    y: .value("Period", item.label)
-                                )
-                                .foregroundStyle(gradient)
-                                .cornerRadius(3)
-                            } else {
-                                BarMark(
-                                    x: .value("Period", item.label),
-                                    y: .value("Amount", item.amount)
-                                )
-                                .foregroundStyle(gradient)
-                                .cornerRadius(3)
-                            }
-                        }
-                        .chartOverlay { proxy in
-                            GeometryReader { geo in
-                                Rectangle().fill(.clear).contentShape(Rectangle())
-                                    .simultaneousGesture(
-                                        SpatialTapGesture()
-                                            .onEnded { value in
-                                                let origin = geo[proxy.plotAreaFrame].origin
-                                                let location = CGPoint(
-                                                    x: value.location.x - origin.x,
-                                                    y: value.location.y - origin.y
-                                                )
-                                                if orientation == .horizontal {
-                                                    if let label: String = proxy.value(atY: location.y) {
-                                                        toggleSpendSelection(in: section, label: label)
-                                                    }
-                                                } else {
-                                                    if let label: String = proxy.value(atX: location.x) {
-                                                        toggleSpendSelection(in: section, label: label)
-                                                    }
-                                                }
-                                            }
+                        Group {
+                            if isAccessibilitySize {
+                                Chart(section.buckets) { item in
+                                    let norm = max(min(item.amount / maxAmount, 1), 0)
+                                    let gradientColors = spendGradientColors(for: item, summary: summary, maxColors: 4)
+                                    let gradient = LinearGradient(
+                                        colors: gradientColors.map { $0.opacity(0.4 + 0.5 * norm) },
+                                        startPoint: orientation == .horizontal ? .leading : .top,
+                                        endPoint: orientation == .horizontal ? .trailing : .bottom
                                     )
-                            }
-                        }
-                        .chartYAxis {
-                            if orientation == .horizontal {
-                                AxisMarks(position: .leading, values: section.buckets.map(\.label)) { value in
+                                    if orientation == .horizontal {
+                                        BarMark(
+                                            x: .value("Amount", item.amount),
+                                            y: .value("Period", item.label)
+                                        )
+                                        .foregroundStyle(gradient)
+                                        .cornerRadius(3)
+                                    } else {
+                                        BarMark(
+                                            x: .value("Period", item.label),
+                                            y: .value("Amount", item.amount)
+                                        )
+                                        .foregroundStyle(gradient)
+                                        .cornerRadius(3)
+                                    }
+                                }
+                                .chartXAxis(.hidden)
+                                .chartYAxis {
+                                    if orientation == .horizontal {
+                                        AxisMarks(position: .leading, values: section.buckets.map(\.label)) { value in
+                                            if let label = value.as(String.self) {
+                                                AxisValueLabel {
+                                                    Text(label)
+                                                        .font(.caption2)
+                                                        .lineLimit(2)
+                                                        .fixedSize(horizontal: false, vertical: true)
+                                                }
+                                            } else {
+                                                AxisValueLabel()
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Chart(section.buckets) { item in
+                                    let norm = max(min(item.amount / maxAmount, 1), 0)
+                                    let gradientColors = spendGradientColors(for: item, summary: summary, maxColors: 4)
+                                    let gradient = LinearGradient(
+                                        colors: gradientColors.map { $0.opacity(0.4 + 0.5 * norm) },
+                                        startPoint: orientation == .horizontal ? .leading : .top,
+                                        endPoint: orientation == .horizontal ? .trailing : .bottom
+                                    )
+                                    if orientation == .horizontal {
+                                        BarMark(
+                                            x: .value("Amount", item.amount),
+                                            y: .value("Period", item.label)
+                                        )
+                                        .foregroundStyle(gradient)
+                                        .cornerRadius(3)
+                                    } else {
+                                        BarMark(
+                                            x: .value("Period", item.label),
+                                            y: .value("Amount", item.amount)
+                                        )
+                                        .foregroundStyle(gradient)
+                                        .cornerRadius(3)
+                                    }
+                                }
+                                .chartOverlay { proxy in
+                                    GeometryReader { geo in
+                                        Rectangle().fill(.clear).contentShape(Rectangle())
+                                            .simultaneousGesture(
+                                                SpatialTapGesture()
+                                                    .onEnded { value in
+                                                        let origin = geo[proxy.plotAreaFrame].origin
+                                                        let location = CGPoint(
+                                                            x: value.location.x - origin.x,
+                                                            y: value.location.y - origin.y
+                                                        )
+                                                        if orientation == .horizontal {
+                                                            if let label: String = proxy.value(atY: location.y) {
+                                                                toggleSpendSelection(in: section, label: label)
+                                                            }
+                                                        } else {
+                                                            if let label: String = proxy.value(atX: location.x) {
+                                                                toggleSpendSelection(in: section, label: label)
+                                                            }
+                                                        }
+                                                    }
+                                            )
+                                    }
+                                }
+                                .chartYAxis {
+                                    if orientation == .horizontal {
+                                        AxisMarks(position: .leading, values: section.buckets.map(\.label)) { value in
                                     if let label = value.as(String.self) {
                                         AxisValueLabel {
                                             Text(label)
@@ -2573,44 +2628,70 @@ private struct MetricDetailView: View {
                                         }
                                     } else {
                                         AxisValueLabel()
+                                            }
+                                        }
+                                    } else {
+                                        AxisMarks(position: .leading) { value in
+                                            if let val = value.as(Double.self) {
+                                                AxisGridLine()
+                                                AxisTick()
+                                                AxisValueLabel { axisCurrencyLabel(val) }
+                                            }
+                                        }
                                     }
                                 }
-                            } else {
-                                AxisMarks(position: .leading) { value in
-                                    if let val = value.as(Double.self) {
-                                        AxisGridLine()
-                                        AxisTick()
-                                        AxisValueLabel { axisCurrencyLabel(val) }
-                                    }
-                                }
-                            }
-                        }
-                        .chartXAxis {
-                            if orientation == .horizontal {
-                                AxisMarks(position: .bottom) { value in
-                                    if let val = value.as(Double.self) {
-                                        AxisGridLine()
-                                        AxisTick()
-                                        AxisValueLabel { axisCurrencyLabel(val) }
-                                    }
-                                }
-                            } else {
-                                AxisMarks(position: .bottom, values: section.buckets.map(\.label)) { value in
-                                    if let label = value.as(String.self) {
-                                        AxisTick()
-                                        AxisValueLabel {
-                                            Text(String(label.prefix(1)))
-                                                .font(.caption2)
-                                                .lineLimit(1)
+                                .chartXAxis {
+                                    if orientation == .horizontal {
+                                        AxisMarks(position: .bottom) { value in
+                                            if let val = value.as(Double.self) {
+                                                AxisGridLine()
+                                                AxisTick()
+                                                AxisValueLabel { axisCurrencyLabel(val) }
+                                            }
+                                        }
+                                    } else {
+                                        AxisMarks(position: .bottom, values: section.buckets.map(\.label)) { value in
+                                            if let label = value.as(String.self) {
+                                                AxisTick()
+                                                AxisValueLabel {
+                                                    Text(String(label.prefix(1)))
+                                                        .font(.caption2)
+                                                        .lineLimit(1)
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                        .frame(height: orientation == .horizontal ? resolvedDetailChartHeight * 0.9 : resolvedDetailChartHeight)
+                        .frame(height: chartHeight)
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("\(section.title) spending chart")
                         .accessibilityValue("Shows spending totals by period.")
+                        if isAccessibilitySize {
+                            HStack(spacing: 12) {
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(Color.secondary.opacity(0.7))
+                                        .frame(width: 8, height: 8)
+                                    Text("Day range")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                HStack(spacing: 6) {
+                                    LinearGradient(
+                                        colors: [Color.blue.opacity(0.35), Color.blue.opacity(0.85)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                    .frame(width: 22, height: 6)
+                                    .clipShape(Capsule())
+                                    Text("Amount spent")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
                         if selectedSpendSectionID == section.id, let bucket = selectedSpendBucket {
                             spendCategoryChips(for: bucket)
                         }
@@ -2774,8 +2855,8 @@ private struct MetricDetailView: View {
                     CategoryDonutView(
                         slices: slices,
                         total: max(totalExpenses, 1),
-                        centerTitle: leadingCategory.name,
-                        centerValue: formatCurrency(leadingCategory.amount)
+                        centerTitle: isAccessibilitySize ? "" : leadingCategory.name,
+                        centerValue: isAccessibilitySize ? "" : formatCurrency(leadingCategory.amount)
                     )
                     .frame(height: 220)
                     VStack(alignment: .leading, spacing: 6) {
@@ -3104,8 +3185,12 @@ private struct MetricDetailView: View {
             .opacity(scenarioAllocations.isEmpty ? 0.5 : 1)
 
             let width = scenarioWidth > 0 ? scenarioWidth : scenarioPlannerDefaultWidth()
-            let donutSize = min(max(width * 0.38, 180), 320)
-            let stackedDonutSize = min(max(width * 0.55, 200), 320)
+            let donutSize = isAccessibilitySize
+                ? min(max(width * 0.5, 220), 360)
+                : min(max(width * 0.38, 180), 320)
+            let stackedDonutSize = isAccessibilitySize
+                ? min(max(width * 0.7, 260), 360)
+                : min(max(width * 0.55, 200), 320)
             let listWidth = max(width - donutSize - 16, width * 0.48)
 
             ViewThatFits(in: .horizontal) {
@@ -3113,8 +3198,8 @@ private struct MetricDetailView: View {
                 CategoryDonutView(
                     slices: slices,
                     total: max(slices.map(\.amount).reduce(0, +), 1),
-                    centerTitle: potentialSavings >= 0 ? "Potential Savings" : "Deficit",
-                    centerValue: formatCurrency(potentialSavings),
+                    centerTitle: isAccessibilitySize ? "" : (potentialSavings >= 0 ? "Potential Savings" : "Deficit"),
+                    centerValue: isAccessibilitySize ? "" : formatCurrency(potentialSavings),
                     savingsColor: savingsColor,
                     centerValueColor: savingsTextStyle
                 )
@@ -3133,8 +3218,8 @@ private struct MetricDetailView: View {
                     CategoryDonutView(
                         slices: slices,
                         total: max(slices.map(\.amount).reduce(0, +), 1),
-                        centerTitle: potentialSavings >= 0 ? "Potential Savings" : "Deficit",
-                        centerValue: formatCurrency(potentialSavings),
+                        centerTitle: isAccessibilitySize ? "" : (potentialSavings >= 0 ? "Potential Savings" : "Deficit"),
+                        centerValue: isAccessibilitySize ? "" : formatCurrency(potentialSavings),
                         savingsColor: savingsColor,
                         centerValueColor: savingsTextStyle
                     )
@@ -3402,6 +3487,13 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             .minimumScaleFactor(isAccessibilitySize ? 0.6 : 0.8)
     }
 
+    private func axisCurrencyLabelCompact(_ value: Double) -> some View {
+        Text(formatAxisCurrency(value, compact: true))
+            .font(.caption2)
+            .lineLimit(1)
+            .minimumScaleFactor(isAccessibilitySize ? 0.5 : 0.8)
+    }
+
     private func axisDateLabel(_ date: Date) -> some View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d"
@@ -3409,6 +3501,20 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             .font(.caption2)
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func formatAxisCurrency(_ value: Double, compact: Bool) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            formatter.currencyCode = Locale.current.currency?.identifier ?? "USD"
+        } else {
+            formatter.currencyCode = Locale.current.currencyCode ?? "USD"
+        }
+        formatter.maximumFractionDigits = 0
+        formatter.minimumFractionDigits = 0
+        formatter.usesGroupingSeparator = !compact
+        return formatter.string(from: value as NSNumber) ?? formatCurrency(value)
     }
 
     // MARK: Income Sections
@@ -3563,88 +3669,156 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             let plannedSeries = expectedTimeline.isEmpty ? fallbackExpectedSeries() : expectedTimeline
             let receiptPoints = receiptPoints(from: incomeTimeline)
             let actualLineSeries = actualIncomeLineSeries(from: receiptPoints)
+            let latestPlanned = plannedSeries.last?.value
+            let latestActual = actualLineSeries.last?.value
 
             let maxVal = max((actualLineSeries.map(\.value).max() ?? 0), (plannedSeries.map(\.value).max() ?? 0), 1)
             let domain: ClosedRange<Double> = 0...(maxVal * 1.1)
             VStack(alignment: .leading, spacing: 8) {
-                Chart {
-                    ForEach(plannedSeries) { point in
-                        LineMark(
-                            x: .value("Date", point.date),
-                            y: .value("Planned Income", point.value)
-                        )
-                        .interpolationMethod(.linear)
-                        .foregroundStyle(by: .value("Series", "Planned Income"))
-                        .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
-                    }
-                    ForEach(actualLineSeries) { point in
-                        LineMark(
-                            x: .value("Date", point.date),
-                            y: .value("Actual Income", point.value)
-                        )
-                        .interpolationMethod(.linear)
-                        .foregroundStyle(by: .value("Series", "Actual Income"))
-                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, dash: [6, 4]))
-                    }
-                    ForEach(receiptPoints) { point in
-                        PointMark(
-                            x: .value("Date", point.date),
-                            y: .value("Received", point.value)
-                        )
-                        .symbolSize(18)
-                        .foregroundStyle(receiptColor)
-                    }
-                    if let selected = timelineSelection {
-                        RuleMark(x: .value("Selected", selected.date))
-                            .foregroundStyle(.gray.opacity(0.35))
-                            .annotation(position: .topLeading) {
-                                Text(formatCurrency(selected.value))
-                                    .font(.caption2)
+                Group {
+                    if isAccessibilitySize {
+                        Chart {
+                            ForEach(plannedSeries) { point in
+                                LineMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Planned Income", point.value)
+                                )
+                                .interpolationMethod(.linear)
+                                .foregroundStyle(by: .value("Series", "Planned Income"))
+                                .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
                             }
-                    }
-                }
-                .chartYScale(domain: domain)
-                .chartLegend(.hidden)
-                .chartForegroundStyleScale([
-                    "Planned Income": plannedLineColor,
-                    "Actual Income": actualLineColor.opacity(0.9)
-                ])
-                .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: isAccessibilitySize ? 2 : 3)) { value in
-                        if let date = value.as(Date.self) {
-                            AxisValueLabel { axisDateLabel(date) }
-                        } else {
-                            AxisValueLabel()
+                            ForEach(actualLineSeries) { point in
+                                LineMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Actual Income", point.value)
+                                )
+                                .interpolationMethod(.linear)
+                                .foregroundStyle(by: .value("Series", "Actual Income"))
+                                .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, dash: [6, 4]))
+                            }
+                            ForEach(receiptPoints) { point in
+                                PointMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Received", point.value)
+                                )
+                                .symbolSize(18)
+                                .foregroundStyle(receiptColor)
+                            }
+                        }
+                        .chartYScale(domain: domain)
+                        .chartLegend(.hidden)
+                        .chartForegroundStyleScale([
+                            "Planned Income": plannedLineColor,
+                            "Actual Income": actualLineColor.opacity(0.9)
+                        ])
+                        .chartXAxis(.hidden)
+                        .chartYAxis(.hidden)
+                        .frame(height: resolvedDetailChartHeight)
+                    } else {
+                        Chart {
+                            ForEach(plannedSeries) { point in
+                                LineMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Planned Income", point.value)
+                                )
+                                .interpolationMethod(.linear)
+                                .foregroundStyle(by: .value("Series", "Planned Income"))
+                                .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                            }
+                            ForEach(actualLineSeries) { point in
+                                LineMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Actual Income", point.value)
+                                )
+                                .interpolationMethod(.linear)
+                                .foregroundStyle(by: .value("Series", "Actual Income"))
+                                .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, dash: [6, 4]))
+                            }
+                            ForEach(receiptPoints) { point in
+                                PointMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Received", point.value)
+                                )
+                                .symbolSize(18)
+                                .foregroundStyle(receiptColor)
+                            }
+                            if let selected = timelineSelection {
+                                RuleMark(x: .value("Selected", selected.date))
+                                    .foregroundStyle(.gray.opacity(0.35))
+                                    .annotation(position: .topLeading) {
+                                        Text(formatCurrency(selected.value))
+                                            .font(.caption2)
+                                    }
+                            }
+                        }
+                        .chartYScale(domain: domain)
+                        .chartLegend(.hidden)
+                        .chartForegroundStyleScale([
+                            "Planned Income": plannedLineColor,
+                            "Actual Income": actualLineColor.opacity(0.9)
+                        ])
+                        .chartXAxis {
+                            AxisMarks(values: .automatic(desiredCount: 3)) { value in
+                                if let date = value.as(Date.self) {
+                                    AxisValueLabel { axisDateLabel(date) }
+                                } else {
+                                    AxisValueLabel()
+                                }
+                            }
+                        }
+                        .chartYAxis {
+                            AxisMarks(position: .leading) { value in
+                                if let val = value.as(Double.self) {
+                                    AxisGridLine()
+                                    AxisTick()
+                                    AxisValueLabel { axisCurrencyLabelCompact(val) }
+                                }
+                            }
+                        }
+                        .frame(height: resolvedDetailChartHeight)
+                        .chartOverlay { proxy in
+                            GeometryReader { geo in
+                                Rectangle().fill(.clear).contentShape(Rectangle())
+                                    .gesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { gesture in
+                                                let origin = geo[proxy.plotAreaFrame].origin
+                                                let locationX = gesture.location.x - origin.x
+                                                if let date: Date = proxy.value(atX: locationX) {
+                                                    timelineSelection = nearestPoint(in: actualLineSeries, to: date)
+                                                }
+                                            }
+                                            .onEnded { _ in timelineSelection = nil }
+                                    )
+                            }
                         }
                     }
                 }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        if let val = value.as(Double.self) {
-                            AxisGridLine()
-                            AxisTick()
-                            AxisValueLabel { axisCurrencyLabel(val) }
-                        }
-                    }
-                }
-                .frame(height: resolvedDetailChartHeight)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Income timeline chart")
                 .accessibilityValue("Shows planned income and actual income over time.")
-                .chartOverlay { proxy in
-                    GeometryReader { geo in
-                        Rectangle().fill(.clear).contentShape(Rectangle())
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { gesture in
-                                        let origin = geo[proxy.plotAreaFrame].origin
-                                        let locationX = gesture.location.x - origin.x
-                                        if let date: Date = proxy.value(atX: locationX) {
-                                            timelineSelection = nearestPoint(in: actualLineSeries, to: date)
-                                        }
-                                    }
-                                    .onEnded { _ in timelineSelection = nil }
-                            )
+
+                if isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Range: \(dateString(range.lowerBound)) – \(dateString(range.upperBound))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let latestPlanned {
+                            Text("Planned: \(formatCurrency(latestPlanned))")
+                                .font(.caption)
+                                .foregroundStyle(plannedLineColor)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if let latestActual {
+                            Text("Actual: \(formatCurrency(latestActual))")
+                                .font(.caption)
+                                .foregroundStyle(actualLineColor.opacity(0.9))
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
 
@@ -3707,65 +3881,91 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 Text("No income history for this period size.")
                     .foregroundStyle(.secondary)
             } else {
-                Chart(incomeBuckets) { bucket in
-                    BarMark(
-                        x: .value("Period", bucket.label),
-                        y: .value("Total", bucket.total)
-                    )
-                    .foregroundStyle(HomeView.HomePalette.income.opacity(0.8))
-                }
-                .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: isAccessibilitySize ? 2 : 4)) { value in
-                        if let label = value.as(String.self) {
-                            AxisValueLabel {
-                                Text(label)
-                                    .font(.caption2)
-                                    .lineLimit(2)
+                let latestBucket = incomeBuckets.last
+                Group {
+                    if isAccessibilitySize {
+                        Chart(incomeBuckets) { bucket in
+                            BarMark(
+                                x: .value("Period", bucket.label),
+                                y: .value("Total", bucket.total)
+                            )
+                            .foregroundStyle(HomeView.HomePalette.income.opacity(0.8))
+                        }
+                        .chartXAxis(.hidden)
+                        .chartYAxis(.hidden)
+                        .frame(height: resolvedDetailChartHeight * 0.9)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Income trends chart")
+                        .accessibilityValue("Shows income totals by period.")
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Period: \(comparisonPeriod.title)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if let latestBucket {
+                                Text("Latest: \(latestBucket.label) • \(formatCurrency(latestBucket.total))")
+                                    .font(.caption)
+                                    .foregroundStyle(HomeView.HomePalette.income)
+                                    .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
-                        } else {
-                            AxisValueLabel()
                         }
+                    } else {
+                        Chart(incomeBuckets) { bucket in
+                            BarMark(
+                                x: .value("Period", bucket.label),
+                                y: .value("Total", bucket.total)
+                            )
+                            .foregroundStyle(HomeView.HomePalette.income.opacity(0.8))
+                        }
+                        .chartXAxis {
+                            AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                                if let label = value.as(String.self) {
+                                    AxisValueLabel {
+                                        Text(label)
+                                            .font(.caption2)
+                                            .lineLimit(2)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                } else {
+                                    AxisValueLabel()
+                                }
+                            }
+                        }
+                        .chartYAxis {
+                            AxisMarks(position: .leading) { value in
+                                if let val = value.as(Double.self) {
+                                    AxisGridLine()
+                                    AxisTick()
+                                    AxisValueLabel { axisCurrencyLabel(val) }
+                                }
+                            }
+                        }
+                        .frame(height: resolvedDetailChartHeight * 0.9)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Income trends chart")
+                        .accessibilityValue("Shows income totals by period.")
                     }
                 }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        if let val = value.as(Double.self) {
-                            AxisGridLine()
-                            AxisTick()
-                            AxisValueLabel { axisCurrencyLabel(val) }
-                        }
-                    }
-                }
-                .frame(height: resolvedDetailChartHeight * 0.9)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Income trends chart")
-                .accessibilityValue("Shows income totals by period.")
             }
         }
     }
 
     private var quickIncomeActions: some View {
-        HStack(spacing: 12) {
-            Button {
-                showAddIncomeSheet = true
-            } label: {
-                Label("Add Income", systemImage: "plus.circle.fill")
-                    .font(.subheadline.weight(.semibold))
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(HomeView.HomePalette.income)
-
-            Button {
-                if let id = latestIncomeID {
-                    editingIncomeBox = ManagedIDBox(id: id)
+        Group {
+            if isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 10) {
+                    addIncomeButton
+                    editLatestButton
                 }
-            } label: {
-                Label("Edit Latest", systemImage: "pencil")
-                    .font(.subheadline.weight(.semibold))
+            } else {
+                HStack(spacing: 12) {
+                    addIncomeButton
+                    editLatestButton
+                }
             }
-            .buttonStyle(.bordered)
-            .disabled(latestIncomeID == nil)
         }
         .sheet(isPresented: $showAddIncomeSheet) {
             AddIncomeFormView(incomeObjectID: nil, budgetObjectID: nil, initialDate: nil)
@@ -3775,6 +3975,30 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             AddIncomeFormView(incomeObjectID: box.id, budgetObjectID: nil, initialDate: nil)
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
+    }
+
+    private var addIncomeButton: some View {
+        Button {
+            showAddIncomeSheet = true
+        } label: {
+            Label("Add Income", systemImage: "plus.circle.fill")
+                .font(.subheadline.weight(.semibold))
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(HomeView.HomePalette.income)
+    }
+
+    private var editLatestButton: some View {
+        Button {
+            if let id = latestIncomeID {
+                editingIncomeBox = ManagedIDBox(id: id)
+            }
+        } label: {
+            Label("Edit Latest", systemImage: "pencil")
+                .font(.subheadline.weight(.semibold))
+        }
+        .buttonStyle(.bordered)
+        .disabled(latestIncomeID == nil)
     }
 
     private func formatCurrency(_ amount: Double) -> String {
@@ -4403,66 +4627,123 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             let latestIncome = incomePoints.last
             let latestPlanned = plannedPoints.last
 
-            Chart {
-                ForEach(chartPoints) { point in
-                    LineMark(
-                        x: .value("Date", point.date),
-                        y: .value("Amount", point.value)
-                    )
-                    .interpolationMethod(.linear)
-                    .foregroundStyle(by: .value("Series", point.series.rawValue))
-                    .lineStyle(point.series == .plannedIncome ? StrokeStyle(lineWidth: 2, dash: [5, 4]) : StrokeStyle(lineWidth: 2))
-                }
-                if let selected = ratioSelection {
-                    RuleMark(x: .value("Selected", selected.date))
-                        .foregroundStyle(lineColor.opacity(0.35))
-                }
-            }
-            .chartYScale(domain: domain)
-            .chartForegroundStyleScale([
-                ExpenseIncomeSeries.expenses.rawValue: lineColor,
-                ExpenseIncomeSeries.actualIncome.rawValue: incomeColor,
-                ExpenseIncomeSeries.plannedIncome.rawValue: plannedColor
-            ])
-            .chartLegend(.hidden)
-            .chartXAxisLabel("Date")
-            .chartYAxisLabel("Amount")
-            .chartYAxis {
-                AxisMarks(position: .leading) { value in
-                    if let val = value.as(Double.self) {
-                        AxisGridLine()
-                        AxisTick()
-                        AxisValueLabel { axisCurrencyLabel(val) }
+            Group {
+                if isAccessibilitySize {
+                    Chart {
+                        ForEach(chartPoints) { point in
+                            LineMark(
+                                x: .value("Date", point.date),
+                                y: .value("Amount", point.value)
+                            )
+                            .interpolationMethod(.linear)
+                            .foregroundStyle(by: .value("Series", point.series.rawValue))
+                            .lineStyle(point.series == .plannedIncome ? StrokeStyle(lineWidth: 2, dash: [5, 4]) : StrokeStyle(lineWidth: 2))
+                        }
+                    }
+                    .chartYScale(domain: domain)
+                    .chartForegroundStyleScale([
+                        ExpenseIncomeSeries.expenses.rawValue: lineColor,
+                        ExpenseIncomeSeries.actualIncome.rawValue: incomeColor,
+                        ExpenseIncomeSeries.plannedIncome.rawValue: plannedColor
+                    ])
+                    .chartLegend(.hidden)
+                    .chartXAxis(.hidden)
+                    .chartYAxis(.hidden)
+                    .frame(height: resolvedDetailChartHeight)
+                } else {
+                    Chart {
+                        ForEach(chartPoints) { point in
+                            LineMark(
+                                x: .value("Date", point.date),
+                                y: .value("Amount", point.value)
+                            )
+                            .interpolationMethod(.linear)
+                            .foregroundStyle(by: .value("Series", point.series.rawValue))
+                            .lineStyle(point.series == .plannedIncome ? StrokeStyle(lineWidth: 2, dash: [5, 4]) : StrokeStyle(lineWidth: 2))
+                        }
+                        if let selected = ratioSelection {
+                            RuleMark(x: .value("Selected", selected.date))
+                                .foregroundStyle(lineColor.opacity(0.35))
+                        }
+                    }
+                    .chartYScale(domain: domain)
+                    .chartForegroundStyleScale([
+                        ExpenseIncomeSeries.expenses.rawValue: lineColor,
+                        ExpenseIncomeSeries.actualIncome.rawValue: incomeColor,
+                        ExpenseIncomeSeries.plannedIncome.rawValue: plannedColor
+                    ])
+                    .chartLegend(.hidden)
+                    .chartXAxisLabel("Date")
+                    .chartYAxisLabel("Amount")
+                    .chartYAxis {
+                        AxisMarks(position: .leading) { value in
+                            if let val = value.as(Double.self) {
+                                AxisGridLine()
+                                AxisTick()
+                                AxisValueLabel { axisCurrencyLabel(val) }
+                            }
+                        }
+                    }
+                    .chartXAxis {
+                        AxisMarks(values: .automatic(desiredCount: 3)) { value in
+                            if let date = value.as(Date.self) {
+                                AxisValueLabel { axisDateLabel(date) }
+                            } else {
+                                AxisValueLabel()
+                            }
+                        }
+                    }
+                    .frame(height: resolvedDetailChartHeight)
+                    .chartOverlay { proxy in
+                        GeometryReader { geo in
+                            Rectangle().fill(.clear).contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { gesture in
+                                            let origin = geo[proxy.plotAreaFrame].origin
+                                            let locationX = gesture.location.x - origin.x
+                                            if let date: Date = proxy.value(atX: locationX) {
+                                                ratioSelection = nearestPoint(in: expensePoints, to: date)
+                                            }
+                                        }
+                                        .onEnded { _ in ratioSelection = nil }
+                                )
+                        }
                     }
                 }
             }
-            .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: isAccessibilitySize ? 2 : 3)) { value in
-                    if let date = value.as(Date.self) {
-                        AxisValueLabel { axisDateLabel(date) }
-                    } else {
-                        AxisValueLabel()
-                    }
-                }
-            }
-            .frame(height: resolvedDetailChartHeight)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Expense to income chart")
             .accessibilityValue("Shows expenses, actual income, and planned income for the selected range.")
-            .chartOverlay { proxy in
-                GeometryReader { geo in
-                    Rectangle().fill(.clear).contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { gesture in
-                                    let origin = geo[proxy.plotAreaFrame].origin
-                                    let locationX = gesture.location.x - origin.x
-                                    if let date: Date = proxy.value(atX: locationX) {
-                                        ratioSelection = nearestPoint(in: expensePoints, to: date)
-                                    }
-                                }
-                                .onEnded { _ in ratioSelection = nil }
-                        )
+
+            if isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Range: \(dateString(range.lowerBound)) – \(dateString(range.upperBound))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let latestExpense {
+                        Text("Expenses: \(formatCurrency(latestExpense.value))")
+                            .font(.caption)
+                            .foregroundStyle(lineColor)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let latestIncome {
+                        Text("Actual Income: \(formatCurrency(latestIncome.value))")
+                            .font(.caption)
+                            .foregroundStyle(incomeColor)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let latestPlanned {
+                        Text("Planned Income: \(formatCurrency(latestPlanned.value))")
+                            .font(.caption)
+                            .foregroundStyle(plannedColor)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
 
@@ -4522,80 +4803,143 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             let projectedSeries = sampled.map { DatedValue(date: $0.date, value: $0.projected) }
             let actualColor = Color.green
             let projectedColor = Color.indigo
+            let latestActual = actualSeries.last?.value
+            let latestProjected = projectedSeries.last?.value
 
             VStack(alignment: .leading, spacing: 6) {
-                Chart {
-                    ForEach(actualSeries) { point in
-                        BarMark(
-                            x: .value("Date", point.date),
-                            y: .value("Actual", point.value)
-                        )
-                        .cornerRadius(4)
-                        .foregroundStyle(actualColor.opacity(0.8))
-                    }
+                Group {
+                    if isAccessibilitySize {
+                        Chart {
+                            ForEach(actualSeries) { point in
+                                BarMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Actual", point.value)
+                                )
+                                .cornerRadius(4)
+                                .foregroundStyle(actualColor.opacity(0.8))
+                            }
 
-                    ForEach(projectedSeries) { point in
-                        LineMark(
-                            x: .value("Date", point.date),
-                            y: .value("Projected", point.value)
-                        )
-                        .interpolationMethod(.monotone)
-                        .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                        PointMark(
-                            x: .value("Date", point.date),
-                            y: .value("Projected", point.value)
-                        )
-                        .symbolSize(10)
-                    }
-                    .foregroundStyle(projectedColor)
+                            ForEach(projectedSeries) { point in
+                                LineMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Projected", point.value)
+                                )
+                                .interpolationMethod(.monotone)
+                                .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                                PointMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Projected", point.value)
+                                )
+                                .symbolSize(10)
+                            }
+                            .foregroundStyle(projectedColor)
 
-                    if let selected = savingsSelection {
-                        RuleMark(x: .value("Selected", selected.date))
-                            .foregroundStyle(.gray.opacity(0.35))
-                    }
+                            RuleMark(y: .value("Zero", 0))
+                                .foregroundStyle(.gray.opacity(0.55))
+                        }
+                        .chartYScale(domain: domain)
+                        .chartXAxis(.hidden)
+                        .chartYAxis(.hidden)
+                        .frame(height: resolvedDetailChartHeight)
+                    } else {
+                        Chart {
+                            ForEach(actualSeries) { point in
+                                BarMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Actual", point.value)
+                                )
+                                .cornerRadius(4)
+                                .foregroundStyle(actualColor.opacity(0.8))
+                            }
 
-                    RuleMark(y: .value("Zero", 0))
-                        .foregroundStyle(.gray.opacity(0.55))
-                }
-                .chartYScale(domain: domain)
-                .chartXAxisLabel("Date")
-                .chartYAxisLabel("Savings")
-                .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: isAccessibilitySize ? 2 : 3)) { value in
-                        if let date = value.as(Date.self) {
-                            AxisValueLabel { axisDateLabel(date) }
-                        } else {
-                            AxisValueLabel()
+                            ForEach(projectedSeries) { point in
+                                LineMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Projected", point.value)
+                                )
+                                .interpolationMethod(.monotone)
+                                .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                                PointMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Projected", point.value)
+                                )
+                                .symbolSize(10)
+                            }
+                            .foregroundStyle(projectedColor)
+
+                            if let selected = savingsSelection {
+                                RuleMark(x: .value("Selected", selected.date))
+                                    .foregroundStyle(.gray.opacity(0.35))
+                            }
+
+                            RuleMark(y: .value("Zero", 0))
+                                .foregroundStyle(.gray.opacity(0.55))
+                        }
+                        .chartYScale(domain: domain)
+                        .chartXAxisLabel("Date")
+                        .chartYAxisLabel("Savings")
+                        .chartXAxis {
+                            AxisMarks(values: .automatic(desiredCount: 3)) { value in
+                                if let date = value.as(Date.self) {
+                                    AxisValueLabel { axisDateLabel(date) }
+                                } else {
+                                    AxisValueLabel()
+                                }
+                            }
+                        }
+                        .chartYAxis {
+                            AxisMarks(position: .leading) { value in
+                                if let val = value.as(Double.self) {
+                                    AxisGridLine()
+                                    AxisTick()
+                                    AxisValueLabel { axisCurrencyLabel(val) }
+                                }
+                            }
+                        }
+                        .frame(height: resolvedDetailChartHeight)
+                        .chartOverlay { proxy in
+                            GeometryReader { geo in
+                                Rectangle().fill(.clear).contentShape(Rectangle())
+                                    .gesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { gesture in
+                                                let origin = geo[proxy.plotAreaFrame].origin
+                                                let locationX = gesture.location.x - origin.x
+                                                if let date: Date = proxy.value(atX: locationX) {
+                                                    savingsSelection = nearestSavingsPoint(in: points, to: date)
+                                                }
+                                            }
+                                            .onEnded { _ in savingsSelection = nil }
+                                    )
+                            }
                         }
                     }
                 }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        if let val = value.as(Double.self) {
-                            AxisGridLine()
-                            AxisTick()
-                            AxisValueLabel { axisCurrencyLabel(val) }
-                        }
-                    }
-                }
-                .frame(height: resolvedDetailChartHeight)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Savings chart")
                 .accessibilityValue("Shows actual and projected savings over time.")
-                .chartOverlay { proxy in
-                    GeometryReader { geo in
-                        Rectangle().fill(.clear).contentShape(Rectangle())
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { gesture in
-                                        let origin = geo[proxy.plotAreaFrame].origin
-                                        let locationX = gesture.location.x - origin.x
-                                        if let date: Date = proxy.value(atX: locationX) {
-                                            savingsSelection = nearestSavingsPoint(in: points, to: date)
-                                        }
-                                    }
-                                    .onEnded { _ in savingsSelection = nil }
-                            )
+
+                if isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Range: \(dateString(range.lowerBound)) – \(dateString(range.upperBound))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let latestActual {
+                            Text("Actual: \(formatCurrency(latestActual))")
+                                .font(.caption)
+                                .foregroundStyle(actualColor)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if let latestProjected {
+                            Text("Projected: \(formatCurrency(latestProjected))")
+                                .font(.caption)
+                                .foregroundStyle(projectedColor)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
 

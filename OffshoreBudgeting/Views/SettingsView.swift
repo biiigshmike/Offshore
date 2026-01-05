@@ -18,6 +18,7 @@ struct SettingsView: View {
     // MARK: State
     @StateObject private var vm = SettingsViewModel()
     @AppStorage("appLockEnabled") private var isLockEnabled: Bool = true
+    @AppStorage("appLockUseBiometrics") private var useBiometrics: Bool = true
     @State private var showResetAlert = false
     @State private var showMergeConfirm = false
     @State private var showForceReuploadConfirm = false
@@ -152,7 +153,8 @@ struct SettingsView: View {
                 PrivacySettingsView(
                     biometricName: biometricName,
                     biometricIconName: biometricIconName,
-                    isLockEnabled: $isLockEnabled
+                    isLockEnabled: $isLockEnabled,
+                    useBiometrics: $useBiometrics
                 )
             } label: {
                 SettingsRowLabel(
@@ -671,22 +673,65 @@ private struct PrivacySettingsView: View {
     let biometricName: String
     let biometricIconName: String
     @Binding var isLockEnabled: Bool
+    @Binding var useBiometrics: Bool
+    @State private var isPasscodeAvailable: Bool = true
+    @State private var isBiometricsAvailable: Bool = true
+    @State private var availabilityMessage: String? = nil
 
     var body: some View {
         List {
             Section {
-                Toggle("Enable \(biometricName)", isOn: $isLockEnabled)
+                Toggle("Enable App Lock", isOn: $isLockEnabled)
+                    .disabled(!isPasscodeAvailable)
+
+                if isLockEnabled {
+                    Toggle("Use \(biometricName)", isOn: $useBiometrics)
+                        .disabled(!isBiometricsAvailable)
+                        .opacity(isBiometricsAvailable ? 1 : 0.6)
+                }
+            } footer: {
+                Text("Requires a device passcode to be set.")
+            }
+            if let availabilityMessage {
+                Section {
+                    Text(availabilityMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(biometricName)
+        .navigationTitle("Privacy")
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 8) {
                     Image(systemName: biometricIconName)
-                    Text(biometricName)
+                    Text("Privacy")
                 }
             }
+        }
+        .task { refreshAvailability() }
+        .onChange(of: isLockEnabled) { _ in refreshAvailability() }
+    }
+
+    private func refreshAvailability() {
+        var authError: BiometricError?
+        let canUsePasscode = BiometricAuthenticationManager.shared
+            .canEvaluateDeviceOwnerAuthentication(errorOut: &authError)
+        isPasscodeAvailable = canUsePasscode
+        if !canUsePasscode {
+            isLockEnabled = false
+            availabilityMessage = authError?.localizedDescription ?? "A device passcode is required to enable app lock."
+        } else {
+            availabilityMessage = nil
+        }
+
+        var biometricError: BiometricError?
+        let canUseBiometrics = BiometricAuthenticationManager.shared
+            .canEvaluateBiometrics(errorOut: &biometricError)
+        isBiometricsAvailable = canUseBiometrics
+        if !canUseBiometrics {
+            useBiometrics = false
         }
     }
 }

@@ -216,6 +216,8 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
 - Verify Button Shapes outlines match visible button/menu shapes (especially `Menu` labels and capsule buttons).
 - Verify Dynamic Type scaling with large sizes (no clipped text; list rows expand).
 - Verify contrast for secondary labels against glass/overlay backgrounds.
+- Verify chart axes do not truncate at accessibility sizes; consider hiding axes and providing a compact text summary.
+- Verify side-by-side action buttons stack vertically at accessibility sizes to avoid compressed heights.
 
 ## Patterns and Heuristics
 - Dynamic Type warnings: eliminate fixed font sizes; use Dynamic Type styles and `@ScaledMetric` for spacing, chart sizes, and row heights.
@@ -226,6 +228,8 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
 - List chevrons: use the system NavigationLink chevron; remove custom inner chevrons to avoid duplication.
 - Pagination: use fixed page sizes with HIG-sized left/right buttons; ensure symbols remain visible in light/dark via `.primary` and a subtle background on legacy.
 - VoiceOver: add explicit labels and hints for icon-only controls (edit, pin/unpin, apply, calendar, search, etc.).
+- Charts: at accessibility sizes, hide axes and show a compact textual summary (range + latest values) so the plot area remains usable.
+- Button rows: when actions are side-by-side, stack them vertically at accessibility sizes instead of shrinking the button height.
 
 ## Views
 

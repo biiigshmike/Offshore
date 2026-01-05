@@ -10,6 +10,7 @@
 
 import Foundation
 import Combine
+import LocalAuthentication
 
 #if canImport(SwiftUI)
 import SwiftUI
@@ -35,6 +36,8 @@ public final class AppLockViewModel: ObservableObject {
     /// Persisted user preference for enabling the lock.
     /// Toggle this in your Settings screen.
     @AppStorage("appLockEnabled") public var isLockEnabled: Bool = true
+    /// Persisted user preference for enabling biometrics when available.
+    @AppStorage("appLockUseBiometrics") public var useBiometrics: Bool = true
 
     // MARK: Dependencies
     private let biometricManager: BiometricAuthenticationManager
@@ -59,7 +62,7 @@ public final class AppLockViewModel: ObservableObject {
         isLocked = true
     }
 
-    /// Attempts to unlock via biometrics with passcode fallback.
+    /// Attempts to unlock via biometrics or device passcode, based on settings.
     /// Safe to call repeatedly; internal debounce prevents double prompts.
     /// - Parameter reason: Message for system prompt.
     public func attemptUnlockWithBiometrics(reason: String = "Unlock Offshore Budgeting") {
@@ -77,16 +80,17 @@ public final class AppLockViewModel: ObservableObject {
             return
         }
 
-        var preflightError: BiometricError?
-        guard biometricManager.canEvaluateBiometrics(errorOut: &preflightError) else {
-            lastErrorMessage = preflightError?.localizedDescription ?? "Biometrics unavailable."
+        var deviceAuthError: BiometricError?
+        guard biometricManager.canEvaluateDeviceOwnerAuthentication(errorOut: &deviceAuthError) else {
+            lastErrorMessage = deviceAuthError?.localizedDescription ?? "Device authentication unavailable."
             return
         }
 
+        let policy = preferredPolicy()
         isAuthenticating = true
         lastPromptAt = Date()
 
-        biometricManager.authenticate(reason: reason, allowDevicePasscode: true) { [weak self] result in
+        biometricManager.authenticate(reason: reason, policy: policy) { [weak self] result in
             guard let self else { return }
             self.isAuthenticating = false
             switch result {
@@ -107,6 +111,23 @@ public final class AppLockViewModel: ObservableObject {
         }
     }
 
+    // MARK: Presentation Helpers
+    public var lockSubtitle: String {
+        if useBiometrics, biometricManager.supportedBiometryType() != .none {
+            return "Use \(biometricLabel)"
+        }
+        return "Use device passcode"
+    }
+
+    public var lockIconName: String {
+        guard useBiometrics else { return "lock.fill" }
+        switch biometricManager.supportedBiometryType() {
+        case .faceID: return "faceid"
+        case .touchID: return "touchid"
+        default: return "lock.fill"
+        }
+    }
+
     // MARK: Private: App Lifecycle Observing
     /// We **only** lock on background here. We no longer auto-prompt on foreground.
     /// App.swift decides when to prompt (cold start, foreground, etc.).
@@ -120,6 +141,23 @@ public final class AppLockViewModel: ObservableObject {
         )
         // Removed willBecomeActive auto-prompt to avoid double sheets.
         #endif
+    }
+
+    private var biometricLabel: String {
+        switch biometricManager.supportedBiometryType() {
+        case .faceID: return "Face ID"
+        case .touchID: return "Touch ID"
+        default: return "Biometrics"
+        }
+    }
+
+    private func preferredPolicy() -> LAPolicy {
+        guard useBiometrics else { return .deviceOwnerAuthentication }
+        var biometricError: BiometricError?
+        if biometricManager.canEvaluateBiometrics(errorOut: &biometricError) {
+            return .deviceOwnerAuthenticationWithBiometrics
+        }
+        return .deviceOwnerAuthentication
     }
 
     // MARK: Lifecycle Selectors (UIKit)

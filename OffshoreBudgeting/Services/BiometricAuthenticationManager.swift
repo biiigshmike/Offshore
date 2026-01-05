@@ -15,6 +15,7 @@ import LocalAuthentication
 public enum BiometricError: LocalizedError, Equatable {
     case notAvailable
     case notEnrolled
+    case passcodeNotSet
     case lockedOut
     case cancelledByUser
     case cancelledBySystem
@@ -28,6 +29,8 @@ public enum BiometricError: LocalizedError, Equatable {
             return "Biometrics are not available on this device."
         case .notEnrolled:
             return "No Face ID/Touch ID is enrolled."
+        case .passcodeNotSet:
+            return "A device passcode is required to enable app lock."
         case .lockedOut:
             return "Biometrics are locked out. Try your device passcode."
         case .cancelledByUser:
@@ -84,6 +87,23 @@ public final class BiometricAuthenticationManager {
         }
     }
 
+    /// Checks if device-owner authentication (biometrics or passcode) can be evaluated.
+    /// - Returns: `true` if available, otherwise `false`. If false, the `errorOut` is set.
+    @discardableResult
+    public func canEvaluateDeviceOwnerAuthentication(errorOut: inout BiometricError?) -> Bool {
+        let context = LAContext()
+        do {
+            _ = try evaluateCanUse(policy: .deviceOwnerAuthentication, context: context)
+            return true
+        } catch let err as BiometricError {
+            errorOut = err
+            return false
+        } catch let ns as NSError {
+            errorOut = mapLAError(ns)
+            return false
+        }
+    }
+
     /// Prompts the user for biometrics (and optionally allows device passcode fallback).
     /// - Parameters:
     ///   - reason: Shown in the system prompt. Explain why you need auth.
@@ -94,11 +114,18 @@ public final class BiometricAuthenticationManager {
         allowDevicePasscode: Bool,
         completion: @escaping (Result<Void, BiometricError>) -> Void
     ) {
+        let policy: LAPolicy = allowDevicePasscode ? .deviceOwnerAuthentication : .deviceOwnerAuthenticationWithBiometrics
+        authenticate(reason: reason, policy: policy, completion: completion)
+    }
+
+    /// Prompts the user for authentication using the specified policy.
+    public func authenticate(
+        reason: String,
+        policy: LAPolicy,
+        completion: @escaping (Result<Void, BiometricError>) -> Void
+    ) {
         let context = LAContext()
         context.localizedCancelTitle = "Cancel"
-
-        // Use passcode fallback if requested. This also helps recover from biometric lockouts.
-        let policy: LAPolicy = allowDevicePasscode ? .deviceOwnerAuthentication : .deviceOwnerAuthenticationWithBiometrics
 
         // Pre-flight check
         do {
@@ -155,7 +182,7 @@ public final class BiometricAuthenticationManager {
         }
         switch code {
         case .biometryNotAvailable, .passcodeNotSet:
-            return .notAvailable
+            return code == .passcodeNotSet ? .passcodeNotSet : .notAvailable
         case .biometryNotEnrolled:
             return .notEnrolled
         case .biometryLockout:

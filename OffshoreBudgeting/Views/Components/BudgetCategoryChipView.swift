@@ -10,18 +10,20 @@ struct BudgetCategoryChipView: View {
     let isSelected: Bool
     let isExceeded: Bool
     let onTap: () -> Void
+    @ScaledMetric(relativeTo: .subheadline) private var dotSize: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 44
 
     var body: some View {
         let dot = UBColorFromHex(hex) ?? .secondary
         let chipLabel = HStack(spacing: 8) {
-            Circle().fill(dot).frame(width: 8, height: 8)
+            Circle().fill(dot).frame(width: dotSize, height: dotSize)
             Text(title).font(.subheadline.weight(.medium))
             Text(formatCurrency(amount))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(isExceeded ? Color.red : Color.primary)
         }
         .padding(.horizontal, 12)
-        .frame(height: 44)
+        .frame(minHeight: minHeight)
         .background(.clear)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
@@ -32,13 +34,13 @@ struct BudgetCategoryChipView: View {
                             .tint(isSelected ? dot.opacity(0.25) : .clear)
                             .interactive(true)
                     )
-                    .frame(minHeight: 44, maxHeight: 44)
+                    .frame(minHeight: minHeight)
             }
             .buttonBorderShape(.capsule)
             .foregroundStyle(.primary)
             .allowsHitTesting(true)
             .disabled(false)
-            .frame(minHeight: 44, maxHeight: 44)
+            .frame(minHeight: minHeight)
             .clipShape(Capsule())
             .compositingGroup()
             .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -48,23 +50,13 @@ struct BudgetCategoryChipView: View {
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
-            .frame(minHeight: 44, maxHeight: 44)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(
-                        isSelected
-                        ? dot.opacity(0.20)
-                        : Color(UIColor { traits in
-                            traits.userInterfaceStyle == .dark ? UIColor(white: 0.22, alpha: 1) : UIColor(white: 0.9, alpha: 1)
-                        })
-                    )
-            )
+            .frame(minHeight: minHeight)
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .stroke(isSelected ? dot.opacity(0.35) : .clear, lineWidth: 1)
+                    .stroke(isSelected ? dot.opacity(0.35) : Color.primary.opacity(0.15), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .frame(minHeight: 44, maxHeight: 44)
+            .frame(minHeight: minHeight)
         }
     }
 

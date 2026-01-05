@@ -157,6 +157,16 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
   - Toggle All button uses scaled minimum height and avoids fixed max height to prevent clipping at large text sizes.
   - Budget Name field uses a vertical axis at iOS 16+ so long names can wrap instead of truncating.
 
+### Session 14
+- Date: 2026-01-04
+- Scope: BudgetDetailsView + HomeView (pt1)
+- Notes:
+  - Budget Details category chips now scale dot sizes and remove the dark fallback fill; legacy chips keep a subtle outline without the gray block.
+  - Expense list indicators (category dot + card preview mini-tile) now scale with Dynamic Type.
+  - Category Availability widget dots now scale; Over/Near status dots scale with Dynamic Type.
+  - Category Availability rows allow “Available” values to wrap at accessibility sizes.
+  - Day-of-week chart labels clamp to a smaller width at accessibility sizes to preserve bar width.
+
 ## Extraction Algorithm (HomeView Report)
 1) Read the HTML report and locate the embedded `rootObject` JSON payload.
 2) Parse `_axKeyAllScreens[0]._axKeyAllIssues` to collect each issue.

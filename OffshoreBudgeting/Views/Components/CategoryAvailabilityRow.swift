@@ -6,6 +6,7 @@ struct CategoryAvailabilityRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @ScaledMetric(relativeTo: .body) private var progressWidth: CGFloat = 120
+    @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 12
 
     private var useStackedLayout: Bool {
         dynamicTypeSize.isAccessibilitySize || horizontalSizeClass == .compact
@@ -31,7 +32,7 @@ struct CategoryAvailabilityRow: View {
             if useStackedLayout {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .center, spacing: 12) {
-                        Circle().fill(item.color.opacity(0.75)).frame(width: 12, height: 12)
+                        Circle().fill(item.color.opacity(0.75)).frame(width: dotSize, height: dotSize)
                         Text(item.name)
                             .font(.ubDetailLabel.weight(.semibold))
                             .lineLimit(2)
@@ -41,13 +42,24 @@ struct CategoryAvailabilityRow: View {
                         Text("Max: \(item.cap.map { currencyFormatter($0) } ?? "∞")")
                             .font(.ubCaption)
                             .foregroundStyle(.secondary)
-                        HStack(spacing: 2) {
-                            Text("Available:")
-                                .font(.ubCaption)
-                                .foregroundStyle(.primary)
-                            Text(currencyFormatter(availableDisplay))
-                                .font(.ubCaption)
-                                .foregroundStyle(availableDisplay < 0 ? Color.red : .primary)
+                        if dynamicTypeSize.isAccessibilitySize {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Available:")
+                                    .font(.ubCaption)
+                                    .foregroundStyle(.primary)
+                                Text(currencyFormatter(availableDisplay))
+                                    .font(.ubCaption)
+                                    .foregroundStyle(availableDisplay < 0 ? Color.red : .primary)
+                            }
+                        } else {
+                            HStack(spacing: 2) {
+                                Text("Available:")
+                                    .font(.ubCaption)
+                                    .foregroundStyle(.primary)
+                                Text(currencyFormatter(availableDisplay))
+                                    .font(.ubCaption)
+                                    .foregroundStyle(availableDisplay < 0 ? Color.red : .primary)
+                            }
                         }
                     }
                     HStack(spacing: 8) {
@@ -61,7 +73,7 @@ struct CategoryAvailabilityRow: View {
                 }
             } else {
                 HStack(alignment: .center, spacing: 12) {
-                    Circle().fill(item.color.opacity(0.75)).frame(width: 12, height: 12)
+                    Circle().fill(item.color.opacity(0.75)).frame(width: dotSize, height: dotSize)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.name)
                             .font(.ubDetailLabel.weight(.semibold))
@@ -71,13 +83,24 @@ struct CategoryAvailabilityRow: View {
                             Text("Max: \(item.cap.map { currencyFormatter($0) } ?? "∞")")
                                 .font(.ubCaption)
                                 .foregroundStyle(.secondary)
-                            HStack(spacing: 2) {
-                                Text("Available:")
-                                    .font(.ubCaption)
-                                    .foregroundStyle(.primary)
-                                Text(currencyFormatter(availableDisplay))
-                                    .font(.ubCaption)
-                                    .foregroundStyle(availableDisplay < 0 ? Color.red : .primary)
+                            if dynamicTypeSize.isAccessibilitySize {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Available:")
+                                        .font(.ubCaption)
+                                        .foregroundStyle(.primary)
+                                    Text(currencyFormatter(availableDisplay))
+                                        .font(.ubCaption)
+                                        .foregroundStyle(availableDisplay < 0 ? Color.red : .primary)
+                                }
+                            } else {
+                                HStack(spacing: 2) {
+                                    Text("Available:")
+                                        .font(.ubCaption)
+                                        .foregroundStyle(.primary)
+                                    Text(currencyFormatter(availableDisplay))
+                                        .font(.ubCaption)
+                                        .foregroundStyle(availableDisplay < 0 ? Color.red : .primary)
+                                }
                             }
                         }
                     }

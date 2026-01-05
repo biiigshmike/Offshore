@@ -26,6 +26,7 @@ struct BudgetDetailsView: View {
     @State private var isConfirmingDelete = false
     @State private var deleteErrorMessage: String?
     private let budgetService = BudgetService()
+    @ScaledMetric(relativeTo: .body) private var categoryChipRowMinHeight: CGFloat = 44
 
     init(budgetID: NSManagedObjectID, store: BudgetDetailsViewModelStore? = nil) {
         self.budgetID = budgetID
@@ -230,7 +231,7 @@ struct BudgetDetailsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(height: 44)
+        .frame(minHeight: categoryChipRowMinHeight)
         .padding(.vertical, 2)
         .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
     }

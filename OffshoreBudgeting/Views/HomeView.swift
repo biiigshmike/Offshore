@@ -261,6 +261,7 @@ struct HomeView: View {
     @ScaledMetric(relativeTo: .body) private var availabilityRowHeight: CGFloat = 64
     @ScaledMetric(relativeTo: .body) private var availabilityRowSpacing: CGFloat = 8
     @ScaledMetric(relativeTo: .body) private var availabilityTabPadding: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var availabilityStatusDotSize: CGFloat = 10
     @ScaledMetric(relativeTo: .body) private var categorySpotlightHeight: CGFloat = 200
     @ScaledMetric(relativeTo: .body) private var dayOfWeekChartHeight: CGFloat = 140
     @ScaledMetric(relativeTo: .body) private var dateActionButtonSize: CGFloat = 44
@@ -1103,7 +1104,10 @@ struct HomeView: View {
         var body: some View {
             GeometryReader { geo in
                 let count = max(buckets.count, 1)
-                let resolvedLabelWidth = dynamicTypeSize.isAccessibilitySize ? labelWidthAccessibility : labelWidth
+                let baseLabelWidth = dynamicTypeSize.isAccessibilitySize ? labelWidthAccessibility : labelWidth
+                let resolvedLabelWidth = dynamicTypeSize.isAccessibilitySize
+                    ? min(baseLabelWidth, max(48, geo.size.width * 0.25))
+                    : baseLabelWidth
                 if orientation == .horizontal {
                     let rowHeight = max((geo.size.height - spacing * CGFloat(count - 1)) / CGFloat(count), minRowHeight)
                     let barMaxWidth = max(geo.size.width - resolvedLabelWidth - 8, 20)
@@ -1120,8 +1124,9 @@ struct HomeView: View {
                                 Text(displayLabel(item.label, period: period))
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
-                                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
-                                    .minimumScaleFactor(0.75)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 0.5 : 0.75)
+                                    .allowsTightening(true)
                                     .frame(width: resolvedLabelWidth, alignment: .leading)
                                 Rectangle()
                                     .fill(gradient)
@@ -1496,11 +1501,11 @@ struct HomeView: View {
 
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 6) {
-                                Circle().fill(Color.red.opacity(0.2)).frame(width: 10, height: 10)
+                                Circle().fill(Color.red.opacity(0.2)).frame(width: availabilityStatusDotSize, height: availabilityStatusDotSize)
                                 Text("Over: \(overCount)")
                             }
                             HStack(spacing: 6) {
-                                Circle().fill(Color.orange.opacity(0.25)).frame(width: 10, height: 10)
+                                Circle().fill(Color.orange.opacity(0.25)).frame(width: availabilityStatusDotSize, height: availabilityStatusDotSize)
                                 Text("Near: \(nearCount)")
                             }
                         }
@@ -1572,11 +1577,11 @@ struct HomeView: View {
 
                     HStack(spacing: 14) {
                         HStack(spacing: 6) {
-                            Circle().fill(Color.red.opacity(0.2)).frame(width: 10, height: 10)
+                            Circle().fill(Color.red.opacity(0.2)).frame(width: availabilityStatusDotSize, height: availabilityStatusDotSize)
                             Text("Over: \(overCount)")
                         }
                         HStack(spacing: 6) {
-                            Circle().fill(Color.orange.opacity(0.25)).frame(width: 10, height: 10)
+                            Circle().fill(Color.orange.opacity(0.25)).frame(width: availabilityStatusDotSize, height: availabilityStatusDotSize)
                             Text("Near: \(nearCount)")
                         }
                         Spacer()
@@ -4593,8 +4598,8 @@ private struct NextPlannedExpenseWidgetRow: View {
     let dateText: String
     let plannedText: String
     let actualText: String
-    @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 120
-    @ScaledMetric(relativeTo: .body) private var cardPreviewHeight: CGFloat = 76
+    @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 140
+    private let cardAspectRatio: CGFloat = 1.586
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -4607,7 +4612,11 @@ private struct NextPlannedExpenseWidgetRow: View {
     }
 
     private var previewWidth: CGFloat {
-        isAccessibilitySize || isCompactWidth ? cardPreviewWidth * 0.8 : cardPreviewWidth
+        isAccessibilitySize ? cardPreviewWidth * 0.8 : cardPreviewWidth
+    }
+
+    private var previewHeight: CGFloat {
+        previewWidth / cardAspectRatio
     }
 
     var body: some View {
@@ -4657,7 +4666,7 @@ private struct NextPlannedExpenseWidgetRow: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .stroke(Color.primary.opacity(0.12), lineWidth: 1)
                 )
-                .frame(width: previewWidth, height: cardPreviewHeight)
+                .frame(width: previewWidth, height: previewHeight)
         }
     }
 }
@@ -5545,6 +5554,10 @@ struct PlannedRowsList: View {
     let onEdit: (NSManagedObjectID) -> Void
     let onDelete: (PlannedExpense) -> Void
     @EnvironmentObject private var themeManager: ThemeManager
+    @ScaledMetric(relativeTo: .body) private var symbolWidth: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var cardPreviewHeight: CGFloat = 8
 
     init(
         budget: Budget,
@@ -5590,10 +5603,9 @@ struct PlannedRowsList: View {
             ForEach(rows, id: \.objectID) { exp in
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        let symbolWidth: CGFloat = 14
                         let dotColor = UBColorFromHex(exp.expenseCategory?.color) ?? .secondary
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Circle().fill(dotColor).frame(width: 8, height: 8)
+                            Circle().fill(dotColor).frame(width: dotSize, height: dotSize)
                                 .frame(width: symbolWidth, alignment: .leading)
                             Text(Self.readPlannedDescription(exp) ?? "Expense")
                                 .font(.headline)
@@ -5614,11 +5626,11 @@ struct PlannedRowsList: View {
                                             RoundedRectangle(cornerRadius: 2, style: .continuous)
                                                 .stroke(Color.primary.opacity(0.18), lineWidth: 1)
                                         )
-                                        .frame(width: 12, height: 8)
+                                        .frame(width: cardPreviewWidth, height: cardPreviewHeight)
                                 } else {
                                     RoundedRectangle(cornerRadius: 2, style: .continuous)
                                         .stroke(Color.primary.opacity(0.12), lineWidth: 1)
-                                        .frame(width: 12, height: 8)
+                                        .frame(width: cardPreviewWidth, height: cardPreviewHeight)
                                 }
                             }
                             .frame(width: symbolWidth, alignment: .leading)
@@ -5752,6 +5764,10 @@ struct VariableRowsList: View {
     let onEdit: (NSManagedObjectID) -> Void
     let onDelete: (UnplannedExpense) -> Void
     @EnvironmentObject private var themeManager: ThemeManager
+    @ScaledMetric(relativeTo: .body) private var symbolWidth: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var cardPreviewHeight: CGFloat = 8
 
     init(
         budget: Budget,
@@ -5801,10 +5817,9 @@ struct VariableRowsList: View {
             ForEach(rows, id: \.objectID) { exp in
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        let symbolWidth: CGFloat = 14
                         let dotColor = UBColorFromHex(exp.expenseCategory?.color) ?? .secondary
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Circle().fill(dotColor).frame(width: 8, height: 8)
+                            Circle().fill(dotColor).frame(width: dotSize, height: dotSize)
                                 .frame(width: symbolWidth, alignment: .leading)
                             Text(Self.readUnplannedDescription(exp) ?? "Expense")
                                 .font(.headline)
@@ -5825,11 +5840,11 @@ struct VariableRowsList: View {
                                             RoundedRectangle(cornerRadius: 2, style: .continuous)
                                                 .stroke(Color.primary.opacity(0.18), lineWidth: 1)
                                         )
-                                        .frame(width: 12, height: 8)
+                                        .frame(width: cardPreviewWidth, height: cardPreviewHeight)
                                 } else {
                                     RoundedRectangle(cornerRadius: 2, style: .continuous)
                                         .stroke(Color.primary.opacity(0.12), lineWidth: 1)
-                                        .frame(width: 12, height: 8)
+                                        .frame(width: cardPreviewWidth, height: cardPreviewHeight)
                                 }
                             }
                             .frame(width: symbolWidth, alignment: .leading)

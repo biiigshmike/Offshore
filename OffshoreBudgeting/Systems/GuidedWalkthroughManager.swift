@@ -290,9 +290,14 @@ struct TipsAndHintsStore {
     }
 
     private func seenKey(for screen: TipsScreen, kind: TipsKind, versionToken: String?) -> String {
-        let resolvedVersion = versionToken ?? appVersionToken()
         let resetToken = ensureResetToken()
-        return "tips.seen.\(kind.rawValue).\(screen.rawValue).v\(resolvedVersion).r\(resetToken)"
+        switch kind {
+        case .walkthrough:
+            return "tips.seen.\(kind.rawValue).\(screen.rawValue).r\(resetToken)"
+        case .whatsNew:
+            let resolvedVersion = versionToken ?? "0"
+            return "tips.seen.\(kind.rawValue).\(screen.rawValue).v\(resolvedVersion).r\(resetToken)"
+        }
     }
 
     private func ensureResetToken() -> String {
@@ -302,13 +307,6 @@ struct TipsAndHintsStore {
         let token = UUID().uuidString
         defaults.set(token, forKey: resetTokenKey)
         return token
-    }
-
-    private func appVersionToken() -> String {
-        let info = Bundle.main.infoDictionary
-        let shortVersion = info?["CFBundleShortVersionString"] as? String ?? "0"
-        let build = info?["CFBundleVersion"] as? String ?? "0"
-        return "\(shortVersion).\(build)"
     }
 }
 

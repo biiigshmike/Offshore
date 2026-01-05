@@ -6362,6 +6362,7 @@ struct VariableRowsList: View {
     let onEdit: (NSManagedObjectID) -> Void
     let onDelete: (UnplannedExpense) -> Void
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var symbolWidth: CGFloat = 14
     @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 8
     @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 12
@@ -6421,6 +6422,8 @@ struct VariableRowsList: View {
                                 .frame(width: symbolWidth, alignment: .leading)
                             Text(Self.readUnplannedDescription(exp) ?? "Expense")
                                 .font(.headline)
+                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Group {

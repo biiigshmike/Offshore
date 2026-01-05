@@ -571,6 +571,7 @@ private struct CategoryChipsRow: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.platformCapabilities) private var capabilities
     @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(key: "name", ascending: true,
@@ -583,6 +584,7 @@ private struct CategoryChipsRow: View {
     @State private var addCategorySheetInstanceID = UUID()
 
     private let verticalInset: CGFloat = DS.Spacing.s + DS.Spacing.xs
+    private var isAccessibilitySize: Bool { dynamicTypeSize.isAccessibilitySize }
 
     private var filteredCategories: [ExpenseCategory] {
         guard let workspaceID = UUID(uuidString: activeWorkspaceIDRaw) else { return Array(categories) }
@@ -592,10 +594,21 @@ private struct CategoryChipsRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: DS.Spacing.s) {
-            addCategoryButton
-            chipsScrollContainer()
-                .frame(maxWidth: .infinity, alignment: .leading)
+        Group {
+            if isAccessibilitySize {
+                VStack(alignment: .leading, spacing: DS.Spacing.s) {
+                    addCategoryButton
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    chipsScrollContainer()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                HStack(alignment: .center, spacing: DS.Spacing.s) {
+                    addCategoryButton
+                    chipsScrollContainer()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .listRowInsets(rowInsets)
@@ -697,12 +710,15 @@ private extension CategoryChipsRow {
     }
 
     private var addCategoryButton: some View {
-        AddCategoryPill {
-            // Refresh identity and present
-            addCategorySheetInstanceID = UUID()
-            isPresentingNewCategory = true
-        }
-            .padding(.leading, DS.Spacing.s)
+        AddCategoryPill(
+            fillsWidth: isAccessibilitySize,
+            onTap: {
+                // Refresh identity and present
+                addCategorySheetInstanceID = UUID()
+                isPresentingNewCategory = true
+            }
+        )
+        .padding(.leading, isAccessibilitySize ? 0 : DS.Spacing.s)
     }
 }
 
@@ -769,7 +785,6 @@ private struct CategoryChip: View {
     let colorHex: String
     let isSelected: Bool
     let action: () -> Void
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .subheadline) private var dotSize: CGFloat = 10
     @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 44
 
@@ -777,7 +792,6 @@ private struct CategoryChip: View {
         let accentColor = UBColorFromHex(colorHex) ?? .secondary
         let glassTintColor = accentColor.opacity(0.25)
         let legacyShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
-        let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
 
         let label = HStack(spacing: DS.Spacing.s) {
             Circle()
@@ -789,8 +803,7 @@ private struct CategoryChip: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, isAccessibilitySize ? DS.Spacing.xs : 0)
-        .frame(minHeight: minHeight)
+        .frame(minHeight: minHeight, maxHeight: minHeight)
 
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
             Button(action: action) {
@@ -800,7 +813,7 @@ private struct CategoryChip: View {
                             .tint(isSelected ? glassTintColor : .none)
                             .interactive(true)
                     )
-                    .frame(minHeight: minHeight)
+                    .frame(minHeight: minHeight, maxHeight: minHeight)
                     .clipShape(Capsule())
                     .compositingGroup()
             }
@@ -808,7 +821,7 @@ private struct CategoryChip: View {
             .accessibilityLabel(name)
             .accessibilityHint("Select category")
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(minHeight: minHeight)
+            .frame(minHeight: minHeight, maxHeight: minHeight)
             .buttonStyle(.plain)
         } else {
             let neutralFill = DS.Colors.chipFill
@@ -819,16 +832,16 @@ private struct CategoryChip: View {
             .accessibilityLabel(name)
             .accessibilityHint("Select category")
             .animation(.easeOut(duration: 0.15), value: isSelected)
-            .frame(minHeight: minHeight)
+            .frame(minHeight: minHeight, maxHeight: minHeight)
             .buttonStyle(.plain)
             .background(
                 legacyShape.fill(isSelected ? glassTintColor : neutralFill)
             )
-                .overlay(
-                    legacyShape
-                        .stroke(neutralFill, lineWidth: 1)
-                )
-                .contentShape(legacyShape)
+            .overlay(
+                legacyShape
+                    .stroke(neutralFill, lineWidth: 1)
+            )
+            .contentShape(legacyShape)
         }
     }
 

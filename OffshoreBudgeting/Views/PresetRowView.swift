@@ -56,7 +56,7 @@ struct PresetRowView: View {
                     Text(item.name)
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.primary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                         .minimumScaleFactor(0.85)
                         .allowsTightening(true)
 

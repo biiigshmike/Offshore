@@ -846,6 +846,7 @@ private struct ExpenseRow: View {
     let expense: CardExpense
     let currencyCode: String
     @ScaledMetric(relativeTo: .caption) private var categoryDotSize: CGFloat = 8
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let df: DateFormatter = {
         let d = DateFormatter()
         d.dateStyle = .medium
@@ -856,6 +857,8 @@ private struct ExpenseRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(expense.description)
                     .font(.body.weight(.medium))
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
+                    .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 6) {
                     let catColor = UBColorFromHex(expense.category?.color) ?? .secondary
                     let catName: String = {

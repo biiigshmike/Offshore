@@ -9,6 +9,7 @@ struct BudgetDetailsView: View {
     @StateObject private var vm: BudgetDetailsViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var segment: BudgetDetailsViewModel.Segment = .planned
     @State private var sort: BudgetDetailsViewModel.SortOption = .dateNewOld
@@ -262,9 +263,14 @@ struct BudgetDetailsView: View {
         let cardBackground = Color(.systemBackground)
         let cardSpacing: CGFloat = 12
         let isRegularWidth = horizontalSizeClass == .regular || horizontalSizeClass == nil
-        let columns = isRegularWidth
-            ? Array(repeating: GridItem(.flexible(), spacing: cardSpacing), count: 4)
-            : [GridItem(.adaptive(minimum: 150), spacing: cardSpacing)]
+        let columns: [GridItem] = {
+            if dynamicTypeSize.isAccessibilitySize {
+                return [GridItem(.flexible(), spacing: cardSpacing)]
+            }
+            return isRegularWidth
+                ? Array(repeating: GridItem(.flexible(), spacing: cardSpacing), count: 4)
+                : [GridItem(.adaptive(minimum: 150), spacing: cardSpacing)]
+        }()
 
         LazyVGrid(columns: columns, alignment: .center, spacing: cardSpacing) {
             statCard(

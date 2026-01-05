@@ -154,13 +154,8 @@ struct IncomeView: View {
         VStack(spacing: DS.Spacing.s) {
             HStack {
                 navIcon("chevron.backward.2") { goToPreviousMonth() }
-                Spacer(minLength: calendarNavSpacing)
-                navIcon("chevron.forward.2") { goToNextMonth() }
-            }
-            HStack {
-                Spacer(minLength: calendarNavSpacing)
                 navIcon("circle.fill") { goToToday() }
-                Spacer(minLength: calendarNavSpacing)
+                navIcon("chevron.forward.2") { goToNextMonth() }
             }
             HStack {
                 navIcon("chevron.backward") { goToPreviousWeek() }

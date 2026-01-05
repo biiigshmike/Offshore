@@ -10,7 +10,7 @@ struct BudgetCategoryChipView: View {
     let isSelected: Bool
     let isExceeded: Bool
     let onTap: () -> Void
-    @ScaledMetric(relativeTo: .subheadline) private var dotSize: CGFloat = 8
+    @ScaledMetric(relativeTo: .subheadline) private var dotSize: CGFloat = 10
     @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 44
 
     var body: some View {
@@ -23,7 +23,7 @@ struct BudgetCategoryChipView: View {
                 .foregroundStyle(isExceeded ? Color.red : Color.primary)
         }
         .padding(.horizontal, 12)
-        .frame(minHeight: minHeight)
+        .frame(minHeight: minHeight, maxHeight: minHeight)
         .background(.clear)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
@@ -34,13 +34,13 @@ struct BudgetCategoryChipView: View {
                             .tint(isSelected ? dot.opacity(0.25) : .clear)
                             .interactive(true)
                     )
-                    .frame(minHeight: minHeight)
+                    .frame(minHeight: minHeight, maxHeight: minHeight)
             }
             .buttonBorderShape(.capsule)
             .foregroundStyle(.primary)
             .allowsHitTesting(true)
             .disabled(false)
-            .frame(minHeight: minHeight)
+            .frame(minHeight: minHeight, maxHeight: minHeight)
             .clipShape(Capsule())
             .compositingGroup()
             .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -50,13 +50,13 @@ struct BudgetCategoryChipView: View {
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
-            .frame(minHeight: minHeight)
+            .frame(minHeight: minHeight, maxHeight: minHeight)
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .stroke(isSelected ? dot.opacity(0.35) : Color.primary.opacity(0.15), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .frame(minHeight: minHeight)
+            .frame(minHeight: minHeight, maxHeight: minHeight)
         }
     }
 

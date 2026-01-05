@@ -148,6 +148,15 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
   - Calendar height scales with Dynamic Type via `@ScaledMetric` so month/day labels have room to grow.
   - Month label and day cell typography now scale with Dynamic Type while preserving layout-based sizing.
 
+### Session 13
+- Date: 2026-01-04
+- Scope: AddCardFormView + AddBudgetView (forms)
+- Notes:
+  - Theme swatch previews now use a Dynamic Type-scaled minimum height so multi-line labels don’t clip.
+  - Budget date pickers stack vertically at accessibility sizes for readability.
+  - Toggle All button uses scaled minimum height and avoids fixed max height to prevent clipping at large text sizes.
+  - Budget Name field uses a vertical axis at iOS 16+ so long names can wrap instead of truncating.
+
 ## Extraction Algorithm (HomeView Report)
 1) Read the HTML report and locate the embedded `rootObject` JSON payload.
 2) Parse `_axKeyAllScreens[0]._axKeyAllIssues` to collect each issue.

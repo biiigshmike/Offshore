@@ -24,6 +24,7 @@ struct AddBudgetView: View {
     /// We don't call `dismiss()` directly anymore (the scaffold handles it),
     /// but we keep this in case future platform-specific work needs it.
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     // MARK: Inputs
     private let initialStartDate: Date?
@@ -37,6 +38,11 @@ struct AddBudgetView: View {
     // MARK: Local UI State
     /// Populated if saving fails; presented in a SwiftUI alert.
     @State private var saveErrorMessage: String?
+    @ScaledMetric(relativeTo: .body) private var toggleAllMinHeight: CGFloat = 44
+
+    private var isAccessibilitySize: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
 
     // MARK: Init (ADD)
     /// Use this initializer when **adding** a budget.
@@ -97,16 +103,31 @@ struct AddBudgetView: View {
                 // the row and align text to the leading edge for consistency
                 // with Add Card and the expense forms.
                 HStack(alignment: .center) {
-                    TextField(
-                        "",
-                        text: $vm.budgetName,
-                        prompt: Text(vm.defaultBudgetName)
-                    )
-                    .autocorrectionDisabled(true)
-                    .textInputAutocapitalization(.never)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityLabel("Budget Name")
+                    if #available(iOS 16.0, macCatalyst 16.0, *) {
+                        TextField(
+                            "",
+                            text: $vm.budgetName,
+                            prompt: Text(vm.defaultBudgetName),
+                            axis: .vertical
+                        )
+                        .lineLimit(isAccessibilitySize ? 3 : 1)
+                        .autocorrectionDisabled(true)
+                        .textInputAutocapitalization(.never)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityLabel("Budget Name")
+                    } else {
+                        TextField(
+                            "",
+                            text: $vm.budgetName,
+                            prompt: Text(vm.defaultBudgetName)
+                        )
+                        .autocorrectionDisabled(true)
+                        .textInputAutocapitalization(.never)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityLabel("Budget Name")
+                    }
                     Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -119,13 +140,24 @@ struct AddBudgetView: View {
 
             // ---- Dates
             Section {
-                HStack(spacing: DS.Spacing.m) {
-                    DatePicker("Start", selection: $vm.startDate, displayedComponents: [.date])
-                        .labelsHidden()
-                        .datePickerStyle(.compact)
-                    DatePicker("End", selection: $vm.endDate, displayedComponents: [.date])
-                        .labelsHidden()
-                        .datePickerStyle(.compact)
+                if isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: DS.Spacing.m) {
+                        DatePicker("Start", selection: $vm.startDate, displayedComponents: [.date])
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                        DatePicker("End", selection: $vm.endDate, displayedComponents: [.date])
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                    }
+                } else {
+                    HStack(spacing: DS.Spacing.m) {
+                        DatePicker("Start", selection: $vm.startDate, displayedComponents: [.date])
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                        DatePicker("End", selection: $vm.endDate, displayedComponents: [.date])
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                    }
                 }
             } header: {
                 Text("Dates")
@@ -274,7 +306,8 @@ struct AddBudgetView: View {
         let label = Text("Toggle All")
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 44, maxHeight: 44)
+            .frame(minHeight: toggleAllMinHeight)
+            .padding(.vertical, isAccessibilitySize ? DS.Spacing.xs : 0)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {

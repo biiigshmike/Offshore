@@ -217,6 +217,7 @@ private struct ThemeSwatch: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    @ScaledMetric(relativeTo: .body) private var swatchMinHeight: CGFloat = 72
 
     var body: some View {
         ZStack {
@@ -229,7 +230,7 @@ private struct ThemeSwatch: View {
                 RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
                     .stroke(Color.white.opacity(0.06), lineWidth: 1)
             }
-            .frame(height: 72)
+            .frame(minHeight: swatchMinHeight)
 
             // Metallic/holographic text preview
             HolographicMetallicText(

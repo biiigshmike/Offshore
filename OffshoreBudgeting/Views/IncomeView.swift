@@ -24,6 +24,7 @@ struct IncomeView: View {
     // MARK: Environment
     @Environment(\.managedObjectContext) private var moc
     @Environment(\.responsiveLayoutContext) private var layoutContext
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
     private var confirmBeforeDelete: Bool = true
 
@@ -31,6 +32,21 @@ struct IncomeView: View {
 
     @State private var incomePendingDeletion: Income?
     @State private var isConfirmingDelete: Bool = false
+
+    // MARK: Layout
+    @ScaledMetric(relativeTo: .body) private var calendarNavButtonSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .body) private var calendarNavLabelMinWidth: CGFloat = 64
+    @ScaledMetric(relativeTo: .body) private var calendarNavSpacing: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var minCalendarHeightCompact: CGFloat = 260
+    @ScaledMetric(relativeTo: .body) private var minCalendarHeightRegular: CGFloat = 320
+    @ScaledMetric(relativeTo: .body) private var calendarHeaderHeight: CGFloat = 64
+    @ScaledMetric(relativeTo: .body) private var calendarHeightScale: CGFloat = 1
+    @ScaledMetric(relativeTo: .body) private var weekHeaderSpacing: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var weekCellSpacing: CGFloat = 6
+    @ScaledMetric(relativeTo: .body) private var weekCellPadding: CGFloat = 6
+    @ScaledMetric(relativeTo: .body) private var weekCellMinHeight: CGFloat = 84
+    @ScaledMetric(relativeTo: .body) private var weekCellCornerRadius: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var weekCellInnerSpacing: CGFloat = 4
 
     // MARK: Body
     var body: some View {
@@ -110,46 +126,84 @@ struct IncomeView: View {
 
     // MARK: Calendar Section (in List row)
 
+    @ViewBuilder
     private var calendarNav: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            calendarNavWrapped
+        } else {
+            calendarNavRow
+        }
+    }
+
+    private var calendarNavRow: some View {
         HStack(alignment: .center) {
             navIcon("chevron.backward.2") { goToPreviousMonth() }
-            Spacer(minLength: 12)
+            Spacer(minLength: calendarNavSpacing)
             navIcon("chevron.backward") { goToPreviousDay() }
-            Spacer(minLength: 12)
+            Spacer(minLength: calendarNavSpacing)
             navLabel("Today") { goToToday() }
-            Spacer(minLength: 12)
+            Spacer(minLength: calendarNavSpacing)
             navIcon("chevron.forward") { goToNextDay() }
-            Spacer(minLength: 12)
+            Spacer(minLength: calendarNavSpacing)
             navIcon("chevron.forward.2") { goToNextMonth() }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var calendarNavWrapped: some View {
+        VStack(spacing: DS.Spacing.s) {
+            HStack {
+                navIcon("chevron.backward.2") { goToPreviousMonth() }
+                Spacer(minLength: calendarNavSpacing)
+                navIcon("chevron.forward.2") { goToNextMonth() }
+            }
+            HStack {
+                Spacer(minLength: 0)
+                navLabel("Today") { goToToday() }
+                Spacer(minLength: 0)
+            }
+            HStack {
+                navIcon("chevron.backward") { goToPreviousWeek() }
+                Spacer(minLength: calendarNavSpacing)
+                navIcon("chevron.forward") { goToNextWeek() }
+            }
         }
         .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
     private func navIcon(_ systemName: String, action: @escaping () -> Void) -> some View {
+        let symbolFont = Font.title3.weight(.semibold)
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
                 Image(systemName: systemName)
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 44, height: 44)
+                    .font(symbolFont)
+                    .frame(width: calendarNavButtonSize, height: calendarNavButtonSize)
                     .glassEffect(.regular.tint(.clear).interactive(true))
             }
             .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
         } else {
-            Button(action: action) { Image(systemName: systemName) }
+            Button(action: action) {
+                Image(systemName: systemName)
+                    .font(symbolFont)
+                    .frame(width: calendarNavButtonSize, height: calendarNavButtonSize)
+                    .contentShape(Circle())
+            }
                 .buttonStyle(.plain)
         }
     }
 
     @ViewBuilder
     private func navLabel(_ title: String, action: @escaping () -> Void) -> some View {
+        let labelFont = Font.subheadline.weight(.semibold)
+        let minWidth = dynamicTypeSize.isAccessibilitySize ? 0 : calendarNavLabelMinWidth
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .frame(minWidth: 64, minHeight: 44)
+                    .font(labelFont)
+                    .frame(minWidth: minWidth, minHeight: calendarNavButtonSize)
                     .glassEffect(.regular.tint(.clear).interactive(true))
             }
             .buttonStyle(.plain)
@@ -158,8 +212,8 @@ struct IncomeView: View {
         } else {
             Button(action: action) {
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .frame(minWidth: 64, minHeight: 33)
+                    .font(labelFont)
+                    .frame(minWidth: minWidth, minHeight: calendarNavButtonSize)
                     .padding(.horizontal, 10)
             }
             .buttonStyle(.plain)
@@ -168,22 +222,37 @@ struct IncomeView: View {
 
     @ViewBuilder
     private func navText(_ title: String, action: @escaping () -> Void) -> some View {
+        let labelFont = Font.subheadline.weight(.semibold)
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .frame(width: 32, height: 32)
+                    .font(labelFont)
+                    .frame(width: calendarNavButtonSize, height: calendarNavButtonSize)
             }
             .buttonStyle(.glass)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
         } else {
-            Button(action: action) { Text(title).font(.system(size: 15, weight: .semibold, design: .rounded)) }
+            Button(action: action) {
+                Text(title)
+                    .font(labelFont)
+                    .frame(width: calendarNavButtonSize, height: calendarNavButtonSize)
+                    .contentShape(Circle())
+            }
                 .buttonStyle(.plain)
         }
     }
 
+    @ViewBuilder
     private var calendarView: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            accessibilityWeekCalendar
+        } else {
+            monthCalendarView
+        }
+    }
+
+    private var monthCalendarView: some View {
         let today = Date()
         let cal = sundayFirstCalendar
         let start = cal.date(byAdding: .year, value: -5, to: today)!
@@ -224,6 +293,99 @@ struct IncomeView: View {
         .transaction { t in t.animation = nil; t.disablesAnimations = true }
     }
 
+    private var accessibilityWeekCalendar: some View {
+        let selected = vm.selectedDate ?? Date()
+        let weekDates = weekDates(for: selected)
+        let weekRange = weekBounds(for: selected)
+        return VStack(alignment: .leading, spacing: weekHeaderSpacing) {
+            Text(monthTitle(for: selected))
+                .font(.headline)
+            Text("\(format(weekRange.start)) – \(format(weekRange.end))")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            VStack(spacing: weekCellSpacing) {
+                ForEach(weekDates, id: \.self) { date in
+                    weekDayRow(date: date)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func weekDayRow(date: Date) -> some View {
+        let summary = vm.summary(for: date)
+        let isSelected = Calendar.current.isDate(vm.selectedDate ?? date, inSameDayAs: date)
+        let planned = summary?.planned ?? 0
+        let actual = summary?.actual ?? 0
+        return Button(action: { vm.selectedDate = normalize(date) }) {
+            HStack(alignment: .top, spacing: weekCellInnerSpacing) {
+                VStack(alignment: .leading, spacing: weekCellInnerSpacing) {
+                    Text(DateFormatter.localizedString(from: date, dateStyle: .full, timeStyle: .none))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if planned > 0 {
+                        Text("Planned \(vm.currencyString(for: planned))")
+                            .font(.caption)
+                            .foregroundStyle(DS.Colors.plannedIncome)
+                    }
+                    if actual > 0 {
+                        Text("Actual \(vm.currencyString(for: actual))")
+                            .font(.caption)
+                            .foregroundStyle(DS.Colors.actualIncome)
+                    }
+                    if planned <= 0 && actual <= 0 {
+                        Text("No income")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(weekCellPadding)
+            .background(
+                RoundedRectangle(cornerRadius: weekCellCornerRadius, style: .continuous)
+                    .fill(isSelected ? Color.primary.opacity(0.12) : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: weekCellCornerRadius, style: .continuous)
+                    .stroke(isSelected ? Color.primary.opacity(0.35) : Color.clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(weekDayAccessibilityLabel(for: date, planned: planned, actual: actual))
+        .accessibilityHint("Select day")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func weekDates(for date: Date) -> [Date] {
+        let cal = sundayFirstCalendar
+        let start = cal.dateInterval(of: .weekOfYear, for: date)?.start ?? date
+        return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: start) }
+    }
+
+    private func monthTitle(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM y"
+        return formatter.string(from: date)
+    }
+
+    private func weekDayAccessibilityLabel(for date: Date, planned: Double, actual: Double) -> String {
+        let dateText = DateFormatter.localizedString(from: date, dateStyle: .full, timeStyle: .none)
+        if planned <= 0 && actual <= 0 {
+            return "\(dateText), no income"
+        }
+        if planned > 0 && actual > 0 {
+            return "\(dateText), planned \(vm.currencyString(for: planned)), actual \(vm.currencyString(for: actual))"
+        }
+        if planned > 0 {
+            return "\(dateText), planned \(vm.currencyString(for: planned))"
+        }
+        return "\(dateText), actual \(vm.currencyString(for: actual))"
+    }
+
     private struct CalendarSizing {
         let maxWidth: CGFloat
         let height: CGFloat
@@ -232,35 +394,37 @@ struct IncomeView: View {
 
     private var calendarSizing: CalendarSizing {
         let container = layoutContext.containerSize
+        let heightScale = calendarHeightScale
         guard container.width.isFinite, container.width > 0, container.height.isFinite, container.height > 0 else {
-            return CalendarSizing(maxWidth: .infinity, height: 335, dayScale: 1)
+            return CalendarSizing(maxWidth: .infinity, height: max(minCalendarHeight, 335 * heightScale), dayScale: 1)
         }
 
         if isPhonePortraitLayout {
-            let horizontalInsets: CGFloat = 40
+            let horizontalInsets: CGFloat = dynamicTypeSize.isAccessibilitySize ? 20 : 40
             let availableWidth = max(0, container.width - horizontalInsets)
             let dayDimension = max(35, (availableWidth / 7).rounded(.down))
-            let computedHeight = dayDimension * 4
+            let computedHeight = dayDimension * 4 * heightScale
             return CalendarSizing(
                 maxWidth: availableWidth,
-                height: max(335, computedHeight),
+                height: max(minCalendarHeight, computedHeight),
                 dayScale: 1
             )
         }
 
         let panelWidth = calendarPanelWidth(in: container)
         let targetHeight = targetCalendarHeight(in: container)
-        let headerHeight: CGFloat = 64
+        let headerHeight: CGFloat = calendarHeaderHeight
         let dayDimension = max(28, min(panelWidth / 7, (targetHeight - headerHeight) / 6))
         let calendarWidth = min(panelWidth, dayDimension * 7)
-        let calendarHeight = max(minCalendarHeight, dayDimension * 6 + headerHeight)
-        let scale = min(1.0, max(0.75, dayDimension / 46))
+        let calendarHeight = max(minCalendarHeight, dayDimension * 6 * heightScale + headerHeight)
+        let scaleBase = min(1.0, max(0.75, dayDimension / 46))
+        let scale = dynamicTypeSize.isAccessibilitySize ? min(scaleBase, 0.7) : scaleBase
 
         return CalendarSizing(maxWidth: calendarWidth, height: calendarHeight, dayScale: scale)
     }
 
     private var minCalendarHeight: CGFloat {
-        layoutContext.verticalSizeClass == .compact ? 260 : 320
+        layoutContext.verticalSizeClass == .compact ? minCalendarHeightCompact : minCalendarHeightRegular
     }
 
     private func calendarPanelWidth(in container: CGSize) -> CGFloat {
@@ -274,7 +438,7 @@ struct IncomeView: View {
         let isMac = layoutContext.idiom == .mac
         let splitRatio: CGFloat = isMac ? 0.72 : 0.58
         let base = container.height * (useSplitLayout ? splitRatio : 0.52)
-        let maxHeight: CGFloat = useSplitLayout ? (isMac ? 760 : 520) : 560
+        let maxHeight: CGFloat = (useSplitLayout ? (isMac ? 760 : 520) : 560) * calendarHeightScale
         return min(max(base, minCalendarHeight), maxHeight)
     }
 
@@ -282,7 +446,7 @@ struct IncomeView: View {
     private var splitPanelHeight: CGFloat {
         guard useSplitLayout else { return calendarSizing.height }
         let topPadding: CGFloat = 12
-        let navHeight: CGFloat = 44
+        let navHeight: CGFloat = calendarNavButtonSize
         let spacing: CGFloat = 8
         return calendarSizing.height + topPadding + navHeight + spacing
     }
@@ -502,6 +666,8 @@ struct IncomeView: View {
     private func goToNextMonth() { adjustMonth(by: 1) }
     private func goToPreviousDay() { adjustDay(by: -1) }
     private func goToNextDay() { adjustDay(by: 1) }
+    private func goToPreviousWeek() { adjustWeek(by: -1) }
+    private func goToNextWeek() { adjustWeek(by: 1) }
     private func goToToday() { calendarScrollDate = normalize(Date()); vm.selectedDate = normalize(Date()) }
     private func refreshSelectedDay() {
         // Pull-to-refresh: nudge CloudKit and reload the selected day
@@ -521,6 +687,14 @@ struct IncomeView: View {
         let cal = Calendar.current
         if let startOfCurrent = cal.date(from: cal.dateComponents([.year, .month], from: base)),
            let next = cal.date(byAdding: .month, value: delta, to: startOfCurrent) {
+            vm.selectedDate = normalize(next); calendarScrollDate = vm.selectedDate
+        }
+    }
+
+    private func adjustWeek(by delta: Int) {
+        let base = vm.selectedDate ?? Date()
+        let cal = Calendar.current
+        if let next = cal.date(byAdding: .weekOfYear, value: delta, to: base) {
             vm.selectedDate = normalize(next); calendarScrollDate = vm.selectedDate
         }
     }

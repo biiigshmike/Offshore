@@ -16,10 +16,11 @@ struct UBMonthLabel: MonthLabel {
 
     @Environment(\.colorScheme) private var scheme
     @Environment(\.responsiveLayoutContext) private var layoutContext
+    @ScaledMetric(relativeTo: .headline) private var monthLabelScale: CGFloat = 1
 
     func createContent() -> AnyView {
         let base = scheme == .dark ? Color.white : Color.black
-        let fontSize = resolvedFontSize(in: layoutContext)
+        let fontSize = resolvedBaseFontSize(in: layoutContext) * monthLabelScale
         return AnyView(
             Text(getString(format: "MMMM y"))
                 .font(.system(size: fontSize, weight: .semibold))
@@ -27,7 +28,7 @@ struct UBMonthLabel: MonthLabel {
         )
     }
 
-    private func resolvedFontSize(in context: ResponsiveLayoutContext) -> CGFloat {
+    private func resolvedBaseFontSize(in context: ResponsiveLayoutContext) -> CGFloat {
         let height = context.containerSize.height
         if height > 0, height < 500 { return 14 }
         if height > 0, height < 700 { return 16 }
@@ -50,14 +51,28 @@ struct UBDayView: DayView {
     let scale: CGFloat
 
     @Environment(\.colorScheme) private var scheme
+    @ScaledMetric(relativeTo: .caption) private var daySpacingBase: CGFloat = 2
+    @ScaledMetric(relativeTo: .caption) private var daySpacingMin: CGFloat = 1
+    @ScaledMetric(relativeTo: .caption) private var incomeSpacingBase: CGFloat = 1
+    @ScaledMetric(relativeTo: .caption) private var incomeSpacingMin: CGFloat = 1
+    @ScaledMetric(relativeTo: .caption) private var incomeFontBase: CGFloat = 8
+    @ScaledMetric(relativeTo: .caption) private var incomeFontMin: CGFloat = 7
+    @ScaledMetric(relativeTo: .caption) private var incomeStackBase: CGFloat = 20
+    @ScaledMetric(relativeTo: .caption) private var incomeStackMin: CGFloat = 16
+    @ScaledMetric(relativeTo: .subheadline) private var dayLabelBase: CGFloat = 16
+    @ScaledMetric(relativeTo: .subheadline) private var dayLabelMin: CGFloat = 12
+    @ScaledMetric(relativeTo: .caption) private var selectionSizeBase: CGFloat = 32
+    @ScaledMetric(relativeTo: .caption) private var selectionSizeMin: CGFloat = 22
+    private let minimumTextScale: CGFloat = 0.55
 
     func createContent() -> AnyView {
         let planned = summary?.planned ?? 0
         let actual = summary?.actual ?? 0
         let hasEvents = (planned + actual) > 0
-        let spacing = max(1, 2 * scale)
-        let incomeFont = max(7, 8 * scale)
-        let incomeStackHeight = max(16, 20 * scale)
+        let spacing = max(daySpacingMin, daySpacingBase * scale)
+        let incomeFont = max(incomeFontMin, incomeFontBase * scale)
+        let incomeStackHeight = max(incomeStackMin, incomeStackBase * scale)
+        let incomeSpacing = max(incomeSpacingMin, incomeSpacingBase * scale)
 
         var content: some View {
             VStack(spacing: spacing) {
@@ -66,23 +81,35 @@ struct UBDayView: DayView {
                     createRangeSelectionView()
                     createDayLabel()
                 }
-                VStack(spacing: max(1, 1 * scale)) {
+                VStack(spacing: incomeSpacing) {
                     if planned > 0 && actual > 0 {
                         Text(currencyString(planned))
                             .font(.system(size: incomeFont, weight: .regular))
                             .foregroundColor(DS.Colors.plannedIncome)
+                            .lineLimit(1)
+                            .minimumScaleFactor(minimumTextScale)
+                            .allowsTightening(true)
 
                         Text(currencyString(actual))
                             .font(.system(size: incomeFont, weight: .regular))
                             .foregroundColor(DS.Colors.actualIncome)
+                            .lineLimit(1)
+                            .minimumScaleFactor(minimumTextScale)
+                            .allowsTightening(true)
                     } else if planned > 0 {
                         Text(currencyString(planned))
                             .font(.system(size: incomeFont, weight: .regular))
                             .foregroundColor(DS.Colors.plannedIncome)
+                            .lineLimit(1)
+                            .minimumScaleFactor(minimumTextScale)
+                            .allowsTightening(true)
                     } else if actual > 0 {
                         Text(currencyString(actual))
                             .font(.system(size: incomeFont, weight: .regular))
                             .foregroundColor(DS.Colors.actualIncome)
+                            .lineLimit(1)
+                            .minimumScaleFactor(minimumTextScale)
+                            .allowsTightening(true)
                     }
                 }
                 // Reserve space so day numbers align even when income is absent
@@ -109,16 +136,19 @@ struct UBDayView: DayView {
         let color = isSelectedDay() ? selected : base
         return AnyView(
             Text(getStringFromDay(format: "d"))
-                .font(.system(size: max(12, 16 * scale), weight: .semibold))
+                .font(.system(size: max(dayLabelMin, dayLabelBase * scale), weight: .semibold))
                 .foregroundColor(color)
                 .opacity(isCurrentMonth ? 1 : 0.28)
+                .lineLimit(1)
+                .minimumScaleFactor(minimumTextScale)
+                .allowsTightening(true)
         )
     }
 
     // Selection circle: white in dark mode; black in light mode
     func createSelectionView() -> AnyView {
         let fill = scheme == .dark ? Color.white : Color.black
-        let size = max(22, 32 * scale)
+        let size = max(selectionSizeMin, selectionSizeBase * scale)
         return AnyView(
             Circle()
                 .fill(fill)

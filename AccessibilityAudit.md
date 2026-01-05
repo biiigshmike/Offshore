@@ -140,6 +140,14 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
   - Added explicit VoiceOver labels/hints for category chips (select action).
   - Fixed-height text in the empty card state replaced with a minimum height to allow wrapping at large text sizes.
 
+### Session 12
+- Date: 2026-01-04
+- Scope: IncomeView calendar + navigation controls
+- Notes:
+  - Calendar nav buttons now use Dynamic Type styles with scaled hit targets and spacing.
+  - Calendar height scales with Dynamic Type via `@ScaledMetric` so month/day labels have room to grow.
+  - Month label and day cell typography now scale with Dynamic Type while preserving layout-based sizing.
+
 ## Extraction Algorithm (HomeView Report)
 1) Read the HTML report and locate the embedded `rootObject` JSON payload.
 2) Parse `_axKeyAllScreens[0]._axKeyAllIssues` to collect each issue.

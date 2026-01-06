@@ -91,7 +91,7 @@ enum Buttons {
                 Button(action: action) {
                     Image(systemName: systemImage)
                         .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 33, height: 33)
+                        .frame(minWidth: 44, minHeight: 44)
                         .glassEffect(.regular.tint(.clear).interactive(true))
                 }
                 .buttonStyle(.plain)

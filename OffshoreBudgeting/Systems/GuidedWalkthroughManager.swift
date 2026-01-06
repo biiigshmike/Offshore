@@ -206,23 +206,30 @@ struct TipsAndHintsStore {
     static let shared = TipsAndHintsStore()
 
     private let defaults: UserDefaults
+    private let ubiquitousStore: NSUbiquitousKeyValueStore
     private let resetTokenKey = AppSettingsKeys.tipsHintsResetToken.rawValue
+    private let migrationKey = "tipsHints.migratedToUbiquitous.v1"
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        ubiquitousStore: NSUbiquitousKeyValueStore = .default
+    ) {
         self.defaults = defaults
+        self.ubiquitousStore = ubiquitousStore
+        migrateDefaultsToUbiquitousIfNeeded()
     }
 
     func shouldShowTips(for screen: TipsScreen, kind: TipsKind = .walkthrough, versionToken: String? = nil) -> Bool {
         guard TipsCatalog.content(for: screen, kind: kind, versionToken: versionToken) != nil else { return false }
-        return !defaults.bool(forKey: seenKey(for: screen, kind: kind, versionToken: versionToken))
+        return !bool(forKey: seenKey(for: screen, kind: kind, versionToken: versionToken))
     }
 
     func markSeen(for screen: TipsScreen, kind: TipsKind = .walkthrough, versionToken: String? = nil) {
-        defaults.set(true, forKey: seenKey(for: screen, kind: kind, versionToken: versionToken))
+        set(true, forKey: seenKey(for: screen, kind: kind, versionToken: versionToken))
     }
 
     func resetAllTips() {
-        defaults.set(UUID().uuidString, forKey: resetTokenKey)
+        set(UUID().uuidString, forKey: resetTokenKey)
     }
 
     private func seenKey(for screen: TipsScreen, kind: TipsKind, versionToken: String?) -> String {
@@ -237,12 +244,82 @@ struct TipsAndHintsStore {
     }
 
     private func ensureResetToken() -> String {
-        if let token = defaults.string(forKey: resetTokenKey) {
+        if let token = string(forKey: resetTokenKey) {
             return token
         }
         let token = UUID().uuidString
-        defaults.set(token, forKey: resetTokenKey)
+        set(token, forKey: resetTokenKey)
         return token
+    }
+
+    private func bool(forKey key: String) -> Bool {
+        if ubiquitousStore.object(forKey: key) != nil {
+            return ubiquitousStore.bool(forKey: key)
+        }
+        return defaults.bool(forKey: key)
+    }
+
+    private func string(forKey key: String) -> String? {
+        if let value = ubiquitousStore.string(forKey: key) {
+            return value
+        }
+        return defaults.string(forKey: key)
+    }
+
+    private func set(_ value: Bool, forKey key: String) {
+        ubiquitousStore.set(value, forKey: key)
+        defaults.set(value, forKey: key)
+        ubiquitousStore.synchronize()
+    }
+
+    private func set(_ value: String, forKey key: String) {
+        ubiquitousStore.set(value, forKey: key)
+        defaults.set(value, forKey: key)
+        ubiquitousStore.synchronize()
+    }
+
+    private func migrateDefaultsToUbiquitousIfNeeded() {
+        guard !ubiquitousStore.bool(forKey: migrationKey) else { return }
+        guard let resetToken = defaults.string(forKey: resetTokenKey) else {
+            ubiquitousStore.set(true, forKey: migrationKey)
+            ubiquitousStore.synchronize()
+            return
+        }
+
+        ubiquitousStore.set(resetToken, forKey: resetTokenKey)
+
+        for screen in TipsScreen.allCases {
+            let walkthroughKey = "tips.seen.\(TipsKind.walkthrough.rawValue).\(screen.rawValue).r\(resetToken)"
+            if defaults.bool(forKey: walkthroughKey) {
+                ubiquitousStore.set(true, forKey: walkthroughKey)
+            }
+
+            for versionToken in migrateWhatsNewVersionTokens() {
+                let whatsNewKey = "tips.seen.\(TipsKind.whatsNew.rawValue).\(screen.rawValue).v\(versionToken).r\(resetToken)"
+                if defaults.bool(forKey: whatsNewKey) {
+                    ubiquitousStore.set(true, forKey: whatsNewKey)
+                }
+            }
+        }
+
+        ubiquitousStore.set(true, forKey: migrationKey)
+        ubiquitousStore.synchronize()
+    }
+
+    private func migrateWhatsNewVersionTokens() -> [String] {
+        var tokens = Set(AppUpdateLogs.releaseLogs.map(\.versionToken))
+        if let current = currentWhatsNewVersionToken() {
+            tokens.insert(current)
+        }
+        return Array(tokens)
+    }
+
+    private func currentWhatsNewVersionToken() -> String? {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String
+        let build = info?["CFBundleVersion"] as? String
+        guard let version, !version.isEmpty, let build, !build.isEmpty else { return nil }
+        return "\(version).\(build)"
     }
 }
 

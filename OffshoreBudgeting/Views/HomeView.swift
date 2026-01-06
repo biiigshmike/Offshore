@@ -2912,6 +2912,8 @@ private struct MetricDetailView: View {
     private var availabilityContent: some View {
         let segment = detailAvailabilitySegment
         let items = computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary), segment: segment)
+        let rowSpacing: CGFloat = isAccessibilitySize ? 10 : 6
+        let rowPadding: CGFloat = isAccessibilitySize ? 8 : 4
         return VStack(alignment: .leading, spacing: 12) {
             PillSegmentedControl(selection: detailAvailabilitySegmentBinding) {
                 ForEach(CategoryAvailabilitySegment.allCases) { segment in
@@ -2925,7 +2927,7 @@ private struct MetricDetailView: View {
                     .font(.ubBody)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(spacing: 10) {
+                VStack(spacing: rowSpacing) {
                     ForEach(items) { item in
                         let isExpanded = expandedCategoryName == item.name
                         VStack(alignment: .leading, spacing: 6) {
@@ -2941,7 +2943,7 @@ private struct MetricDetailView: View {
                             expandedCategoryExpensesView
                         }
                     }
-                    .padding(8)
+                    .padding(rowPadding)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(isExpanded ? Color.primary.opacity(0.06) : Color.clear)

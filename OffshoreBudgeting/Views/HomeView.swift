@@ -512,7 +512,7 @@ struct HomeView: View {
         switch vm.state {
         case .initial, .loading:
             Section {
-                ProgressView("Loading budgets…")
+                ProgressView("Loading…")
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .listRowInsets(listRowInsets)
                     .listRowSeparator(.hidden)

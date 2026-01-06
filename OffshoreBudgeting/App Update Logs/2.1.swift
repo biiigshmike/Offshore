@@ -20,32 +20,32 @@ enum AppUpdateLog_2_1 {
                     TipsItem(
                         symbolName: "creditcard",
                         title: "Import Transactions",
-                        detail: "Go to your Card's detailed overview, press the + symbol, then Import Transactions. Choose which transactions to import and attach them to the selected card effortlessly.\nNote: .csv is the only format currently accepted."
+                        detail: "Import .csv transactions directly into a card from its detail view. Select what you want and attach them instantly."
                     ),
                     TipsItem(
                         symbolName: "accessibility",
-                        title: "Accessibility",
-                        detail: "Offshore now is truly Accessibile for all users. Made app-wide changes to ensure all elements are Accessibility compliant, such as Dynamic Type, Increase contrast, etc."
+                        title: "Accessibility Improvements",
+                        detail: "App-wide accessibility updates, including Dynamic Type and improved contrast. The Home grid was simplified to ensure full compliance."
                     ),
                     TipsItem(
                         symbolName: "hand.raised.circle",
-                        title: "Privacy",
-                        detail: "Fixed a bug that resulted in Biometrics being asked on devices that were not enrolled. App can now be locked with your device's passcode, if enabled."
+                        title: "Privacy & Security",
+                        detail: "Biometric prompts now appear only on enrolled devices. You can also lock the app using your device passcode, if enabled."
                     ),
                     TipsItem(
                         symbolName: "lightbulb.fill",
                         title: "Tips & Hints",
-                        detail: "Fixed an error where Tips & Hints for each screen would appear after updating the app to a new version. Hints should now only show for the first time per screen and or if you press the Reset Tips & Hints button in Settings > General.\nNote: What's New alerts will show if significant updates were made on the latest update."
+                        detail: "Tips now appear only once per screen, or when manually reset in Settings. What’s New alerts appear only for significant updates."
                     ),
                     TipsItem(
                         symbolName: "sidebar.left",
-                        title: "Sidebar",
-                        detail: "Fixed a bug where if the sidebar was visible, the back < button would not display in nested navigation views."
+                        title: "Sidebar Navigation",
+                        detail: "Fixed an issue where the back button was missing in nested views when the sidebar was visible."
                     ),
                     TipsItem(
                         symbolName: "sparkles",
-                        title: "Polish and Sparkle",
-                        detail: "Sprinkled glitter here and there to help the app shine bright and run smoother."
+                        title: "General Improvements",
+                        detail: "Small bug fixes and performance improvements throughout the app."
                     )
                 ],
                 actionTitle: "Got It"

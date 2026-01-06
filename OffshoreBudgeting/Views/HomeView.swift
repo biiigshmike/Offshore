@@ -267,6 +267,7 @@ struct HomeView: View {
     @ScaledMetric(relativeTo: .body) private var dayOfWeekRowHeight: CGFloat = 24
     @ScaledMetric(relativeTo: .body) private var dayOfWeekRowSpacing: CGFloat = 8
     @ScaledMetric(relativeTo: .body) private var dateActionButtonSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .body) private var cardWidgetMaxWidth: CGFloat = 360
     @ScaledMetric(relativeTo: .body) private var cardPreviewWidth: CGFloat = 120
     @ScaledMetric(relativeTo: .body) private var cardPreviewHeight: CGFloat = 76
 
@@ -462,7 +463,12 @@ struct HomeView: View {
         .onChange(of: vm.state) { _ in Task { await stateDidChange() } }
         .onChange(of: shouldSyncWidgets) { _ in handleWidgetSyncPreferenceChange() }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave, object: CoreDataService.shared.viewContext)) { _ in
-            Task { await loadAllCards() }
+            switch vm.state {
+            case .loaded, .empty:
+                Task { await loadAllCards() }
+            case .initial, .loading:
+                break
+            }
         }
         .onDisappear { stopObservingWidgetSync() }
         .alert(item: $vm.alert, content: alert(for:))
@@ -1070,7 +1076,7 @@ struct HomeView: View {
             widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, span: WidgetSpan(width: 1, height: 2)) {
                 VStack(alignment: .leading, spacing: 8) {
                     CardTileView(card: card, isInteractive: false, enableMotionShine: true, showsBaseShadow: false)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: cardWidgetMaxWidth, alignment: .leading)
                     if let balance = card.balance {
                         Text("\(formatCurrency(balance))")
                             .font(.title.weight(.bold))
@@ -1886,14 +1892,15 @@ struct HomeView: View {
         handleWidgetSyncPreferenceChange()
         syncPickers(with: currentRange)
         vm.startIfNeeded()
-        let summary = primarySummary
-        await loadNextPlannedExpense(for: summary)
-        await loadWidgetBuckets(for: summary)
-        await loadAllCards()
-        await loadCaps(for: summary)
     }
 
     private func stateDidChange() async {
+        switch vm.state {
+        case .loaded, .empty:
+            break
+        case .initial, .loading:
+            return
+        }
         let summary = primarySummary
         await loadNextPlannedExpense(for: summary)
         await loadWidgetBuckets(for: summary)

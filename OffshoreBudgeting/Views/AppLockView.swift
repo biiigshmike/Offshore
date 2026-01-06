@@ -41,10 +41,10 @@ public struct AppLockView: View {
                     .font(.title3)
                     .multilineTextAlignment(.center)
 
-                Text(viewModel.lockSubtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                if viewModel.isAuthenticating {
+                    ProgressView("Authenticating…")
+                        .font(.footnote)
+                }
 
                 if let error = viewModel.lastErrorMessage {
                     Text(error)

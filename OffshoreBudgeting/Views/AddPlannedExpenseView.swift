@@ -15,7 +15,7 @@ struct AddPlannedExpenseView: View {
     // MARK: Inputs
     /// Existing PlannedExpense to edit; nil when adding.
     let plannedExpenseID: NSManagedObjectID?
-    /// Budget to preselect when adding; ignored if `plannedExpenseID` is provided.
+    /// Budget to preselect when adding; when editing, used to scope the initial budget list.
     let preselectedBudgetID: NSManagedObjectID?
     /// If true, the "Use in future budgets?" toggle will start ON when the view first appears.
     let defaultSaveAsGlobalPreset: Bool
@@ -45,10 +45,15 @@ struct AddPlannedExpenseView: View {
 
     @State private var budgetSearchText = ""
     @State private var showAllBudgets = false
+    @State private var showAllBudgetsForEdit = false
     @State private var isShowingScopeDialog = false
 
     private var filteredBudgets: [Budget] {
         vm.allBudgets.filter { budgetSearchText.isEmpty || ($0.name ?? "").localizedCaseInsensitiveContains(budgetSearchText) }
+    }
+
+    private var isEditingFromBudgetContext: Bool {
+        vm.isEditing && preselectedBudgetID != nil
     }
 
     // MARK: Layout
@@ -95,7 +100,8 @@ struct AddPlannedExpenseView: View {
             wrappedValue: AddPlannedExpenseViewModel(
                 plannedExpenseID: plannedExpenseID,
                 preselectedBudgetID: preselectedBudgetID,
-                requiresBudgetSelection: !showAssignBudgetToggle
+                requiresBudgetSelection: !showAssignBudgetToggle,
+                allowMultipleSelectionWithPreselectedBudget: plannedExpenseID != nil
             )
         )
     }
@@ -269,12 +275,21 @@ struct AddPlannedExpenseView: View {
             }
             // MARK: Use in future budgets?
             Section {
-                Toggle("Use in future budgets?", isOn: $vm.saveAsGlobalPreset)
+                if vm.isEditingLinkedToTemplate {
+                    Toggle("Use in future budgets?", isOn: .constant(true))
+                        .disabled(true)
+                } else {
+                    Toggle("Use in future budgets?", isOn: $vm.saveAsGlobalPreset)
+                }
             } header: {
                 Text("Use in future budgets?")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
+            } footer: {
+                if vm.isEditingLinkedToTemplate {
+                    Text("You're editing an occurrence that's part of a Preset Planned Expense series.")
+                }
             }
             }
             .listStyle(.insetGrouped)
@@ -480,8 +495,15 @@ struct AddPlannedExpenseView: View {
             let all = filteredBudgets
             let isSearching = !budgetSearchText.isEmpty
             let limit = 10
-            let collapsed = !showAllBudgets && !isSearching && all.count > limit
-            let visible = collapsed ? Array(all.prefix(limit)) : all
+            let isEditingLimited = isEditingFromBudgetContext && !isSearching && !showAllBudgetsForEdit
+            let collapsed = !showAllBudgets && !isSearching && !isEditingLimited && all.count > limit
+            let visible: [Budget] = {
+                if isEditingLimited, let currentID = preselectedBudgetID,
+                   let current = all.first(where: { $0.objectID == currentID }) {
+                    return [current]
+                }
+                return collapsed ? Array(all.prefix(limit)) : all
+            }()
 
             if all.isEmpty {
                 Text("No matching budgets")
@@ -509,7 +531,24 @@ struct AddPlannedExpenseView: View {
                 }
 
                 // Show All / Show Less control (only when not searching)
-                if !isSearching && all.count > limit {
+                if !isSearching && isEditingLimited && all.count > 1 {
+                    let remaining = all.count - 1
+                    Button {
+                        withAnimation(.easeInOut) { showAllBudgetsForEdit = true }
+                    } label: {
+                        HStack(spacing: DS.Spacing.xs) {
+                            Text("Show All Budgets")
+                            Text("\(remaining)")
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, DS.Spacing.xs)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color.secondary.opacity(0.15)))
+                            Spacer(minLength: 0)
+                        }
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Show All Budgets, \(remaining) more")
+                } else if !isSearching && all.count > limit {
                     if showAllBudgets {
                         Button("Show Less") { withAnimation(.easeInOut) { showAllBudgets = false } }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -527,6 +566,7 @@ struct AddPlannedExpenseView: View {
                 .textCase(.uppercase)
         }
         .animation(.easeInOut, value: showAllBudgets)
+        .animation(.easeInOut, value: showAllBudgetsForEdit)
     }
 
     private func applyDefaultSaveAsGlobalPresetIfNeeded() {

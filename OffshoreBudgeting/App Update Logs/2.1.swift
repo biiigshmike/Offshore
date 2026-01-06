@@ -18,17 +18,17 @@ enum AppUpdateLog_2_1 {
                 title: "What's New • \(version) (Build \(build))",
                 items: [
                     TipsItem(
-                        symbolName: "creditcard.fill",
+                        symbolName: "creditcard",
                         title: "Import Transactions",
                         detail: "Go to your Card's detailed overview, press the + symbol, then Import Transactions. Choose which transactions to import and attach them to the selected card effortlessly.\nNote: .csv is the only format currently accepted."
                     ),
                     TipsItem(
-                        symbolName: "accessibility.fill",
+                        symbolName: "accessibility",
                         title: "Accessibility",
                         detail: "Offshore now is truly Accessibile for all users. Made app-wide changes to ensure all elements are Accessibility compliant, such as Dynamic Type, Increase contrast, etc."
                     ),
                     TipsItem(
-                        symbolName: "hand.raised.circle.fill",
+                        symbolName: "hand.raised.circle",
                         title: "Privacy",
                         detail: "Fixed a bug that resulted in Biometrics being asked on devices that were not enrolled. App can now be locked with your device's passcode, if enabled."
                     ),

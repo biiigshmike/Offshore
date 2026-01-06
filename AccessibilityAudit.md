@@ -191,6 +191,15 @@ evidence (Accessibility Inspector HTML report, screenshots, or Apple docs).
   - Category spotlight rows stack values at accessibility sizes to prevent name clipping.
   - Scenario “Potential Savings” section stacks in accessibility sizes to avoid truncation.
 
+### Session 17
+- Date: 2026-01-05
+- Scope: HomeView card widgets on iPad + Mac Catalyst
+- Notes:
+  - Issue: Card widgets expanded to full list width on regular size classes, producing oversized tiles on iPad and Mac Catalyst.
+  - Evidence: `Screenshot 2026-01-05 at 7.47.21 PM.png`.
+  - Cause: `CardTileView` uses an aspect ratio; when embedded in the full-width widget row, it grew to match the list width.
+  - Fix: Cap the card tile width in `HomeView` using a scaled max width so regular size classes render a sensible preview size without affecting compact widths.
+
 ## Extraction Algorithm (HomeView Report)
 1) Read the HTML report and locate the embedded `rootObject` JSON payload.
 2) Parse `_axKeyAllScreens[0]._axKeyAllIssues` to collect each issue.

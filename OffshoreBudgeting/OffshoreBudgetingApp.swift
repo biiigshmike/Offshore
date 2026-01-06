@@ -23,6 +23,7 @@ struct OffshoreBudgetingApp: App {
     @State private var dataChangeObserver: NSObjectProtocol?
     @State private var homeContentReady = false
     @State private var homeDataObserver: NSObjectProtocol?
+    @State private var didTriggerInitialAppLock = false
     private let platformCapabilities = PlatformCapabilities.current
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
@@ -60,7 +61,7 @@ struct OffshoreBudgetingApp: App {
                         }
 
                         // MARK: App Lock Overlay (optional privacy mask)
-                        if appLockViewModel.isLockEnabled && appLockViewModel.isLocked {
+                        if appLockViewModel.isLockEnabled && (appLockViewModel.isLocked || appLockViewModel.isAuthenticating) {
                             AppLockView(viewModel: appLockViewModel)
                                 .transition(.opacity)
                         }
@@ -142,20 +143,14 @@ struct OffshoreBudgetingApp: App {
                     }
                     #endif
                 }
-
-                // MARK: App Lock Kick (Cold Start)
-                // Lock immediately on launch so content is obscured.
-                if appLockViewModel.isLockEnabled {
-                    appLockViewModel.lock()
-                    #if targetEnvironment(macCatalyst)
-                    // On Mac Catalyst, onAppear can happen after the scene is already active,
-                    // which would mean no .active phase change occurs. Trigger a single prompt
-                    // right away when we detect we are already active.
-                    if scenePhase == .active, appLockViewModel.isLocked {
-                        appLockViewModel.attemptUnlockWithBiometrics()
-                    }
-                    #endif
-                }
+            }
+            .onChange(of: homeContentReady) { isReady in
+                guard isReady else { return }
+                guard !didTriggerInitialAppLock else { return }
+                guard appLockViewModel.isLockEnabled else { return }
+                didTriggerInitialAppLock = true
+                appLockViewModel.lock()
+                appLockViewModel.attemptUnlockWithBiometrics()
             }
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .active {
@@ -164,7 +159,7 @@ struct OffshoreBudgetingApp: App {
                     Task { await LocalNotificationScheduler.shared.refreshAll() }
 
                     // Foreground return: prompt once if still locked.
-                    if appLockViewModel.isLockEnabled && appLockViewModel.isLocked {
+                    if appLockViewModel.isLockEnabled && didTriggerInitialAppLock && appLockViewModel.isLocked {
                         appLockViewModel.attemptUnlockWithBiometrics()
                     }
                 } else if newPhase == .background {
@@ -254,6 +249,7 @@ struct OffshoreBudgetingApp: App {
             }
         }
     }
+
 
     // MARK: UI Testing Helpers
     private func configureForUITestingIfNeeded() {

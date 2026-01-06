@@ -31,19 +31,19 @@ public final class AppLockViewModel: ObservableObject {
     // MARK: Published State
     @Published public private(set) var isLocked: Bool = false
     @Published public private(set) var lastErrorMessage: String? = nil
+    @Published public private(set) var isAuthenticating: Bool = false
 
     // MARK: User Setting
     /// Persisted user preference for enabling the lock.
     /// Toggle this in your Settings screen.
     @AppStorage("appLockEnabled") public var isLockEnabled: Bool = true
     /// Persisted user preference for enabling biometrics when available.
-    @AppStorage("appLockUseBiometrics") public var useBiometrics: Bool = true
+    @AppStorage("appLockUseBiometrics") public var useBiometrics: Bool = false
 
     // MARK: Dependencies
     private let biometricManager: BiometricAuthenticationManager
 
     // MARK: Internal Guards (debounce & reentrancy)
-    private var isAuthenticating: Bool = false
     private var lastPromptAt: Date? = nil
     private let promptThrottleSeconds: TimeInterval = 1.0
     private var unlockGraceUntil: Date? = nil
@@ -64,6 +64,7 @@ public final class AppLockViewModel: ObservableObject {
             disableLockForUnavailableAuth(deviceAuthError)
             return
         }
+        isAuthenticating = false
         isLocked = true
     }
 
@@ -75,9 +76,8 @@ public final class AppLockViewModel: ObservableObject {
             isLocked = false
             return
         }
-        guard isLocked else {
-            // Already unlocked, no prompt needed.
-            return
+        if !isLocked {
+            isLocked = true
         }
         // Debounce / guard concurrent prompts
         if isAuthenticating { return }
@@ -118,14 +118,14 @@ public final class AppLockViewModel: ObservableObject {
 
     // MARK: Presentation Helpers
     public var lockSubtitle: String {
-        if useBiometrics, biometricManager.supportedBiometryType() != .none {
+        if useBiometrics, canUseBiometricsNow {
             return "Use \(biometricLabel)"
         }
         return "Use device passcode"
     }
 
     public var lockIconName: String {
-        guard useBiometrics else { return "lock.fill" }
+        guard useBiometrics, canUseBiometricsNow else { return "lock.fill" }
         switch biometricManager.supportedBiometryType() {
         case .faceID: return "faceid"
         case .touchID: return "touchid"
@@ -154,6 +154,11 @@ public final class AppLockViewModel: ObservableObject {
         case .touchID: return "Touch ID"
         default: return "Biometrics"
         }
+    }
+
+    private var canUseBiometricsNow: Bool {
+        var biometricError: BiometricError?
+        return biometricManager.canEvaluateBiometrics(errorOut: &biometricError)
     }
 
     private func preferredPolicy() -> LAPolicy {

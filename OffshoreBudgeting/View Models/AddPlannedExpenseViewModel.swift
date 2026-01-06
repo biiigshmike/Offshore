@@ -29,6 +29,8 @@ final class AddPlannedExpenseViewModel: ObservableObject {
     let isEditing: Bool
     /// When false, a budget is optional (used for preset-only creation).
     private let requiresBudgetSelection: Bool
+    /// Allow multi-select even when a preselected budget is provided (edit flows).
+    private let allowMultipleSelectionWithPreselectedBudget: Bool
 
     // MARK: Loaded Data
     @Published private(set) var allBudgets: [Budget] = []
@@ -59,6 +61,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
     init(plannedExpenseID: NSManagedObjectID? = nil,
          preselectedBudgetID: NSManagedObjectID? = nil,
          requiresBudgetSelection: Bool = true,
+         allowMultipleSelectionWithPreselectedBudget: Bool = false,
          cardPickerStore: CardPickerStore? = nil,
          initialDate: Date? = nil,
          context: NSManagedObjectContext = CoreDataService.shared.viewContext) {
@@ -67,6 +70,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
         self.preselectedBudgetID = preselectedBudgetID
         self.isEditing = plannedExpenseID != nil
         self.requiresBudgetSelection = requiresBudgetSelection
+        self.allowMultipleSelectionWithPreselectedBudget = allowMultipleSelectionWithPreselectedBudget
         self.cardPickerStore = cardPickerStore
         if let store = cardPickerStore {
             bindToCardPickerStore(store, preserveSelection: false)
@@ -409,7 +413,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
     /// provide a preselected budget and expect the picker to enforce it.
     /// Allow the modern multi-select behavior everywhere else.
     private var shouldForceSingleBudgetSelection: Bool {
-        if isEditing, preselectedBudgetID != nil, requiresBudgetSelection {
+        if isEditing, preselectedBudgetID != nil, requiresBudgetSelection, !allowMultipleSelectionWithPreselectedBudget {
             return true
         }
         return false

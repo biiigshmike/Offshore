@@ -76,7 +76,11 @@ struct BudgetDetailsView: View {
             ) { Task { await vm.load() } }
         }
         .sheet(item: $editingPlannedBox) { box in
-            AddPlannedExpenseView(plannedExpenseID: box.id, onSaved: { Task { await vm.refreshRows() } })
+            AddPlannedExpenseView(
+                plannedExpenseID: box.id,
+                preselectedBudgetID: budgetID,
+                onSaved: { Task { await vm.refreshRows() } }
+            )
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
         .sheet(item: $editingUnplannedBox) { box in

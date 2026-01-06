@@ -18,7 +18,7 @@ struct SettingsView: View {
     // MARK: State
     @StateObject private var vm = SettingsViewModel()
     @AppStorage("appLockEnabled") private var isLockEnabled: Bool = true
-    @AppStorage("appLockUseBiometrics") private var useBiometrics: Bool = true
+    @AppStorage("appLockUseBiometrics") private var useBiometrics: Bool = false
     @State private var showResetAlert = false
     @State private var showMergeConfirm = false
     @State private var showForceReuploadConfirm = false
@@ -759,6 +759,7 @@ private struct PrivacySettingsView: View {
     @State private var isPasscodeAvailable: Bool = true
     @State private var isBiometricsAvailable: Bool = true
     @State private var availabilityMessage: String? = nil
+    @State private var isRequestingBiometrics: Bool = false
 
     var body: some View {
         List {
@@ -768,7 +769,7 @@ private struct PrivacySettingsView: View {
 
                 if isLockEnabled {
                     Toggle("Use \(biometricName)", isOn: $useBiometrics)
-                        .disabled(!isBiometricsAvailable)
+                        .disabled(!isBiometricsAvailable || isRequestingBiometrics)
                         .opacity(isBiometricsAvailable ? 1 : 0.6)
                 }
             } footer: {
@@ -793,7 +794,16 @@ private struct PrivacySettingsView: View {
             }
         }
         .task { refreshAvailability() }
-        .onChange(of: isLockEnabled) { _ in refreshAvailability() }
+        .onChange(of: isLockEnabled) { newValue in
+            if !newValue {
+                useBiometrics = false
+            }
+            refreshAvailability()
+        }
+        .onChange(of: useBiometrics) { newValue in
+            guard newValue else { return }
+            requestBiometricEnablement()
+        }
     }
 
     private func refreshAvailability() {
@@ -814,6 +824,34 @@ private struct PrivacySettingsView: View {
         isBiometricsAvailable = canUseBiometrics
         if !canUseBiometrics {
             useBiometrics = false
+        }
+    }
+
+    private func requestBiometricEnablement() {
+        if isRequestingBiometrics { return }
+        var biometricError: BiometricError?
+        let canUseBiometrics = BiometricAuthenticationManager.shared
+            .canEvaluateBiometrics(errorOut: &biometricError)
+        isBiometricsAvailable = canUseBiometrics
+        guard canUseBiometrics else {
+            useBiometrics = false
+            availabilityMessage = biometricError?.localizedDescription ?? "Biometrics are not available."
+            return
+        }
+
+        isRequestingBiometrics = true
+        BiometricAuthenticationManager.shared.authenticate(
+            reason: "Enable \(biometricName) for App Lock",
+            allowDevicePasscode: false
+        ) { result in
+            isRequestingBiometrics = false
+            switch result {
+            case .success:
+                availabilityMessage = nil
+            case .failure(let error):
+                availabilityMessage = error.localizedDescription
+                useBiometrics = false
+            }
         }
     }
 }

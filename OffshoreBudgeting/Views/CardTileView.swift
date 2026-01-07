@@ -33,6 +33,8 @@ struct CardTileView: View {
     /// Keep this OFF for grids to avoid heavy per‑frame updates; turn ON for
     /// single, prominent tiles (e.g., detail header).
     var enableMotionShine: Bool = false
+    /// When true, allows the material background to respond to device motion.
+    var enableMaterialMotion: Bool = true
 
     /// When true, applies the base neutral drop shadow beneath the card tile.
     /// Set to false for flat presentations (e.g., pickers and grids) while
@@ -42,6 +44,7 @@ struct CardTileView: View {
     var showsEffectOverlay: Bool = false
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var cardPickerStore: CardPickerStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -64,9 +67,9 @@ struct CardTileView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("\(card.name)\(isSelected ? ", selected" : "")"))
+        .accessibilityLabel(Text("\(resolvedCard.name)\(isSelected ? ", selected" : "")"))
         .accessibilityHint(Text("Tap to select card"))
-        .accessibilityIdentifier("card_tile_\(card.id)")
+        .accessibilityIdentifier("card_tile_\(resolvedCard.id)")
     }
 }
 
@@ -80,6 +83,23 @@ private extension CardTileView {
         dynamicTypeSize.isAccessibilitySize
     }
 
+    var resolvedCard: CardItem {
+        guard cardPickerStore.isReady else { return card }
+        if let objectID = card.objectID,
+           let managedCard = cardPickerStore.cards.first(where: { $0.objectID == objectID }) {
+            var item = CardItem(from: managedCard)
+            item.balance = card.balance
+            return item
+        }
+        if let uuid = card.uuid,
+           let managedCard = cardPickerStore.cards.first(where: { ($0.value(forKey: "id") as? UUID) == uuid }) {
+            var item = CardItem(from: managedCard)
+            item.balance = card.balance
+            return item
+        }
+        return card
+    }
+
     // MARK: Tile Visual
     @ViewBuilder
     var tileVisual: some View {
@@ -89,13 +109,18 @@ private extension CardTileView {
                 // MARK: Card Background (material-aware)
                 ZStack {
                     if showsEffectOverlay {
-                        CardMaterialBackground(theme: card.theme, effect: card.effect, cornerRadius: cornerRadius)
+                        CardMaterialBackground(
+                            theme: resolvedCard.theme,
+                            effect: resolvedCard.effect,
+                            cornerRadius: cornerRadius,
+                            enableMotion: enableMaterialMotion
+                        )
                     } else {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .fill(backgroundStyle)
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(card.theme.adaptiveOverlay(for: colorScheme, isHighContrast: isHighContrast))
-                        card.theme
+                            .fill(resolvedCard.theme.adaptiveOverlay(for: colorScheme, isHighContrast: isHighContrast))
+                        resolvedCard.theme
                             .patternOverlay(cornerRadius: cornerRadius)
                             .blendMode(.overlay)
                     }
@@ -125,7 +150,7 @@ private extension CardTileView {
 
     // MARK: Background Gradient (STATIC)
     var backgroundStyle: AnyShapeStyle {
-        card.theme.backgroundStyle(for: themeManager.selectedTheme)
+        resolvedCard.theme.backgroundStyle(for: themeManager.selectedTheme)
     }
 
 
@@ -135,8 +160,8 @@ private extension CardTileView {
         Group {
             if isSelected {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(card.theme.selectionAccentColor.opacity(0.22))
-                    .blendMode(card.theme.selectionAccentBlendMode)
+                    .fill(resolvedCard.theme.selectionAccentColor.opacity(0.22))
+                    .blendMode(resolvedCard.theme.selectionAccentBlendMode)
                     .overlay(alignment: .topTrailing) {
                         selectionBadge
                             .padding(DS.Spacing.m)
@@ -153,7 +178,7 @@ private extension CardTileView {
             .inset(by: 0.5) // keep the ring inside the edge
             .stroke(
                 isSelected
-                ? card.theme.selectionAccentColor
+                ? resolvedCard.theme.selectionAccentColor
                 : .clear,
                 lineWidth: isSelected ? 3.2 : 0
             )
@@ -162,7 +187,7 @@ private extension CardTileView {
                 RoundedRectangle(cornerRadius: cornerRadius - 2.0, style: .continuous)
                     .inset(by: 2.0)
                     .stroke(
-                        isSelected ? card.theme.selectionAssistStrokeColor : .clear,
+                        isSelected ? resolvedCard.theme.selectionAssistStrokeColor : .clear,
                         lineWidth: isSelected ? 1.1 : 0
                     )
             )
@@ -176,9 +201,9 @@ private extension CardTileView {
         // Draw a clear stroke to host shadows without clipping.
         RoundedRectangle(cornerRadius: cornerRadius + 1, style: .continuous)
             .stroke(Color.clear, lineWidth: 0)
-            .shadow(color: card.theme.glowColor.opacity(isSelected ? 0.60 : 0), radius: isSelected ? 10 : 0)
-            .shadow(color: card.theme.glowColor.opacity(isSelected ? 0.36 : 0), radius: isSelected ? 20 : 0)
-            .shadow(color: card.theme.glowColor.opacity(isSelected ? 0.18 : 0), radius: isSelected ? 34 : 0)
+            .shadow(color: resolvedCard.theme.glowColor.opacity(isSelected ? 0.60 : 0), radius: isSelected ? 10 : 0)
+            .shadow(color: resolvedCard.theme.glowColor.opacity(isSelected ? 0.36 : 0), radius: isSelected ? 20 : 0)
+            .shadow(color: resolvedCard.theme.glowColor.opacity(isSelected ? 0.18 : 0), radius: isSelected ? 34 : 0)
             .padding(isSelected ? -1 : 0)
             .allowsHitTesting(false)
     }
@@ -199,14 +224,14 @@ private extension CardTileView {
         let titleView = Group {
             if allowMotionShine {
                 HolographicMetallicText(
-                    text: card.name,
+                    text: resolvedCard.name,
                     titleFont: titleFont,
                     shimmerResponsiveness: 1.5,
                     maxMetallicOpacity: 0.6,
                     maxShineOpacity: 0.7
                 )
             } else {
-                Text(card.name)
+                Text(resolvedCard.name)
                     .font(titleFont)
                     .foregroundStyle(titleColor)
                     .ub_cardTitleShadow()
@@ -219,10 +244,10 @@ private extension CardTileView {
     var selectionBadge: some View {
         ZStack {
             Circle()
-                .fill(card.theme.selectionAccentColor.opacity(0.92))
+                .fill(resolvedCard.theme.selectionAccentColor.opacity(0.92))
             Image(systemName: "checkmark")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(card.theme.selectionGlyphColor)
+                .foregroundStyle(resolvedCard.theme.selectionGlyphColor)
         }
         .frame(width: 28, height: 28)
         .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 3)
@@ -235,6 +260,7 @@ struct CardMaterialBackground: View {
     let theme: CardTheme
     let effect: CardEffect
     let cornerRadius: CGFloat
+    let enableMotion: Bool
     @ObservedObject private var motion: MotionMonitor = MotionMonitor.shared
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.colorScheme) private var colorScheme
@@ -250,6 +276,28 @@ struct CardMaterialBackground: View {
                     .saturation(materialSaturation)
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(materialOverlayColor(for: size))
+                if effect == .holographic && shouldUseMaterial {
+                    let ring = holographicRingMetrics(for: size)
+                    let ringShape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .inset(by: ring.inset)
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(holographicFoilOverlay(for: size))
+                        .blendMode(.plusLighter)
+                        .opacity(holographicFoilOverlayOpacity(for: size))
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(holographicRainbowOverlay(for: size))
+                        .blendMode(.softLight)
+                        .opacity(holographicRainbowOverlayOpacity(for: size))
+                    ringShape
+                        .strokeBorder(holographicFoilOverlay(for: size), lineWidth: ring.thickness)
+                        .blendMode(.plusLighter)
+                        .opacity(holographicRingRimOpacity(for: size))
+                    ringShape
+                        .strokeBorder(holographicRainbowOverlay(for: size), lineWidth: ring.thickness * 2.2)
+                        .blendMode(.softLight)
+                        .opacity(holographicRingFillOpacity(for: size))
+                        .blur(radius: ring.thickness * 0.35)
+                }
                 if effect == .metal && shouldUseMaterial {
                     MetalAnisotropicBandingOverlay(
                         cornerRadius: cornerRadius,
@@ -290,7 +338,7 @@ private extension CardMaterialBackground {
         case .metal:
             return AnyShapeStyle(metalGradient)
         case .holographic:
-            return AnyShapeStyle(plasticGradient(for: size))
+            return AnyShapeStyle(theme.backgroundStyle(for: themeManager.selectedTheme))
         }
     }
 
@@ -299,7 +347,9 @@ private extension CardMaterialBackground {
         switch effect {
         case .metal:
             return 0.48
-        case .plastic, .holographic:
+        case .holographic:
+            return 1.22
+        case .plastic:
             return 1.0
         }
     }
@@ -308,8 +358,11 @@ private extension CardMaterialBackground {
         if !shouldUseMaterial {
             return theme.adaptiveOverlay(for: colorScheme, isHighContrast: colorSchemeContrast == .increased)
         }
-        if effect == .plastic || effect == .holographic {
+        if effect == .plastic {
             return plasticOverlayColor(for: size)
+        }
+        if effect == .holographic {
+            return holographicOverlayColor(for: size)
         }
         return theme.adaptiveOverlay(for: colorScheme, isHighContrast: colorSchemeContrast == .increased)
     }
@@ -320,6 +373,15 @@ private extension CardMaterialBackground {
             : Color(white: 0.98)
         let sizeFactor = materialSizeFactor(for: size)
         let baseOpacity = (colorScheme == .dark ? 0.06 : 0.015) * (1.0 - 0.90 * sizeFactor)
+        return baseColor.opacity(baseOpacity)
+    }
+
+    func holographicOverlayColor(for size: CGSize) -> Color {
+        let baseColor = colorScheme == .dark
+            ? Color(white: 0.14)
+            : Color(white: 0.99)
+        let sizeFactor = materialSizeFactor(for: size)
+        let baseOpacity = (colorScheme == .dark ? 0.025 : 0.006) * (1.0 - 0.65 * sizeFactor)
         return baseColor.opacity(baseOpacity)
     }
 
@@ -341,6 +403,150 @@ private extension CardMaterialBackground {
             .init(color: bottomSheen, location: 1.0)
         ]
         return materialGradient(angle: plasticAngle, shift: plasticShift(for: size), stops: stops)
+    }
+
+    func holographicGradient(for size: CGSize) -> LinearGradient {
+        let (top, bottom) = theme.colors
+        let sizeFactor = holographicSizeFactor(for: size)
+        let soften = 1.0 - 0.18 * sizeFactor
+        let baseBoost = colorScheme == .dark ? 0.08 : 0.10
+        let motionBoost = holographicMotionMagnitude * (colorScheme == .dark ? 0.60 : 0.68)
+        let highlightBoost = min(0.54, (baseBoost + motionBoost) * soften)
+        let extremeBoost = min(0.72, (baseBoost + motionBoost + 0.08) * soften)
+        let midBrightBoost = highlightBoost + (extremeBoost - highlightBoost) * holographicBandAttenuation
+        let stopShift = holographicStopShift(for: size)
+
+        let mid = mix(top, with: bottom, amount: 0.5)
+        let topEdge = adjustedColor(top, brightnessDelta: highlightBoost * 0.50, saturationDelta: -0.08)
+        let bottomEdge = adjustedColor(bottom, brightnessDelta: highlightBoost * 0.50, saturationDelta: -0.08)
+        let topSoft = adjustedColor(top, brightnessDelta: highlightBoost * 0.70, saturationDelta: -0.06)
+        let bottomSoft = adjustedColor(bottom, brightnessDelta: highlightBoost * 0.70, saturationDelta: -0.06)
+        let midSoft = adjustedColor(mid, brightnessDelta: highlightBoost, saturationDelta: -0.08)
+        let midBright = adjustedColor(mid, brightnessDelta: midBrightBoost, saturationDelta: -0.10)
+
+        func shifted(_ value: Double) -> Double {
+            min(0.90, max(0.12, value + stopShift))
+        }
+
+        let stops: [Gradient.Stop] = [
+            .init(color: top, location: 0.0),
+            .init(color: top, location: 0.02),
+            .init(color: topEdge, location: 0.10),
+            .init(color: topSoft, location: shifted(0.30)),
+            .init(color: midSoft, location: shifted(0.46)),
+            .init(color: midBright, location: shifted(0.56)),
+            .init(color: midSoft, location: shifted(0.70)),
+            .init(color: bottomSoft, location: shifted(0.86)),
+            .init(color: bottomEdge, location: 0.97),
+            .init(color: bottom, location: 1.0)
+        ]
+        return materialGradient(
+            angle: holographicAngle,
+            shift: holographicShift(for: size),
+            stops: stops,
+            length: 1.0
+        )
+    }
+
+    func holographicFoilOverlay(for size: CGSize) -> LinearGradient {
+        let (top, bottom) = theme.colors
+        let sizeFactor = holographicSizeFactor(for: size)
+        let soften = 1.0 - 0.20 * sizeFactor
+        let baseBoost = colorScheme == .dark ? 0.10 : 0.12
+        let motionBoost = holographicMotionMagnitude * (colorScheme == .dark ? 0.55 : 0.62)
+        let highlightBoost = min(0.62, (baseBoost + motionBoost) * soften)
+        let stopShift = holographicStopShift(for: size)
+
+        let mid = mix(top, with: bottom, amount: 0.5)
+        let shadow = adjustedColor(mid, brightnessDelta: -0.08, saturationDelta: -0.10).opacity(0.0)
+        let soft = adjustedColor(mid, brightnessDelta: highlightBoost * 0.42, saturationDelta: -0.06).opacity(0.26)
+        let bright = adjustedColor(mid, brightnessDelta: highlightBoost * 0.80, saturationDelta: -0.03).opacity(0.52)
+
+        func shifted(_ value: Double) -> Double {
+            min(0.88, max(0.12, value + stopShift))
+        }
+
+        let stops: [Gradient.Stop] = [
+            .init(color: shadow, location: 0.0),
+            .init(color: soft, location: shifted(0.24)),
+            .init(color: bright, location: shifted(0.40)),
+            .init(color: bright, location: shifted(0.62)),
+            .init(color: soft, location: shifted(0.78)),
+            .init(color: shadow, location: 1.0)
+        ]
+
+        return LinearGradient(gradient: Gradient(stops: stops), startPoint: .top, endPoint: .bottom)
+    }
+
+    func holographicFoilOverlayOpacity(for size: CGSize) -> Double {
+        let sizeFactor = holographicSizeFactor(for: size)
+        let baseOpacity = (colorScheme == .dark ? 0.40 : 0.34) * (1.0 - 0.15 * sizeFactor)
+        let motionBoost = holographicMotionMagnitude * (colorScheme == .dark ? 0.32 : 0.36)
+        return min(0.86, baseOpacity + motionBoost)
+    }
+
+    func holographicRainbowOverlay(for size: CGSize) -> RadialGradient {
+        let (top, bottom) = theme.colors
+        let mid = mix(top, with: bottom, amount: 0.5)
+        let center = holographicRainbowCenter
+        let minDimension = min(size.width, size.height)
+        let endRadius = max(140, minDimension * 1.9)
+        let stops = holographicRainbowStops(base: mid)
+        return RadialGradient(
+            gradient: Gradient(stops: stops),
+            center: center,
+            startRadius: 0,
+            endRadius: endRadius
+        )
+    }
+
+    func holographicRainbowOverlayOpacity(for size: CGSize) -> Double {
+        let sizeFactor = holographicSizeFactor(for: size)
+        let baseOpacity = (colorScheme == .dark ? 0.34 : 0.28) * (1.0 - 0.12 * sizeFactor)
+        let motionBoost = holographicMotionMagnitude * (colorScheme == .dark ? 0.30 : 0.34)
+        return min(0.75, baseOpacity + motionBoost)
+    }
+
+    func holographicRainbowStops(base: Color) -> [Gradient.Stop] {
+        let colors: [Color] = [
+            Color(red: 1.00, green: 0.55, blue: 0.75),
+            Color(red: 1.00, green: 0.75, blue: 0.35),
+            Color(red: 0.98, green: 0.95, blue: 0.48),
+            Color(red: 0.45, green: 0.95, blue: 0.70),
+            Color(red: 0.35, green: 0.85, blue: 1.00),
+            Color(red: 0.55, green: 0.60, blue: 1.00),
+            Color(red: 0.85, green: 0.55, blue: 1.00)
+        ]
+        let stops: [Gradient.Stop] = colors.enumerated().map { index, color in
+            let t = (Double(index) / Double(max(colors.count - 1, 1))) * 0.92
+            let mixed = mix(color, with: base, amount: 0.40).opacity(0.45)
+            return Gradient.Stop(color: mixed, location: t)
+        }
+        return stops + [
+            Gradient.Stop(color: base.opacity(0.15), location: 0.96),
+            Gradient.Stop(color: base.opacity(0.0), location: 1.0)
+        ]
+    }
+
+    func holographicRingMetrics(for size: CGSize) -> (inset: CGFloat, thickness: CGFloat) {
+        let sizeFactor = holographicSizeFactor(for: size)
+        let thickness = min(6.0, max(4.0, 4.0 + (2.0 * sizeFactor)))
+        let inset = min(6.0, max(3.0, 3.0 + (2.0 * sizeFactor)))
+        return (inset, thickness)
+    }
+
+    func holographicRingRimOpacity(for size: CGSize) -> Double {
+        let sizeFactor = holographicSizeFactor(for: size)
+        let baseOpacity = (colorScheme == .dark ? 0.36 : 0.30) * (1.0 - 0.15 * sizeFactor)
+        let motionBoost = holographicMotionMagnitude * (colorScheme == .dark ? 0.20 : 0.24)
+        return min(0.70, baseOpacity + motionBoost)
+    }
+
+    func holographicRingFillOpacity(for size: CGSize) -> Double {
+        let sizeFactor = holographicSizeFactor(for: size)
+        let baseOpacity = (colorScheme == .dark ? 0.20 : 0.16) * (1.0 - 0.12 * sizeFactor)
+        let motionBoost = holographicMotionMagnitude * (colorScheme == .dark ? 0.18 : 0.20)
+        return min(0.45, baseOpacity + motionBoost)
     }
 
     var metalGradient: LinearGradient {
@@ -383,14 +589,15 @@ private extension CardMaterialBackground {
         adjustedColor(metalBaseColor, brightnessDelta: colorScheme == .dark ? -0.03 : -0.02, saturationDelta: -0.05)
     }
 
-    func materialGradient(angle: Angle, shift: CGSize, stops: [Gradient.Stop]) -> LinearGradient {
+    func materialGradient(angle: Angle, shift: CGSize, stops: [Gradient.Stop], length: Double = 0.7) -> LinearGradient {
         let theta = angle.radians
         let dx = cos(theta)
         let dy = sin(theta)
-        let startX = clampedUnit(0.5 - dx * 0.7 + Double(shift.width))
-        let startY = clampedUnit(0.5 - dy * 0.7 + Double(shift.height))
-        let endX = clampedUnit(0.5 + dx * 0.7 + Double(shift.width))
-        let endY = clampedUnit(0.5 + dy * 0.7 + Double(shift.height))
+        let span = max(0.4, min(1.0, length))
+        let startX = clampedUnit(0.5 - dx * span + Double(shift.width))
+        let startY = clampedUnit(0.5 - dy * span + Double(shift.height))
+        let endX = clampedUnit(0.5 + dx * span + Double(shift.width))
+        let endY = clampedUnit(0.5 + dy * span + Double(shift.height))
         return LinearGradient(
             gradient: Gradient(stops: stops),
             startPoint: UnitPoint(x: startX, y: startY),
@@ -405,6 +612,12 @@ private extension CardMaterialBackground {
     func materialSizeFactor(for size: CGSize) -> Double {
         let minDimension = max(1.0, min(Double(size.width), Double(size.height)))
         let t = (minDimension - 80.0) / 140.0
+        return min(1.0, max(0.0, t))
+    }
+
+    func holographicSizeFactor(for size: CGSize) -> Double {
+        let minDimension = max(1.0, min(Double(size.width), Double(size.height)))
+        let t = (minDimension - 80.0) / 260.0
         return min(1.0, max(0.0, t))
     }
 
@@ -495,7 +708,7 @@ private extension CardMaterialBackground {
 
     var usesMotion: Bool {
         #if os(iOS) || targetEnvironment(macCatalyst)
-        return !reduceMotion && gravityDrivenMagnitude > 0
+        return enableMotion && !reduceMotion && gravityDrivenMagnitude > 0
         #else
         return false
         #endif
@@ -503,7 +716,7 @@ private extension CardMaterialBackground {
 
     var motionMagnitude: Double {
         #if os(iOS) || targetEnvironment(macCatalyst)
-        guard !reduceMotion else { return 0 }
+        guard enableMotion && !reduceMotion else { return 0 }
         return gravityDrivenMagnitude
         #else
         return 0
@@ -523,6 +736,59 @@ private extension CardMaterialBackground {
             width: max(-0.10, min(0.10, g.x * scale)),
             height: max(-0.10, min(0.10, -g.y * scale))
         )
+    }
+
+    var holographicAngle: Angle {
+        .degrees(90)
+    }
+
+    var holographicSecondaryAngle: Angle {
+        .degrees(0)
+    }
+
+    func holographicShift(for size: CGSize) -> CGSize {
+        let base = plasticShift(for: size)
+        return CGSize(width: base.width * 0.10, height: base.height * 0.10)
+    }
+
+    var holographicMotionMagnitude: Double {
+        let damped = pow(motionMagnitude, 1.8)
+        return damped * 0.60
+    }
+
+    var holographicBandAttenuation: Double {
+        let magnitude = holographicMotionMagnitude
+        let start: Double = 0.05
+        let end: Double = 0.20
+        if magnitude <= start { return 1.0 }
+        if magnitude >= end { return 0.15 }
+        let progress = (magnitude - start) / (end - start)
+        return max(0.15, 1.0 - progress)
+    }
+
+    func holographicStopShift(for size: CGSize) -> Double {
+        guard usesMotion else { return 0 }
+        let g = gravitySample
+        let direction = (g.y * 0.85) + (g.x * 0.35)
+        let sizeFactor = holographicSizeFactor(for: size)
+        let scale = (1.0 - 0.25 * sizeFactor)
+        let raw = direction * (0.30 * holographicMotionMagnitude) * scale
+        return min(0.08, max(-0.08, raw))
+    }
+
+    var holographicRainbowCenter: UnitPoint {
+        let shift = holographicRainbowShift
+        return UnitPoint(
+            x: clampedUnit(0.5 + Double(shift.width)),
+            y: clampedUnit(0.45 + Double(shift.height))
+        )
+    }
+
+    var holographicRainbowShift: CGSize {
+        guard usesMotion else { return .zero }
+        let g = gravitySample
+        let scale = 0.26 * holographicMotionMagnitude
+        return CGSize(width: g.x * scale, height: -g.y * scale)
     }
 
     var metalAngle: Angle {

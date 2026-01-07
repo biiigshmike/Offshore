@@ -16,7 +16,7 @@ struct OffshoreBudgetingApp: App {
 
     // MARK: Dependencies
     @StateObject private var themeManager = ThemeManager()
-    @State private var cardPickerStore: CardPickerStore?
+    @StateObject private var cardPickerStore = CardPickerStore()
     @State private var coreDataReady = false
     @State private var dataReady = false
     @State private var dataRevision: Int = 0
@@ -37,7 +37,7 @@ struct OffshoreBudgetingApp: App {
 
     // MARK: Init
     init() {
-        // Defer Core Data store loading and CardPickerStore creation to onAppear
+        // Defer Core Data store loading and CardPickerStore start to onAppear
         configureForUITestingIfNeeded()
         logPlatformCapabilities()
         let labelAppearance = UILabel.appearance()
@@ -97,9 +97,7 @@ struct OffshoreBudgetingApp: App {
         let startTab = ProcessInfo.processInfo.environment["UITEST_START_TAB"]
         let base = content()
             .environmentObject(themeManager)
-            .ifLet(cardPickerStore) { view, store in
-                view.environmentObject(store)
-            }
+            .environmentObject(cardPickerStore)
             .environment(\.platformCapabilities, platformCapabilities)
             .environment(\.uiTestingFlags, testFlags)
             .environment(\.startTabIdentifier, startTab)
@@ -133,11 +131,7 @@ struct OffshoreBudgetingApp: App {
                     await WorkspaceService.shared.initializeOnLaunch()
 
                     // No BudgetPreferenceSync – budget period mirrors via Core Data (Workspace)
-                    if cardPickerStore == nil {
-                        let store = CardPickerStore()
-                        cardPickerStore = store
-                        store.start()
-                    }
+                    cardPickerStore.start()
                     coreDataReady = true
                     startDataReadinessFlow()
                     startObservingDataChanges()
@@ -219,7 +213,7 @@ struct OffshoreBudgetingApp: App {
     }
 
     private var workspaceReady: Bool {
-        coreDataReady && cardPickerStore != nil
+        coreDataReady && cardPickerStore.isReady
     }
 
     @MainActor

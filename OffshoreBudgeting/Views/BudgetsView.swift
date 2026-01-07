@@ -149,10 +149,9 @@ struct BudgetsView: View {
     }
 
     private func defaultBudgetDates() -> (start: Date, end: Date) {
-        let cal = Calendar.current
-        let start = cal.startOfDay(for: Date())
-        let end = cal.date(byAdding: .day, value: 29, to: start) ?? start
-        return (start, end)
+        let period = WorkspaceService.shared.currentBudgetPeriod()
+        let range = period.range(containing: Date())
+        return (range.start, range.end)
     }
 
     // MARK: Search

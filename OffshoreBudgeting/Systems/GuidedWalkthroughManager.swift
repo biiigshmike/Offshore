@@ -221,7 +221,15 @@ struct TipsAndHintsStore {
 
     func shouldShowTips(for screen: TipsScreen, kind: TipsKind = .walkthrough, versionToken: String? = nil) -> Bool {
         guard TipsCatalog.content(for: screen, kind: kind, versionToken: versionToken) != nil else { return false }
-        return !bool(forKey: seenKey(for: screen, kind: kind, versionToken: versionToken))
+        let key = seenKey(for: screen, kind: kind, versionToken: versionToken)
+        if kind == .whatsNew {
+            if bool(forKey: key) { return false }
+            if let legacyKey = legacyWhatsNewKey(for: screen, versionToken: versionToken), bool(forKey: legacyKey) {
+                set(true, forKey: key)
+                return false
+            }
+        }
+        return !bool(forKey: key)
     }
 
     func markSeen(for screen: TipsScreen, kind: TipsKind = .walkthrough, versionToken: String? = nil) {
@@ -233,14 +241,20 @@ struct TipsAndHintsStore {
     }
 
     private func seenKey(for screen: TipsScreen, kind: TipsKind, versionToken: String?) -> String {
-        let resetToken = ensureResetToken()
         switch kind {
         case .walkthrough:
+            let resetToken = ensureResetToken()
             return "tips.seen.\(kind.rawValue).\(screen.rawValue).r\(resetToken)"
         case .whatsNew:
             let resolvedVersion = versionToken ?? "0"
-            return "tips.seen.\(kind.rawValue).\(screen.rawValue).v\(resolvedVersion).r\(resetToken)"
+            return "tips.seen.\(kind.rawValue).\(screen.rawValue).v\(resolvedVersion)"
         }
+    }
+
+    private func legacyWhatsNewKey(for screen: TipsScreen, versionToken: String?) -> String? {
+        guard let resetToken = string(forKey: resetTokenKey) else { return nil }
+        let resolvedVersion = versionToken ?? "0"
+        return "tips.seen.\(TipsKind.whatsNew.rawValue).\(screen.rawValue).v\(resolvedVersion).r\(resetToken)"
     }
 
     private func ensureResetToken() -> String {
@@ -329,12 +343,27 @@ struct TipsAndHintsOverlayModifier: ViewModifier {
     var kind: TipsKind = .walkthrough
     var versionToken: String? = nil
 
+    @ObservedObject private var coordinator = TipsPresentationCoordinator.shared
     @State private var isPresented = false
-    @State private var didCheck = false
+    @State private var isVisible = false
+    @AppStorage(AppSettingsKeys.tipsHintsResetToken.rawValue) private var resetToken: String = ""
 
     func body(content: Content) -> some View {
         content
             .task { maybeShow() }
+            .onAppear {
+                isVisible = true
+                maybeShow()
+            }
+            .onDisappear { isVisible = false }
+            .onChange(of: resetToken) { _ in
+                maybeShow()
+            }
+            .onChange(of: coordinator.isPresenting) { presenting in
+                if !presenting {
+                    maybeShow()
+                }
+            }
             .sheet(isPresented: $isPresented, onDismiss: markSeenOnDismiss) {
                 if let payload = TipsCatalog.content(for: screen, kind: kind, versionToken: versionToken) {
                     TipsAndHintsSheet(content: payload, onContinue: dismiss)
@@ -343,9 +372,11 @@ struct TipsAndHintsOverlayModifier: ViewModifier {
     }
 
     private func maybeShow() {
-        guard !didCheck else { return }
-        didCheck = true
+        guard isVisible else { return }
+        guard !isPresented else { return }
+        guard !coordinator.isPresenting else { return }
         if TipsAndHintsStore.shared.shouldShowTips(for: screen, kind: kind, versionToken: versionToken) {
+            coordinator.isPresenting = true
             withAnimation(.easeInOut(duration: 0.2)) {
                 isPresented = true
             }
@@ -355,11 +386,19 @@ struct TipsAndHintsOverlayModifier: ViewModifier {
     private func dismiss() {
         TipsAndHintsStore.shared.markSeen(for: screen, kind: kind, versionToken: versionToken)
         isPresented = false
+        coordinator.isPresenting = false
     }
 
     private func markSeenOnDismiss() {
         TipsAndHintsStore.shared.markSeen(for: screen, kind: kind, versionToken: versionToken)
+        coordinator.isPresenting = false
     }
+}
+
+// MARK: - Tips Presentation Coordinator
+final class TipsPresentationCoordinator: ObservableObject {
+    static let shared = TipsPresentationCoordinator()
+    @Published var isPresenting = false
 }
 
 extension View {

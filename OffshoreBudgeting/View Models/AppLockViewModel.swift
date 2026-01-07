@@ -37,8 +37,6 @@ public final class AppLockViewModel: ObservableObject {
     /// Persisted user preference for enabling the lock.
     /// Toggle this in your Settings screen.
     @AppStorage("appLockEnabled") public var isLockEnabled: Bool = true
-    /// Persisted user preference for enabling biometrics when available.
-    @AppStorage("appLockUseBiometrics") public var useBiometrics: Bool = false
 
     // MARK: Dependencies
     private let biometricManager: BiometricAuthenticationManager
@@ -68,7 +66,7 @@ public final class AppLockViewModel: ObservableObject {
         isLocked = true
     }
 
-    /// Attempts to unlock via biometrics or device passcode, based on settings.
+    /// Attempts to unlock via device-owner authentication (biometrics or device passcode).
     /// Safe to call repeatedly; internal debounce prevents double prompts.
     /// - Parameter reason: Message for system prompt.
     public func attemptUnlockWithBiometrics(reason: String = "Unlock Offshore Budgeting") {
@@ -118,14 +116,11 @@ public final class AppLockViewModel: ObservableObject {
 
     // MARK: Presentation Helpers
     public var lockSubtitle: String {
-        if useBiometrics, canUseBiometricsNow {
-            return "Use \(biometricLabel)"
-        }
-        return "Use device passcode"
+        canUseBiometricsNow ? "Use \(biometricLabel)" : "Use device passcode"
     }
 
     public var lockIconName: String {
-        guard useBiometrics, canUseBiometricsNow else { return "lock.fill" }
+        guard canUseBiometricsNow else { return "lock.fill" }
         switch biometricManager.supportedBiometryType() {
         case .faceID: return "faceid"
         case .touchID: return "touchid"
@@ -162,11 +157,6 @@ public final class AppLockViewModel: ObservableObject {
     }
 
     private func preferredPolicy() -> LAPolicy {
-        guard useBiometrics else { return .deviceOwnerAuthentication }
-        var biometricError: BiometricError?
-        if biometricManager.canEvaluateBiometrics(errorOut: &biometricError) {
-            return .deviceOwnerAuthenticationWithBiometrics
-        }
         return .deviceOwnerAuthentication
     }
 

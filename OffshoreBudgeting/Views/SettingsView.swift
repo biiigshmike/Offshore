@@ -18,7 +18,6 @@ struct SettingsView: View {
     // MARK: State
     @StateObject private var vm = SettingsViewModel()
     @AppStorage("appLockEnabled") private var isLockEnabled: Bool = true
-    @AppStorage("appLockUseBiometrics") private var useBiometrics: Bool = false
     @State private var showResetAlert = false
     @State private var showMergeConfirm = false
     @State private var showForceReuploadConfirm = false
@@ -75,8 +74,8 @@ struct SettingsView: View {
                     PrivacySettingsView(
                         biometricName: biometricName,
                         biometricIconName: biometricIconName,
-                        isLockEnabled: $isLockEnabled,
-                        useBiometrics: $useBiometrics
+                        supportsBiometrics: supportsBiometrics,
+                        isLockEnabled: $isLockEnabled
                     )
                 case .notifications:
                     NotificationsSettingsView()
@@ -367,6 +366,10 @@ private extension SettingsView {
         return "lock"
     }
 
+    var supportsBiometrics: Bool {
+        biometricType != .none
+    }
+
     var appDisplayName: String {
         let info = Bundle.main.infoDictionary
         let name = info?["CFBundleDisplayName"] as? String
@@ -654,12 +657,13 @@ private struct GeneralSettingsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var vm: SettingsViewModel
     @Binding var showResetAlert: Bool
+    @State private var selectedBudgetPeriod: BudgetPeriod = .monthly
 
     var body: some View {
         List {
             Section {
                 Toggle("Confirm Before Deleting", isOn: $vm.confirmBeforeDelete)
-                Picker("Default Budget Period", selection: budgetPeriodBinding) {
+                Picker("Default Budget Period", selection: $selectedBudgetPeriod) {
                     ForEach(BudgetPeriod.selectableCases) { Text($0.displayName).tag($0) }
                 }
             }
@@ -714,6 +718,12 @@ private struct GeneralSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("General")
+        .onAppear {
+            selectedBudgetPeriod = WorkspaceService.shared.currentBudgetPeriod(in: viewContext)
+        }
+        .onChange(of: selectedBudgetPeriod) { newValue in
+            WorkspaceService.shared.setBudgetPeriod(newValue, in: viewContext)
+        }
     }
 
     @ViewBuilder
@@ -743,37 +753,28 @@ private struct GeneralSettingsView: View {
         }
     }
 
-    private var budgetPeriodBinding: Binding<BudgetPeriod> {
-        Binding(
-            get: { WorkspaceService.shared.currentBudgetPeriod(in: viewContext) },
-            set: { WorkspaceService.shared.setBudgetPeriod($0, in: viewContext) }
-        )
-    }
 }
 
 private struct PrivacySettingsView: View {
     let biometricName: String
     let biometricIconName: String
+    let supportsBiometrics: Bool
     @Binding var isLockEnabled: Bool
-    @Binding var useBiometrics: Bool
     @State private var isPasscodeAvailable: Bool = true
-    @State private var isBiometricsAvailable: Bool = true
     @State private var availabilityMessage: String? = nil
-    @State private var isRequestingBiometrics: Bool = false
+    @State private var isRequestingAppLock: Bool = false
 
     var body: some View {
-        List {
-            Section {
-                Toggle("Enable App Lock", isOn: $isLockEnabled)
-                    .disabled(!isPasscodeAvailable)
+        let footerText = supportsBiometrics
+            ? "Requires a device passcode. Use \(biometricName) when available."
+            : "Requires a device passcode to be set."
 
-                if isLockEnabled {
-                    Toggle("Use \(biometricName)", isOn: $useBiometrics)
-                        .disabled(!isBiometricsAvailable || isRequestingBiometrics)
-                        .opacity(isBiometricsAvailable ? 1 : 0.6)
-                }
+        return List {
+            Section {
+                Toggle("Use App Lock", isOn: $isLockEnabled)
+                    .disabled(!isPasscodeAvailable || isRequestingAppLock)
             } footer: {
-                Text("Requires a device passcode to be set.")
+                Text(footerText)
             }
             if let availabilityMessage {
                 Section {
@@ -794,15 +795,11 @@ private struct PrivacySettingsView: View {
             }
         }
         .task { refreshAvailability() }
-        .onChange(of: isLockEnabled) { newValue in
-            if !newValue {
-                useBiometrics = false
-            }
+        .onChange(of: isLockEnabled) { _ in
             refreshAvailability()
-        }
-        .onChange(of: useBiometrics) { newValue in
-            guard newValue else { return }
-            requestBiometricEnablement()
+            if isLockEnabled {
+                requestAppLockEnablementIfNeeded()
+            }
         }
     }
 
@@ -817,40 +814,31 @@ private struct PrivacySettingsView: View {
         } else {
             availabilityMessage = nil
         }
-
-        var biometricError: BiometricError?
-        let canUseBiometrics = BiometricAuthenticationManager.shared
-            .canEvaluateBiometrics(errorOut: &biometricError)
-        isBiometricsAvailable = canUseBiometrics
-        if !canUseBiometrics {
-            useBiometrics = false
-        }
     }
 
-    private func requestBiometricEnablement() {
-        if isRequestingBiometrics { return }
-        var biometricError: BiometricError?
-        let canUseBiometrics = BiometricAuthenticationManager.shared
-            .canEvaluateBiometrics(errorOut: &biometricError)
-        isBiometricsAvailable = canUseBiometrics
-        guard canUseBiometrics else {
-            useBiometrics = false
-            availabilityMessage = biometricError?.localizedDescription ?? "Biometrics are not available."
+    private func requestAppLockEnablementIfNeeded() {
+        if isRequestingAppLock { return }
+        var authError: BiometricError?
+        let canUseDeviceAuth = BiometricAuthenticationManager.shared
+            .canEvaluateDeviceOwnerAuthentication(errorOut: &authError)
+        guard canUseDeviceAuth else {
+            availabilityMessage = authError?.localizedDescription ?? "A device passcode is required to enable app lock."
+            isLockEnabled = false
             return
         }
 
-        isRequestingBiometrics = true
+        isRequestingAppLock = true
         BiometricAuthenticationManager.shared.authenticate(
-            reason: "Enable \(biometricName) for App Lock",
-            allowDevicePasscode: false
+            reason: "Use App Lock",
+            allowDevicePasscode: true
         ) { result in
-            isRequestingBiometrics = false
+            isRequestingAppLock = false
             switch result {
             case .success:
                 availabilityMessage = nil
             case .failure(let error):
                 availabilityMessage = error.localizedDescription
-                useBiometrics = false
+                isLockEnabled = false
             }
         }
     }

@@ -92,7 +92,8 @@ struct CardsView: View {
                                             onTap: { /* handled by NavigationLink */ },
                                             isInteractive: false,
                                             enableMotionShine: true,
-                                            showsBaseShadow: false
+                                            showsBaseShadow: false,
+                                            showsEffectOverlay: true
                                         )
                                         .frame(maxWidth: usesSingleColumn ? .infinity : nil)
                                         .frame(minHeight: cardHeight)
@@ -123,8 +124,8 @@ struct CardsView: View {
         .toolbar { toolbarContent }
         .onAppear { vm.startIfNeeded() }
         .sheet(isPresented: $isPresentingAddCard) {
-            AddCardFormView { newName, theme in
-                Task { await vm.addCard(name: newName, theme: theme) }
+            AddCardFormView { newName, theme, effect in
+                Task { await vm.addCard(name: newName, theme: theme, effect: effect) }
             }
         }
         .onChange(of: detailCard) { newValue in
@@ -155,8 +156,8 @@ struct CardsView: View {
             )
         }
         .sheet(item: $editingCard) { card in
-            AddCardFormView(mode: .edit, editingCard: card) { name, theme in
-                Task { await vm.edit(card: card, name: name, theme: theme) }
+            AddCardFormView(mode: .edit, editingCard: card) { name, theme, effect in
+                Task { await vm.edit(card: card, name: name, theme: theme, effect: effect) }
             }
         }
     }

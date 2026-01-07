@@ -169,11 +169,18 @@ final class CardsViewModel: ObservableObject {
                     return .graphite
                 }()
 
+                let effect: CardEffect = {
+                    guard managedObject.entity.attributesByName["effect"] != nil else { return .plastic }
+                    let raw = managedObject.value(forKey: "effect") as? String
+                    return CardEffect.fromStoredValue(raw)
+                }()
+
                 return CardItem(
                     objectID: managedObject.objectID,
                     uuid: uuid,
                     name: managedObject.name ?? "Untitled",
-                    theme: theme
+                    theme: theme,
+                    effect: effect
                 )
             }
 
@@ -220,11 +227,12 @@ final class CardsViewModel: ObservableObject {
     }
 
     // MARK: addCard(name:theme:)
-    /// Creates a new card and persists the user's chosen theme.
+    /// Creates a new card and persists the user's chosen theme and effect.
     /// - Parameters:
     ///   - name: Display name.
     ///   - theme: Initial card theme.
-    func addCard(name: String, theme: CardTheme) async {
+    ///   - effect: Initial card effect.
+    func addCard(name: String, theme: CardTheme, effect: CardEffect) async {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             self.alert = CardsViewAlert(kind: .error(message: "Please enter a card name."))
@@ -234,7 +242,7 @@ final class CardsViewModel: ObservableObject {
         do {
             let created = try cardService.createCard(name: trimmed, ensureUniqueName: true)
             // Persist theme to Core Data so the FRC snapshot includes it atomically
-            try cardService.updateCard(created, name: nil, theme: theme)
+            try cardService.updateCard(created, name: nil, theme: theme, effect: effect)
             // Force a refresh to ensure the newly-inserted row picks up the stored theme
             await refresh()
         } catch {
@@ -293,12 +301,13 @@ final class CardsViewModel: ObservableObject {
     }
 
     // MARK: edit(card:name:theme:)
-    /// Updates a card's name and/or theme. Triggers immediate UI refresh if only theme changes.
+    /// Updates a card's name/theme/effect. Triggers immediate UI refresh if only theme/effect changes.
     /// - Parameters:
     ///   - card: The UI card item being edited.
     ///   - name: New display name.
     ///   - theme: New theme selection.
-    func edit(card: CardItem, name: String, theme: CardTheme) async {
+    ///   - effect: New effect selection.
+    func edit(card: CardItem, name: String, theme: CardTheme, effect: CardEffect) async {
         do {
             var didRename = false
             if let uuid = card.uuid, let managed = try cardService.findCard(byID: uuid) {
@@ -307,16 +316,16 @@ final class CardsViewModel: ObservableObject {
                     didRename = true
                 }
                 // Persist theme on Core Data
-                try cardService.updateCard(managed, name: nil, theme: theme)
+                try cardService.updateCard(managed, name: nil, theme: theme, effect: effect)
             } else if let oid = card.objectID, let managed = try? CoreDataService.shared.viewContext.existingObject(with: oid) as? Card {
                 if (managed.value(forKey: "name") as? String) != name {
                     try cardService.renameCard(managed, to: name)
                     didRename = true
                 }
                 // Persist theme on Core Data (uuid may be nil here)
-                try cardService.updateCard(managed, name: nil, theme: theme)
+                try cardService.updateCard(managed, name: nil, theme: theme, effect: effect)
             }
-            // If only the theme changed (no rename), refresh UI promptly
+            // If only the theme/effect changed (no rename), refresh UI promptly
             if !didRename { reapplyThemes() }
         } catch {
             self.alert = CardsViewAlert(kind: .error(message: error.localizedDescription))
@@ -324,7 +333,7 @@ final class CardsViewModel: ObservableObject {
     }
 
     // MARK: reapplyThemes()
-    /// Re-reads the theme for each currently loaded item from Core Data
+    /// Re-reads the theme/effect for each currently loaded item from Core Data
     /// and emits a new `.loaded` state so the grid re-renders immediately.
     private func reapplyThemes() {
         guard case .loaded(let items) = state else { return }
@@ -339,6 +348,14 @@ final class CardsViewModel: ObservableObject {
                 copy.theme = t
             } else {
                 copy.theme = .graphite
+            }
+            if let oid = item.objectID,
+               let managed = try? ctx.existingObject(with: oid) as? Card,
+               managed.entity.attributesByName["effect"] != nil {
+                let raw = managed.value(forKey: "effect") as? String
+                copy.effect = CardEffect.fromStoredValue(raw)
+            } else {
+                copy.effect = .plastic
             }
             return copy
         }

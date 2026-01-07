@@ -87,9 +87,14 @@ final class AddBudgetViewModel: ObservableObject {
     /// Generates a default budget name based on the period implied by the
     /// provided start and end dates.
     private static func makeDefaultName(startDate: Date, endDate: Date) -> String {
-        let period = BudgetPeriod.selectableCases.first { $0.matches(startDate: startDate, endDate: endDate) } ?? .custom
-        let title = period.title(for: startDate)
-        return title.isEmpty ? "\(period.displayName) Budget" : "\(title) Budget"
+        if let period = BudgetPeriod.selectableCases.first(where: { $0.matches(startDate: startDate, endDate: endDate) }) {
+            return period.title(for: startDate)
+        }
+
+        let formatter = DateIntervalFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: startDate, to: endDate)
     }
 
     // MARK: Validation

@@ -8,6 +8,29 @@
 import Foundation
 import CoreData
 
+// MARK: - CardEffect
+/// Surface treatment applied to a card (stored in Core Data).
+enum CardEffect: String, CaseIterable, Identifiable, Codable {
+    case plastic
+    case metal
+    case holographic
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .plastic: return "Plastic"
+        case .metal: return "Metal"
+        case .holographic: return "Holographic"
+        }
+    }
+
+    static func fromStoredValue(_ raw: String?) -> CardEffect {
+        guard let raw else { return .plastic }
+        return CardEffect(rawValue: raw.lowercased()) ?? .plastic
+    }
+}
+
 // MARK: - CardItem (UI Model)
 /// Lightweight UI model for card tiles, lists, and pickers.
 /// - Identity:
@@ -26,6 +49,7 @@ struct CardItem: Identifiable, Hashable {
     // MARK: Display
     var name: String
     var theme: CardTheme
+    var effect: CardEffect = .plastic
     /// Optional balance/total for display (e.g., aggregated spend in the period).
     var balance: Double? = nil
 

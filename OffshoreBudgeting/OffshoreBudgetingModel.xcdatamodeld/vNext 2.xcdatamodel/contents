@@ -82,6 +82,7 @@
     <entity name="Workspace" representedClassName="Workspace" syncable="YES" codeGenerationType="class">
         <attribute name="budgetPeriod" optional="YES" attributeType="String"/>
         <attribute name="budgetPeriodUpdatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="color" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="isCloud" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="name" optional="YES" attributeType="String"/>

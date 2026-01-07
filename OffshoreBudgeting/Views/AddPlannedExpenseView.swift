@@ -366,11 +366,11 @@ struct AddPlannedExpenseView: View {
         .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         // Add Card sheet for empty state
         .sheet(isPresented: $isPresentingAddCard) {
-            AddCardFormView { newName, selectedTheme in
+            AddCardFormView { newName, selectedTheme, selectedEffect in
                 do {
                     let service = CardService()
                     let card = try service.createCard(name: newName)
-                    try service.updateCard(card, name: nil, theme: selectedTheme)
+                    try service.updateCard(card, name: nil, theme: selectedTheme, effect: selectedEffect)
                     // Select the new card immediately
                     vm.selectedCardID = card.objectID
                 } catch {

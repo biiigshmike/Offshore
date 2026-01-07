@@ -21,8 +21,8 @@ extension CardItem {
     /// - Parameters:
     ///   - managedCard: The Core Data card object to bridge.
     /// - Discussion:
-    ///   Uses the per-card theme persisted on the `Card` managed object. If missing,
-    ///   falls back to `.graphite` to guarantee a valid UI.
+    ///   Uses the per-card theme and effect persisted on the `Card` managed object. If missing,
+    ///   falls back to `.graphite` and `.plastic` to guarantee a valid UI.
     @MainActor
     init(from managedCard: Card) {
 
@@ -40,12 +40,19 @@ extension CardItem {
             return .graphite
         }()
 
+        let effect: CardEffect = {
+            guard managedCard.entity.attributesByName["effect"] != nil else { return .plastic }
+            let raw = managedCard.value(forKey: "effect") as? String
+            return CardEffect.fromStoredValue(raw)
+        }()
+
         // Use the memberwise initializer of `CardItem`.
         self.init(
             objectID: managedCard.objectID,
             uuid: cardUUID,
             name: cardName,
             theme: theme,
+            effect: effect,
             balance: nil
         )
     }

@@ -114,6 +114,12 @@ struct OffshoreBudgetingApp: App {
                     platformCapabilities: platformCapabilities
                 )
 
+                if appLockViewModel.isLockEnabled && !didTriggerInitialAppLock {
+                    didTriggerInitialAppLock = true
+                    appLockViewModel.lock()
+                    appLockViewModel.attemptUnlockWithBiometrics()
+                }
+
                 // Register for remote notifications so CloudKit can push changes.
                 UIApplication.shared.registerForRemoteNotifications()
                 Task { @MainActor in
@@ -144,14 +150,6 @@ struct OffshoreBudgetingApp: App {
                     #endif
                 }
             }
-            .onChange(of: homeContentReady) { isReady in
-                guard isReady else { return }
-                guard !didTriggerInitialAppLock else { return }
-                guard appLockViewModel.isLockEnabled else { return }
-                didTriggerInitialAppLock = true
-                appLockViewModel.lock()
-                appLockViewModel.attemptUnlockWithBiometrics()
-            }
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .active {
                     CloudSyncAccelerator.shared.nudgeOnForeground()
@@ -159,7 +157,11 @@ struct OffshoreBudgetingApp: App {
                     Task { await LocalNotificationScheduler.shared.refreshAll() }
 
                     // Foreground return: prompt once if still locked.
-                    if appLockViewModel.isLockEnabled && didTriggerInitialAppLock && appLockViewModel.isLocked {
+                    if appLockViewModel.isLockEnabled
+                        && didTriggerInitialAppLock
+                        && appLockViewModel.isLocked
+                        && !appLockViewModel.isAuthenticating
+                    {
                         appLockViewModel.attemptUnlockWithBiometrics()
                     }
                 } else if newPhase == .background {

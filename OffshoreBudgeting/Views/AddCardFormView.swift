@@ -5,6 +5,7 @@
 //  Cross-platform Add/Edit Card form.
 //  - Live preview of the card
 //  - Name text field
+//  - Effect picker
 //  - Theme grid picker
 //  - Save/Cancel actions (standardized via EditSheetScaffold)
 //
@@ -37,7 +38,8 @@ struct AddCardFormView: View {
     /// - Parameters:
     ///   - name: The card name the user entered.
     ///   - theme: The selected theme.
-    var onSave: (_ name: String, _ theme: CardTheme) -> Void
+    ///   - effect: The selected effect.
+    var onSave: (_ name: String, _ theme: CardTheme, _ effect: CardEffect) -> Void
 
     // MARK: Init
     /// Designated initializer.
@@ -48,7 +50,7 @@ struct AddCardFormView: View {
     init(
         mode: Mode = .add,
         editingCard: CardItem? = nil,
-        onSave: @escaping (_ name: String, _ theme: CardTheme) -> Void
+        onSave: @escaping (_ name: String, _ theme: CardTheme, _ effect: CardEffect) -> Void
     ) {
         self.mode = mode
         self.editingCard = editingCard
@@ -56,11 +58,13 @@ struct AddCardFormView: View {
         // Prefill local state based on editing mode
         _cardName = State(initialValue: editingCard?.name ?? "")
         _selectedTheme = State(initialValue: editingCard?.theme ?? .rose)
+        _selectedEffect = State(initialValue: editingCard?.effect ?? .plastic)
     }
 
     // MARK: Local State
     @State private var cardName: String = ""
     @State private var selectedTheme: CardTheme = .rose
+    @State private var selectedEffect: CardEffect = .plastic
     @State private var saveErrorMessage: String?
 
     // MARK: Computed
@@ -80,7 +84,8 @@ struct AddCardFormView: View {
             objectID: nil,
             uuid: nil,
             name: trimmedName.isEmpty ? "New Card" : trimmedName,
-            theme: selectedTheme
+            theme: selectedTheme,
+            effect: selectedEffect
         )
     }
 
@@ -94,7 +99,7 @@ struct AddCardFormView: View {
 
             // ---- Preview
             Section {
-                CardTileView(card: previewItem, enableMotionShine: true)
+                CardTileView(card: previewItem, enableMotionShine: true, showsEffectOverlay: true)
                     .padding(.vertical, DS.Spacing.m)
             } header: {
                 // Gray, ALL CAPS, not bold — match Add Budget
@@ -133,6 +138,23 @@ struct AddCardFormView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
                 Text("Name")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+            }
+
+            // ---- Effect
+            Section {
+                let columns = [GridItem(.adaptive(minimum: 120), spacing: DS.Spacing.m)]
+                LazyVGrid(columns: columns, spacing: DS.Spacing.m) {
+                    ForEach(CardEffect.allCases) { effect in
+                        EffectSwatch(effect: effect, theme: selectedTheme, isSelected: effect == selectedEffect)
+                            .onTapGesture { selectedEffect = effect }
+                    }
+                }
+                .padding(.vertical, DS.Spacing.s)
+            } header: {
+                Text("Effect")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
@@ -199,10 +221,59 @@ struct AddCardFormView: View {
             saveErrorMessage = "Please enter a card name."
             return false
         }
-        onSave(trimmedName, selectedTheme)
+        onSave(trimmedName, selectedTheme, selectedEffect)
         // iOS: nicely resign keyboard for a neat dismissal experience.
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         return true
+    }
+}
+
+// MARK: - EffectSwatch
+/// Small preview of an effect used in the picker.
+/// - Parameters:
+///   - effect: The effect represented by the swatch.
+///   - theme: Background theme used behind the effect overlay.
+///   - isSelected: Whether the swatch is currently selected; adds a glow ring if true.
+private struct EffectSwatch: View {
+    let effect: CardEffect
+    let theme: CardTheme
+    let isSelected: Bool
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    @ScaledMetric(relativeTo: .body) private var swatchMinHeight: CGFloat = 72
+
+    var body: some View {
+        ZStack {
+            ZStack {
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .fill(theme.backgroundStyle(for: themeManager.selectedTheme))
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .fill(theme.adaptiveOverlay(for: colorScheme, isHighContrast: colorSchemeContrast == .increased))
+                theme
+                    .patternOverlay(cornerRadius: DS.Radius.card)
+                    .blendMode(.overlay)
+                CardMaterialBackground(theme: theme, effect: effect, cornerRadius: DS.Radius.card)
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+            }
+            .frame(minHeight: swatchMinHeight)
+
+            Text(effect.displayName)
+                .font(.headline)
+                .foregroundStyle(UBTypography.cardTitleStatic)
+                .ub_cardTitleShadow()
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.card)
+                .stroke(isSelected ? theme.glowColor : Color.primary.opacity(0.15), lineWidth: isSelected ? 2 : 1)
+                .shadow(color: theme.glowColor.opacity(isSelected ? 0.55 : 0), radius: isSelected ? 12 : 0)
+                .shadow(color: theme.glowColor.opacity(isSelected ? 0.30 : 0), radius: isSelected ? 24 : 0)
+                .shadow(color: theme.glowColor.opacity(isSelected ? 0.18 : 0), radius: isSelected ? 36 : 0)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(effect.displayName) effect"))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

@@ -33,18 +33,18 @@ public struct AppLockView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                Image(systemName: viewModel.lockIconName)
-                    .font(.system(size: 44, weight: .regular, design: .rounded))
-                    .accessibilityHidden(true)
+//                Image(systemName: viewModel.lockIconName)
+//                    .font(.system(size: 44, weight: .regular, design: .rounded))
+//                    .accessibilityHidden(true)
+//
+//                Text("Offshore Budgeting is Locked")
+//                    .font(.title3)
+//                    .multilineTextAlignment(.center)
 
-                Text("Offshore Budgeting is Locked")
-                    .font(.title3)
-                    .multilineTextAlignment(.center)
-
-                if viewModel.isAuthenticating {
-                    ProgressView("Authenticating…")
-                        .font(.footnote)
-                }
+//                if viewModel.isAuthenticating {
+//                    ProgressView("Authenticating…")
+//                        .font(.footnote)
+//                }
 
                 if let error = viewModel.lastErrorMessage {
                     Text(error)

@@ -155,14 +155,16 @@ final class CardService {
     }
     
     // MARK: updateCard(_:name:)
-    /// Update multiple fields of a card. (Name and theme.)
+    /// Update multiple fields of a card. (Name, theme, effect.)
     /// - Parameters:
     ///   - card: The managed `Card` instance to update.
     ///   - name: Optional new name.
     ///   - theme: Optional new theme to persist.
-    func updateCard(_ card: Card, name: String? = nil, theme: CardTheme? = nil) throws {
+    ///   - effect: Optional new effect to persist.
+    func updateCard(_ card: Card, name: String? = nil, theme: CardTheme? = nil, effect: CardEffect? = nil) throws {
         if let name { card.name = name }
         if let theme { card.setValue(theme.rawValue, forKey: "theme") }
+        if let effect { card.setValue(effect.rawValue, forKey: "effect") }
         try cardRepo.saveIfNeeded()
     }
     

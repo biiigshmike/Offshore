@@ -79,8 +79,8 @@ struct CardDetailView: View {
             AddCardFormView(
                 mode: .edit,
                 editingCard: cardSnapshot
-            ) { name, theme in
-                handleCardEdit(name: name, theme: theme)
+            ) { name, theme, effect in
+                handleCardEdit(name: name, theme: theme, effect: effect)
             }
         }
         // Add Variable (Unplanned) Expense sheet for this card
@@ -209,7 +209,7 @@ struct CardDetailView: View {
     private func detailsList(cardMaxWidth: CGFloat?) -> some View {
         List {
             Section {
-                CardTileView(card: cardSnapshot, enableMotionShine: true)
+                CardTileView(card: cardSnapshot, enableMotionShine: true, showsEffectOverlay: true)
                     .frame(maxWidth: cardMaxWidth)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, initialHeaderTopPadding)
@@ -377,7 +377,7 @@ struct CardDetailView: View {
         Task { await viewModel.load() }
     }
 
-    private func handleCardEdit(name: String, theme: CardTheme) {
+    private func handleCardEdit(name: String, theme: CardTheme, effect: CardEffect) {
         let service = CardService()
 
         do {
@@ -391,10 +391,11 @@ struct CardDetailView: View {
             }
 
             if let managedCard {
-                // Persist name and theme to Core Data
-                try service.updateCard(managedCard, name: name, theme: theme)
+                // Persist name, theme, and effect to Core Data
+                try service.updateCard(managedCard, name: name, theme: theme, effect: effect)
                 cardSnapshot.name = name
                 cardSnapshot.theme = theme
+                cardSnapshot.effect = effect
                 refreshCardDetails()
             }
         } catch {

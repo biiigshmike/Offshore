@@ -5,6 +5,7 @@ import CoreData
 @MainActor
 final class WorkspaceService {
     static let shared = WorkspaceService()
+    static let defaultNewWorkspaceColorHex = "#4E9CFF"
 
     private init() {}
 
@@ -121,6 +122,14 @@ extension WorkspaceService {
         }
         if ws.entity.attributesByName.keys.contains("isCloud") && (ws.value(forKey: "isCloud") as? Bool) == nil {
             ws.setValue(cloudEnabled, forKey: "isCloud")
+        }
+        if ws.entity.attributesByName.keys.contains("color"),
+           let existing = ws.value(forKey: "color") as? String,
+           existing.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            ws.setValue(defaultWorkspaceColorHex(for: id), forKey: "color")
+        } else if ws.entity.attributesByName.keys.contains("color"),
+                  (ws.value(forKey: "color") as? String) == nil {
+            ws.setValue(defaultWorkspaceColorHex(for: id), forKey: "color")
         }
         try? context.save()
         return ws
@@ -250,6 +259,9 @@ extension WorkspaceService {
         if ws.entity.attributesByName.keys.contains("isCloud") {
             ws.isCloud = cloudEnabled
         }
+        if ws.entity.attributesByName.keys.contains("color") {
+            ws.setValue(Self.defaultNewWorkspaceColorHex, forKey: "color")
+        }
         try? context.save()
         return ws
     }
@@ -305,6 +317,17 @@ extension WorkspaceService {
     func isPersonalWorkspace(_ workspace: Workspace) -> Bool {
         guard let id = workspace.id else { return false }
         return id == seedWorkspaceID(for: .personal)
+    }
+
+    func colorHex(for workspace: Workspace) -> String {
+        if let color = workspace.value(forKey: "color") as? String,
+           !color.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return color
+        }
+        if let id = workspace.id {
+            return defaultWorkspaceColorHex(for: id)
+        }
+        return Self.defaultNewWorkspaceColorHex
     }
 
     func isWorkspaceNameAvailable(_ name: String, excluding workspace: Workspace?, in context: NSManagedObjectContext) -> Bool {
@@ -497,17 +520,47 @@ private extension WorkspaceService {
         return "Profile"
     }
 
+    func seedColorHex(for seed: WorkspaceSeed) -> String {
+        switch seed {
+        case .personal:
+            return "#6EB0E7"
+        case .work:
+            return "#152F4B"
+        case .education:
+            return "#D7C893"
+        }
+    }
+
+    func defaultWorkspaceColorHex(for id: UUID) -> String {
+        for seed in WorkspaceSeed.allCases where seedWorkspaceID(for: seed) == id {
+            return seedColorHex(for: seed)
+        }
+        return Self.defaultNewWorkspaceColorHex
+    }
+
+    func applySeedColorIfNeeded(_ workspace: Workspace, seed: WorkspaceSeed) {
+        guard workspace.entity.attributesByName.keys.contains("color") else { return }
+        let existing = (workspace.value(forKey: "color") as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard existing.isEmpty else { return }
+        workspace.setValue(seedColorHex(for: seed), forKey: "color")
+    }
+
     func ensureDefaultWorkspaces(in context: NSManagedObjectContext) -> [Workspace] {
         var existing = fetchAllWorkspaces(in: context)
 
         for seed in WorkspaceSeed.allCases {
             let seedID = seedWorkspaceID(for: seed)
-            if existing.contains(where: { $0.id == seedID }) { continue }
+            if let matched = existing.first(where: { $0.id == seedID }) {
+                applySeedColorIfNeeded(matched, seed: seed)
+                continue
+            }
 
             if let byName = existing.first(where: { ($0.name ?? "").localizedCaseInsensitiveCompare(seed.name) == .orderedSame }) {
                 if let id = byName.id {
                     persistSeedWorkspaceID(id, for: seed)
                 }
+                applySeedColorIfNeeded(byName, seed: seed)
                 continue
             }
 
@@ -516,6 +569,9 @@ private extension WorkspaceService {
             ws.name = seed.name
             if ws.entity.attributesByName.keys.contains("isCloud") {
                 ws.isCloud = cloudEnabled
+            }
+            if ws.entity.attributesByName.keys.contains("color") {
+                ws.setValue(seedColorHex(for: seed), forKey: "color")
             }
             existing.append(ws)
         }

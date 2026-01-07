@@ -229,6 +229,7 @@ struct AddBudgetView: View {
             .listStyle(.insetGrouped)
             .scrollIndicators(.hidden)
             .navigationTitle(vm.isEditing ? "Edit Budget" : "Add Budget")
+            .ub_windowTitle(vm.isEditing ? "Edit Budget" : "Add Budget")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

@@ -63,6 +63,7 @@ struct PresetBudgetAssignmentSheet: View {
                 }
             }
             .navigationTitle("Assign to Budgets")
+            .ub_windowTitle("Assign to Budgets")
             .toolbar {
                 // MARK: Toolbar Buttons
                 // Cross-platform placements:

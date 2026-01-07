@@ -180,6 +180,7 @@ struct AddCardFormView: View {
             .listStyle(.insetGrouped)
             .scrollIndicators(.hidden)
             .navigationTitle(mode == .add ? "Add Card" : "Edit Card")
+            .ub_windowTitle(mode == .add ? "Add Card" : "Edit Card")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

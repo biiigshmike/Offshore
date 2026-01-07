@@ -32,6 +32,7 @@ struct AddIncomeFormView: View {
         navigationContainer {
             formContent
                 .navigationTitle(viewModel.isEditing ? "Edit Income" : "Add Income")
+                .ub_windowTitle(viewModel.isEditing ? "Edit Income" : "Add Income")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }

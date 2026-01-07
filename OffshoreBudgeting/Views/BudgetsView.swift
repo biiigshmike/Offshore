@@ -23,6 +23,7 @@ struct BudgetsView: View {
     var body: some View {
         content
             .navigationTitle("Budgets")
+            .ub_windowTitle("Budgets")
             .toolbar { toolbarContent }
             .navigationDestination(for: NSManagedObjectID.self) { budgetID in
                 BudgetDetailsView(budgetID: budgetID)

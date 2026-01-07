@@ -49,6 +49,7 @@ struct SettingsView: View {
         settingsList
             .listStyle(.insetGrouped)
             .navigationTitle("Settings")
+            .ub_windowTitle("Settings")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     WorkspaceMenuButton()
@@ -63,13 +64,16 @@ struct SettingsView: View {
                         appStoreURL: appStoreURL,
                         developerURL: developerURL
                     )
+                    .ub_windowTitle("About")
                 case .help:
                     HelpView(wrapsInNavigation: false)
+                        .ub_windowTitle("Help")
                 case .general:
                     GeneralSettingsView(
                         vm: vm,
                         showResetAlert: $showResetAlert
                     )
+                    .ub_windowTitle("General")
                 case .privacy:
                     PrivacySettingsView(
                         biometricName: biometricName,
@@ -77,8 +81,10 @@ struct SettingsView: View {
                         supportsBiometrics: supportsBiometrics,
                         isLockEnabled: $isLockEnabled
                     )
+                    .ub_windowTitle("Privacy")
                 case .notifications:
                     NotificationsSettingsView()
+                        .ub_windowTitle("Notifications")
                 case .icloud:
                     ICloudSettingsView(
                         cloudToggle: cloudToggleBinding,
@@ -87,12 +93,15 @@ struct SettingsView: View {
                         isReconfiguringStores: isReconfiguringStores,
                         onForceRefresh: { showForceReuploadConfirm = true }
                     )
+                    .ub_windowTitle("iCloud")
                 case .categories:
                     ExpenseCategoryManagerView(wrapsInNavigation: false)
                         .environment(\.managedObjectContext, viewContext)
+                        .ub_windowTitle("Categories")
                 case .presets:
                     PresetsView()
                         .environment(\.managedObjectContext, viewContext)
+                        .ub_windowTitle("Presets")
                 }
             }
             .task { await cloudDiag.refresh() }
@@ -578,6 +587,7 @@ private struct AppInfoView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("About")
+        .ub_windowTitle("About")
     }
 
     private var appVersionLine: String {
@@ -613,6 +623,7 @@ private struct ReleaseLogsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Release Logs")
+        .ub_windowTitle("Release Logs")
     }
 
     private func releaseTitle(for versionToken: String) -> String {
@@ -718,6 +729,7 @@ private struct GeneralSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("General")
+        .ub_windowTitle("General")
         .onAppear {
             selectedBudgetPeriod = WorkspaceService.shared.currentBudgetPeriod(in: viewContext)
         }
@@ -786,6 +798,7 @@ private struct PrivacySettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Privacy")
+        .ub_windowTitle("Privacy")
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 8) {
@@ -890,6 +903,7 @@ private struct NotificationsSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Notifications")
+        .ub_windowTitle("Notifications")
         .task { await refreshAuthorizationStatus() }
         .onChange(of: enableDailyReminder) { _ in handleReminderToggleChange() }
         .onChange(of: enablePlannedIncomeReminder) { _ in handleReminderToggleChange() }
@@ -1094,6 +1108,7 @@ private struct ICloudSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("iCloud")
+        .ub_windowTitle("iCloud")
     }
 
     @ViewBuilder

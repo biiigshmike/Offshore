@@ -47,6 +47,7 @@ struct ManageBudgetPresetsSheet: View {
                 }
             }
             .navigationTitle("Budget Presets")
+            .ub_windowTitle("Budget Presets")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done", action: dismissAndComplete)

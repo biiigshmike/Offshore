@@ -39,6 +39,7 @@ struct ManageBudgetCardsSheet: View {
                 }
             }
             .navigationTitle("Manage Cards")
+            .ub_windowTitle("Manage Cards")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss(); onDone() } }
             }

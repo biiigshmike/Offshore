@@ -70,6 +70,7 @@ struct AddUnplannedExpenseView: View {
         navigationContainer {
             formContent
                 .navigationTitle(vm.isEditing ? "Edit Variable Expense" : "Add Variable Expense")
+                .ub_windowTitle(vm.isEditing ? "Edit Variable Expense" : "Add Variable Expense")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") {

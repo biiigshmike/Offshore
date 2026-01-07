@@ -80,6 +80,7 @@ struct PresetsView: View {
             }
         }
         .navigationTitle("Presets")
+        .ub_windowTitle("Presets")
         .toolbar { toolbarContent }
         .onAppear { vm.startIfNeeded(using: viewContext) }
         .refreshable {

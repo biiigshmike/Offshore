@@ -155,6 +155,7 @@ struct IncomeEditorView: View {
             .listStyle(.insetGrouped)
             .scrollIndicators(.hidden)
             .navigationTitle(titleText)
+            .ub_windowTitle(titleText)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

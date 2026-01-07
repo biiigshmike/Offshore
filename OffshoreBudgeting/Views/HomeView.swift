@@ -455,6 +455,7 @@ struct HomeView: View {
             listContent
         }
         .navigationTitle("Home")
+        .ub_windowTitle("Home")
         .refreshable { await vm.refresh() }
         .task { await onAppearTask() }
         .onChange(of: vm.period) { _ in syncPickers(with: vm.currentDateRange) }
@@ -488,6 +489,7 @@ struct HomeView: View {
             } else {
                 Color.clear
                     .navigationTitle(route.title)
+                    .ub_windowTitle(route.title)
             }
         }
         .navigationDestination(for: NextPlannedRoute.self) { route in
@@ -2480,6 +2482,7 @@ private struct MetricDetailView: View {
     var body: some View {
         content
             .navigationTitle(title)
+            .ub_windowTitle(title)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 if isAccessibilitySize {
@@ -2850,9 +2853,9 @@ private struct MetricDetailView: View {
         return VStack(alignment: .leading, spacing: 16) {
             savingsChart(points: savingsPoints)
             VStack(alignment: .leading, spacing: 8) {
+                metricRow(label: "Planned Income", value: formatCurrency(outlook.remainingIncome))
                 metricRow(label: "Projected Savings", value: formatCurrency(projected))
                 metricRow(label: "Actual Savings", value: formatCurrency(actualSavings))
-                metricRow(label: "Remaining Income", value: formatCurrency(outlook.remainingIncome))
             }
         }
     }

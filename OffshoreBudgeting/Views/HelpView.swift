@@ -30,17 +30,20 @@ struct HelpView: View {
                     NavigationStack {
                         helpMenu
                             .navigationTitle("Help")
+                            .ub_windowTitle("Help")
                     }
                 } else {
                     NavigationView {
                         helpMenu
                             .navigationBarTitle("Help")
+                            .ub_windowTitle("Help")
                     }
                     .navigationViewStyle(StackNavigationViewStyle())
                 }
             } else {
                 helpMenu
                     .navigationTitle("Help")
+                    .ub_windowTitle("Help")
             }
         }
         .ub_navigationBackground(
@@ -127,18 +130,25 @@ struct HelpView: View {
             switch route {
             case .intro:
                 intro
+                    .ub_windowTitle("Introduction")
             case .home:
                 home
+                    .ub_windowTitle("Home")
             case .budgets:
                 budgets
+                    .ub_windowTitle("Budgets")
             case .income:
                 income
+                    .ub_windowTitle("Income")
             case .cards:
                 cards
+                    .ub_windowTitle("Cards")
             case .presets:
                 presets
+                    .ub_windowTitle("Presets")
             case .settings:
                 settings
+                    .ub_windowTitle("Settings")
             }
         }
         .alert("Repeat Onboarding?", isPresented: $showOnboardingAlert) {
@@ -208,6 +218,7 @@ struct HelpView: View {
             }
             .padding()
             .navigationTitle("Introduction")
+            .ub_windowTitle("Introduction")
         }
     }
 
@@ -257,6 +268,7 @@ struct HelpView: View {
             }
             .padding()
             .navigationTitle("Budgets")
+            .ub_windowTitle("Budgets")
         }
     }
 
@@ -276,7 +288,7 @@ struct HelpView: View {
                 Text("Home is made of widgets. Tap any widget to open its detail page.")
                 Text("• Income: shows Actual vs Planned income, and the percent received (actual versus planned).")
                 Text("• Expense to Income: expenses = planned expenses actual amount + variable expenses amount. Shows % of planned and % of received income.")
-                Text("• Savings Outlook: projected savings = actual savings + remaining income - remaining planned expenses.")
+                Text("• Savings Outlook: projected savings = actual savings + planned income - remaining planned expenses.")
                 Text("• Next Planned Expense: next upcoming planned expense with planned and actual values.")
                 Text("• Category Spotlight: top categories by total spend (planned actual + variable).")
                 Text("• Day of Week Spend: spend totals grouped by day in the current range.")
@@ -306,6 +318,7 @@ struct HelpView: View {
             }
             .padding()
             .navigationTitle("Home")
+            .ub_windowTitle("Home")
         }
     }
 
@@ -343,6 +356,7 @@ struct HelpView: View {
             }
             .padding()
             .navigationTitle("Income")
+            .ub_windowTitle("Income")
         }
     }
 
@@ -379,6 +393,7 @@ struct HelpView: View {
             }
             .padding()
             .navigationTitle("Cards")
+            .ub_windowTitle("Cards")
         }
     }
 
@@ -407,6 +422,7 @@ struct HelpView: View {
             }
             .padding()
             .navigationTitle("Presets")
+            .ub_windowTitle("Presets")
         }
     }
 
@@ -441,6 +457,7 @@ struct HelpView: View {
             }
             .padding()
             .navigationTitle("Settings")
+            .ub_windowTitle("Settings")
         }
     }
 

@@ -31,6 +31,7 @@ final class ExpenseImportViewModel: ObservableObject {
     enum ImportBucket: Equatable {
         case ready
         case possible
+        case possibleDuplicate
         case needsMoreData
         case payments
         case credits
@@ -56,6 +57,7 @@ final class ExpenseImportViewModel: ObservableObject {
         var importKind: ImportKind
         var sourceLine: Int
         var initialBucket: ImportBucket
+        var isPossibleDuplicate: Bool
 
         var amountValue: Double? {
             ExpenseImportViewModel.parseAmount(amountText)
@@ -123,7 +125,12 @@ final class ExpenseImportViewModel: ObservableObject {
 
         do {
             let parsedRows = try parseCSVFile(at: fileURL)
-            rows = applyCategoryMatching(to: parsedRows)
+            var updated = applyCategoryMatching(to: parsedRows)
+            if let cardID = resolveCardUUID() {
+                let existing = fetchExistingExpenses(for: cardID, rows: updated)
+                updated = applyDuplicateDetection(to: updated, existing: existing)
+            }
+            rows = updated
             assignInitialBuckets()
             state = .loaded
         } catch {
@@ -171,6 +178,12 @@ final class ExpenseImportViewModel: ObservableObject {
             .map { $0.id }
     }
 
+    var possibleDuplicateRowIDs: [UUID] {
+        rows.filter { $0.initialBucket == .possibleDuplicate }
+            .sorted { $0.sourceLine < $1.sourceLine }
+            .map { $0.id }
+    }
+
     var paymentRowIDs: [UUID] {
         rows.filter { $0.initialBucket == .payments }
             .sorted { $0.sourceLine < $1.sourceLine }
@@ -202,6 +215,7 @@ final class ExpenseImportViewModel: ObservableObject {
             $0.importKind == .debit
             && !$0.isMissingData
             && $0.matchQuality == .exact
+            && !$0.isPossibleDuplicate
         }.map { $0.id }
         return Set(ids)
     }
@@ -313,6 +327,84 @@ final class ExpenseImportViewModel: ObservableObject {
     private func applyCategoryMatching(to rows: [ImportRow]) -> [ImportRow] {
         guard !categories.isEmpty else { return rows }
         return rows.map { applyCategoryMatch(for: $0) }
+    }
+
+    private struct ExistingExpenseSnapshot {
+        let description: String
+        let amount: Double
+        let date: Date
+    }
+
+    private func fetchExistingExpenses(for cardID: UUID, rows: [ImportRow]) -> [ExistingExpenseSnapshot] {
+        guard let window = dateWindow(for: rows) else { return [] }
+        let existing = (try? unplannedService.fetchForCard(cardID, in: window, sortedByDateAscending: true)) ?? []
+        return existing.compactMap { expense in
+            guard let date = expense.value(forKey: "transactionDate") as? Date else { return nil }
+            let desc = (expense.value(forKey: "descriptionText") as? String)
+                ?? (expense.value(forKey: "title") as? String) ?? ""
+            return ExistingExpenseSnapshot(
+                description: desc,
+                amount: expense.value(forKey: "amount") as? Double ?? 0,
+                date: date
+            )
+        }
+    }
+
+    private func dateWindow(for rows: [ImportRow]) -> DateInterval? {
+        let dates = rows.compactMap { $0.transactionDate }
+        guard let minDate = dates.min(), let maxDate = dates.max() else { return nil }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: minDate)
+        let endDay = calendar.startOfDay(for: maxDate)
+        let end = calendar.date(byAdding: .day, value: 1, to: endDay) ?? maxDate
+        return DateInterval(start: start, end: end)
+    }
+
+    private func applyDuplicateDetection(to rows: [ImportRow], existing: [ExistingExpenseSnapshot]) -> [ImportRow] {
+        guard !existing.isEmpty else { return rows }
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: existing, by: { calendar.startOfDay(for: $0.date) })
+
+        return rows.map { row in
+            guard let rowDate = row.transactionDate,
+                  let rowAmount = row.normalizedAmountForImport
+            else { return row }
+
+            let candidates = grouped[calendar.startOfDay(for: rowDate)] ?? []
+            guard !candidates.isEmpty else { return row }
+
+            let rowName = normalizedDescription(row.descriptionText)
+            let hasName = !rowName.isEmpty
+
+            let isDuplicate = candidates.contains { candidate in
+                var matches = 0
+                if calendar.isDate(candidate.date, inSameDayAs: rowDate) {
+                    matches += 1
+                }
+                if hasName {
+                    let existingName = normalizedDescription(candidate.description)
+                    if !existingName.isEmpty,
+                       existingName == rowName || existingName.contains(rowName) || rowName.contains(existingName) {
+                        matches += 1
+                    }
+                }
+                let amountMatches = abs(abs(candidate.amount) - abs(rowAmount)) <= 0.01
+                if amountMatches { matches += 1 }
+                return matches >= 2
+            }
+
+            if isDuplicate {
+                var updated = row
+                updated.isPossibleDuplicate = true
+                return updated
+            }
+
+            return row
+        }
+    }
+
+    private func normalizedDescription(_ value: String) -> String {
+        normalize(value)
     }
 
     private func applyCategoryMatch(for row: ImportRow) -> ImportRow {
@@ -489,7 +581,8 @@ final class ExpenseImportViewModel: ObservableObject {
                 isPreset: false,
                 importKind: kind,
                 sourceLine: line,
-                initialBucket: .needsMoreData
+                initialBucket: .needsMoreData,
+                isPossibleDuplicate: false
             )
         }
     }
@@ -500,6 +593,8 @@ final class ExpenseImportViewModel: ObservableObject {
             let bucket: ImportBucket
             if row.isMissingData || row.selectedCategoryID == nil {
                 bucket = .needsMoreData
+            } else if row.isPossibleDuplicate {
+                bucket = .possibleDuplicate
             } else if row.isPayment {
                 bucket = .payments
             } else if shouldBeInCredits(row) {

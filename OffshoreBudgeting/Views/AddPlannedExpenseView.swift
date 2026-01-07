@@ -295,6 +295,7 @@ struct AddPlannedExpenseView: View {
             .listStyle(.insetGrouped)
             .scrollIndicators(.hidden)
             .navigationTitle(vm.isEditing ? "Edit Planned Expense" : "Add Planned Expense")
+            .ub_windowTitle(vm.isEditing ? "Edit Planned Expense" : "Add Planned Expense")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

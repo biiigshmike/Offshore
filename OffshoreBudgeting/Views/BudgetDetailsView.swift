@@ -49,6 +49,7 @@ struct BudgetDetailsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(vm.budget?.name ?? "Budget")
+        .ub_windowTitle(vm.budget?.name ?? "Budget")
         .task {
             await vm.load()
             segment = vm.selectedSegment
@@ -734,6 +735,7 @@ struct BudgetDetailsView: View {
             navigationContainer {
                 content
                     .navigationTitle(data.category.categoryName)
+                    .ub_windowTitle(data.category.categoryName)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {

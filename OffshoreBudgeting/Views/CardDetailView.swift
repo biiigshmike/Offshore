@@ -462,6 +462,7 @@ struct CardDetailView: View {
     private var navigationContent: some View {
         content
             .navigationTitle(cardSnapshot.name)
+            .ub_windowTitle(cardSnapshot.name)
         #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
         #endif

@@ -26,6 +26,7 @@ struct ExpenseImportView: View {
     @State private var lastKnownSelection: Set<UUID> = []
     @State private var isReadyExpanded = true
     @State private var isPossibleExpanded = true
+    @State private var isDuplicatesExpanded = true
     @State private var isNeedsExpanded = true
     @State private var isPaymentsExpanded = true
     @State private var isCreditsExpanded = true
@@ -44,6 +45,7 @@ struct ExpenseImportView: View {
         navigationContainer {
             content
                 .navigationTitle("Import Expenses")
+                .ub_windowTitle("Import Expenses")
                 .toolbar { toolbarContent }
         }
         .environment(\.editMode, $editMode)
@@ -141,6 +143,18 @@ struct ExpenseImportView: View {
                 Section(header: sectionHeader(title: "Possible Matches", isExpanded: $isPossibleExpanded)) {
                     if isPossibleExpanded {
                         ForEach(viewModel.possibleMatchRowIDs, id: \.self) { id in
+                            if let binding = binding(for: id) {
+                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !viewModel.possibleDuplicateRowIDs.isEmpty {
+                Section(header: sectionHeader(title: "Possible Duplicates", isExpanded: $isDuplicatesExpanded)) {
+                    if isDuplicatesExpanded {
+                        ForEach(viewModel.possibleDuplicateRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
                                 importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
                             }
@@ -386,6 +400,10 @@ struct ExpenseImportView: View {
             }
             .accessibilityLabel("Transaction Type")
             .ub_menuButtonStyle()
+
+            if row.wrappedValue.isPossibleDuplicate {
+                staticBadge(text: "Duplicate", accessibilityLabel: "Possible duplicate")
+            }
         }
         .accessibilityElement(children: .contain)
     }
@@ -401,6 +419,14 @@ struct ExpenseImportView: View {
             }
         )
         .accessibilityLabel(text)
+    }
+
+    private func staticBadge(text: String, accessibilityLabel: String) -> some View {
+        menuLabel(
+            content: Text(text)
+                .font(.caption.weight(.semibold))
+        )
+        .accessibilityLabel(accessibilityLabel)
     }
 
     private func kindLabel(for kind: ExpenseImportViewModel.ImportKind) -> String {
@@ -494,6 +520,7 @@ private struct CategoryPickerSheet: View {
                 }
             }
             .navigationTitle("Assign Category")
+            .ub_windowTitle("Assign Category")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

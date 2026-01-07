@@ -77,6 +77,7 @@ struct IncomeView: View {
             }
         }
         .navigationTitle("Income")
+        .ub_windowTitle("Income")
         .toolbar { toolbarContent }
         .refreshable {
             refreshSelectedDay()

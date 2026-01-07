@@ -163,6 +163,7 @@ struct WorkspaceManagerView: View {
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Profiles")
+            .ub_windowTitle("Profiles")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -275,6 +276,7 @@ struct WorkspaceEditorView: View {
             }
             .listStyle(.insetGrouped)
             .navigationTitle(mode.title)
+            .ub_windowTitle(mode.title)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

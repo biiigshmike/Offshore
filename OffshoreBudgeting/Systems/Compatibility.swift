@@ -150,6 +150,21 @@ extension View {
     func ub_preOS26ListRowBackground(_ color: Color) -> some View {
         modifier(UBPreOS26ListRowBackgroundModifier(color: color))
     }
+
+    // MARK: ub_windowTitle(_:)
+    /// Updates the Catalyst window title using the provided string.
+    /// On non-Catalyst platforms this is a no-op.
+    func ub_windowTitle(_ title: String) -> some View {
+#if targetEnvironment(macCatalyst)
+        return self
+            .onAppear { UBWindowTitleUpdater.update(title) }
+            .onChange(of: title) { newValue in
+                UBWindowTitleUpdater.update(newValue)
+            }
+#else
+        return self
+#endif
+    }
 }
 
 // MARK: - UIKit Bridges
@@ -417,6 +432,19 @@ private struct UBNavigationBackgroundModifier: ViewModifier {
         }
     }
 }
+
+#if targetEnvironment(macCatalyst)
+private enum UBWindowTitleUpdater {
+    static func update(_ title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+        let targetScene = scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
+        targetScene?.title = trimmed
+    }
+}
+#endif
 
 
 

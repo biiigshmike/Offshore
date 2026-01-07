@@ -19,8 +19,8 @@ enum AppUpdateLog_2_1 {
                 items: [
                     TipsItem(
                         symbolName: "creditcard",
-                        title: "Import Transactions",
-                        detail: "Import .csv transactions directly into a card from its detail view. Select what you want and attach them instantly."
+                        title: "Import Transactions & Card Themes",
+                        detail: "Import .csv transactions directly into a card from its detail view. Select what you want and attach them instantly. Updated Card creation form with new Effects feature! Find the perfect effect to pair with your Card's theme."
                     ),
                     TipsItem(
                         symbolName: "accessibility",

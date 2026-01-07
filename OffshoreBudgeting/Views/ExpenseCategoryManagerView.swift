@@ -50,6 +50,7 @@ struct ExpenseCategoryManagerView: View {
         navigationContainer {
             groupedListContent
                 .navigationTitle("Categories")
+                .ub_windowTitle("Categories")
                 .toolbar {
                     // Left: Done (clear/plain, larger tap target)
 //                    ToolbarItem(placement: .cancellationAction) {
@@ -374,6 +375,7 @@ struct ExpenseCategoryEditorSheet: View {
             .listStyle(.insetGrouped)
             .scrollIndicators(.hidden)
             .navigationTitle("New Category")
+            .ub_windowTitle("New Category")
             .interactiveDismissDisabled(false)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

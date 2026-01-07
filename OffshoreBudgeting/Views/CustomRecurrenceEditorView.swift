@@ -100,6 +100,7 @@ struct CustomRecurrenceEditorView: View {
                 NavigationStack {
                     content
                         .navigationTitle("Custom Recurrence")
+                        .ub_windowTitle("Custom Recurrence")
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("Cancel") {
@@ -120,6 +121,7 @@ struct CustomRecurrenceEditorView: View {
                 NavigationView {
                     content
                         .navigationTitle("Custom Recurrence")
+                        .ub_windowTitle("Custom Recurrence")
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("Cancel") {

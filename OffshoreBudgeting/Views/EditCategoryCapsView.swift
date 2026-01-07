@@ -16,6 +16,7 @@ struct EditCategoryCapsView: View {
     var body: some View {
         content
             .navigationTitle("Edit Caps")
+            .ub_windowTitle("Edit Caps")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
             .onAppear { /* placeholder for future data load */ }

@@ -121,6 +121,7 @@ struct CardsView: View {
             }
         }
         .navigationTitle("Cards")
+        .ub_windowTitle("Cards")
         .toolbar { toolbarContent }
         .onAppear { vm.startIfNeeded() }
         .sheet(isPresented: $isPresentingAddCard) {

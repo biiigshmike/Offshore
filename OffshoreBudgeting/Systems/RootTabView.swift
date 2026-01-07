@@ -343,17 +343,22 @@ struct RootTabView: View {
         switch tab {
         case .home:
             HomeView()
+                .ub_windowTitle(Tab.home.title)
         case .budgets:
             BudgetsView()
                 .id(dataRevision)
+                .ub_windowTitle(Tab.budgets.title)
         case .income:
             IncomeView()
                 .id(dataRevision)
+                .ub_windowTitle(Tab.income.title)
         case .cards:
             CardsView()
                 .id(dataRevision)
+                .ub_windowTitle(Tab.cards.title)
         case .settings:
             SettingsView()
+                .ub_windowTitle(Tab.settings.title)
         }
     }
     

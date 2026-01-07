@@ -41,6 +41,7 @@ struct RenameCardSheet: View {
             .listStyle(.insetGrouped)
             .scrollIndicators(.hidden)
             .navigationTitle("Rename Card")
+            .ub_windowTitle("Rename Card")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

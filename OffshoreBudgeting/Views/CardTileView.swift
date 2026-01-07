@@ -42,6 +42,12 @@ struct CardTileView: View {
     var showsBaseShadow: Bool = true
     /// When true, overlays the selected card effect (e.g., subtle plastic sheen).
     var showsEffectOverlay: Bool = false
+    /// Title line limit when not in accessibility sizes.
+    var nonAccessibilityTitleLineLimit: Int = 2
+    /// Optional min scale for the title when not in accessibility sizes.
+    var nonAccessibilityTitleMinimumScaleFactor: CGFloat? = nil
+    /// Optional tightening for the title when not in accessibility sizes.
+    var nonAccessibilityTitleAllowsTightening: Bool = false
 
     @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var cardPickerStore: CardPickerStore
@@ -128,8 +134,13 @@ private extension CardTileView {
 
                 // MARK: Title (Metallic shimmer stays)
                 cardTitle
-                    .lineLimit(isAccessibilitySize ? 3 : 2)
-                    .minimumScaleFactor(isAccessibilitySize ? 1 : 0.82)
+                    .lineLimit(isAccessibilitySize ? 3 : nonAccessibilityTitleLineLimit)
+                    .if(!isAccessibilitySize && nonAccessibilityTitleAllowsTightening) { view in
+                        view.allowsTightening(true)
+                    }
+                    .minimumScaleFactor(
+                        isAccessibilitySize ? 1 : (nonAccessibilityTitleMinimumScaleFactor ?? 0.82)
+                    )
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.leading)
                     .padding(.all, titlePadding)
@@ -271,52 +282,56 @@ struct CardMaterialBackground: View {
         GeometryReader { proxy in
             let size = proxy.size
             ZStack {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(materialFill(for: size))
-                    .saturation(materialSaturation)
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(materialOverlayColor(for: size))
-                if effect == .holographic && shouldUseMaterial {
-                    let ring = holographicRingMetrics(for: size)
-                    let ringShape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .inset(by: ring.inset)
+                if effect == .glass {
+                    glassSurface(for: size)
+                } else {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(holographicFoilOverlay(for: size))
-                        .blendMode(.plusLighter)
-                        .opacity(holographicFoilOverlayOpacity(for: size))
+                        .fill(materialFill(for: size))
+                        .saturation(materialSaturation)
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(holographicRainbowOverlay(for: size))
+                        .fill(materialOverlayColor(for: size))
+                    if effect == .holographic && shouldUseMaterial {
+                        let ring = holographicRingMetrics(for: size)
+                        let ringShape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .inset(by: ring.inset)
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(holographicFoilOverlay(for: size))
+                            .blendMode(.plusLighter)
+                            .opacity(holographicFoilOverlayOpacity(for: size))
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(holographicRainbowOverlay(for: size))
+                            .blendMode(.softLight)
+                            .opacity(holographicRainbowOverlayOpacity(for: size))
+                        ringShape
+                            .strokeBorder(holographicFoilOverlay(for: size), lineWidth: ring.thickness)
+                            .blendMode(.plusLighter)
+                            .opacity(holographicRingRimOpacity(for: size))
+                        ringShape
+                            .strokeBorder(holographicRainbowOverlay(for: size), lineWidth: ring.thickness * 2.2)
+                            .blendMode(.softLight)
+                            .opacity(holographicRingFillOpacity(for: size))
+                            .blur(radius: ring.thickness * 0.35)
+                    }
+                    if effect == .metal && shouldUseMaterial {
+                        MetalAnisotropicBandingOverlay(
+                            cornerRadius: cornerRadius,
+                            bandHeight: 1.6,
+                            gap: 14.0,
+                            highlight: metalBandHighlight,
+                            shadow: metalBandShadow
+                        )
                         .blendMode(.softLight)
-                        .opacity(holographicRainbowOverlayOpacity(for: size))
-                    ringShape
-                        .strokeBorder(holographicFoilOverlay(for: size), lineWidth: ring.thickness)
-                        .blendMode(.plusLighter)
-                        .opacity(holographicRingRimOpacity(for: size))
-                    ringShape
-                        .strokeBorder(holographicRainbowOverlay(for: size), lineWidth: ring.thickness * 2.2)
+                        .opacity(0.05)
+                        MetalBrushedLinesOverlay(
+                            cornerRadius: cornerRadius,
+                            spacing: 2.8,
+                            thickness: 0.7,
+                            color: metalBrushColor
+                        )
                         .blendMode(.softLight)
-                        .opacity(holographicRingFillOpacity(for: size))
-                        .blur(radius: ring.thickness * 0.35)
+                        .opacity(0.15)
+                    }
                 }
-                if effect == .metal && shouldUseMaterial {
-                    MetalAnisotropicBandingOverlay(
-                        cornerRadius: cornerRadius,
-                        bandHeight: 1.6,
-                        gap: 14.0,
-                        highlight: metalBandHighlight,
-                        shadow: metalBandShadow
-                    )
-                    .blendMode(.softLight)
-                    .opacity(0.05)
-                MetalBrushedLinesOverlay(
-                    cornerRadius: cornerRadius,
-                    spacing: 2.8,
-                    thickness: 0.7,
-                    color: metalBrushColor
-                )
-                .blendMode(.softLight)
-                .opacity(0.15)
-            }
             }
             .allowsHitTesting(false)
         }
@@ -339,6 +354,8 @@ private extension CardMaterialBackground {
             return AnyShapeStyle(metalGradient)
         case .holographic:
             return AnyShapeStyle(theme.backgroundStyle(for: themeManager.selectedTheme))
+        case .glass:
+            return AnyShapeStyle(theme.backgroundStyle(for: themeManager.selectedTheme))
         }
     }
 
@@ -350,6 +367,8 @@ private extension CardMaterialBackground {
         case .holographic:
             return 1.22
         case .plastic:
+            return 1.0
+        case .glass:
             return 1.0
         }
     }
@@ -365,6 +384,157 @@ private extension CardMaterialBackground {
             return holographicOverlayColor(for: size)
         }
         return theme.adaptiveOverlay(for: colorScheme, isHighContrast: colorSchemeContrast == .increased)
+    }
+
+    @ViewBuilder
+    func glassSurface(for size: CGSize) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let tint = glassTint
+        let rim = glassRim
+        let effectTint = tint.opacity(glassTintOverlayOpacity(for: size))
+        let specular = glassSpecularOverlay(for: size)
+        let specularSecondary = glassSpecularSecondaryOverlay(for: size)
+        let base = shape
+            .fill(theme.backgroundStyle(for: themeManager.selectedTheme))
+            .saturation(glassBaseSaturation)
+            .brightness(glassBaseBrightness)
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *), shouldUseMaterial {
+            ZStack {
+                base
+                Color.clear
+                    .glassEffect(.regular.tint(effectTint), in: shape)
+                    .opacity(0.96)
+                shape.fill(specular)
+                    .blendMode(.screen)
+                shape.fill(specularSecondary)
+                    .blendMode(.screen)
+                    .opacity(0.65)
+            }
+            .overlay(shape.stroke(rim, lineWidth: 1))
+        } else {
+            ZStack {
+                base
+                shape.fill(glassFallbackStyle)
+                shape.fill(effectTint)
+                shape.fill(specular)
+                    .blendMode(.screen)
+                shape.fill(specularSecondary)
+                    .blendMode(.screen)
+                    .opacity(0.65)
+            }
+            .overlay(shape.stroke(rim, lineWidth: 1))
+        }
+    }
+
+    var glassThemeTint: Color {
+        let (top, bottom) = theme.colors
+        let mid = mix(top, with: bottom, amount: 0.5)
+        let saturationBoost = colorScheme == .dark ? 0.06 : 0.12
+        let brightnessBoost = colorScheme == .dark ? 0.08 : 0.04
+        return adjustedColor(mid, brightnessDelta: brightnessBoost, saturationDelta: saturationBoost)
+    }
+
+    var glassTint: Color {
+        let accent = themeManager.selectedTheme.glassPalette.accent
+        let blend = colorScheme == .dark ? 0.60 : 0.68
+        return mix(accent, with: glassThemeTint, amount: blend)
+    }
+
+    var glassRim: Color {
+        let rimBase = themeManager.selectedTheme.glassPalette.rim
+        let rimTint = adjustedColor(glassThemeTint, brightnessDelta: 0.04, saturationDelta: -0.04)
+        let mixed = mix(rimBase, with: rimTint, amount: 0.28)
+        let opacity = colorScheme == .dark ? 0.32 : 0.26
+        return mixed.opacity(opacity)
+    }
+
+    var glassTintOpacityScale: Double {
+        0.42
+    }
+
+    func glassTintOverlayOpacity(for size: CGSize) -> Double {
+        let sizeFactor = materialSizeFactor(for: size)
+        let baseOpacity = colorScheme == .dark ? 0.28 : 0.24
+        let sizeBoost = 0.08 * sizeFactor
+        return min(0.46, (baseOpacity + sizeBoost) * glassTintOpacityScale)
+    }
+
+    var glassBaseSaturation: Double {
+        colorScheme == .dark ? 0.92 : 0.94
+    }
+
+    var glassBaseBrightness: Double {
+        colorScheme == .dark ? 0.01 : 0.03
+    }
+
+    func glassSpecularOverlay(for size: CGSize) -> LinearGradient {
+        let specular = themeManager.selectedTheme.glassPalette.specular
+        let sizeFactor = materialSizeFactor(for: size)
+        let baseOpacity = colorScheme == .dark ? 0.36 : 0.30
+        let strength = baseOpacity * (0.92 + 0.08 * sizeFactor)
+        let stops: [Gradient.Stop] = [
+            .init(color: specular.opacity(strength), location: 0.0),
+            .init(color: specular.opacity(strength * 0.7), location: 0.34),
+            .init(color: specular.opacity(strength * 0.30), location: 0.68),
+            .init(color: specular.opacity(0.0), location: 0.96)
+        ]
+        let shift = glassSpecularShift(for: size)
+        return glassSpecularGradient(
+            angle: glassSpecularAnglePrimary,
+            shift: shift,
+            stops: stops,
+            length: 0.92
+        )
+    }
+
+    func glassSpecularSecondaryOverlay(for size: CGSize) -> LinearGradient {
+        let specular = themeManager.selectedTheme.glassPalette.specular
+        let sizeFactor = materialSizeFactor(for: size)
+        let baseOpacity = colorScheme == .dark ? 0.20 : 0.16
+        let strength = baseOpacity * (0.90 + 0.10 * sizeFactor)
+        let stops: [Gradient.Stop] = [
+            .init(color: specular.opacity(strength * 0.7), location: 0.0),
+            .init(color: specular.opacity(strength * 0.45), location: 0.42),
+            .init(color: specular.opacity(0.0), location: 0.88)
+        ]
+        let baseShift = glassSpecularShift(for: size)
+        let secondaryShift = CGSize(width: baseShift.width * 0.6, height: baseShift.height * 0.6)
+        return glassSpecularGradient(
+            angle: glassSpecularAngleSecondary,
+            shift: secondaryShift,
+            stops: stops,
+            length: 0.80
+        )
+    }
+
+    var glassSpecularAnglePrimary: Angle {
+        plasticAngle
+    }
+
+    var glassSpecularAngleSecondary: Angle {
+        .degrees(glassSpecularAnglePrimary.degrees + 16.0)
+    }
+
+    func glassSpecularShift(for size: CGSize) -> CGSize {
+        let base = plasticShift(for: size)
+        return CGSize(width: base.width * 0.9, height: base.height * 0.9)
+    }
+
+    func glassSpecularGradient(
+        angle: Angle,
+        shift: CGSize,
+        stops: [Gradient.Stop],
+        length: Double
+    ) -> LinearGradient {
+        materialGradient(angle: angle, shift: shift, stops: stops, length: length)
+    }
+    var glassFallbackStyle: AnyShapeStyle {
+        #if os(iOS) || targetEnvironment(macCatalyst) || os(macOS)
+        if #available(iOS 15.0, macCatalyst 15.0, macOS 12.0, *) {
+            return themeManager.glassConfiguration.glass.material.shapeStyle
+        }
+        #endif
+        return AnyShapeStyle(Color.white.opacity(0.12))
     }
 
     func plasticOverlayColor(for size: CGSize) -> Color {

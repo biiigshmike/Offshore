@@ -5252,7 +5252,9 @@ private struct NextPlannedExpenseWidgetRow: View {
             Text(title)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(.primary)
-                .lineLimit(isAccessibilitySize || isCompactWidth ? nil : 1)
+                .lineLimit(isAccessibilitySize ? nil : 1)
+                .minimumScaleFactor(isAccessibilitySize ? 1.0 : 0.82)
+                .allowsTightening(!isAccessibilitySize)
             Text(dateText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -5274,7 +5276,10 @@ private struct NextPlannedExpenseWidgetRow: View {
                 enableMotionShine: false,
                 enableMaterialMotion: false,
                 showsBaseShadow: false,
-                showsEffectOverlay: true
+                showsEffectOverlay: true,
+                nonAccessibilityTitleLineLimit: 1,
+                nonAccessibilityTitleMinimumScaleFactor: 0.78,
+                nonAccessibilityTitleAllowsTightening: true
             )
                 .frame(width: previewWidth)
         } else {

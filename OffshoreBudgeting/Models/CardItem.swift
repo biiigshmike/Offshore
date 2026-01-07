@@ -14,6 +14,7 @@ enum CardEffect: String, CaseIterable, Identifiable, Codable {
     case plastic
     case metal
     case holographic
+    case glass
 
     var id: String { rawValue }
 
@@ -22,6 +23,7 @@ enum CardEffect: String, CaseIterable, Identifiable, Codable {
         case .plastic: return "Plastic"
         case .metal: return "Metal"
         case .holographic: return "Holographic"
+        case .glass: return "Glass"
         }
     }
 

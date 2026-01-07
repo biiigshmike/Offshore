@@ -251,15 +251,24 @@ struct CardMaterialBackground: View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(materialOverlayColor(for: size))
                 if effect == .metal && shouldUseMaterial {
-                    MetalBrushedLinesOverlay(
+                    MetalAnisotropicBandingOverlay(
                         cornerRadius: cornerRadius,
-                        spacing: 2.8,
-                        thickness: 0.7,
-                        color: metalBrushColor
+                        bandHeight: 1.6,
+                        gap: 14.0,
+                        highlight: metalBandHighlight,
+                        shadow: metalBandShadow
                     )
                     .blendMode(.softLight)
-                    .opacity(0.35)
-                }
+                    .opacity(0.05)
+                MetalBrushedLinesOverlay(
+                    cornerRadius: cornerRadius,
+                    spacing: 2.8,
+                    thickness: 0.7,
+                    color: metalBrushColor
+                )
+                .blendMode(.softLight)
+                .opacity(0.15)
+            }
             }
             .allowsHitTesting(false)
         }
@@ -289,7 +298,7 @@ private extension CardMaterialBackground {
         guard shouldUseMaterial else { return 1.0 }
         switch effect {
         case .metal:
-            return 0.22
+            return 0.48
         case .plastic, .holographic:
             return 1.0
         }
@@ -335,21 +344,43 @@ private extension CardMaterialBackground {
     }
 
     var metalGradient: LinearGradient {
-        let (top, bottom) = theme.colors
-        let neutral = colorScheme == .dark ? Color(white: 0.14) : Color(white: 0.88)
-        let flatTop = mix(top, with: neutral, amount: 0.55)
-        let flatBottom = mix(bottom, with: neutral, amount: 0.55)
-        let highlight = mix(neutral, with: .white, amount: colorScheme == .dark ? 0.20 : 0.12)
+        let base = metalBaseColor
+        let highlight = metalHighlightColor
+        let shadow = metalShadowColor
         let stops: [Gradient.Stop] = [
-            .init(color: flatTop, location: 0.0),
-            .init(color: highlight.opacity(0.30), location: 0.45),
-            .init(color: flatBottom, location: 1.0)
+            .init(color: base, location: 0.0),
+            .init(color: highlight, location: 0.40),
+            .init(color: base, location: 0.62),
+            .init(color: shadow, location: 1.0)
         ]
         return materialGradient(angle: metalAngle, shift: metalShift, stops: stops)
     }
 
     var metalBrushColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
+        adjustedColor(metalBaseColor, brightnessDelta: colorScheme == .dark ? 0.05 : -0.04, saturationDelta: -0.05)
+    }
+
+    var metalBaseColor: Color {
+        let (top, bottom) = theme.colors
+        let mid = mix(top, with: bottom, amount: 0.5)
+        let neutral = colorScheme == .dark ? Color(white: 0.22) : Color(white: 0.90)
+        return mix(mid, with: neutral, amount: 0.24)
+    }
+
+    var metalHighlightColor: Color {
+        adjustedColor(metalBaseColor, brightnessDelta: colorScheme == .dark ? 0.06 : 0.04, saturationDelta: -0.03)
+    }
+
+    var metalShadowColor: Color {
+        adjustedColor(metalBaseColor, brightnessDelta: colorScheme == .dark ? -0.05 : -0.04, saturationDelta: -0.04)
+    }
+
+    var metalBandHighlight: Color {
+        adjustedColor(metalBaseColor, brightnessDelta: colorScheme == .dark ? 0.04 : 0.03, saturationDelta: -0.05)
+    }
+
+    var metalBandShadow: Color {
+        adjustedColor(metalBaseColor, brightnessDelta: colorScheme == .dark ? -0.03 : -0.02, saturationDelta: -0.05)
     }
 
     func materialGradient(angle: Angle, shift: CGSize, stops: [Gradient.Stop]) -> LinearGradient {
@@ -495,17 +526,17 @@ private extension CardMaterialBackground {
     }
 
     var metalAngle: Angle {
-        guard let baseAngle = horizontalAngleDegrees, usesMotion else { return .degrees(90) }
-        return .degrees(90.0 + baseAngle * 0.15)
+        guard let baseAngle = horizontalAngleDegrees, usesMotion else { return .degrees(0) }
+        return .degrees(baseAngle * 0.08)
     }
 
     var metalShift: CGSize {
         guard usesMotion else { return .zero }
         let g = gravitySample
-        let scale: Double = 0.06
+        let scale: Double = 0.03
         return CGSize(
-            width: max(-0.08, min(0.08, g.x * scale)),
-            height: max(-0.08, min(0.08, -g.y * scale))
+            width: max(-0.05, min(0.05, g.x * scale)),
+            height: max(-0.05, min(0.05, -g.y * scale))
         )
     }
 }
@@ -526,6 +557,34 @@ private struct MetalBrushedLinesOverlay: View {
                     let rect = CGRect(x: 0, y: y, width: size.width, height: thickness)
                     context.fill(Path(rect), with: .color(color))
                     y += spacing
+                }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - MetalAnisotropicBandingOverlay
+private struct MetalAnisotropicBandingOverlay: View {
+    let cornerRadius: CGFloat
+    let bandHeight: CGFloat
+    let gap: CGFloat
+    let highlight: Color
+    let shadow: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+            Canvas { context, _ in
+                var y: CGFloat = 0
+                var index: Int = 0
+                while y < size.height {
+                    let rect = CGRect(x: 0, y: y, width: size.width, height: bandHeight)
+                    let color = index.isMultiple(of: 2) ? highlight : shadow
+                    context.fill(Path(rect), with: .color(color))
+                    y += bandHeight + gap
+                    index += 1
                 }
             }
         }

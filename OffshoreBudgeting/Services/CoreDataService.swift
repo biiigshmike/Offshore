@@ -17,9 +17,12 @@ final class CoreDataService: ObservableObject {
     static let shared = CoreDataService()
 
     private let notificationCenter: NotificationCentering
+    private let cloudAvailabilityProvider: CloudAvailabilityProviding
 
-    private init(notificationCenter: NotificationCentering = NotificationCenterAdapter.shared) {
+    private init(notificationCenter: NotificationCentering = NotificationCenterAdapter.shared,
+                 cloudAvailabilityProvider: CloudAvailabilityProviding = CloudAccountStatusProvider.shared) {
         self.notificationCenter = notificationCenter
+        self.cloudAvailabilityProvider = cloudAvailabilityProvider
     }
     
     // MARK: Configuration
@@ -56,6 +59,26 @@ final class CoreDataService: ObservableObject {
     public var storeModeDescription: String { _currentMode == .cloudKit ? "CloudKit" : "Local" }
     /// Convenience flag used by diagnostics/UI to indicate whether CloudKit mirroring is active.
     public var isCloudStoreActive: Bool { _currentMode == .cloudKit }
+
+#if DEBUG
+    // MARK: Test Helpers
+    /// Debug-only initializer for tests that supply an already-loaded container.
+    /// Keeps production behavior unchanged (shared still uses the default init).
+    init(testContainer: NSPersistentContainer,
+         notificationCenter: NotificationCentering = NotificationCenterAdapter.shared,
+         cloudAvailabilityProvider: CloudAvailabilityProviding = CloudAccountStatusProvider.shared) {
+        self.notificationCenter = notificationCenter
+        self.cloudAvailabilityProvider = cloudAvailabilityProvider
+        self.container = testContainer
+        self.storesLoaded = true
+        self._currentMode = .local
+    }
+
+    /// Enables dataStoreDidChange posts for test-driven context saves.
+    func enableChangeNotificationsForTests() {
+        startObservingChanges()
+    }
+#endif
     
     // MARK: Persistent Container
     /// Expose the container as NSPersistentContainer (backed by NSPersistentCloudKitContainer).
@@ -310,7 +333,7 @@ extension CoreDataService {
 
         if enableSync {
             if currentMode == .cloudKit { return }
-            let available = await CloudAccountStatusProvider.shared.resolveAvailability(forceRefresh: true)
+            let available = await cloudAvailabilityProvider.resolveAvailability(forceRefresh: true)
             guard available else {
                 // iCloud (named container) currently unavailable. Keep the user's
                 // preference intact, but remain in local mode to avoid breaking UX.
@@ -436,6 +459,9 @@ private extension CoreDataService {
         let storeURL = NSPersistentContainer.defaultDirectoryURL()
             .appendingPathComponent("\(modelName).sqlite")
         let description = NSPersistentStoreDescription(url: storeURL)
+        if let existingType = container.persistentStoreDescriptions.first?.type {
+            description.type = existingType
+        }
         description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
         description.setOption(true as NSNumber, forKey: NSMigratePersistentStoresAutomaticallyOption)
         description.setOption(true as NSNumber, forKey: NSInferMappingModelAutomaticallyOption)

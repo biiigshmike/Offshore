@@ -49,8 +49,12 @@ struct RootTabView: View {
     
     // MARK: State
     @Environment(\.startTabIdentifier) private var startTabIdentifier
+    @Environment(\.startRouteIdentifier) private var startRouteIdentifier
+    @Environment(\.uiTestingFlags) private var uiTestingFlags
     @State private var selectedTab: Tab = .home
     @State private var appliedStartTab: Bool = false
+    @State private var appliedStartRoute: Bool = false
+    @State private var uiTestStartRoute: String? = nil
     @State private var sidebarSelection: SidebarItem? = .root(.home)
     @State private var usesCompactTabsOverride: Bool = false
     @State private var recentBudgets: [Budget] = []
@@ -149,7 +153,10 @@ struct RootTabView: View {
             }
             .accessibilityIdentifier(Tab.settings.accessibilityID)
         }
-        .onAppear { applyStartTabIfNeeded() }
+        .onAppear {
+            applyStartTabIfNeeded()
+            applyStartRouteIfNeeded()
+        }
     }
     
     private var baseTabView: some View {
@@ -160,7 +167,10 @@ struct RootTabView: View {
             legacyTabViewItem(for: .cards)
             legacyTabViewItem(for: .settings)
         }
-        .onAppear { applyStartTabIfNeeded() }
+        .onAppear {
+            applyStartTabIfNeeded()
+            applyStartRouteIfNeeded()
+        }
     }
     
     @ViewBuilder
@@ -175,6 +185,7 @@ struct RootTabView: View {
             }
             .onAppear {
                 applyStartTabIfNeeded()
+                applyStartRouteIfNeeded()
                 refreshRecentBudgets()
             }
             .onChange(of: dataRevision) { _ in
@@ -357,8 +368,13 @@ struct RootTabView: View {
                 .id(dataRevision)
                 .ub_windowTitle(Tab.cards.title)
         case .settings:
-            SettingsView()
-                .ub_windowTitle(Tab.settings.title)
+            if uiTestingFlags.isUITesting, uiTestStartRoute == "categories", shouldUseCompactTabs {
+                ExpenseCategoryManagerView(wrapsInNavigation: false)
+                    .ub_windowTitle("Categories")
+            } else {
+                SettingsView()
+                    .ub_windowTitle(Tab.settings.title)
+            }
         }
     }
     
@@ -485,6 +501,22 @@ private extension RootTabView {
         case "cards": return .cards
         case "settings": return .settings
         default: return nil
+        }
+    }
+}
+
+// MARK: - Start Route Application (UI Tests)
+private extension RootTabView {
+    func applyStartRouteIfNeeded() {
+        guard uiTestingFlags.isUITesting, !appliedStartRoute, let route = startRouteIdentifier else { return }
+        switch route.lowercased() {
+        case "categories":
+            selectedTab = .settings
+            sidebarSelection = .manageCategories
+            uiTestStartRoute = "categories"
+            appliedStartRoute = true
+        default:
+            return
         }
     }
 }

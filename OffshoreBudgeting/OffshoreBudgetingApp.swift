@@ -95,16 +95,25 @@ struct OffshoreBudgetingApp: App {
         let overrides = testUIOverridesIfAny()
         let testFlags = uiTestingFlagsIfAny()
         let startTab = ProcessInfo.processInfo.environment["UITEST_START_TAB"]
+#if DEBUG
+        let startRoute = ProcessInfo.processInfo.environment["UITEST_START_ROUTE"]
+#else
+        let startRoute: String? = nil
+#endif
         let base = content()
             .environmentObject(themeManager)
             .environmentObject(cardPickerStore)
             .environment(\.platformCapabilities, platformCapabilities)
             .environment(\.uiTestingFlags, testFlags)
             .environment(\.startTabIdentifier, startTab)
+            .environment(\.startRouteIdentifier, startRoute)
             .accentColor(themeManager.selectedTheme.resolvedTint)
             .tint(themeManager.selectedTheme.resolvedTint)
             .modifier(ThemedToggleTint(color: themeManager.selectedTheme.toggleTint))
             .onAppear {
+                if testFlags.isUITesting {
+                    appLockViewModel.isLockEnabled = false
+                }
                 themeManager.refreshSystemAppearance(systemColorScheme)
                 SystemThemeAdapter.applyGlobalChrome(
                     theme: themeManager.selectedTheme,
@@ -257,8 +266,9 @@ struct OffshoreBudgetingApp: App {
             UserDefaults.standard.set(true, forKey: "didCompleteOnboarding")
             UserDefaults.standard.synchronize()
         }
-        if env["UITEST_RESET_STATE"] == "1" {
-            resetPersistentStateForUITests()
+        let shouldResetState = env["UITEST_RESET_STATE"] == "1"
+        if shouldResetState {
+            resetUserDefaultsForUITests()
         }
         if env["UITEST_DISABLE_ANIMATIONS"] == "1" {
             UIView.setAnimationsEnabled(false)
@@ -266,8 +276,13 @@ struct OffshoreBudgetingApp: App {
         if let seed = env["UITEST_SEED"], !seed.isEmpty {
             Task { @MainActor in
                 await CoreDataService.shared.waitUntilStoresLoaded(timeout: 5.0)
+                if shouldResetState {
+                    do { try CoreDataService.shared.wipeAllData() } catch { /* non-fatal in UI tests */ }
+                }
                 await seedForUITests(scenario: seed)
             }
+        } else if shouldResetState {
+            resetPersistentStateForUITests()
         }
 #endif
     }
@@ -399,7 +414,58 @@ private extension OffshoreBudgetingApp {
     @MainActor
     func seedForUITests(scenario: String) async {
         let ctx = CoreDataService.shared.viewContext
+        let groceriesID = UUID(uuidString: "9B44A0A2-9E1E-4B1C-B8C9-2C7FD31F1E3A")!
+        let testCatID = UUID(uuidString: "4E7B2C3F-6B1D-4F5F-AF6A-1D58D6F2A1D2")!
         switch scenario.lowercased() {
+        case "categories_empty":
+            let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
+            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
+            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            return
+        case "categories_with_one":
+            let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
+            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
+            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+
+            let category = ExpenseCategory(context: ctx)
+            category.setValue(groceriesID, forKey: "id")
+            category.name = "Groceries"
+            category.color = "#4E9CFF"
+            category.setValue(workspaceID, forKey: "workspaceID")
+
+            let planned = PlannedExpense(context: ctx)
+            planned.setValue(UUID(), forKey: "id")
+            planned.descriptionText = "Seeded Planned"
+            planned.plannedAmount = 10
+            planned.actualAmount = 8
+            planned.transactionDate = Date()
+            planned.isGlobal = false
+            planned.expenseCategory = category
+            planned.setValue(workspaceID, forKey: "workspaceID")
+
+            let unplanned = UnplannedExpense(context: ctx)
+            unplanned.setValue(UUID(), forKey: "id")
+            unplanned.descriptionText = "Seeded Unplanned"
+            unplanned.amount = 5
+            unplanned.transactionDate = Date()
+            unplanned.expenseCategory = category
+            unplanned.setValue(workspaceID, forKey: "workspaceID")
+
+            try? ctx.save()
+            return
+        case "categories_with_testcat":
+            let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
+            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
+            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+
+            let category = ExpenseCategory(context: ctx)
+            category.setValue(testCatID, forKey: "id")
+            category.name = "Test Cat"
+            category.color = "#4E9CFF"
+            category.setValue(workspaceID, forKey: "workspaceID")
+
+            try? ctx.save()
+            return
         case "empty":
             return
         case "demo":

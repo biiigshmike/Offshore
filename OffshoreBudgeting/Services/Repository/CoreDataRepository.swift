@@ -82,7 +82,11 @@ final class CoreDataRepository<Entity: NSManagedObject> {
     /// - Returns: The newly inserted object (not yet persisted until save()).
     @discardableResult
     func create(configure: (Entity) -> Void) -> Entity {
-        let newObject = Entity(context: viewContext)
+        let entityName = String(describing: Entity.self)
+        let newObject = NSEntityDescription.insertNewObject(
+            forEntityName: entityName,
+            into: viewContext
+        ) as! Entity
         configure(newObject)
         return newObject
     }

@@ -29,15 +29,28 @@ A3) Minimal Starter Suite (10–20 tests total)
 6) [Now] PlannedExpenseService.delete removes an expense from the store.
 7) [Now] PlannedExpenseService.createGlobalTemplate + instantiateTemplate copies values and links globalTemplateID.
 8) [Now] Workspace predicate applied when activeWorkspaceID is set (PlannedExpenseService).
-9) PlannedExpenseService.fetchForCard excludes globals (isGlobal == false).
-10) PlannedExpenseService.fetchTemplatesForCard includes only globals.
-11) ExpenseCategoryService.deleteCategory removes category (no cascade expectations yet).
-12) HomeView delete behavior characterization (service bypass noted; test via service-layer only, no UI).
-13) BudgetService.create + PlannedExpenseService.create: cross-entity linkage is valid.
+9) [Now] ExpenseCategoryService.create persists and fetches.
+10) [Now] ExpenseCategoryService.fetchAll sorted by name ascending.
+11) [Now] ExpenseCategoryService workspace predicate filters categories.
+12) [Now] ExpenseCategoryService.updateCategory persists.
+13) [Now] ExpenseCategoryService.deleteCategory removes category (no cascade expectations yet).
+14) [Now] ExpenseCategoryService.addCategory applies workspaceID when active workspace is set.
+15) [Now] PlannedExpenseService.create applies workspaceID when active workspace is set.
+16) [Now] Delete category with linked planned/unplanned expenses (service delete path) characterizes cascade outcome.
+17) [Now] Delete category with linked planned/unplanned expenses (view cascade path) characterizes outcome.
+18) [Now] dataStoreDidChange notification posts on category deletion (characterization).
+19) [Now] CoreDataRepository.deleteAll merges changes back into viewContext.
+20) [Now] CoreDataService.wipeAllData merges deletes and leaves context safe to access.
+21) [Now] CloudKit gating: enableCloudSync=false stays local; enableCloudSync=true + unavailable stays local.
+22) PlannedExpenseService.fetchForCard excludes globals (isGlobal == false).
+23) PlannedExpenseService.fetchTemplatesForCard includes only globals.
+24) HomeView delete behavior characterization (service bypass noted; test via service-layer only, no UI).
+25) BudgetService.create + PlannedExpenseService.create: cross-entity linkage is valid.
 
 Phase 2.5: UI Tests (follow-up)
+- [Now] Categories: add and delete a category (seed: categories_empty).
+- [Now] Categories: delete used category shows cascade alert (seed: categories_with_one).
 - Add budget → add planned expense → delete planned expense.
-- Add category → assign to expense → delete category (observe cascade behavior).
 - Add card → delete card (verify confirmation and deletion).
 
 A4) Test Data Strategy
@@ -48,3 +61,5 @@ A4) Test Data Strategy
 A5) Build/Run Instructions
 - xcodebuild -project Offshore.xcodeproj -scheme OffshoreBudgeting -destination 'platform=iOS Simulator,name=iPhone 15' test
 - If the unit test scheme differs, use the project’s shared test plan (OffshoreBudgeting.xctestplan).
+- Unit-only: xcodebuild -project Offshore.xcodeproj -scheme OffshoreBudgeting -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' test -only-testing:OffshoreBudgetingTests
+- UI-only: xcodebuild -project Offshore.xcodeproj -scheme OffshoreBudgeting -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' test -only-testing:OffshoreBudgetingUITests

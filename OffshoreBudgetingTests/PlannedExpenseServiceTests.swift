@@ -147,6 +147,23 @@ final class PlannedExpenseServiceTests: XCTestCase {
         XCTAssertEqual(results.first?.value(forKey: "workspaceID") as? UUID, workspaceA)
     }
 
+    func testCreatePlannedExpense_appliesWorkspaceIDWhenActiveWorkspaceSet() throws {
+        let workspaceA = UUID()
+        UserDefaults.standard.set(workspaceA.uuidString, forKey: workspaceDefaultsKey)
+
+        let budget = try makeBudget(workspaceID: workspaceA)
+        let expense = try service.create(
+            inBudgetID: budgetAID(from: budget),
+            titleOrDescription: "Utilities",
+            plannedAmount: 40,
+            actualAmount: 0,
+            transactionDate: Date()
+        )
+
+        let appliedID = expense.value(forKey: "workspaceID") as? UUID
+        XCTAssertEqual(appliedID, workspaceA)
+    }
+
     // MARK: - Helpers
     private func budgetAID(from budget: Budget) -> UUID {
         if let id = budget.value(forKey: "id") as? UUID { return id }
@@ -157,7 +174,10 @@ final class PlannedExpenseServiceTests: XCTestCase {
     }
 
     private func makeBudget(id: UUID = UUID(), workspaceID: UUID? = nil) throws -> Budget {
-        let budget = Budget(context: context)
+        let budget = NSEntityDescription.insertNewObject(
+            forEntityName: String(describing: Budget.self),
+            into: context
+        ) as! Budget
         budget.setValue(id, forKey: "id")
         budget.setValue("Test Budget", forKey: "name")
         if let workspaceID {
@@ -177,7 +197,10 @@ final class PlannedExpenseServiceTests: XCTestCase {
         globalTemplateID: UUID? = nil,
         workspaceID: UUID? = nil
     ) throws -> PlannedExpense {
-        let expense = PlannedExpense(context: context)
+        let expense = NSEntityDescription.insertNewObject(
+            forEntityName: String(describing: PlannedExpense.self),
+            into: context
+        ) as! PlannedExpense
         expense.setValue(id, forKey: "id")
         expense.setValue("Test", forKey: "descriptionText")
         expense.plannedAmount = plannedAmount

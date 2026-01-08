@@ -237,6 +237,7 @@ struct SettingsView: View {
                     iconStyle: .lightPurple
                 )
             }
+            .accessibilityIdentifier("nav_manage_categories")
         }
     }
 

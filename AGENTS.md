@@ -227,6 +227,7 @@ Agents MUST STOP if:
 - Scope expansion is required
 - A refactor would be necessary
 - Documentation is insufficient to proceed safely
+- A test still fails after 3 attempts to fix or rerun it
 
 In these cases, explain clearly and wait for instruction.
 

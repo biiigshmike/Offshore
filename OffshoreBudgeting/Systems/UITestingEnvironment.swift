@@ -31,3 +31,16 @@ extension EnvironmentValues {
     }
 }
 
+// MARK: - Start Route Identifier (for -ui-testing)
+private struct StartRouteIdentifierKey: EnvironmentKey {
+    static let defaultValue: String? = nil
+}
+
+extension EnvironmentValues {
+    /// Optional string identifier for the screen to show at launch during UI tests.
+    /// Expected values: "categories".
+    var startRouteIdentifier: String? {
+        get { self[StartRouteIdentifierKey.self] }
+        set { self[StartRouteIdentifierKey.self] = newValue }
+    }
+}

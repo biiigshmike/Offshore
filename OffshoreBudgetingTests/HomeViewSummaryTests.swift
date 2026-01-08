@@ -236,26 +236,38 @@ final class HomeViewSummaryTests: XCTestCase {
         unplannedExpenses: [UnplannedExpenseSeed]
     ) throws -> SeededData {
         let workspaceID = UUID()
-        let budget = Budget(context: context)
+        let budget = NSEntityDescription.insertNewObject(
+            forEntityName: String(describing: Budget.self),
+            into: context
+        ) as! Budget
         budget.id = UUID()
         budget.name = "Test Budget"
         budget.startDate = budgetRange.lowerBound
         budget.endDate = budgetRange.upperBound
         budget.workspaceID = workspaceID
 
-        let category = ExpenseCategory(context: context)
+        let category = NSEntityDescription.insertNewObject(
+            forEntityName: String(describing: ExpenseCategory.self),
+            into: context
+        ) as! ExpenseCategory
         category.id = UUID()
         category.name = "General"
         category.workspaceID = workspaceID
 
-        let card = Card(context: context)
+        let card = NSEntityDescription.insertNewObject(
+            forEntityName: String(describing: Card.self),
+            into: context
+        ) as! Card
         card.id = UUID()
         card.name = "Primary"
         card.workspaceID = workspaceID
         budget.addToCards(card)
 
         for income in incomes {
-            let inc = Income(context: context)
+            let inc = NSEntityDescription.insertNewObject(
+                forEntityName: String(describing: Income.self),
+                into: context
+            ) as! Income
             inc.id = UUID()
             inc.amount = income.amount
             inc.date = income.date
@@ -264,7 +276,10 @@ final class HomeViewSummaryTests: XCTestCase {
         }
 
         for planned in plannedExpenses {
-            let exp = PlannedExpense(context: context)
+            let exp = NSEntityDescription.insertNewObject(
+                forEntityName: String(describing: PlannedExpense.self),
+                into: context
+            ) as! PlannedExpense
             exp.id = UUID()
             exp.transactionDate = planned.date
             exp.plannedAmount = planned.planned
@@ -275,7 +290,10 @@ final class HomeViewSummaryTests: XCTestCase {
         }
 
         for unplanned in unplannedExpenses {
-            let exp = UnplannedExpense(context: context)
+            let exp = NSEntityDescription.insertNewObject(
+                forEntityName: String(describing: UnplannedExpense.self),
+                into: context
+            ) as! UnplannedExpense
             exp.id = UUID()
             exp.transactionDate = unplanned.date
             exp.amount = unplanned.amount
@@ -376,7 +394,7 @@ final class HomeViewSummaryTests: XCTestCase {
 
     // MARK: - Core Data Helpers
     private func makeInMemoryContext(file: StaticString = #file, line: UInt = #line) throws -> NSManagedObjectContext {
-        let bundle = Bundle(for: CoreDataService.self)
+        let bundle = Bundle(identifier: "com.mb.offshore-budgeting") ?? Bundle(for: CoreDataService.self)
         let modelURL = try XCTUnwrap(bundle.url(forResource: "OffshoreBudgetingModel", withExtension: "momd"), file: file, line: line)
         let model = try XCTUnwrap(NSManagedObjectModel(contentsOf: modelURL), file: file, line: line)
         let container = NSPersistentContainer(name: "OffshoreBudgetingModel", managedObjectModel: model)

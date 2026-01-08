@@ -12,8 +12,11 @@ final class TestCoreDataStack: CoreDataStackProviding {
         case modelLoadFailed
     }
 
-    init(file: StaticString = #file, line: UInt = #line) throws {
-        let bundle = Bundle(for: CoreDataService.self)
+    init(storeType: String = NSInMemoryStoreType,
+         storeURL: URL? = nil,
+         file: StaticString = #file,
+         line: UInt = #line) throws {
+        let bundle = Bundle(identifier: "com.mb.offshore-budgeting") ?? Bundle(for: CoreDataService.self)
         guard let modelURL = bundle.url(forResource: "OffshoreBudgetingModel", withExtension: "momd") else {
             throw LoadError.modelURLMissing
         }
@@ -23,7 +26,10 @@ final class TestCoreDataStack: CoreDataStackProviding {
 
         let container = NSPersistentContainer(name: "OffshoreBudgetingModel", managedObjectModel: model)
         let description = NSPersistentStoreDescription()
-        description.type = NSInMemoryStoreType
+        description.type = storeType
+        if let storeURL {
+            description.url = storeURL
+        }
         description.shouldAddStoreAsynchronously = false
         container.persistentStoreDescriptions = [description]
 

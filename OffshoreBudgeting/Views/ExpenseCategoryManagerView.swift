@@ -18,6 +18,7 @@ struct ExpenseCategoryManagerView: View {
     @Environment(\.platformCapabilities) private var capabilities
     @Environment(\.ub_safeAreaInsets) private var legacySafeAreaInsets
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.uiTestingFlags) private var uiTestingFlags
     
     // MARK: Sorting
     private static let sortByName: [NSSortDescriptor] = [
@@ -81,6 +82,7 @@ struct ExpenseCategoryManagerView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Add Category")
+                        .accessibilityIdentifier("categories_add_button")
                     }
                 }
         }
@@ -196,6 +198,8 @@ struct ExpenseCategoryManagerView: View {
     // MARK: - Row Builders
     @ViewBuilder
     private func categoryRow(for category: ExpenseCategory, swipeConfig: UnifiedSwipeConfig) -> some View {
+        let name = category.name ?? "Untitled"
+        let idString = categoryIDString(for: category)
         CategoryRowView(
             config: swipeConfig,
             label: { rowLabel(for: category) },
@@ -211,20 +215,37 @@ struct ExpenseCategoryManagerView: View {
                 }
             }
         )
+        .accessibilityElement(children: uiTestingFlags.isUITesting ? .contain : .ignore)
+        .accessibilityLabel(Text(name))
+        .accessibilityIdentifier("category_row_id_\(idString)")
     }
     
     @ViewBuilder
     private func rowLabel(for category: ExpenseCategory) -> some View {
+        let name = category.name ?? "Untitled"
+        let idString = categoryIDString(for: category)
         HStack(spacing: 12) {
             ColorCircle(hex: category.color ?? "#999999")
             VStack(alignment: .leading) {
-                Text(category.name ?? "Untitled")
+                Text(name)
+                    .accessibilityIdentifier("category_row_name_\(idString)")
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
         }
+        .accessibilityIdentifier("category_row_\(name)")
+    }
+
+    private func categoryIDString(for category: ExpenseCategory) -> String {
+        if let id = category.id {
+            return id.uuidString
+        }
+        if let id = category.value(forKey: "id") as? UUID {
+            return id.uuidString
+        }
+        return "unknown"
     }
     
     // MARK: - Empty State
@@ -351,6 +372,7 @@ struct ExpenseCategoryEditorSheet: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .autocorrectionDisabled(true)
                             .textInputAutocapitalization(.never)
+                            .accessibilityIdentifier("categories_name_field")
                         Spacer(minLength: 0)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -388,6 +410,7 @@ struct ExpenseCategoryEditorSheet: View {
                             forceDismissAnyPresentedControllerIfNeeded()
                         }
                     }
+                    .accessibilityIdentifier("categories_cancel_button")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
@@ -401,6 +424,7 @@ struct ExpenseCategoryEditorSheet: View {
                         }
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("categories_save_button")
                 }
             }
         }

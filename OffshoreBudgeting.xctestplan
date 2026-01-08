@@ -116,6 +116,7 @@
       }
     },
     {
+      "parallelizable" : false,
       "target" : {
         "containerPath" : "container:Offshore.xcodeproj",
         "identifier" : "4CF220442E4A33BC00AD5F29",

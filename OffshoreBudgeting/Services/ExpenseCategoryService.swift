@@ -17,7 +17,13 @@ final class ExpenseCategoryService {
     
     // MARK: Properties
     /// Generic repository for ExpenseCategory entity.
-    private let repo = CoreDataRepository<ExpenseCategory>()
+    private let repo: CoreDataRepository<ExpenseCategory>
+
+    // MARK: Init
+    /// Initialize with a custom Core Data stack (useful for tests).
+    init(stack: CoreDataStackProviding = CoreDataService.shared) {
+        self.repo = CoreDataRepository<ExpenseCategory>(stack: stack)
+    }
     
     // MARK: fetchAllCategories(sortedByName:)
     /// Fetch all categories, optionally sorting by name ascending.

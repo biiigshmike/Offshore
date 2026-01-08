@@ -47,6 +47,9 @@ A3) Minimal Starter Suite (10–20 tests total)
 24) HomeView delete behavior characterization (service bypass noted; test via service-layer only, no UI).
 25) BudgetService.create + PlannedExpenseService.create: cross-entity linkage is valid.
 
+A3.5) Master CRUD Integration Scenarios
+- [Now] Master CRUD Integration Scenarios (Monthly, Quarterly, Yearly) using in-memory Core Data.
+
 Phase 2.5: UI Tests (follow-up)
 - [Now] Categories: add and delete a category (seed: categories_empty).
 - [Now] Categories: delete used category shows cascade alert (seed: categories_with_one).

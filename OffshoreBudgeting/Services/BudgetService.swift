@@ -20,7 +20,13 @@ final class BudgetService {
     
     // MARK: Properties
     /// Generic repository for Budget entity.
-    private let repo = CoreDataRepository<Budget>()
+    private let repo: CoreDataRepository<Budget>
+
+    // MARK: Init
+    /// Initialize with a custom Core Data stack (useful for tests).
+    init(stack: CoreDataStackProviding = CoreDataService.shared) {
+        self.repo = CoreDataRepository<Budget>(stack: stack)
+    }
     
     // MARK: fetchAllBudgets(sortByStartDateDescending:)
     /// Return all budgets, sorted by start date (DESC by default, newest first).

@@ -202,6 +202,7 @@ final class HomeViewSummaryTests: XCTestCase {
     }
 
     private struct SeededData {
+        let workspaceID: UUID
         let budget: Budget
         let category: ExpenseCategory
         let incomes: [IncomeSeed]
@@ -234,19 +235,23 @@ final class HomeViewSummaryTests: XCTestCase {
         plannedExpenses: [PlannedExpenseSeed],
         unplannedExpenses: [UnplannedExpenseSeed]
     ) throws -> SeededData {
+        let workspaceID = UUID()
         let budget = Budget(context: context)
         budget.id = UUID()
         budget.name = "Test Budget"
         budget.startDate = budgetRange.lowerBound
         budget.endDate = budgetRange.upperBound
+        budget.workspaceID = workspaceID
 
         let category = ExpenseCategory(context: context)
         category.id = UUID()
         category.name = "General"
+        category.workspaceID = workspaceID
 
         let card = Card(context: context)
         card.id = UUID()
         card.name = "Primary"
+        card.workspaceID = workspaceID
         budget.addToCards(card)
 
         for income in incomes {
@@ -255,6 +260,7 @@ final class HomeViewSummaryTests: XCTestCase {
             inc.amount = income.amount
             inc.date = income.date
             inc.isPlanned = income.isPlanned
+            inc.workspaceID = workspaceID
         }
 
         for planned in plannedExpenses {
@@ -265,6 +271,7 @@ final class HomeViewSummaryTests: XCTestCase {
             exp.actualAmount = planned.actual
             exp.budget = budget
             exp.expenseCategory = category
+            exp.workspaceID = workspaceID
         }
 
         for unplanned in unplannedExpenses {
@@ -274,10 +281,12 @@ final class HomeViewSummaryTests: XCTestCase {
             exp.amount = unplanned.amount
             exp.card = card
             exp.expenseCategory = category
+            exp.workspaceID = workspaceID
         }
 
         try context.save()
         return SeededData(
+            workspaceID: workspaceID,
             budget: budget,
             category: category,
             incomes: incomes,
@@ -300,7 +309,8 @@ final class HomeViewSummaryTests: XCTestCase {
             periodEnd: range.upperBound,
             allCategories: [seed.category],
             allIncomes: allIncomes,
-            in: context
+            in: context,
+            workspaceID: seed.workspaceID
         )
     }
 

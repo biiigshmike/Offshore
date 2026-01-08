@@ -1,0 +1,200 @@
+Symbol Usage Summary (Heuristic)
+
+Notes:
+- Token-based scan; ambiguous counts. See reports/symbol-usage.json for full detail.
+- Local symbol detection is conservative; some local vars/funcs may be excluded.
+
+Top 30 most referenced methods (by name token count):
+- value — 641 refs (OffshoreBudgeting/View Models/ExpenseImportViewModel.swift:619)
+- title — 380 refs (OffshoreBudgeting/Models/BudgetPeriod.swift:121)
+- range — 354 refs (OffshoreBudgeting/Models/BudgetPeriod.swift:61)
+- range — 353 refs (OffshoreBudgeting/View Models/HomeViewModel.swift:152)
+- predicate — 304 refs (OffshoreBudgeting/Resources/BudgetIncomeCalculator.swift:99)
+- start — 302 refs (OffshoreBudgeting/Resources/CoreDataListObserver.swift:52)
+- start — 302 refs (OffshoreBudgeting/Systems/CardPickerStore.swift:38)
+- start — 302 refs (OffshoreBudgeting/Systems/MotionSupport.swift:69)
+- start — 298 refs (OffshoreBudgeting/Models/BudgetPeriod.swift:34)
+- start — 297 refs (OffshoreBudgeting/View Models/HomeViewModel.swift:134)
+- start — 293 refs (OffshoreBudgeting/Systems/Compatibility.swift:531)
+- color — 291 refs (OffshoreBudgeting/Systems/AppTheme.swift:691)
+- color — 291 refs (OffshoreBudgeting/Systems/AppTheme.swift:701)
+- summary — 286 refs (OffshoreBudgeting/View Models/IncomeScreenViewModel.swift:150)
+- start — 281 refs (OffshoreBudgeting/Systems/Compatibility.swift:488)
+- body — 264 refs (OffshoreBudgeting/OffshoreBudgetingApp.swift:328)
+- body — 264 refs (OffshoreBudgeting/OffshoreBudgetingApp.swift:425)
+- body — 264 refs (OffshoreBudgeting/Resources/UnifiedSwipeActions.swift:109)
+- body — 264 refs (OffshoreBudgeting/Systems/Compatibility.swift:227)
+- body — 264 refs (OffshoreBudgeting/Systems/Compatibility.swift:314)
+- body — 264 refs (OffshoreBudgeting/Systems/Compatibility.swift:329)
+- body — 264 refs (OffshoreBudgeting/Systems/Compatibility.swift:352)
+- body — 264 refs (OffshoreBudgeting/Systems/Compatibility.swift:373)
+- body — 264 refs (OffshoreBudgeting/Systems/Compatibility.swift:415)
+- body — 264 refs (OffshoreBudgeting/Systems/GuidedWalkthroughManager.swift:351)
+- body — 264 refs (OffshoreBudgeting/Systems/ResponsiveLayoutContext.swift:159)
+- body — 264 refs (OffshoreBudgeting/Systems/SafeAreaInsetsCompatibility.swift:48)
+- body — 264 refs (OffshoreBudgeting/Views/AddPlannedExpenseView.swift:774)
+- body — 264 refs (OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift:461)
+- body — 264 refs (OffshoreBudgeting/Views/HomeView.swift:6374)
+
+Top 30 most referenced variables/constants (by name token count):
+- date — 673 refs (OffshoreBudgeting/Services/IncomeService.swift:31)
+- date — 673 refs (OffshoreBudgeting/Services/UnplannedExpenseService.swift:48)
+- date — 673 refs (OffshoreBudgeting/Systems/IncomeCalendarPalette.swift:43)
+- date — 673 refs (OffshoreBudgeting/Systems/WidgetSharedStore.swift:61)
+- date — 673 refs (OffshoreBudgeting/Systems/WidgetSharedStore.swift:123)
+- date — 673 refs (OffshoreBudgeting/View Models/CardDetailViewModel.swift:35)
+- date — 673 refs (OffshoreBudgeting/View Models/ExpenseImportViewModel.swift:335)
+- date — 673 refs (OffshoreBudgeting/View Models/HomeViewModel.swift:598)
+- date — 673 refs (OffshoreBudgeting/Views/HomeView.swift:2332)
+- date — 673 refs (OffshoreBudgeting/Views/HomeView.swift:2423)
+- date — 673 refs (OffshoreBudgeting/Views/HomeView.swift:2429)
+- date — 673 refs (OffshoreBudgeting/Views/HomeView.swift:2439)
+- date — 673 refs (OffshoreBudgeting/Views/HomeView.swift:2451)
+- date — 673 refs (OffshoreBudgetingTests/HomeViewSummaryTests.swift:189)
+- date — 673 refs (OffshoreBudgetingTests/HomeViewSummaryTests.swift:196)
+- date — 673 refs (OffshoreBudgetingTests/HomeViewSummaryTests.swift:201)
+- date — 673 refs (OffshoreWidgets/CardWidget.swift:15)
+- date — 673 refs (OffshoreWidgets/CardWidget.swift:93)
+- date — 673 refs (OffshoreWidgets/CategoryAvailabilityWidget.swift:137)
+- date — 673 refs (OffshoreWidgets/CategorySpotlightWidget.swift:58)
+- date — 673 refs (OffshoreWidgets/DayOfWeekSpendWidget.swift:63)
+- date — 673 refs (OffshoreWidgets/ExpenseToIncomeWidget.swift:45)
+- date — 673 refs (OffshoreWidgets/IncomeWidget.swift:53)
+- date — 673 refs (OffshoreWidgets/NextPlannedExpenseWidget.swift:12)
+- date — 673 refs (OffshoreWidgets/NextPlannedExpenseWidget.swift:48)
+- date — 673 refs (OffshoreWidgets/SavingsOutlookWidget.swift:45)
+- date — 672 refs (OffshoreBudgeting/Views/IncomeEditorView.swift:37)
+- date — 671 refs (OffshoreBudgeting/Views/IncomeView.swift:475)
+- date — 671 refs (OffshoreBudgeting/Views/IncomeView.swift:548)
+- date — 671 refs (OffshoreBudgeting/Views/IncomeView.swift:603)
+
+Low usage (1–2 references), top 100:
+- AddBudgetView (struct) — 1 refs (OffshoreBudgeting/Views/AddBudgetView.swift:21)
+- AppUpdateLog_2_0 (enum) — 1 refs (OffshoreBudgeting/App Update Logs/2.0.swift:3)
+- AppUpdateLog_2_0_1 (enum) — 1 refs (OffshoreBudgeting/App Update Logs/2.0.1.swift:3)
+- AppUpdateLog_2_1 (enum) — 1 refs (OffshoreBudgeting/App Update Logs/2.1.swift:10)
+- BudgetDetailsViewModelStore (class) — 1 refs (OffshoreBudgeting/View Models/BudgetDetailsViewModelStore.swift:15)
+- BudgetLoadState (enum) — 1 refs (OffshoreBudgeting/View Models/HomeViewModel.swift:21)
+- CardDetailView (struct) — 1 refs (OffshoreBudgeting/Views/CardDetailView.swift:20)
+- CategoryAvailabilityRow (struct) — 1 refs (OffshoreBudgeting/Views/Components/CategoryAvailabilityRow.swift:3)
+- CategoryDonutView (struct) — 1 refs (OffshoreBudgeting/Views/HomeView.swift:5982)
+- CloudDataProbe (class) — 1 refs (OffshoreBudgeting/Services/CloudDataProbe.swift:8)
+- CloudDataRemoteProbe (struct) — 1 refs (OffshoreBudgeting/Services/CloudDataRemoteProbe.swift:6)
+- CloudSyncPreferences (enum) — 1 refs (OffshoreBudgeting/Systems/AppTheme.swift:65)
+- CurrencyFormatter (class) — 1 refs (OffshoreBudgeting/View Models/PresetsViewModel.swift:159)
+- DonutSlice (struct) — 1 refs (OffshoreWidgets/CategorySpotlightWidget.swift:244)
+- ExistingExpenseSnapshot (struct) — 1 refs (OffshoreBudgeting/View Models/ExpenseImportViewModel.swift:332)
+- ExpenseToIncomeMetrics (struct) — 1 refs (OffshoreBudgeting/View Models/BudgetMetrics.swift:6)
+- ExpenseToIncomeSnapshot (struct) — 1 refs (OffshoreBudgeting/Systems/WidgetSharedStore.swift:43)
+- GlassSettings (struct) — 1 refs (OffshoreBudgeting/Systems/AppTheme.swift:474)
+- HelpView (struct) — 1 refs (OffshoreBudgeting/Views/HelpView.swift:7)
+- HolographicMetallicText (struct) — 1 refs (OffshoreBudgeting/Resources/HolographicMetallicText.swift:27)
+- Idiom (enum) — 1 refs (OffshoreBudgeting/Systems/ResponsiveLayoutContext.swift:19)
+- ImportKind (enum) — 1 refs (OffshoreBudgeting/View Models/ExpenseImportViewModel.swift:41)
+- ImportSelection (struct) — 1 refs (OffshoreBudgeting/Views/CardDetailView.swift:65)
+- IncomeComparisonPeriod (enum) — 1 refs (OffshoreBudgeting/Views/HomeView.swift:2467)
+- IncomeEditorAction (enum) — 1 refs (OffshoreBudgeting/Views/IncomeEditorView.swift:23)
+- IncomeEditorMode (enum) — 1 refs (OffshoreBudgeting/Views/IncomeEditorView.swift:16)
+- IncomeTotals (struct) — 1 refs (OffshoreBudgeting/View Models/BudgetDetailsViewModel.swift:75)
+- LabeledAmountBlock (struct) — 1 refs (OffshoreBudgeting/Views/PresetRowView.swift:129)
+- Layout (enum) — 1 refs (OffshoreBudgeting/Views/Components/TranslucentButtonStyle.swift:9)
+- LoadState (enum) — 1 refs (OffshoreBudgeting/View Models/BudgetDetailsViewModel.swift:46)
+- LoadState (enum) — 1 refs (OffshoreBudgeting/View Models/ExpenseImportViewModel.swift:16)
+- ManagedIDBox (struct) — 1 refs (OffshoreBudgeting/Views/HomeView.swift:2456)
+- MaterialStyle (enum) — 1 refs (OffshoreBudgeting/Systems/AppTheme.swift:475)
+- Month (enum) — 1 refs (OffshoreBudgeting/View Models/HomeViewModel.swift:132)
+- Motion (enum) — 1 refs (OffshoreBudgeting/Systems/DesignSystem+Motion.swift:11)
+- NextPlannedExpenseSnapshot (struct) — 1 refs (OffshoreBudgeting/Systems/WidgetSharedStore.swift:57)
+- OnboardingButtonsRow2 (struct) — 1 refs (OffshoreBudgeting/Views/OnboardingView.swift:133)
+- Overrides (struct) — 1 refs (OffshoreBudgeting/OffshoreBudgetingApp.swift:320)
+- PlannedExpenseServiceError (enum) — 1 refs (OffshoreBudgeting/Services/PlannedExpenseService.swift:34)
+- RootTabView (struct) — 1 refs (OffshoreBudgeting/Systems/RootTabView.swift:24)
+- SavingsOutlookSnapshot (struct) — 1 refs (OffshoreBudgeting/Systems/WidgetSharedStore.swift:50)
+- SeededData (struct) — 1 refs (OffshoreBudgetingTests/HomeViewSummaryTests.swift:204)
+- SettingsView (struct) — 1 refs (OffshoreBudgeting/Views/SettingsView.swift:14)
+- SpendBarOrientation (enum) — 1 refs (OffshoreBudgeting/Views/HomeView.swift:24)
+- Stroke (struct) — 1 refs (OffshoreBudgeting/Views/CategoryChipStyle.swift:7)
+- TabBarPalette (struct) — 1 refs (OffshoreBudgeting/Systems/AppTheme.swift:78)
+- TipsCatalog (enum) — 1 refs (OffshoreBudgeting/Systems/GuidedWalkthroughManager.swift:47)
+- UBDecor (enum) — 1 refs (OffshoreBudgeting/Systems/MetallicTextStyles.swift:21)
+- WorkspaceEditorView (struct) — 1 refs (OffshoreBudgeting/Views/WorkspaceProfilesView.swift:236)
+- actualLineSeries (let) — 1 refs (OffshoreBudgeting/Views/HomeView.swift:3718)
+- addCategory (func) — 1 refs (OffshoreBudgeting/Services/ExpenseCategoryService.swift:80)
+- addCategoryButton (var) — 1 refs (OffshoreBudgeting/Views/AddPlannedExpenseView.swift:759)
+- addCategoryButton (var) — 1 refs (OffshoreBudgeting/Views/AddUnplannedExpenseView.swift:512)
+- addCategorySheetInstanceID (var) — 1 refs (OffshoreBudgeting/Views/AddPlannedExpenseView.swift:631)
+- addCategorySheetInstanceID (var) — 1 refs (OffshoreBudgeting/Views/AddUnplannedExpenseView.swift:347)
+- adjustmentAmount (let) — 1 refs (OffshoreBudgeting/Systems/CardTheme.swift:139)
+- amountInput (var) — 1 refs (OffshoreBudgeting/View Models/AddIncomeFormViewModel.swift:39)
+- applyAppearance (func) — 1 refs (OffshoreBudgeting/Systems/AppTheme.swift:865)
+- applyGlobalChrome (func) — 1 refs (OffshoreBudgeting/Systems/SystemTheme.swift:38)
+- applyPresetChange (func) — 1 refs (OffshoreBudgeting/Views/RecurrencePickerView.swift:163)
+- badgeBackground (let) — 1 refs (OffshoreBudgeting/Systems/AppTheme.swift:82)
+- badgeBackground (let) — 1 refs (OffshoreBudgeting/Systems/AppTheme.swift:273)
+- bandHeight (let) — 1 refs (OffshoreBudgeting/Views/CardTileView.swift:1007)
+- biometricName (var) — 1 refs (OffshoreBudgeting/Views/SettingsView.swift:366)
+- biometricName (let) — 1 refs (OffshoreBudgeting/Views/SettingsView.swift:771)
+- boosted (let) — 1 refs (OffshoreBudgeting/Resources/HolographicMetallicText.swift:171)
+- bucketsForDays (func) — 1 refs (OffshoreBudgeting/View Models/HomeViewModel.swift:936)
+- budgetPendingDeletion (var) — 1 refs (OffshoreBudgeting/Views/PresetBudgetAssignmentSheet.swift:32)
+- budgetSearchText (var) — 1 refs (OffshoreBudgeting/Views/AddPlannedExpenseView.swift:46)
+- budgetSection (func) — 1 refs (OffshoreBudgeting/Views/BudgetsView.swift:257)
+- capGaugeData (var) — 1 refs (OffshoreBudgeting/Views/BudgetDetailsView.swift:25)
+- cappedCardWidth (var) — 1 refs (OffshoreBudgeting/Views/CardsView.swift:42)
+- cardTitleStatic (var) — 1 refs (OffshoreBudgeting/Systems/MetallicTextStyles.swift:8)
+- cardValid (let) — 1 refs (OffshoreBudgeting/View Models/AddPlannedExpenseViewModel.swift:173)
+- catName (let) — 1 refs (OffshoreBudgeting/Views/CardDetailView.swift:960)
+- categoryDotSize (var) — 1 refs (OffshoreBudgeting/Views/ExpenseImportView.swift:33)
+- categoryHex (let) — 1 refs (OffshoreBudgeting/Views/EditCategoryCapsView.swift:9)
+- categorySpotlightDefaultPeriodKey (let) — 1 refs (OffshoreBudgeting/Systems/WidgetSharedStore.swift:19)
+- categorySpotlightKeyPrefix (let) — 1 refs (OffshoreBudgeting/Systems/WidgetSharedStore.swift:18)
+- categoryValid (let) — 1 refs (OffshoreBudgeting/View Models/AddPlannedExpenseViewModel.swift:174)
+- centerValueColor (var) — 1 refs (OffshoreBudgeting/Views/HomeView.swift:5989)
+- chipsScrollContainer (func) — 1 refs (OffshoreBudgeting/Views/AddPlannedExpenseView.swift:714)
+- chipsScrollContainer (func) — 1 refs (OffshoreBudgeting/Views/AddUnplannedExpenseView.swift:469)
+- clampedUnit (func) — 1 refs (OffshoreBudgeting/Views/CardTileView.swift:778)
+- clearEventCaches (func) — 1 refs (OffshoreBudgeting/View Models/IncomeScreenViewModel.swift:281)
+- cloudStatusProvider (var) — 1 refs (OffshoreBudgeting/Systems/AppTheme.swift:801)
+- currencyString (func) — 1 refs (OffshoreBudgeting/Systems/IncomeCalendarPalette.swift:171)
+- currentAngle (var) — 1 refs (OffshoreBudgeting/Views/HomeView.swift:6081)
+- dataReady (var) — 1 refs (OffshoreBudgeting/OffshoreBudgetingApp.swift:21)
+- dayOfWeekDefaultPeriodKey (let) — 1 refs (OffshoreBudgeting/Systems/WidgetSharedStore.swift:22)
+- dayOfWeekKeyPrefix (let) — 1 refs (OffshoreBudgeting/Systems/WidgetSharedStore.swift:21)
+- daysInRange (func) — 1 refs (OffshoreBudgeting/View Models/HomeViewModel.swift:1090)
+- daysInRange (func) — 1 refs (OffshoreBudgeting/Views/HomeView.swift:5469)
+- deleteErrorMessage (var) — 1 refs (OffshoreBudgeting/Views/BudgetDetailsView.swift:28)
+- deleteTint (var) — 1 refs (OffshoreBudgeting/Resources/UnifiedSwipeActions.swift:18)
+- device (let) — 1 refs (OffshoreBudgeting/Views/HelpView.swift:692)
+- didApplyInitialCardSelection (var) — 1 refs (OffshoreBudgeting/Views/AddPlannedExpenseView.swift:44)
+- didApplyInitialCardSelection (var) — 1 refs (OffshoreBudgeting/Views/AddUnplannedExpenseView.swift:33)
+- didInitializeDateWindow (var) — 1 refs (OffshoreBudgeting/View Models/BudgetDetailsViewModel.swift:59)
+- disabledAlpha (let) — 1 refs (OffshoreBudgeting/Systems/AppTheme.swift:257)
+
+Largest files by non-empty LOC:
+- OffshoreBudgeting/Views/HomeView.swift — 6143 non-empty lines (6582 total), type decls: 49
+- OffshoreBudgeting/View Models/HomeViewModel.swift — 1336 non-empty lines (1466 total), type decls: 12
+- OffshoreBudgeting/Views/SettingsView.swift — 1111 non-empty lines (1210 total), type decls: 17
+- OffshoreBudgeting/Views/CardDetailView.swift — 1004 non-empty lines (1081 total), type decls: 7
+- OffshoreBudgeting/Views/CardTileView.swift — 929 non-empty lines (1030 total), type decls: 5
+- OffshoreBudgeting/Systems/AppTheme.swift — 909 non-empty lines (1036 total), type decls: 16
+- OffshoreBudgeting/Views/BudgetDetailsView.swift — 862 non-empty lines (931 total), type decls: 5
+- OffshoreBudgeting/Views/AddPlannedExpenseView.swift — 842 non-empty lines (895 total), type decls: 5
+- OffshoreBudgeting/Views/IncomeView.swift — 674 non-empty lines (741 total), type decls: 4
+- OffshoreBudgeting/Views/HelpView.swift — 666 non-empty lines (742 total), type decls: 9
+- OffshoreBudgeting/View Models/ExpenseImportViewModel.swift — 653 non-empty lines (748 total), type decls: 7
+- OffshoreBudgeting/Views/AddUnplannedExpenseView.swift — 595 non-empty lines (640 total), type decls: 4
+- OffshoreBudgeting/Services/WorkspaceService.swift — 578 non-empty lines (649 total), type decls: 2
+- OffshoreBudgeting/View Models/AddPlannedExpenseViewModel.swift — 559 non-empty lines (617 total), type decls: 1
+- OffshoreWidgets/DayOfWeekSpendWidget.swift — 519 non-empty lines (568 total), type decls: 11
+
+Hotspots (heuristic):
+- OffshoreBudgeting/Views/HomeView.swift: large file or multiple type declarations; likely mixed responsibilities.
+- OffshoreBudgeting/View Models/HomeViewModel.swift: large file or multiple type declarations; likely mixed responsibilities.
+- OffshoreBudgeting/Views/SettingsView.swift: large file or multiple type declarations; likely mixed responsibilities.
+- OffshoreBudgeting/Views/CardDetailView.swift: large file or multiple type declarations; likely mixed responsibilities.
+- OffshoreBudgeting/Views/CardTileView.swift: large file or multiple type declarations; likely mixed responsibilities.
+- OffshoreBudgeting/Systems/AppTheme.swift: large file or multiple type declarations; likely mixed responsibilities.
+- OffshoreBudgeting/Views/BudgetDetailsView.swift: large file or multiple type declarations; likely mixed responsibilities.
+- OffshoreBudgeting/Views/AddPlannedExpenseView.swift: large file or multiple type declarations; likely mixed responsibilities.
+- OffshoreBudgeting/Views/IncomeView.swift: large file or multiple type declarations; likely mixed responsibilities.
+- OffshoreBudgeting/Views/HelpView.swift: large file or multiple type declarations; likely mixed responsibilities.

@@ -27,6 +27,8 @@ struct BudgetDetailsView: View {
     @State private var isConfirmingDelete = false
     @State private var deleteErrorMessage: String?
     private let budgetService = BudgetService()
+    private let plannedExpenseService = PlannedExpenseService()
+    private let unplannedExpenseService = UnplannedExpenseService()
     @ScaledMetric(relativeTo: .body) private var categoryChipRowMinHeight: CGFloat = 44
 
     init(budgetID: NSManagedObjectID, store: BudgetDetailsViewModelStore? = nil) {
@@ -173,7 +175,15 @@ struct BudgetDetailsView: View {
                     selectedCategoryURI: selectedCategoryURI,
                     confirmBeforeDelete: true,
                     onEdit: { editingPlannedBox = ObjectIDBox(id: $0) },
-                    onDelete: { _ in Task { await vm.refreshRows() } }
+                    onDelete: { expense in
+                        do {
+                            try plannedExpenseService.delete(expense)
+                            Task { await vm.refreshRows() }
+                        } catch {
+                            let context = CoreDataService.shared.viewContext
+                            if context.hasChanges { context.rollback() }
+                        }
+                    }
                 )
             } else {
                 VariableRowsList(
@@ -185,7 +195,15 @@ struct BudgetDetailsView: View {
                     selectedCategoryURI: selectedCategoryURI,
                     confirmBeforeDelete: true,
                     onEdit: { editingUnplannedBox = ObjectIDBox(id: $0) },
-                    onDelete: { _ in Task { await vm.refreshRows() } }
+                    onDelete: { expense in
+                        do {
+                            try unplannedExpenseService.delete(expense)
+                            Task { await vm.refreshRows() }
+                        } catch {
+                            let context = CoreDataService.shared.viewContext
+                            if context.hasChanges { context.rollback() }
+                        }
+                    }
                 )
             }
         } else {

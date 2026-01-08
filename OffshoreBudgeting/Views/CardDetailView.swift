@@ -9,6 +9,12 @@
 import SwiftUI
 import CoreData
 import UniformTypeIdentifiers
+#if os(iOS)
+import UIKit
+#endif
+#if os(macOS)
+import AppKit
+#endif
 
 // MARK: - CardDetailView
 struct CardDetailView: View {
@@ -38,8 +44,10 @@ struct CardDetailView: View {
     @State private var deletionError: DeletionError?
     @State private var editingExpense: CardExpense?
     @State private var isPresentingImportPicker: Bool = false
-    @State private var isPresentingImportSheet: Bool = false
-    @State private var importFileURL: URL?
+    @State private var importSelection: ImportSelection?
+#if targetEnvironment(macCatalyst)
+    @StateObject private var importPickerCoordinator = ImportPickerCoordinator()
+#endif
     // Date range pickers
     @State private var startDate: Date = Date()
     @State private var endDate: Date = Date()
@@ -53,6 +61,11 @@ struct CardDetailView: View {
     private let initialHeaderTopPadding: CGFloat = 16
     @ScaledMetric(relativeTo: .body) private var dateActionButtonSize: CGFloat = 44
     @ScaledMetric(relativeTo: .subheadline) private var categoryChipDotSize: CGFloat = 10
+
+    private struct ImportSelection: Identifiable {
+        let id = UUID()
+        let url: URL
+    }
     
     // MARK: Init
     init(card: CardItem,
@@ -150,6 +163,7 @@ struct CardDetailView: View {
                 dismissButton: .cancel(Text("OK"))
             )
         }
+#if !targetEnvironment(macCatalyst)
         .fileImporter(
             isPresented: $isPresentingImportPicker,
             allowedContentTypes: [.commaSeparatedText],
@@ -157,19 +171,29 @@ struct CardDetailView: View {
         ) { result in
             switch result {
             case .success(let urls):
-                importFileURL = urls.first
-                isPresentingImportSheet = importFileURL != nil
+                isPresentingImportPicker = false
+                if let url = urls.first {
+                    importSelection = ImportSelection(url: url)
+                } else {
+                    importSelection = nil
+                }
             case .failure:
-                importFileURL = nil
-                isPresentingImportSheet = false
+                isPresentingImportPicker = false
+                importSelection = nil
             }
         }
-        .sheet(isPresented: $isPresentingImportSheet, onDismiss: { importFileURL = nil }) {
-            if let url = importFileURL {
-                ExpenseImportView(card: cardSnapshot, fileURL: url) { refreshCardDetails() }
-                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-            }
+#endif
+#if targetEnvironment(macCatalyst)
+        .fullScreenCover(item: $importSelection, onDismiss: { importSelection = nil }) { selection in
+            ExpenseImportView(card: cardSnapshot, fileURL: selection.url) { refreshCardDetails() }
+                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
+#else
+        .sheet(item: $importSelection, onDismiss: { importSelection = nil }) { selection in
+            ExpenseImportView(card: cardSnapshot, fileURL: selection.url) { refreshCardDetails() }
+                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+        }
+#endif
         .ub_surfaceBackground(
             themeManager.selectedTheme,
             configuration: themeManager.glassConfiguration,
@@ -500,7 +524,7 @@ struct CardDetailView: View {
                     isPresentingAddExpense = true
                 }
                 Button("Import Expenses") {
-                    isPresentingImportPicker = true
+                    presentImportPicker()
                 }
             } label: {
                 Image(systemName: "plus")
@@ -534,6 +558,76 @@ struct CardDetailView: View {
             }
         }
     }
+
+    private func presentImportPicker() {
+        #if targetEnvironment(macCatalyst)
+        presentCatalystDocumentPicker()
+        #elseif os(macOS)
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else {
+                importSelection = nil
+                return
+            }
+            importSelection = ImportSelection(url: url)
+        }
+        #else
+        isPresentingImportPicker = true
+        #endif
+    }
+
+    #if targetEnvironment(macCatalyst)
+    private final class ImportPickerCoordinator: NSObject, UIDocumentPickerDelegate, ObservableObject {
+        var onPick: ((URL?) -> Void)?
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            onPick?(urls.first)
+        }
+
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            onPick?(nil)
+        }
+    }
+
+    // MARK: - Catalyst Import Picker (UIKit bridge)
+    // MARK: - Why this exists
+    // MARK: - How to use
+    //
+    // macCatalyst: SwiftUI `fileImporter` + sheet presentation does not reliably deliver
+    // a URL after the Open panel closes. Presenting a UIKit document picker from the
+    // root UIViewController avoids the sheet lifecycle and reliably returns a URL.
+    //
+    // Usage: Call `presentImportPicker()` from UI actions. On macCatalyst this will
+    // present a UIKit document picker and set `importSelection` when a URL is chosen.
+    private func presentCatalystDocumentPicker() {
+        let types: [UTType] = [
+            UTType.commaSeparatedText,
+            UTType(filenameExtension: "csv"),
+            UTType.text,
+            UTType.plainText,
+            UTType.data
+        ].compactMap { $0 }
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: true)
+        picker.allowsMultipleSelection = false
+        importPickerCoordinator.onPick = { url in
+            if let url {
+                importSelection = ImportSelection(url: url)
+            }
+        }
+        picker.delegate = importPickerCoordinator
+
+        guard let windowScene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive }),
+              let root = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+        else { return }
+
+        root.present(picker, animated: true)
+    }
+    #endif
 
     private var searchToolbarControlLegacy: some View {
         HStack(spacing: 6) {

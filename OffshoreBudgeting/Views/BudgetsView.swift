@@ -30,6 +30,13 @@ struct BudgetsView: View {
             }
             .task { await loadBudgetsIfNeeded() }
             .refreshable { await loadBudgets() }
+            .onReceive(
+                NotificationCenter.default
+                    .publisher(for: .dataStoreDidChange)
+                    .debounce(for: .milliseconds(DataChangeDebounce.milliseconds()), scheduler: RunLoop.main)
+            ) { _ in
+                Task { await loadBudgets() }
+            }
             .onAppear {
                 loadExpansionState()
                 startObservingUbiquitousChangesIfNeeded()

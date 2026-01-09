@@ -252,6 +252,7 @@ struct SettingsView: View {
                     iconStyle: .orange
                 )
             }
+            .accessibilityIdentifier("nav_manage_presets")
         }
     }
 

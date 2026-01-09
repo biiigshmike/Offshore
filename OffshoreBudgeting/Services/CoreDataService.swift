@@ -17,10 +17,10 @@ final class CoreDataService: ObservableObject {
     static let shared = CoreDataService()
 
     private let notificationCenter: NotificationCentering
-    private let cloudAvailabilityProvider: CloudAvailabilityProviding
+    private var cloudAvailabilityProvider: CloudAvailabilityProviding?
 
     private init(notificationCenter: NotificationCentering = NotificationCenterAdapter.shared,
-                 cloudAvailabilityProvider: CloudAvailabilityProviding = CloudAccountStatusProvider.shared) {
+                 cloudAvailabilityProvider: CloudAvailabilityProviding? = nil) {
         self.notificationCenter = notificationCenter
         self.cloudAvailabilityProvider = cloudAvailabilityProvider
     }
@@ -66,7 +66,7 @@ final class CoreDataService: ObservableObject {
     /// Keeps production behavior unchanged (shared still uses the default init).
     init(testContainer: NSPersistentContainer,
          notificationCenter: NotificationCentering = NotificationCenterAdapter.shared,
-         cloudAvailabilityProvider: CloudAvailabilityProviding = CloudAccountStatusProvider.shared) {
+         cloudAvailabilityProvider: CloudAvailabilityProviding? = nil) {
         self.notificationCenter = notificationCenter
         self.cloudAvailabilityProvider = cloudAvailabilityProvider
         self.container = testContainer
@@ -333,7 +333,7 @@ extension CoreDataService {
 
         if enableSync {
             if currentMode == .cloudKit { return }
-            let available = await cloudAvailabilityProvider.resolveAvailability(forceRefresh: true)
+            let available = await resolvedCloudAvailabilityProvider.resolveAvailability(forceRefresh: true)
             guard available else {
                 // iCloud (named container) currently unavailable. Keep the user's
                 // preference intact, but remain in local mode to avoid breaking UX.
@@ -352,6 +352,14 @@ extension CoreDataService {
 // MARK: - Private Helpers
 
 private extension CoreDataService {
+    @MainActor
+    var resolvedCloudAvailabilityProvider: CloudAvailabilityProviding {
+        if let provider = cloudAvailabilityProvider { return provider }
+        let provider = CloudAccountStatusProvider.shared
+        cloudAvailabilityProvider = provider
+        return provider
+    }
+
     @MainActor
     func loadStores(file: StaticString, line: UInt) async {
         defer { loadingTask = nil }

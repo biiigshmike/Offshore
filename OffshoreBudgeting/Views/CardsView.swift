@@ -85,6 +85,9 @@ struct CardsView: View {
                         case .loaded(let cards):
                             LazyVGrid(columns: columns, spacing: gridSpacingValue) {
                                 ForEach(cards) { card in
+                                    let cardRowID = card.uuid?.uuidString
+                                        ?? card.objectID?.uriRepresentation().absoluteString
+                                        ?? card.id
                                     NavigationLink(value: card) {
                                         CardTileView(
                                             card: card,
@@ -99,6 +102,7 @@ struct CardsView: View {
                                         .frame(minHeight: cardHeight)
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityIdentifier("card_row_\(cardRowID)")
                                     .contextMenu {
                                         Button("Edit", systemImage: "pencil") { editingCard = card }
                                         Button("Delete", systemImage: "trash", role: .destructive) {
@@ -122,6 +126,7 @@ struct CardsView: View {
         }
         .navigationTitle("Cards")
         .ub_windowTitle("Cards")
+        .accessibilityIdentifier("cards_screen")
         .toolbar { toolbarContent }
         .onAppear { vm.startIfNeeded() }
         .sheet(isPresented: $isPresentingAddCard) {

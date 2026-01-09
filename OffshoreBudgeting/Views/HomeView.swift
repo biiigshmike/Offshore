@@ -6310,6 +6310,7 @@ struct PlannedRowsList: View {
                     onEdit: { onEdit(exp.objectID) },
                     onDelete: { onDelete(exp) }
                 )
+                .accessibilityIdentifier(rowAccessibilityID(for: exp))
             }
         }
     }
@@ -6332,6 +6333,10 @@ struct PlannedRowsList: View {
         case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
         case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
         }
+    }
+
+    private func rowAccessibilityID(for expense: PlannedExpense) -> String {
+        AccessibilityRowIdentifier.plannedRow(id: expense.value(forKey: "id") as? UUID)
     }
 
     private static func dateString(_ date: Date?) -> String {
@@ -6523,6 +6528,7 @@ struct VariableRowsList: View {
                     onEdit: { onEdit(exp.objectID) },
                     onDelete: { onDelete(exp) }
                 )
+                .accessibilityIdentifier(rowAccessibilityID(for: exp))
             }
         }
     }
@@ -6545,6 +6551,10 @@ struct VariableRowsList: View {
         case .dateOldNew: return [NSSortDescriptor(key: "transactionDate", ascending: true)]
         case .dateNewOld: return [NSSortDescriptor(key: "transactionDate", ascending: false)]
         }
+    }
+
+    private func rowAccessibilityID(for expense: UnplannedExpense) -> String {
+        AccessibilityRowIdentifier.unplannedRow(id: expense.value(forKey: "id") as? UUID)
     }
 
     private static func readUnplannedDescription(_ object: NSManagedObject) -> String? {

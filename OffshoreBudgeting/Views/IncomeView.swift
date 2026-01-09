@@ -645,8 +645,7 @@ struct IncomeView: View {
     }
 
     private func rowAccessibilityID(for income: Income) -> String {
-        if let id = income.id?.uuidString { return "row_income_\(id)" }
-        return "row_income"
+        AccessibilityRowIdentifier.incomeRow(id: income.id)
     }
 
     private func totalsColumn(label: String, amount: Double, color: Color) -> some View {

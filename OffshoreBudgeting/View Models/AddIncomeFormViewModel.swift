@@ -192,6 +192,7 @@ final class AddIncomeFormViewModel: ObservableObject {
         nf.numberStyle = .decimal
         nf.minimumFractionDigits = 0
         nf.maximumFractionDigits = 2
+        nf.usesGroupingSeparator = false
         return nf.string(from: NSNumber(value: value)) ?? ""
     }
 

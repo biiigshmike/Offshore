@@ -199,7 +199,6 @@ struct ExpenseCategoryManagerView: View {
     @ViewBuilder
     private func categoryRow(for category: ExpenseCategory, swipeConfig: UnifiedSwipeConfig) -> some View {
         let name = category.name ?? "Untitled"
-        let idString = categoryIDString(for: category)
         CategoryRowView(
             config: swipeConfig,
             label: { rowLabel(for: category) },
@@ -217,35 +216,27 @@ struct ExpenseCategoryManagerView: View {
         )
         .accessibilityElement(children: uiTestingFlags.isUITesting ? .contain : .ignore)
         .accessibilityLabel(Text(name))
-        .accessibilityIdentifier("category_row_id_\(idString)")
+        .accessibilityIdentifier(AccessibilityRowIdentifier.categoryRow(id: categoryUUID(for: category)))
     }
     
     @ViewBuilder
     private func rowLabel(for category: ExpenseCategory) -> some View {
         let name = category.name ?? "Untitled"
-        let idString = categoryIDString(for: category)
         HStack(spacing: 12) {
             ColorCircle(hex: category.color ?? "#999999")
             VStack(alignment: .leading) {
                 Text(name)
-                    .accessibilityIdentifier("category_row_name_\(idString)")
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
         }
-        .accessibilityIdentifier("category_row_\(name)")
     }
 
-    private func categoryIDString(for category: ExpenseCategory) -> String {
-        if let id = category.id {
-            return id.uuidString
-        }
-        if let id = category.value(forKey: "id") as? UUID {
-            return id.uuidString
-        }
-        return "unknown"
+    private func categoryUUID(for category: ExpenseCategory) -> UUID? {
+        if let id = category.id { return id }
+        return category.value(forKey: "id") as? UUID
     }
     
     // MARK: - Empty State

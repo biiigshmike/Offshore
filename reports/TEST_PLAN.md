@@ -56,6 +56,13 @@ Phase 2.5: UI Tests (follow-up)
 - Add budget → add planned expense → delete planned expense.
 - Add card → delete card (verify confirmation and deletion).
 
+Phase 2.6: Core Screens UI Smoke Suite
+- [Done] Budgets: delete budget navigates back and removes row (no ghost budget).
+- [Done] Budget details: delete expense from Card Detail does not reappear in Budget Details.
+- [Done] Income: edit entry refreshes and persists.
+- [Done] Presets: seeded preset visible and navigable.
+- [Done] Categories: delete seeded category and refresh list without relaunch.
+
 A4) Test Data Strategy
 - Use in-memory Core Data store with the app’s actual model.
 - Control WorkspaceService via UserDefaults (activeWorkspaceID) and clear after each test.

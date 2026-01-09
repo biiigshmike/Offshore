@@ -36,6 +36,7 @@ When making decisions, agents must follow this order of authority:
 
 Agents MUST NOT invent APIs, patterns, or behaviors that are not supported by the above sources, UNLESS no other solution is available. If this is the case, alert the user and have a discussion about what to do.
 
+----------------------------------------------------------------
 VERIFICATION RULE (MANDATORY)
 
 Before implementing a solution, the agent must verify behavior against one of the following:
@@ -67,7 +68,7 @@ Codex is a prompt-to-code transformation engine.
 Its responsibility is to:
 - Interpret technical intent
 - Plan changes conservatively
-- Produce production-ready, object-oriented code that integrates cleanly
+- Produce production-ready code that integrates cleanly
 - Avoid unnecessary refactors
 - Preserve behavior unless explicitly instructed otherwise
 
@@ -123,6 +124,30 @@ For SwiftUI specifically, agents MUST NOT:
 - Change layout constants unless Dynamic Type or accessibility is broken
 
 If a fix requires any of the above, the agent must STOP and explain.
+
+----------------------------------------------------------------
+UI TEST RELIABILITY CONTRACT (ADDITIVE, MANDATORY)
+
+UI tests are part of the “Foundation Code” contract. Fixes must prefer:
+1) Correct accessibility semantics and stable identifiers in production UI.
+2) Test utilities that reflect real UIKit/SwiftUI behavior (virtualization, delayed rendering).
+
+Rules:
+- Do NOT “force-render” offscreen list rows in production just to satisfy tests.
+- If a test assumes offscreen rows exist without scrolling, prefer fixing the test helper to scroll-until-found.
+- It is acceptable to add *test-only* behavior behind explicit UI testing flags ONLY if:
+  - It does not change data, persistence, or user flows.
+  - It does not change hit testing/gestures/navigation structure.
+  - It is limited to layout density/animation timing and clearly labeled.
+
+Accessibility identifier rules:
+- Identifiers that tests rely on MUST be attached to a stable, top-level element representing the semantic row/container.
+- Avoid attaching identifiers to text nodes that may be merged/combined away.
+- Avoid duplicate identifiers in the subtree.
+
+Scrolling rules:
+- Never implement “find element then scroll to it” if the element may not exist before scroll (common in SwiftUI List/Lazy stacks).
+- Prefer: “scroll container until an element with identifier exists (or timeout)”.
 
 ----------------------------------------------------------------
 OUTPUT FORMAT
@@ -230,6 +255,10 @@ Agents MUST STOP if:
 - A test still fails after 3 attempts to fix or rerun it
 
 In these cases, explain clearly and wait for instruction.
+
+
+
+
 
 
 ## Repository overview

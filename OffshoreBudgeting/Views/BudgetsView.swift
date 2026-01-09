@@ -5,7 +5,6 @@ import CoreData
 /// Lists active budgets in reverse chronological order and links to details.
 struct BudgetsView: View {
     // MARK: State
-    @State private var budgets: [Budget] = []
     @State private var isLoading = false
     @State private var alert: AlertItem?
     @State private var isPresentingAddBudget = false
@@ -16,12 +15,19 @@ struct BudgetsView: View {
     @State private var expandedPast = false
     @State private var ubiquitousObserver: NSObjectProtocol?
     @FocusState private var searchFocused: Bool
+    @FetchRequest private var fetchedBudgets: FetchedResults<Budget>
 
     // MARK: Services
-    private let budgetService = BudgetService()
+    init() {
+        let req: NSFetchRequest<Budget> = NSFetchRequest(entityName: "Budget")
+        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
+        req.sortDescriptors = [NSSortDescriptor(key: #keyPath(Budget.startDate), ascending: false)]
+        _fetchedBudgets = FetchRequest(fetchRequest: req)
+    }
 
     var body: some View {
         content
+            .accessibilityIdentifier("budgets_screen")
             .navigationTitle("Budgets")
             .ub_windowTitle("Budgets")
             .toolbar { toolbarContent }
@@ -40,6 +46,7 @@ struct BudgetsView: View {
             .onAppear {
                 loadExpansionState()
                 startObservingUbiquitousChangesIfNeeded()
+                syncBudgetsFromFetch()
             }
             .onDisappear {
                 stopObservingUbiquitousChanges()
@@ -50,6 +57,9 @@ struct BudgetsView: View {
                       dismissButton: .default(Text("OK")))
             }
             .tipsAndHintsOverlay(for: .budgets)
+            .onChange(of: fetchedBudgetIDs) { _ in
+                syncBudgetsFromFetch()
+            }
     }
 
     @ViewBuilder
@@ -130,24 +140,20 @@ struct BudgetsView: View {
 
     // MARK: Data Loading
     private func loadBudgetsIfNeeded() async {
-        guard budgets.isEmpty else { return }
+        guard fetchedBudgets.isEmpty else {
+            await MainActor.run {
+                isLoading = false
+            }
+            return
+        }
         await loadBudgets()
     }
 
     private func loadBudgets() async {
         await MainActor.run { isLoading = true }
-        do {
-            let allBudgets = try budgetService.fetchAllBudgets(sortByStartDateDescending: true)
-            await MainActor.run {
-                budgets = allBudgets
-                isLoading = false
-                isPresentingAddBudget = false
-            }
-        } catch {
-            await MainActor.run {
-                alert = AlertItem(message: "Couldn’t load budgets. Please try again.")
-                isLoading = false
-            }
+        await MainActor.run {
+            syncBudgetsFromFetch()
+            isPresentingAddBudget = false
         }
     }
 
@@ -173,8 +179,9 @@ struct BudgetsView: View {
 
     private var filteredBudgets: [Budget] {
         let query = trimmedSearchText
-        guard !query.isEmpty else { return budgets }
-        return budgets.filter { matchesSearch($0, query: query) }
+        let base = Array(fetchedBudgets)
+        guard !query.isEmpty else { return base }
+        return base.filter { matchesSearch($0, query: query) }
     }
 
     private func matchesSearch(_ budget: Budget, query: String) -> Bool {
@@ -269,6 +276,7 @@ struct BudgetsView: View {
                         NavigationLink(value: budget.objectID) {
                             BudgetRow(budget: budget)
                         }
+                        .accessibilityIdentifier(AccessibilityRowIdentifier.budgetRow(id: budgetUUID(for: budget)))
                     }
                 }
             }
@@ -492,6 +500,18 @@ struct BudgetsView: View {
             NotificationCenter.default.removeObserver(observer)
             ubiquitousObserver = nil
         }
+    }
+
+    private func syncBudgetsFromFetch() {
+        isLoading = false
+    }
+
+    private var fetchedBudgetIDs: [NSManagedObjectID] {
+        fetchedBudgets.map(\.objectID)
+    }
+
+    private func budgetUUID(for budget: Budget) -> UUID? {
+        budget.value(forKey: "id") as? UUID
     }
 }
 

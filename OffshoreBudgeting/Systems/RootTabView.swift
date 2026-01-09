@@ -51,6 +51,7 @@ struct RootTabView: View {
     @Environment(\.startTabIdentifier) private var startTabIdentifier
     @Environment(\.startRouteIdentifier) private var startRouteIdentifier
     @Environment(\.uiTestingFlags) private var uiTestingFlags
+    @AppStorage("uitest_seed_done") private var uiTestSeedDone: Bool = false
     @State private var selectedTab: Tab = .home
     @State private var appliedStartTab: Bool = false
     @State private var appliedStartRoute: Bool = false
@@ -63,6 +64,14 @@ struct RootTabView: View {
     
     var body: some View {
         rootBody
+            .overlay(alignment: .topLeading) {
+                if uiTestingFlags.isUITesting, uiTestSeedDone {
+                    Text("Seed Done")
+                        .font(.caption2)
+                        .opacity(0.01)
+                        .accessibilityIdentifier("uitest_seed_done")
+                }
+            }
             .animation(.easeInOut(duration: 0.25), value: shouldUseCompactTabs)
     }
     
@@ -118,40 +127,55 @@ struct RootTabView: View {
     @ViewBuilder
     private var adaptiveTabView: some View {
         TabView(selection: $selectedTab) {
-            SwiftUI.Tab(Tab.home.title, systemImage: Tab.home.systemImage, value: Tab.home) {
+            SwiftUI.Tab(value: Tab.home) {
                 navigationContainer {
                     decoratedTabContent(for: .home)
                 }
             }
-            .accessibilityIdentifier(Tab.home.accessibilityID)
+            label: {
+                Label(Tab.home.title, systemImage: Tab.home.systemImage)
+                    .accessibilityIdentifier(Tab.home.accessibilityID)
+            }
             
-            SwiftUI.Tab(Tab.budgets.title, systemImage: Tab.budgets.systemImage, value: Tab.budgets) {
+            SwiftUI.Tab(value: Tab.budgets) {
                 navigationContainer {
                     decoratedTabContent(for: .budgets)
                 }
             }
-            .accessibilityIdentifier(Tab.budgets.accessibilityID)
+            label: {
+                Label(Tab.budgets.title, systemImage: Tab.budgets.systemImage)
+                    .accessibilityIdentifier(Tab.budgets.accessibilityID)
+            }
             
-            SwiftUI.Tab(Tab.income.title, systemImage: Tab.income.systemImage, value: Tab.income) {
+            SwiftUI.Tab(value: Tab.income) {
                 navigationContainer {
                     decoratedTabContent(for: .income)
                 }
             }
-            .accessibilityIdentifier(Tab.income.accessibilityID)
+            label: {
+                Label(Tab.income.title, systemImage: Tab.income.systemImage)
+                    .accessibilityIdentifier(Tab.income.accessibilityID)
+            }
             
-            SwiftUI.Tab(Tab.cards.title, systemImage: Tab.cards.systemImage, value: Tab.cards) {
+            SwiftUI.Tab(value: Tab.cards) {
                 navigationContainer {
                     decoratedTabContent(for: .cards)
                 }
             }
-            .accessibilityIdentifier(Tab.cards.accessibilityID)
+            label: {
+                Label(Tab.cards.title, systemImage: Tab.cards.systemImage)
+                    .accessibilityIdentifier(Tab.cards.accessibilityID)
+            }
             
-            SwiftUI.Tab(Tab.settings.title, systemImage: Tab.settings.systemImage, value: Tab.settings) {
+            SwiftUI.Tab(value: Tab.settings) {
                 navigationContainer {
                     decoratedTabContent(for: .settings)
                 }
             }
-            .accessibilityIdentifier(Tab.settings.accessibilityID)
+            label: {
+                Label(Tab.settings.title, systemImage: Tab.settings.systemImage)
+                    .accessibilityIdentifier(Tab.settings.accessibilityID)
+            }
         }
         .onAppear {
             applyStartTabIfNeeded()

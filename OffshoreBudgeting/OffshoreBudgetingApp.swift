@@ -404,23 +404,115 @@ private extension OffshoreBudgetingApp {
     }
 
     func uiTestingFlagsIfAny() -> UITestingFlags {
-        #if DEBUG
         let isUITesting = ProcessInfo.processInfo.arguments.contains("-ui-testing")
         if isUITesting { return UITestingFlags(isUITesting: true, showTestControls: true) }
-        #endif
         return UITestingFlags(isUITesting: false, showTestControls: false)
     }
 
     @MainActor
     func seedForUITests(scenario: String) async {
         let ctx = CoreDataService.shared.viewContext
+        UserDefaults.standard.set(false, forKey: "uitest_seed_done")
+        let markSeedDone = {
+            UserDefaults.standard.set(true, forKey: "uitest_seed_done")
+            UserDefaults.standard.synchronize()
+        }
         let groceriesID = UUID(uuidString: "9B44A0A2-9E1E-4B1C-B8C9-2C7FD31F1E3A")!
         let testCatID = UUID(uuidString: "4E7B2C3F-6B1D-4F5F-AF6A-1D58D6F2A1D2")!
         switch scenario.lowercased() {
+        case "core_universe":
+            let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
+            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
+            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            _ = WorkspaceService.shared.fetchOrCreateWorkspace(in: ctx)
+
+            let budgetID = UUID(uuidString: "DCE9E4FD-4EC7-4EA1-9A67-1E5C3A3A8AA1")!
+            let cardID = UUID(uuidString: "B51F1C5D-3FD7-4C5F-BBBE-8B5A6F5D8F70")!
+            let categoryID = UUID(uuidString: "C8AFB4B9-5F10-4EB4-9C12-06D6E86B7C2B")!
+            let plannedExpenseID = UUID(uuidString: "8E6DCA5A-9D1C-4C91-85B9-A990C4B2E199")!
+            let unplannedExpenseID = UUID(uuidString: "B8A91A83-3E7E-4B27-BAC1-3F66D6463D2D")!
+            let presetTemplateID = UUID(uuidString: "6E71C8A6-2A7F-4F87-8D4A-4B3E7A3C1CC1")!
+            let plannedIncomeID = UUID(uuidString: "2D2072C4-2F80-4F32-9E7B-8A9D0D2F6B15")!
+            let actualIncomeID = UUID(uuidString: "E2A6D5D3-9F38-4F8B-8C35-3A2A9E45D821")!
+
+            let period = WorkspaceService.shared.currentBudgetPeriod(in: ctx)
+            let range = period.range(containing: Date())
+
+            let budget = Budget(context: ctx)
+            budget.setValue(budgetID, forKey: "id")
+            budget.name = "Core Budget"
+            budget.startDate = range.start
+            budget.endDate = range.end
+            budget.isRecurring = false
+            WorkspaceService.applyWorkspaceIDIfPossible(on: budget)
+
+            let card = Card(context: ctx)
+            card.setValue(cardID, forKey: "id")
+            card.name = "Core Card"
+            WorkspaceService.applyWorkspaceIDIfPossible(on: card)
+            card.mutableSetValue(forKey: "budget").add(budget)
+
+            let category = ExpenseCategory(context: ctx)
+            category.setValue(categoryID, forKey: "id")
+            category.name = "Groceries"
+            category.color = "#4E9CFF"
+            category.setValue(workspaceID, forKey: "workspaceID")
+
+            let planned = PlannedExpense(context: ctx)
+            planned.setValue(plannedExpenseID, forKey: "id")
+            planned.setValue("Seeded Planned", forKey: "descriptionText")
+            planned.plannedAmount = 25
+            planned.actualAmount = 12
+            planned.transactionDate = Calendar.current.date(byAdding: .day, value: 2, to: range.start) ?? Date()
+            planned.isGlobal = false
+            planned.setValue(budget, forKey: "budget")
+            planned.card = card
+            planned.expenseCategory = category
+            planned.setValue(workspaceID, forKey: "workspaceID")
+
+            let template = PlannedExpense(context: ctx)
+            template.setValue(presetTemplateID, forKey: "id")
+            template.setValue("Seeded Preset", forKey: "descriptionText")
+            template.plannedAmount = 40
+            template.actualAmount = 0
+            template.transactionDate = range.start
+            template.isGlobal = true
+            template.setValue(nil, forKey: "budget")
+            template.setValue(workspaceID, forKey: "workspaceID")
+
+            let unplanned = UnplannedExpense(context: ctx)
+            unplanned.setValue(unplannedExpenseID, forKey: "id")
+            unplanned.descriptionText = "Seeded Unplanned"
+            unplanned.amount = 9
+            unplanned.transactionDate = Calendar.current.date(byAdding: .day, value: 1, to: range.start) ?? Date()
+            unplanned.card = card
+            unplanned.expenseCategory = category
+            unplanned.setValue(workspaceID, forKey: "workspaceID")
+
+            let plannedIncome = Income(context: ctx)
+            plannedIncome.setValue(plannedIncomeID, forKey: "id")
+            plannedIncome.source = "Seeded Planned Income"
+            plannedIncome.amount = 1500
+            plannedIncome.date = Date()
+            plannedIncome.isPlanned = true
+            plannedIncome.setValue(workspaceID, forKey: "workspaceID")
+
+            let actualIncome = Income(context: ctx)
+            actualIncome.setValue(actualIncomeID, forKey: "id")
+            actualIncome.source = "Seeded Actual Income"
+            actualIncome.amount = 900
+            actualIncome.date = Date()
+            actualIncome.isPlanned = false
+            actualIncome.setValue(workspaceID, forKey: "workspaceID")
+
+            try? ctx.save()
+            markSeedDone()
+            return
         case "categories_empty":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
             UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
             UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            markSeedDone()
             return
         case "categories_with_one":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
@@ -452,6 +544,7 @@ private extension OffshoreBudgetingApp {
             unplanned.setValue(workspaceID, forKey: "workspaceID")
 
             try? ctx.save()
+            markSeedDone()
             return
         case "categories_with_testcat":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
@@ -465,10 +558,13 @@ private extension OffshoreBudgetingApp {
             category.setValue(workspaceID, forKey: "workspaceID")
 
             try? ctx.save()
+            markSeedDone()
             return
         case "empty":
+            markSeedDone()
             return
         case "demo":
+            markSeedDone()
             return
         case "income1":
             let inc = Income(context: ctx)
@@ -479,7 +575,9 @@ private extension OffshoreBudgetingApp {
             inc.date = Date()
             WorkspaceService.shared.applyWorkspaceID(on: inc)
             try? ctx.save()
+            markSeedDone()
         default:
+            markSeedDone()
             return
         }
     }

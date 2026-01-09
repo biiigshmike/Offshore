@@ -295,23 +295,6 @@ final class CardDetailViewModel: ObservableObject {
                 try viewContext.save()
             }
 
-            if case .loaded(_, _, var expenses) = state {
-                if let idx = expenses.firstIndex(of: expense) {
-                    expenses.remove(at: idx)
-                }
-
-                if expenses.isEmpty {
-                    withAnimation { state = .empty }
-                } else {
-                    let total = expenses.reduce(0) { $0 + $1.amount }
-                    let categories = buildCategories(from: expenses)
-                    withAnimation {
-                        state = .loaded(total: total, categories: categories, expenses: expenses)
-                    }
-                }
-            } else {
-                await load()
-            }
         } catch let error as CardDetailViewModelError {
             AppLog.ui.error("CardDetailViewModel.delete error: \(error.localizedDescription)")
             throw error

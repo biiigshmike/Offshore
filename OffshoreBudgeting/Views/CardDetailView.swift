@@ -33,6 +33,7 @@ struct CardDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.uiTestingFlags) private var uiTestingFlags
     @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
     private var confirmBeforeDelete: Bool = true
     @State private var isSearchActive: Bool = false
@@ -233,97 +234,108 @@ struct CardDetailView: View {
     private func detailsList(cardMaxWidth: CGFloat?) -> some View {
         List {
             Section {
-                CardTileView(card: cardSnapshot, enableMotionShine: true, showsEffectOverlay: true)
+                let topPadding: CGFloat = uiTestingFlags.isUITesting ? 8 : initialHeaderTopPadding
+                let bottomPadding: CGFloat = uiTestingFlags.isUITesting ? 6 : 12
+
+                let tile = CardTileView(card: cardSnapshot, enableMotionShine: true, showsEffectOverlay: true)
                     .frame(maxWidth: cardMaxWidth)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, initialHeaderTopPadding)
-                    .padding(.bottom, 12)
-            }
+                    .padding(.top, topPadding)
+                    .padding(.bottom, bottomPadding)
 
-            // Date Range + Presets
-            Section {
-                let rowMaxWidth = cardMaxWidth ?? resolvedDateRowMaxWidth(in: layoutContext)
-                let startPicker = DatePicker("Start", selection: $startDate, displayedComponents: .date)
-                    .labelsHidden()
-                    .font(.body)
-                    .accessibilityLabel("Start date")
-                let endPicker = DatePicker("End", selection: $endDate, displayedComponents: .date)
-                    .labelsHidden()
-                    .font(.body)
-                    .accessibilityLabel("End date")
-
-                Group {
-                    if isAccessibilitySize {
-                        VStack(alignment: .leading, spacing: 12) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                startPicker
-                                endPicker
-                            }
-                            HStack(spacing: 12) {
-                                // Go button: liquid glass circular on OS 26, rounded rect legacy
-                                goButton
-                                // Calendar menu: liquid glass circular on OS 26, plain legacy
-                                calendarMenu
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    } else {
-                        HStack(spacing: 10) {
-                            HStack(spacing: 8) {
-                                startPicker
-                                endPicker
-                            }
-                            Spacer(minLength: 0)
-                            HStack(spacing: 8) {
-                                // Go button: liquid glass circular on OS 26, rounded rect legacy
-                                goButton
-                                // Calendar menu: liquid glass circular on OS 26, plain legacy
-                                calendarMenu
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: rowMaxWidth)
-                .frame(maxWidth: .infinity, alignment: .center)
-            }
-
-            Section {
-                let row = VStack(alignment: .leading, spacing: 8) {
-                    Text(viewModel.filteredTotal, format: .currency(code: currencyCode))
-                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .accessibilityLabel(Text("Total spent \(viewModel.filteredTotal, format: .currency(code: currencyCode))"))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 8)
-
-                if let colors = totalSpentHeatmapColors {
-                    row.listRowBackground(totalSpentHeatmapBackground(colors: colors))
+                if uiTestingFlags.isUITesting {
+                    tile.frame(height: 180)
                 } else {
-                    row
+                    tile
                 }
-            } header: {
-                Text("TOTAL SPENT")
-                    .font(.subheadline.weight(.semibold))
-                    .textCase(nil)
             }
 
-            // Category Chips (horizontal)
-            Section {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(viewModel.filteredCategories) { cat in
-                            categoryChip(cat)
-                        }
-                        if viewModel.filteredCategories.isEmpty {
-                            Text("No categories yet")
-                                .foregroundStyle(.secondary)
-                                .padding(.vertical, 8)
+            if !uiTestingFlags.isUITesting {
+                // Date Range + Presets
+                Section {
+                    let rowMaxWidth = cardMaxWidth ?? resolvedDateRowMaxWidth(in: layoutContext)
+                    let startPicker = DatePicker("Start", selection: $startDate, displayedComponents: .date)
+                        .labelsHidden()
+                        .font(.body)
+                        .accessibilityLabel("Start date")
+                    let endPicker = DatePicker("End", selection: $endDate, displayedComponents: .date)
+                        .labelsHidden()
+                        .font(.body)
+                        .accessibilityLabel("End date")
+
+                    Group {
+                        if isAccessibilitySize {
+                            VStack(alignment: .leading, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    startPicker
+                                    endPicker
+                                }
+                                HStack(spacing: 12) {
+                                    // Go button: liquid glass circular on OS 26, rounded rect legacy
+                                    goButton
+                                    // Calendar menu: liquid glass circular on OS 26, plain legacy
+                                    calendarMenu
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        } else {
+                            HStack(spacing: 10) {
+                                HStack(spacing: 8) {
+                                    startPicker
+                                    endPicker
+                                }
+                                Spacer(minLength: 0)
+                                HStack(spacing: 8) {
+                                    // Go button: liquid glass circular on OS 26, rounded rect legacy
+                                    goButton
+                                    // Calendar menu: liquid glass circular on OS 26, plain legacy
+                                    calendarMenu
+                                }
+                            }
                         }
                     }
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .frame(maxWidth: rowMaxWidth)
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
-                .frame(height: 44)
+
+                Section {
+                    let row = VStack(alignment: .leading, spacing: 8) {
+                        Text(viewModel.filteredTotal, format: .currency(code: currencyCode))
+                            .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityLabel(Text("Total spent \(viewModel.filteredTotal, format: .currency(code: currencyCode))"))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+
+                    if let colors = totalSpentHeatmapColors {
+                        row.listRowBackground(totalSpentHeatmapBackground(colors: colors))
+                    } else {
+                        row
+                    }
+                } header: {
+                    Text("TOTAL SPENT")
+                        .font(.subheadline.weight(.semibold))
+                        .textCase(nil)
+                }
+
+                // Category Chips (horizontal)
+                Section {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(viewModel.filteredCategories) { cat in
+                                categoryChip(cat)
+                            }
+                            if viewModel.filteredCategories.isEmpty {
+                                Text("No categories yet")
+                                    .foregroundStyle(.secondary)
+                                    .padding(.vertical, 8)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    }
+                    .frame(height: 44)
+                }
             }
 
             // Segment Picker
@@ -336,16 +348,18 @@ struct CardDetailView: View {
                 .pickerStyle(.segmented)
             }
 
-            // Sort Bar
-            Section {
-                Picker("Sort", selection: $viewModel.sort) {
-                    Text("A–Z").tag(CardDetailViewModel.Sort.titleAZ)
-                    Text("$↓").tag(CardDetailViewModel.Sort.amountLowHigh)
-                    Text("$↑").tag(CardDetailViewModel.Sort.amountHighLow)
-                    Text("Date ↑").tag(CardDetailViewModel.Sort.dateOldNew)
-                    Text("Date ↓").tag(CardDetailViewModel.Sort.dateNewOld)
+            if !uiTestingFlags.isUITesting {
+                // Sort Bar
+                Section {
+                    Picker("Sort", selection: $viewModel.sort) {
+                        Text("A–Z").tag(CardDetailViewModel.Sort.titleAZ)
+                        Text("$↓").tag(CardDetailViewModel.Sort.amountLowHigh)
+                        Text("$↑").tag(CardDetailViewModel.Sort.amountHighLow)
+                        Text("Date ↑").tag(CardDetailViewModel.Sort.dateOldNew)
+                        Text("Date ↓").tag(CardDetailViewModel.Sort.dateNewOld)
+                    }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
             }
 
             Section {
@@ -395,6 +409,7 @@ struct CardDetailView: View {
             // UPCOMING section removed per request
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier("card_details_screen")
     }
 
     private func refreshCardDetails() {
@@ -458,6 +473,7 @@ struct CardDetailView: View {
 
             do {
                 try await viewModel.delete(expense: expense)
+                NotificationCenter.default.post(name: .dataStoreDidChange, object: nil)
                 await viewModel.load()
             } catch {
                 if viewContext.hasChanges { viewContext.rollback() }
@@ -797,7 +813,6 @@ struct CardDetailView: View {
         Task { await viewModel.load() }
     }
 
-    
     // MARK: Layout Helpers
     private func resolvedCardMaxWidth(in context: ResponsiveLayoutContext) -> CGFloat? {
         let availableWidth = max(context.containerSize.width - context.safeArea.leading - context.safeArea.trailing, 0)
@@ -982,7 +997,8 @@ private struct ExpenseRow: View {
                 .font(.body.weight(.semibold)).monospacedDigit()
         }
         .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityRowIdentifier.cardExpenseRow(id: expense.uuid))
     }
 }
 

@@ -50,6 +50,7 @@ struct BudgetDetailsView: View {
             Section { rowsSection }
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier("budget_details_screen")
         .navigationTitle(vm.budget?.name ?? "Budget")
         .ub_windowTitle(vm.budget?.name ?? "Budget")
         .task {
@@ -389,11 +390,13 @@ struct BudgetDetailsView: View {
                     Button("Edit Budget") { editingBudgetBox = ObjectIDBox(id: budget.objectID) }
                 }
                 Button("Delete Budget", role: .destructive) { isConfirmingDelete = true }
+                    .accessibilityIdentifier("budget_delete_button")
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
+            .accessibilityIdentifier("budget_overflow_menu")
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
@@ -433,6 +436,7 @@ struct BudgetDetailsView: View {
         guard let budget = vm.budget else { return }
         do {
             try budgetService.deleteBudget(budget)
+            NotificationCenter.default.post(name: .dataStoreDidChange, object: nil)
             dismiss()
         } catch {
             // Simple fallback alert; could be expanded for user messaging.

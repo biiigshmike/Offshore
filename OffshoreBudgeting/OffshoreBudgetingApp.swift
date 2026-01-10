@@ -419,6 +419,23 @@ private extension OffshoreBudgetingApp {
         }
         let groceriesID = UUID(uuidString: "9B44A0A2-9E1E-4B1C-B8C9-2C7FD31F1E3A")!
         let testCatID = UUID(uuidString: "4E7B2C3F-6B1D-4F5F-AF6A-1D58D6F2A1D2")!
+        let homeCategoryID = UUID(uuidString: "F6E9D6D1-7A68-4D65-AE7B-2B0F3E6E5A21")!
+        let homeMonthlyBudgetID = UUID(uuidString: "7D2E8F1C-9A10-4E7B-8C6D-8A0C2A5E7B11")!
+        let homeQuarterlyBudgetID = UUID(uuidString: "A3B1C2D3-4E5F-6789-ABCD-1234567890AB")!
+        let homeYearlyBudgetID = UUID(uuidString: "B4C5D6E7-F809-1A2B-3C4D-5E6F708192A3")!
+        let homeMonthlyCardID = UUID(uuidString: "1A2B3C4D-5E6F-4701-8A9B-0C1D2E3F4050")!
+        let homeQuarterlyCardID = UUID(uuidString: "2B3C4D5E-6F70-4812-9ABC-1D2E3F405162")!
+        let homeYearlyCardID = UUID(uuidString: "3C4D5E6F-7081-4923-ABCD-2E3F40516273")!
+        let homeMonthlyPlannedID = UUID(uuidString: "4D5E6F70-8192-4A34-BCDE-3F4051627384")!
+        let homeQuarterlyPlannedID = UUID(uuidString: "5E6F7081-9203-4B45-CDEF-405162738495")!
+        let homeYearlyPlannedID = UUID(uuidString: "6F708192-0314-4C56-DEF0-516273849506")!
+        let homeMonthlyUnplannedID = UUID(uuidString: "70819203-1425-4D67-EF01-627384950617")!
+        let homeQuarterlyUnplannedID = UUID(uuidString: "81920314-2536-4E78-F012-738495061728")!
+        let homeYearlyUnplannedID = UUID(uuidString: "92031425-3647-4F89-0123-849506172839")!
+        let homeGlobalPresetID = UUID(uuidString: "A2031425-3647-4F89-0123-84950617283A")!
+        let homeMonthlyPresetChildID = UUID(uuidString: "B3142536-4758-509A-1234-95061728394B")!
+        let homeQuarterlyPresetChildID = UUID(uuidString: "C4253647-5869-60AB-2345-06172839405C")!
+        let homeYearlyPresetChildID = UUID(uuidString: "D5364758-697A-70BC-3456-17283940516D")!
         switch scenario.lowercased() {
         case "core_universe":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
@@ -502,6 +519,345 @@ private extension OffshoreBudgetingApp {
             actualIncome.source = "Seeded Actual Income"
             actualIncome.amount = 900
             actualIncome.date = Date()
+            actualIncome.isPlanned = false
+            actualIncome.setValue(workspaceID, forKey: "workspaceID")
+
+            try? ctx.save()
+            markSeedDone()
+            return
+        case "homeview_multi_budget":
+            let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
+            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
+            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            _ = WorkspaceService.shared.fetchOrCreateWorkspace(in: ctx)
+
+            let calendar = Calendar.current
+            let now = Date()
+            let monthlyRange = BudgetPeriod.monthly.range(containing: now)
+            let quarterlyRange = BudgetPeriod.quarterly.range(containing: now)
+            let yearlyRange = BudgetPeriod.yearly.range(containing: now)
+
+            var quarterMonthStarts: [Date] = []
+            var quarterCursor = BudgetPeriod.monthly.start(of: quarterlyRange.start)
+            while quarterCursor <= quarterlyRange.end {
+                quarterMonthStarts.append(quarterCursor)
+                guard let next = calendar.date(byAdding: .month, value: 1, to: quarterCursor) else { break }
+                quarterCursor = next
+            }
+            let currentMonthStart = BudgetPeriod.monthly.start(of: now)
+            let otherQuarterMonthStart = quarterMonthStarts.first(where: { !calendar.isDate($0, inSameDayAs: currentMonthStart) }) ?? currentMonthStart
+
+            var yearMonthStarts: [Date] = []
+            var yearCursor = BudgetPeriod.monthly.start(of: yearlyRange.start)
+            while yearCursor <= yearlyRange.end {
+                yearMonthStarts.append(yearCursor)
+                guard let next = calendar.date(byAdding: .month, value: 1, to: yearCursor) else { break }
+                yearCursor = next
+            }
+            let outsideQuarterMonthStart = yearMonthStarts.first(where: { $0 < quarterlyRange.start || $0 > quarterlyRange.end }) ?? currentMonthStart
+
+            let category = ExpenseCategory(context: ctx)
+            category.setValue(homeCategoryID, forKey: "id")
+            category.name = "Seed Category"
+            category.color = "#4E9CFF"
+            category.setValue(workspaceID, forKey: "workspaceID")
+
+            let monthlyBudget = Budget(context: ctx)
+            monthlyBudget.setValue(homeMonthlyBudgetID, forKey: "id")
+            monthlyBudget.name = "Monthly Budget"
+            monthlyBudget.startDate = monthlyRange.start
+            monthlyBudget.endDate = monthlyRange.end
+            monthlyBudget.isRecurring = false
+            WorkspaceService.applyWorkspaceIDIfPossible(on: monthlyBudget)
+
+            let quarterlyBudget = Budget(context: ctx)
+            quarterlyBudget.setValue(homeQuarterlyBudgetID, forKey: "id")
+            quarterlyBudget.name = "Quarterly Budget"
+            quarterlyBudget.startDate = quarterlyRange.start
+            quarterlyBudget.endDate = quarterlyRange.end
+            quarterlyBudget.isRecurring = false
+            WorkspaceService.applyWorkspaceIDIfPossible(on: quarterlyBudget)
+
+            let yearlyBudget = Budget(context: ctx)
+            yearlyBudget.setValue(homeYearlyBudgetID, forKey: "id")
+            yearlyBudget.name = "Yearly Budget"
+            yearlyBudget.startDate = yearlyRange.start
+            yearlyBudget.endDate = yearlyRange.end
+            yearlyBudget.isRecurring = false
+            WorkspaceService.applyWorkspaceIDIfPossible(on: yearlyBudget)
+
+            let monthlyCard = Card(context: ctx)
+            monthlyCard.setValue(homeMonthlyCardID, forKey: "id")
+            monthlyCard.name = "Monthly Card"
+            WorkspaceService.applyWorkspaceIDIfPossible(on: monthlyCard)
+            monthlyCard.mutableSetValue(forKey: "budget").add(monthlyBudget)
+
+            let quarterlyCard = Card(context: ctx)
+            quarterlyCard.setValue(homeQuarterlyCardID, forKey: "id")
+            quarterlyCard.name = "Quarterly Card"
+            WorkspaceService.applyWorkspaceIDIfPossible(on: quarterlyCard)
+            quarterlyCard.mutableSetValue(forKey: "budget").add(quarterlyBudget)
+
+            let yearlyCard = Card(context: ctx)
+            yearlyCard.setValue(homeYearlyCardID, forKey: "id")
+            yearlyCard.name = "Yearly Card"
+            WorkspaceService.applyWorkspaceIDIfPossible(on: yearlyCard)
+            yearlyCard.mutableSetValue(forKey: "budget").add(yearlyBudget)
+
+            let globalPreset = PlannedExpense(context: ctx)
+            globalPreset.setValue(homeGlobalPresetID, forKey: "id")
+            globalPreset.setValue("Seed Global Preset", forKey: "descriptionText")
+            globalPreset.plannedAmount = 50
+            globalPreset.actualAmount = 0
+            globalPreset.transactionDate = monthlyRange.start
+            globalPreset.isGlobal = true
+            globalPreset.setValue(nil, forKey: "budget")
+            globalPreset.setValue(workspaceID, forKey: "workspaceID")
+
+            let monthlyPresetChild = PlannedExpense(context: ctx)
+            monthlyPresetChild.setValue(homeMonthlyPresetChildID, forKey: "id")
+            monthlyPresetChild.setValue("Seed Preset Child - Monthly", forKey: "descriptionText")
+            monthlyPresetChild.plannedAmount = 50
+            monthlyPresetChild.actualAmount = 15
+            monthlyPresetChild.transactionDate = calendar.date(byAdding: .day, value: 3, to: monthlyRange.start)
+            monthlyPresetChild.isGlobal = false
+            monthlyPresetChild.globalTemplateID = homeGlobalPresetID
+            monthlyPresetChild.setValue(monthlyBudget, forKey: "budget")
+            monthlyPresetChild.card = monthlyCard
+            monthlyPresetChild.expenseCategory = category
+            monthlyPresetChild.setValue(workspaceID, forKey: "workspaceID")
+
+            let quarterlyPresetChild = PlannedExpense(context: ctx)
+            quarterlyPresetChild.setValue(homeQuarterlyPresetChildID, forKey: "id")
+            quarterlyPresetChild.setValue("Seed Preset Child - Quarterly", forKey: "descriptionText")
+            quarterlyPresetChild.plannedAmount = 75
+            quarterlyPresetChild.actualAmount = 30
+            quarterlyPresetChild.transactionDate = calendar.date(byAdding: .day, value: 4, to: otherQuarterMonthStart)
+            quarterlyPresetChild.isGlobal = false
+            quarterlyPresetChild.globalTemplateID = homeGlobalPresetID
+            quarterlyPresetChild.setValue(quarterlyBudget, forKey: "budget")
+            quarterlyPresetChild.card = quarterlyCard
+            quarterlyPresetChild.expenseCategory = category
+            quarterlyPresetChild.setValue(workspaceID, forKey: "workspaceID")
+
+            let yearlyPresetChild = PlannedExpense(context: ctx)
+            yearlyPresetChild.setValue(homeYearlyPresetChildID, forKey: "id")
+            yearlyPresetChild.setValue("Seed Preset Child - Yearly", forKey: "descriptionText")
+            yearlyPresetChild.plannedAmount = 120
+            yearlyPresetChild.actualAmount = 40
+            yearlyPresetChild.transactionDate = calendar.date(byAdding: .day, value: 5, to: outsideQuarterMonthStart)
+            yearlyPresetChild.isGlobal = false
+            yearlyPresetChild.globalTemplateID = homeGlobalPresetID
+            yearlyPresetChild.setValue(yearlyBudget, forKey: "budget")
+            yearlyPresetChild.card = yearlyCard
+            yearlyPresetChild.expenseCategory = category
+            yearlyPresetChild.setValue(workspaceID, forKey: "workspaceID")
+
+            let monthlyPlanned = PlannedExpense(context: ctx)
+            monthlyPlanned.setValue(homeMonthlyPlannedID, forKey: "id")
+            monthlyPlanned.setValue("Seed Planned - Monthly", forKey: "descriptionText")
+            monthlyPlanned.plannedAmount = 120
+            monthlyPlanned.actualAmount = 80
+            monthlyPlanned.transactionDate = calendar.date(byAdding: .day, value: 2, to: monthlyRange.start)
+            monthlyPlanned.isGlobal = false
+            monthlyPlanned.setValue(monthlyBudget, forKey: "budget")
+            monthlyPlanned.card = monthlyCard
+            monthlyPlanned.expenseCategory = category
+            monthlyPlanned.setValue(workspaceID, forKey: "workspaceID")
+
+            let quarterlyPlanned = PlannedExpense(context: ctx)
+            quarterlyPlanned.setValue(homeQuarterlyPlannedID, forKey: "id")
+            quarterlyPlanned.setValue("Seed Planned - Quarterly", forKey: "descriptionText")
+            quarterlyPlanned.plannedAmount = 300
+            quarterlyPlanned.actualAmount = 240
+            quarterlyPlanned.transactionDate = calendar.date(byAdding: .day, value: 2, to: otherQuarterMonthStart)
+            quarterlyPlanned.isGlobal = false
+            quarterlyPlanned.setValue(quarterlyBudget, forKey: "budget")
+            quarterlyPlanned.card = quarterlyCard
+            quarterlyPlanned.expenseCategory = category
+            quarterlyPlanned.setValue(workspaceID, forKey: "workspaceID")
+
+            let yearlyPlanned = PlannedExpense(context: ctx)
+            yearlyPlanned.setValue(homeYearlyPlannedID, forKey: "id")
+            yearlyPlanned.setValue("Seed Planned - Yearly", forKey: "descriptionText")
+            yearlyPlanned.plannedAmount = 900
+            yearlyPlanned.actualAmount = 700
+            yearlyPlanned.transactionDate = calendar.date(byAdding: .day, value: 2, to: outsideQuarterMonthStart)
+            yearlyPlanned.isGlobal = false
+            yearlyPlanned.setValue(yearlyBudget, forKey: "budget")
+            yearlyPlanned.card = yearlyCard
+            yearlyPlanned.expenseCategory = category
+            yearlyPlanned.setValue(workspaceID, forKey: "workspaceID")
+
+            let monthlyUnplanned = UnplannedExpense(context: ctx)
+            monthlyUnplanned.setValue(homeMonthlyUnplannedID, forKey: "id")
+            monthlyUnplanned.descriptionText = "Seed Unplanned - Monthly"
+            monthlyUnplanned.amount = 30
+            monthlyUnplanned.transactionDate = calendar.date(byAdding: .day, value: 1, to: monthlyRange.start)
+            monthlyUnplanned.card = monthlyCard
+            monthlyUnplanned.expenseCategory = category
+            monthlyUnplanned.setValue(workspaceID, forKey: "workspaceID")
+
+            let quarterlyUnplanned = UnplannedExpense(context: ctx)
+            quarterlyUnplanned.setValue(homeQuarterlyUnplannedID, forKey: "id")
+            quarterlyUnplanned.descriptionText = "Seed Unplanned - Quarterly"
+            quarterlyUnplanned.amount = 60
+            quarterlyUnplanned.transactionDate = calendar.date(byAdding: .day, value: 1, to: otherQuarterMonthStart)
+            quarterlyUnplanned.card = quarterlyCard
+            quarterlyUnplanned.expenseCategory = category
+            quarterlyUnplanned.setValue(workspaceID, forKey: "workspaceID")
+
+            let yearlyUnplanned = UnplannedExpense(context: ctx)
+            yearlyUnplanned.setValue(homeYearlyUnplannedID, forKey: "id")
+            yearlyUnplanned.descriptionText = "Seed Unplanned - Yearly"
+            yearlyUnplanned.amount = 150
+            yearlyUnplanned.transactionDate = calendar.date(byAdding: .day, value: 1, to: outsideQuarterMonthStart)
+            yearlyUnplanned.card = yearlyCard
+            yearlyUnplanned.expenseCategory = category
+            yearlyUnplanned.setValue(workspaceID, forKey: "workspaceID")
+
+            let monthlyPlannedIncome = Income(context: ctx)
+            monthlyPlannedIncome.setValue(UUID(), forKey: "id")
+            monthlyPlannedIncome.source = "Seed Planned Income - Monthly"
+            monthlyPlannedIncome.amount = 1000
+            monthlyPlannedIncome.date = calendar.date(byAdding: .day, value: 10, to: currentMonthStart)
+            monthlyPlannedIncome.isPlanned = true
+            monthlyPlannedIncome.setValue(workspaceID, forKey: "workspaceID")
+
+            let monthlyActualIncome = Income(context: ctx)
+            monthlyActualIncome.setValue(UUID(), forKey: "id")
+            monthlyActualIncome.source = "Seed Actual Income - Monthly"
+            monthlyActualIncome.amount = 700
+            monthlyActualIncome.date = calendar.date(byAdding: .day, value: 12, to: currentMonthStart)
+            monthlyActualIncome.isPlanned = false
+            monthlyActualIncome.setValue(workspaceID, forKey: "workspaceID")
+
+            let quarterlyPlannedIncome = Income(context: ctx)
+            quarterlyPlannedIncome.setValue(UUID(), forKey: "id")
+            quarterlyPlannedIncome.source = "Seed Planned Income - Quarterly"
+            quarterlyPlannedIncome.amount = 2000
+            quarterlyPlannedIncome.date = calendar.date(byAdding: .day, value: 10, to: otherQuarterMonthStart)
+            quarterlyPlannedIncome.isPlanned = true
+            quarterlyPlannedIncome.setValue(workspaceID, forKey: "workspaceID")
+
+            let quarterlyActualIncome = Income(context: ctx)
+            quarterlyActualIncome.setValue(UUID(), forKey: "id")
+            quarterlyActualIncome.source = "Seed Actual Income - Quarterly"
+            quarterlyActualIncome.amount = 1200
+            quarterlyActualIncome.date = calendar.date(byAdding: .day, value: 12, to: otherQuarterMonthStart)
+            quarterlyActualIncome.isPlanned = false
+            quarterlyActualIncome.setValue(workspaceID, forKey: "workspaceID")
+
+            let yearlyPlannedIncome = Income(context: ctx)
+            yearlyPlannedIncome.setValue(UUID(), forKey: "id")
+            yearlyPlannedIncome.source = "Seed Planned Income - Yearly"
+            yearlyPlannedIncome.amount = 3000
+            yearlyPlannedIncome.date = calendar.date(byAdding: .day, value: 10, to: outsideQuarterMonthStart)
+            yearlyPlannedIncome.isPlanned = true
+            yearlyPlannedIncome.setValue(workspaceID, forKey: "workspaceID")
+
+            let yearlyActualIncome = Income(context: ctx)
+            yearlyActualIncome.setValue(UUID(), forKey: "id")
+            yearlyActualIncome.source = "Seed Actual Income - Yearly"
+            yearlyActualIncome.amount = 1500
+            yearlyActualIncome.date = calendar.date(byAdding: .day, value: 12, to: outsideQuarterMonthStart)
+            yearlyActualIncome.isPlanned = false
+            yearlyActualIncome.setValue(workspaceID, forKey: "workspaceID")
+
+            try? ctx.save()
+            markSeedDone()
+            return
+        case "homeview_no_budget":
+            let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
+            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
+            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            _ = WorkspaceService.shared.fetchOrCreateWorkspace(in: ctx)
+
+            let calendar = Calendar.current
+            var components = DateComponents()
+            components.year = 2000
+            components.month = 1
+            components.day = 1
+            let start = calendar.date(from: components) ?? Date(timeIntervalSince1970: 0)
+            let end = calendar.date(byAdding: .day, value: 30, to: start) ?? start
+
+            let category = ExpenseCategory(context: ctx)
+            category.setValue(homeCategoryID, forKey: "id")
+            category.name = "Seed Category"
+            category.color = "#4E9CFF"
+            category.setValue(workspaceID, forKey: "workspaceID")
+
+            let budget = Budget(context: ctx)
+            budget.setValue(homeMonthlyBudgetID, forKey: "id")
+            budget.name = "Legacy Budget"
+            budget.startDate = start
+            budget.endDate = end
+            budget.isRecurring = false
+            WorkspaceService.applyWorkspaceIDIfPossible(on: budget)
+
+            let card = Card(context: ctx)
+            card.setValue(homeMonthlyCardID, forKey: "id")
+            card.name = "Legacy Card"
+            WorkspaceService.applyWorkspaceIDIfPossible(on: card)
+            card.mutableSetValue(forKey: "budget").add(budget)
+
+            let globalPreset = PlannedExpense(context: ctx)
+            globalPreset.setValue(homeGlobalPresetID, forKey: "id")
+            globalPreset.setValue("Seed Global Preset", forKey: "descriptionText")
+            globalPreset.plannedAmount = 50
+            globalPreset.actualAmount = 0
+            globalPreset.transactionDate = start
+            globalPreset.isGlobal = true
+            globalPreset.setValue(nil, forKey: "budget")
+            globalPreset.setValue(workspaceID, forKey: "workspaceID")
+
+            let presetChild = PlannedExpense(context: ctx)
+            presetChild.setValue(homeMonthlyPresetChildID, forKey: "id")
+            presetChild.setValue("Seed Preset Child - Legacy", forKey: "descriptionText")
+            presetChild.plannedAmount = 50
+            presetChild.actualAmount = 15
+            presetChild.transactionDate = calendar.date(byAdding: .day, value: 3, to: start)
+            presetChild.isGlobal = false
+            presetChild.globalTemplateID = homeGlobalPresetID
+            presetChild.setValue(budget, forKey: "budget")
+            presetChild.card = card
+            presetChild.expenseCategory = category
+            presetChild.setValue(workspaceID, forKey: "workspaceID")
+
+            let planned = PlannedExpense(context: ctx)
+            planned.setValue(homeMonthlyPlannedID, forKey: "id")
+            planned.setValue("Seed Planned - Legacy", forKey: "descriptionText")
+            planned.plannedAmount = 120
+            planned.actualAmount = 80
+            planned.transactionDate = calendar.date(byAdding: .day, value: 2, to: start)
+            planned.isGlobal = false
+            planned.setValue(budget, forKey: "budget")
+            planned.card = card
+            planned.expenseCategory = category
+            planned.setValue(workspaceID, forKey: "workspaceID")
+
+            let unplanned = UnplannedExpense(context: ctx)
+            unplanned.setValue(homeMonthlyUnplannedID, forKey: "id")
+            unplanned.descriptionText = "Seed Unplanned - Legacy"
+            unplanned.amount = 30
+            unplanned.transactionDate = calendar.date(byAdding: .day, value: 1, to: start)
+            unplanned.card = card
+            unplanned.expenseCategory = category
+            unplanned.setValue(workspaceID, forKey: "workspaceID")
+
+            let plannedIncome = Income(context: ctx)
+            plannedIncome.setValue(UUID(), forKey: "id")
+            plannedIncome.source = "Seed Planned Income - Legacy"
+            plannedIncome.amount = 1000
+            plannedIncome.date = calendar.date(byAdding: .day, value: 10, to: start)
+            plannedIncome.isPlanned = true
+            plannedIncome.setValue(workspaceID, forKey: "workspaceID")
+
+            let actualIncome = Income(context: ctx)
+            actualIncome.setValue(UUID(), forKey: "id")
+            actualIncome.source = "Seed Actual Income - Legacy"
+            actualIncome.amount = 700
+            actualIncome.date = calendar.date(byAdding: .day, value: 12, to: start)
             actualIncome.isPlanned = false
             actualIncome.setValue(workspaceID, forKey: "workspaceID")
 

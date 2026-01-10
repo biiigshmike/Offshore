@@ -24,6 +24,34 @@ final class CoreDataService: ObservableObject {
         self.notificationCenter = notificationCenter
         self.cloudAvailabilityProvider = cloudAvailabilityProvider
     }
+
+#if DEBUG
+    private static var isUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ui-testing")
+    }
+
+    private static func uiTestStoreOverride() -> NSPersistentStoreDescription? {
+        guard isUITesting else { return nil }
+        let env = ProcessInfo.processInfo.environment
+        if let path = env["UITEST_STORE_PATH"], !path.isEmpty {
+            let url = URL(fileURLWithPath: path)
+            return NSPersistentStoreDescription(url: url)
+        }
+        guard let raw = env["UITEST_STORE"]?.lowercased(), !raw.isEmpty else { return nil }
+        switch raw {
+        case "memory", "inmemory", "in-memory":
+            let description = NSPersistentStoreDescription()
+            description.type = NSInMemoryStoreType
+            return description
+        case "temp", "temporary":
+            let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            let url = base.appendingPathComponent("OffshoreBudgetingUITest-\(UUID().uuidString).sqlite")
+            return NSPersistentStoreDescription(url: url)
+        default:
+            return nil
+        }
+    }
+#endif
     
     // MARK: Configuration
     /// Name of the .xcdatamodeld file (without extension).
@@ -87,10 +115,20 @@ final class CoreDataService: ObservableObject {
         // Always use the CloudKit-capable subclass so we can toggle modes without recreating the type.
         let cloudContainer = NSPersistentCloudKitContainer(name: modelName)
 
-        // Store location
+        let description: NSPersistentStoreDescription
+#if DEBUG
+        if let override = Self.uiTestStoreOverride() {
+            description = override
+        } else {
+            let storeURL = NSPersistentContainer.defaultDirectoryURL()
+                .appendingPathComponent("\(modelName).sqlite")
+            description = NSPersistentStoreDescription(url: storeURL)
+        }
+#else
         let storeURL = NSPersistentContainer.defaultDirectoryURL()
             .appendingPathComponent("\(modelName).sqlite")
         let description = NSPersistentStoreDescription(url: storeURL)
+#endif
 
         // MARK: Store Options (common)
         // Keep history ON to support merges and avoid read-only reopen issues.
@@ -102,7 +140,14 @@ final class CoreDataService: ObservableObject {
         // start in CloudKit mode to avoid an immediate rebuild after launch.
         // This is safe even if iCloud account is temporarily unavailable —
         // the store still loads and begins mirroring when possible.
-        let initialMode: PersistentStoreMode = (enableCloudKitSync ? .cloudKit : .local)
+        let initialMode: PersistentStoreMode = {
+#if DEBUG
+            if Self.isUITesting, Self.uiTestStoreOverride() != nil {
+                return .local
+            }
+#endif
+            return enableCloudKitSync ? .cloudKit : .local
+        }()
         configure(description: description, for: initialMode)
 
         cloudContainer.persistentStoreDescriptions = [description]
@@ -278,6 +323,8 @@ final class CoreDataService: ObservableObject {
     func wipeAllData() throws {
         let context = viewContext
         var didMergeDeletes = false
+        let storeTypes = container.persistentStoreCoordinator.persistentStores.map(\.type)
+        let usesBatchDelete = !storeTypes.contains(NSInMemoryStoreType)
 
         try context.performAndWait {
             var deletedObjectIDs = Set<NSManagedObjectID>()
@@ -285,13 +332,30 @@ final class CoreDataService: ObservableObject {
             for entity in container.managedObjectModel.entities {
                 guard let name = entity.name else { continue }
                 let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: name)
-                let request = NSBatchDeleteRequest(fetchRequest: fetch)
-                request.resultType = .resultTypeObjectIDs
+                if usesBatchDelete {
+                    let request = NSBatchDeleteRequest(fetchRequest: fetch)
+                    request.resultType = .resultTypeObjectIDs
 
-                let result = try context.execute(request) as? NSBatchDeleteResult
-                if let ids = result?.result as? [NSManagedObjectID] {
-                    deletedObjectIDs.formUnion(ids)
+                    let result = try context.execute(request) as? NSBatchDeleteResult
+                    if let ids = result?.result as? [NSManagedObjectID] {
+                        deletedObjectIDs.formUnion(ids)
+                    }
+                } else {
+                    fetch.includesPropertyValues = false
+                    let objects = try context.fetch(fetch)
+                    for case let object as NSManagedObject in objects {
+                        context.delete(object)
+                    }
                 }
+            }
+
+            if !usesBatchDelete, context.hasChanges {
+                try context.save()
+                if !context.registeredObjects.isEmpty {
+                    context.reset()
+                }
+                didMergeDeletes = true
+                return
             }
 
             guard !deletedObjectIDs.isEmpty else { return }

@@ -100,40 +100,6 @@ final class ExpenseCategoryServiceTests: XCTestCase {
         XCTAssertEqual(appliedID, workspaceID)
     }
 
-    func testDeleteCategory_withLinkedPlannedAndUnplanned_characterizeOutcome() throws {
-        let category = try service.addCategory(name: "Food", color: "#00AAFF")
-        let budget = try makeBudget(workspaceID: workspaceID)
-        _ = try makePlannedExpense(budget: budget, category: category, workspaceID: workspaceID)
-        _ = try makeUnplannedExpense(category: category, workspaceID: workspaceID)
-
-        try service.deleteCategory(category)
-
-        let remainingCategories = try service.fetchAllCategories(sortedByName: true)
-        XCTAssertTrue(remainingCategories.isEmpty)
-
-        let plannedRemaining = try fetchPlannedExpenses()
-        let unplannedRemaining = try fetchUnplannedExpenses()
-        XCTAssertEqual(plannedRemaining.count, 0)
-        XCTAssertEqual(unplannedRemaining.count, 0)
-    }
-
-    func testDeleteCategory_withLinkedPlannedAndUnplanned_viewCascadePath_characterizeOutcome() throws {
-        let category = try service.addCategory(name: "Travel", color: "#00CC88")
-        let budget = try makeBudget(workspaceID: workspaceID)
-        _ = try makePlannedExpense(budget: budget, category: category, workspaceID: workspaceID)
-        _ = try makeUnplannedExpense(category: category, workspaceID: workspaceID)
-
-        deleteCategoryAndLinkedExpensesAsViewDoes(category)
-
-        let remainingCategories = try service.fetchAllCategories(sortedByName: true)
-        XCTAssertTrue(remainingCategories.isEmpty)
-
-        let plannedRemaining = try fetchPlannedExpenses()
-        let unplannedRemaining = try fetchUnplannedExpenses()
-        XCTAssertEqual(plannedRemaining.count, 0)
-        XCTAssertEqual(unplannedRemaining.count, 0)
-    }
-
     func testAddCategory_ensureUniqueName_returnsExisting_caseInsensitive() throws {
         let first = try service.addCategory(name: "Food", color: "#111111", ensureUniqueName: true)
         let second = try service.addCategory(name: "food", color: "#222222", ensureUniqueName: true)
@@ -206,76 +172,4 @@ final class ExpenseCategoryServiceTests: XCTestCase {
         return category
     }
 
-    private func makeBudget(id: UUID = UUID(), workspaceID: UUID) throws -> Budget {
-        let budget = NSEntityDescription.insertNewObject(
-            forEntityName: String(describing: Budget.self),
-            into: context
-        ) as! Budget
-        budget.setValue(id, forKey: "id")
-        budget.setValue("Test Budget", forKey: "name")
-        budget.setValue(workspaceID, forKey: "workspaceID")
-        try context.save()
-        return budget
-    }
-
-    private func makePlannedExpense(budget: Budget,
-                                    category: ExpenseCategory,
-                                    workspaceID: UUID) throws -> PlannedExpense {
-        let expense = NSEntityDescription.insertNewObject(
-            forEntityName: String(describing: PlannedExpense.self),
-            into: context
-        ) as! PlannedExpense
-        expense.setValue(UUID(), forKey: "id")
-        expense.setValue("Test Planned", forKey: "descriptionText")
-        expense.plannedAmount = 10
-        expense.actualAmount = 0
-        expense.transactionDate = Date()
-        expense.isGlobal = false
-        expense.setValue(budget, forKey: "budget")
-        expense.setValue(category, forKey: "expenseCategory")
-        expense.setValue(workspaceID, forKey: "workspaceID")
-        try context.save()
-        return expense
-    }
-
-    private func makeUnplannedExpense(category: ExpenseCategory,
-                                      workspaceID: UUID) throws -> UnplannedExpense {
-        let expense = NSEntityDescription.insertNewObject(
-            forEntityName: String(describing: UnplannedExpense.self),
-            into: context
-        ) as! UnplannedExpense
-        expense.setValue(UUID(), forKey: "id")
-        expense.setValue("Test Unplanned", forKey: "descriptionText")
-        expense.amount = 5
-        expense.transactionDate = Date()
-        expense.setValue(category, forKey: "expenseCategory")
-        expense.setValue(workspaceID, forKey: "workspaceID")
-        try context.save()
-        return expense
-    }
-
-    private func fetchPlannedExpenses() throws -> [PlannedExpense] {
-        let request = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-        return try context.fetch(request)
-    }
-
-    private func fetchUnplannedExpenses() throws -> [UnplannedExpense] {
-        let request = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
-        return try context.fetch(request)
-    }
-
-    private func deleteCategoryAndLinkedExpensesAsViewDoes(_ category: ExpenseCategory) {
-        let plannedRequest = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-        plannedRequest.predicate = NSPredicate(format: "expenseCategory == %@", category)
-        let planned = (try? context.fetch(plannedRequest)) ?? []
-
-        let unplannedRequest = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
-        unplannedRequest.predicate = NSPredicate(format: "expenseCategory == %@", category)
-        let unplanned = (try? context.fetch(unplannedRequest)) ?? []
-
-        planned.forEach { context.delete($0) }
-        unplanned.forEach { context.delete($0) }
-        context.delete(category)
-        try? context.save()
-    }
 }

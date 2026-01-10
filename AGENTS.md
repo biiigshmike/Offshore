@@ -139,7 +139,7 @@ Rules:
   - It does not change data, persistence, or user flows.
   - It does not change hit testing/gestures/navigation structure.
   - It is limited to layout density/animation timing and clearly labeled.
-
+  - Agents may add UI-test-only Core Data store switching and deterministic seeding via launch arguments, provided production behavior is unchanged when flags are absent.
 Accessibility identifier rules:
 - Identifiers that tests rely on MUST be attached to a stable, top-level element representing the semantic row/container.
 - Avoid attaching identifiers to text nodes that may be merged/combined away.

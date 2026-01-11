@@ -12,6 +12,7 @@ struct CloudSyncGateView: View {
     // MARK: App Storage
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
     @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
+    @AppStorage("didChooseCloudDataOnboarding") private var didChooseCloudDataOnboarding: Bool = false
 
     // MARK: Local State
     @State private var shouldShowOnboarding: Bool = false
@@ -48,7 +49,7 @@ struct CloudSyncGateView: View {
         }
         // Second prompt: we detected existing Cloud data
         .alert("iCloud data found", isPresented: $showExistingDataPrompt) {
-            Button("Use Existing Data") { useExistingDataAndSkipOnboarding() }
+            Button("Use iCloud Data") { useExistingDataAndSkipOnboarding() }
             Button("Start Fresh", role: .cancel) { startFreshLocalOnboarding() }
         } message: {
             Text("We found budget data from another device. Would you like to use it on this device?")
@@ -74,12 +75,47 @@ struct CloudSyncGateView: View {
 
     // MARK: Flow Control
     private func presentIfNeeded() {
-        // In UI tests, keep flow deterministic: do not prompt, just show onboarding.
         if uiTesting.isUITesting {
-            shouldShowOnboarding = true
+            if let accountAvailable = uiTesting.cloudAccountAvailableOverride,
+               let cloudDataExists = uiTesting.cloudDataExistsOverride {
+                decideCloudOnboardingPath(
+                    checker: UITestCloudAvailabilityChecker(
+                        isCloudSyncEnabledSetting: enableCloudSync,
+                        accountAvailable: accountAvailable,
+                        cloudDataExists: cloudDataExists
+                    )
+                )
+            } else {
+                shouldShowOnboarding = true
+            }
             return
         }
 
+        if enableCloudSync {
+            decideCloudOnboardingPath(checker: SystemCloudAvailabilityChecker())
+        } else {
+            presentStandardOnboardingFlow()
+        }
+    }
+
+    private func decideCloudOnboardingPath(checker: CloudAvailabilityChecking) {
+        Task { @MainActor in
+            let engine = CloudOnboardingDecisionEngine(checker: checker)
+            let decision = await engine.initialDecision()
+            switch decision {
+            case .promptForCloudDataChoice:
+                if didChooseCloudDataOnboarding {
+                    shouldShowOnboarding = true
+                } else {
+                    showExistingDataPrompt = true
+                }
+            case .proceedWithStandardOnboarding:
+                presentStandardOnboardingFlow()
+            }
+        }
+    }
+
+    private func presentStandardOnboardingFlow() {
         Task { @MainActor in
             let available = await CloudAccountStatusProvider.shared.resolveAvailability(forceRefresh: false)
             if available {
@@ -152,6 +188,11 @@ struct CloudSyncGateView: View {
     private func useExistingDataAndSkipOnboarding() {
         // Prepare workspace and wait briefly for initial Cloud import to surface data.
         preparingWorkspace = true
+        didChooseCloudDataOnboarding = true
+        if uiTesting.isUITesting {
+            didCompleteOnboarding = true
+            return
+        }
         Task { @MainActor in
             // Kick off a short wait for import to finish; don't block forever.
             _ = await CloudSyncMonitor.shared.awaitInitialImport(timeout: 10.0, pollInterval: 0.2)
@@ -160,6 +201,7 @@ struct CloudSyncGateView: View {
     }
 
     private func startFreshLocalOnboarding() {
+        didChooseCloudDataOnboarding = true
         // To avoid impacting existing Cloud data, disable sync and proceed locally.
         if enableCloudSync {
             enableCloudSync = false
@@ -169,4 +211,13 @@ struct CloudSyncGateView: View {
         }
         shouldShowOnboarding = true
     }
+}
+
+private struct UITestCloudAvailabilityChecker: CloudAvailabilityChecking {
+    let isCloudSyncEnabledSetting: Bool
+    let accountAvailable: Bool
+    let cloudDataExists: Bool
+
+    func iCloudAccountAvailable() async -> Bool { accountAvailable }
+    func cloudDataExists() async -> Bool { cloudDataExists }
 }

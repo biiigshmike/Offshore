@@ -33,18 +33,29 @@ public struct AppLockView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-//                Image(systemName: viewModel.lockIconName)
-//                    .font(.system(size: 44, weight: .regular, design: .rounded))
-//                    .accessibilityHidden(true)
-//
-//                Text("Offshore Budgeting is Locked")
-//                    .font(.title3)
-//                    .multilineTextAlignment(.center)
+                Image(systemName: viewModel.lockIconName)
+                    .font(.system(size: 44, weight: .regular, design: .rounded))
+                    .accessibilityHidden(true)
 
-//                if viewModel.isAuthenticating {
-//                    ProgressView("Authenticating…")
-//                        .font(.footnote)
-//                }
+                Text("Offshore Budgeting is Locked")
+                    .font(.title3)
+                    .multilineTextAlignment(.center)
+
+                Text(viewModel.lockSubtitle)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                Button("Unlock") {
+                    viewModel.attemptUnlockWithBiometrics()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isAuthenticating)
+                .accessibilityIdentifier("btn_unlock")
+
+                if viewModel.isAuthenticating {
+                    ProgressView("Authenticating…")
+                        .font(.footnote)
+                }
 
                 if let error = viewModel.lastErrorMessage {
                     Text(error)
@@ -60,6 +71,8 @@ public struct AppLockView: View {
             .frame(maxWidth: 400)
         }
         .accessibilityAddTraits(.isModal)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("app_lock_screen")
     }
 
 }

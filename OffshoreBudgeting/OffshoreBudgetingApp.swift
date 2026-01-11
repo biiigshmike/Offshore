@@ -39,6 +39,7 @@ struct OffshoreBudgetingApp: App {
     init() {
         // Defer Core Data store loading and CardPickerStore start to onAppear
         configureForUITestingIfNeeded()
+        configureAppLockForUITestingIfNeeded()
         logPlatformCapabilities()
         let labelAppearance = UILabel.appearance()
         labelAppearance.adjustsFontSizeToFitWidth = true
@@ -107,12 +108,13 @@ struct OffshoreBudgetingApp: App {
             .environment(\.uiTestingFlags, testFlags)
             .environment(\.startTabIdentifier, startTab)
             .environment(\.startRouteIdentifier, startRoute)
+            .environmentObject(appLockViewModel)
             .accentColor(themeManager.selectedTheme.resolvedTint)
             .tint(themeManager.selectedTheme.resolvedTint)
             .modifier(ThemedToggleTint(color: themeManager.selectedTheme.toggleTint))
             .onAppear {
-                if testFlags.isUITesting {
-                    appLockViewModel.isLockEnabled = false
+                if testFlags.isUITesting, !testFlags.allowAppLock {
+                    appLockViewModel.disableAppLockForUITests()
                 }
                 themeManager.refreshSystemAppearance(systemColorScheme)
                 SystemThemeAdapter.applyGlobalChrome(
@@ -121,7 +123,8 @@ struct OffshoreBudgetingApp: App {
                     platformCapabilities: platformCapabilities
                 )
 
-                if appLockViewModel.isLockEnabled && !didTriggerInitialAppLock {
+                appLockViewModel.refreshAvailability()
+                if appLockViewModel.shouldRequireAuthentication, !didTriggerInitialAppLock {
                     didTriggerInitialAppLock = true
                     appLockViewModel.lock()
                     appLockViewModel.attemptUnlockWithBiometrics()
@@ -169,7 +172,7 @@ struct OffshoreBudgetingApp: App {
                     }
                 } else if newPhase == .background {
                     // Centralize background locking here to avoid races
-                    if appLockViewModel.isLockEnabled {
+                    if appLockViewModel.shouldRequireAuthentication {
                         appLockViewModel.lock()
                     }
                 }
@@ -258,10 +261,11 @@ struct OffshoreBudgetingApp: App {
 
     // MARK: UI Testing Helpers
     private func configureForUITestingIfNeeded() {
-#if DEBUG
+        #if DEBUG
         let processInfo = ProcessInfo.processInfo
         guard processInfo.arguments.contains("-ui-testing") else { return }
         let env = processInfo.environment
+        let cloudAvailabilityOverride = env["UITEST_CLOUD_SYNC_AVAILABLE"]?.lowercased()
         if env["UITEST_SKIP_ONBOARDING"] == "1" {
             UserDefaults.standard.set(true, forKey: "didCompleteOnboarding")
             UserDefaults.standard.synchronize()
@@ -269,6 +273,7 @@ struct OffshoreBudgetingApp: App {
         let shouldResetState = env["UITEST_RESET_STATE"] == "1"
         if shouldResetState {
             resetUserDefaultsForUITests()
+            KeychainAppLockStore().deleteUnlockToken()
         }
         if env["UITEST_DISABLE_ANIMATIONS"] == "1" {
             UIView.setAnimationsEnabled(false)
@@ -284,7 +289,22 @@ struct OffshoreBudgetingApp: App {
         } else if shouldResetState {
             resetPersistentStateForUITests()
         }
-#endif
+
+        if cloudAvailabilityOverride == "existing_data" || cloudAvailabilityOverride == "no_icloud" {
+            UserDefaults.standard.set(true, forKey: AppSettingsKeys.enableCloudSync.rawValue)
+            UserDefaults.standard.synchronize()
+        } else if cloudAvailabilityOverride == "local" {
+            UserDefaults.standard.set(false, forKey: AppSettingsKeys.enableCloudSync.rawValue)
+            UserDefaults.standard.synchronize()
+        }
+        if env["UITEST_ENABLE_CLOUD_SYNC"] == "1" {
+            UserDefaults.standard.set(true, forKey: AppSettingsKeys.enableCloudSync.rawValue)
+            UserDefaults.standard.synchronize()
+        } else if env["UITEST_ENABLE_CLOUD_SYNC"] == "0" {
+            UserDefaults.standard.set(false, forKey: AppSettingsKeys.enableCloudSync.rawValue)
+            UserDefaults.standard.synchronize()
+        }
+        #endif
     }
 
     private func resetPersistentStateForUITests() {
@@ -404,9 +424,86 @@ private extension OffshoreBudgetingApp {
     }
 
     func uiTestingFlagsIfAny() -> UITestingFlags {
-        let isUITesting = ProcessInfo.processInfo.arguments.contains("-ui-testing")
-        if isUITesting { return UITestingFlags(isUITesting: true, showTestControls: true) }
-        return UITestingFlags(isUITesting: false, showTestControls: false)
+        let processInfo = ProcessInfo.processInfo
+        let isUITesting = processInfo.arguments.contains("-ui-testing")
+        guard isUITesting else {
+            return UITestingFlags(
+                isUITesting: false,
+                showTestControls: false,
+                allowAppLock: false,
+                deviceAuthAvailableOverride: nil,
+                biometricAuthResult: nil,
+                cloudAccountAvailableOverride: nil,
+                cloudDataExistsOverride: nil
+            )
+        }
+
+        let env = processInfo.environment
+        let allowAppLock = env["UITEST_ALLOW_APP_LOCK"] == "1"
+        let deviceAuthAvailableOverride = parseUITestBool(env["UITEST_DEVICE_AUTH_AVAILABLE"])
+        let deviceAuthRaw = env["UITEST_DEVICE_AUTH_RESULT"] ?? env["UITEST_BIOMETRIC_RESULT"]
+        let biometricAuthResult = deviceAuthRaw
+            .flatMap { UITestBiometricAuthResult(rawValue: $0.lowercased()) }
+
+        let cloudAvailabilityOverride = env["UITEST_CLOUD_SYNC_AVAILABLE"]?.lowercased()
+        let cloudAccountAvailableOverride: Bool?
+        let cloudDataExistsOverride: Bool?
+        switch cloudAvailabilityOverride {
+        case "existing_data":
+            cloudAccountAvailableOverride = true
+            cloudDataExistsOverride = true
+        case "no_icloud":
+            cloudAccountAvailableOverride = false
+            cloudDataExistsOverride = false
+        case "local":
+            cloudAccountAvailableOverride = false
+            cloudDataExistsOverride = false
+        default:
+            cloudAccountAvailableOverride = parseUITestBool(env["UITEST_CLOUD_ACCOUNT_AVAILABLE"])
+            cloudDataExistsOverride = parseUITestBool(env["UITEST_CLOUD_DATA_EXISTS"])
+        }
+
+        return UITestingFlags(
+            isUITesting: true,
+            showTestControls: true,
+            allowAppLock: allowAppLock,
+            deviceAuthAvailableOverride: deviceAuthAvailableOverride,
+            biometricAuthResult: biometricAuthResult,
+            cloudAccountAvailableOverride: cloudAccountAvailableOverride,
+            cloudDataExistsOverride: cloudDataExistsOverride
+        )
+    }
+
+    private func configureAppLockForUITestingIfNeeded() {
+        #if DEBUG
+        let processInfo = ProcessInfo.processInfo
+        guard processInfo.arguments.contains("-ui-testing") else { return }
+        let env = processInfo.environment
+        let allowAppLock = env["UITEST_ALLOW_APP_LOCK"] == "1"
+        guard allowAppLock else { return }
+        let deviceAuthRaw = env["UITEST_DEVICE_AUTH_RESULT"] ?? env["UITEST_BIOMETRIC_RESULT"]
+        let biometricResult = deviceAuthRaw
+            .flatMap { UITestBiometricAuthResult(rawValue: $0.lowercased()) }
+        let deviceAuthAvailableOverride = parseUITestBool(env["UITEST_DEVICE_AUTH_AVAILABLE"])
+        let flags = UITestingFlags(
+            isUITesting: true,
+            showTestControls: true,
+            allowAppLock: true,
+            deviceAuthAvailableOverride: deviceAuthAvailableOverride,
+            biometricAuthResult: biometricResult,
+            cloudAccountAvailableOverride: nil,
+            cloudDataExistsOverride: nil
+        )
+        appLockViewModel.configureForUITesting(flags: flags)
+        #endif
+    }
+    private func parseUITestBool(_ raw: String?) -> Bool? {
+        guard let raw else { return nil }
+        switch raw.lowercased() {
+        case "1", "true", "yes": return true
+        case "0", "false", "no": return false
+        default: return nil
+        }
     }
 
     @MainActor

@@ -456,6 +456,8 @@ struct HomeView: View {
         }
         .navigationTitle("Home")
         .ub_windowTitle("Home")
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("home_screen")
         .refreshable { await vm.refresh() }
         .task { await onAppearTask() }
         .onChange(of: vm.period) { _ in syncPickers(with: vm.currentDateRange) }

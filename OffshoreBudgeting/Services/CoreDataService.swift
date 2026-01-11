@@ -115,7 +115,7 @@ final class CoreDataService: ObservableObject {
         // Always use the CloudKit-capable subclass so we can toggle modes without recreating the type.
         let cloudContainer = NSPersistentCloudKitContainer(name: modelName)
 
-        let description: NSPersistentStoreDescription
+        var description: NSPersistentStoreDescription
 #if DEBUG
         if let override = Self.uiTestStoreOverride() {
             description = override
@@ -127,7 +127,7 @@ final class CoreDataService: ObservableObject {
 #else
         let storeURL = NSPersistentContainer.defaultDirectoryURL()
             .appendingPathComponent("\(modelName).sqlite")
-        let description = NSPersistentStoreDescription(url: storeURL)
+        description = NSPersistentStoreDescription(url: storeURL)
 #endif
 
         // MARK: Store Options (common)

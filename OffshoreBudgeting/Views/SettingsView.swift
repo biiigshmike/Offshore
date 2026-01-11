@@ -14,10 +14,10 @@ import AppKit
 struct SettingsView: View {
     // MARK: Env
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var appLockViewModel: AppLockViewModel
     
     // MARK: State
     @StateObject private var vm = SettingsViewModel()
-    @AppStorage("appLockEnabled") private var isLockEnabled: Bool = true
     @State private var showResetAlert = false
     @State private var showMergeConfirm = false
     @State private var showForceReuploadConfirm = false
@@ -79,7 +79,7 @@ struct SettingsView: View {
                         biometricName: biometricName,
                         biometricIconName: biometricIconName,
                         supportsBiometrics: supportsBiometrics,
-                        isLockEnabled: $isLockEnabled
+                        isLockEnabled: appLockToggleBinding
                     )
                     .ub_windowTitle("Privacy")
                 case .notifications:
@@ -398,6 +398,17 @@ private extension SettingsView {
 
     var developerURL: URL {
         URL(string: "https://offshore-budgeting.notion.site/Offshore-Budgeting-295b42cd2e6c80cf817dd73a5761bb7e")!
+    }
+}
+
+private extension SettingsView {
+    var appLockToggleBinding: Binding<Bool> {
+        Binding(
+            get: { appLockViewModel.isLockEnabledPublished },
+            set: { newValue in
+                Task { await appLockViewModel.setAppLockEnabled(newValue) }
+            }
+        )
     }
 }
 
@@ -774,9 +785,8 @@ private struct PrivacySettingsView: View {
     let biometricIconName: String
     let supportsBiometrics: Bool
     @Binding var isLockEnabled: Bool
-    @State private var isPasscodeAvailable: Bool = true
-    @State private var availabilityMessage: String? = nil
-    @State private var isRequestingAppLock: Bool = false
+    @EnvironmentObject private var appLockViewModel: AppLockViewModel
+    @Environment(\.uiTestingFlags) private var uiTestingFlags
 
     var body: some View {
         let footerText = supportsBiometrics
@@ -786,17 +796,28 @@ private struct PrivacySettingsView: View {
         return List {
             Section {
                 Toggle("Use App Lock", isOn: $isLockEnabled)
-                    .disabled(!isPasscodeAvailable || isRequestingAppLock)
+                    .disabled(!appLockViewModel.isDeviceAuthAvailable || appLockViewModel.isToggleInFlight)
+                    .accessibilityIdentifier("toggle_app_lock")
             } footer: {
                 Text(footerText)
             }
-            if let availabilityMessage {
+            if let availabilityMessage = appLockViewModel.availabilityMessage {
                 Section {
                     Text(availabilityMessage)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
+#if DEBUG
+            if uiTestingFlags.isUITesting {
+                Section {
+                    Text("UI Test App Lock: allow=\(uiTestingFlags.allowAppLock ? "1" : "0"), available=\(appLockViewModel.isDeviceAuthAvailable ? "1" : "0")")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("app_lock_ui_test_state")
+                }
+            }
+#endif
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Privacy")
@@ -809,53 +830,7 @@ private struct PrivacySettingsView: View {
                 }
             }
         }
-        .task { refreshAvailability() }
-        .onChange(of: isLockEnabled) { _ in
-            refreshAvailability()
-            if isLockEnabled {
-                requestAppLockEnablementIfNeeded()
-            }
-        }
-    }
-
-    private func refreshAvailability() {
-        var authError: BiometricError?
-        let canUsePasscode = BiometricAuthenticationManager.shared
-            .canEvaluateDeviceOwnerAuthentication(errorOut: &authError)
-        isPasscodeAvailable = canUsePasscode
-        if !canUsePasscode {
-            isLockEnabled = false
-            availabilityMessage = authError?.localizedDescription ?? "A device passcode is required to enable app lock."
-        } else {
-            availabilityMessage = nil
-        }
-    }
-
-    private func requestAppLockEnablementIfNeeded() {
-        if isRequestingAppLock { return }
-        var authError: BiometricError?
-        let canUseDeviceAuth = BiometricAuthenticationManager.shared
-            .canEvaluateDeviceOwnerAuthentication(errorOut: &authError)
-        guard canUseDeviceAuth else {
-            availabilityMessage = authError?.localizedDescription ?? "A device passcode is required to enable app lock."
-            isLockEnabled = false
-            return
-        }
-
-        isRequestingAppLock = true
-        BiometricAuthenticationManager.shared.authenticate(
-            reason: "Use App Lock",
-            allowDevicePasscode: true
-        ) { result in
-            isRequestingAppLock = false
-            switch result {
-            case .success:
-                availabilityMessage = nil
-            case .failure(let error):
-                availabilityMessage = error.localizedDescription
-                isLockEnabled = false
-            }
-        }
+        .task { appLockViewModel.refreshAvailability() }
     }
 }
 

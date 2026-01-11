@@ -4,10 +4,29 @@ import SwiftUI
 struct UITestingFlags {
     var isUITesting: Bool
     var showTestControls: Bool
+    var allowAppLock: Bool
+    var deviceAuthAvailableOverride: Bool?
+    var biometricAuthResult: UITestBiometricAuthResult?
+    var cloudAccountAvailableOverride: Bool?
+    var cloudDataExistsOverride: Bool?
+}
+
+enum UITestBiometricAuthResult: String {
+    case success
+    case failure
+    case cancel
 }
 
 private struct UITestingFlagsKey: EnvironmentKey {
-    static let defaultValue = UITestingFlags(isUITesting: false, showTestControls: false)
+    static let defaultValue = UITestingFlags(
+        isUITesting: false,
+        showTestControls: false,
+        allowAppLock: false,
+        deviceAuthAvailableOverride: nil,
+        biometricAuthResult: nil,
+        cloudAccountAvailableOverride: nil,
+        cloudDataExistsOverride: nil
+    )
 }
 
 extension EnvironmentValues {

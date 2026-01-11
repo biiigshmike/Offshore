@@ -41,6 +41,8 @@ struct OnboardingView: View {
         }
         .animation(.easeInOut, value: step)
         .transition(.opacity)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("onboarding_screen")
         .onboardingPresentation() // mark hierarchy for onboarding-specific styling
         .onChange(of: enableCloudSync) { newValue in
             Task { @MainActor in

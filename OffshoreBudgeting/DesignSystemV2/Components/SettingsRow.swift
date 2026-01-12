@@ -70,3 +70,25 @@ enum DesignSystemV2 {
         }
     }
 }
+
+extension DesignSystemV2.SettingsRow {
+    init<IconStyle>(
+        title: String,
+        detail: String? = nil,
+        showsChevron: Bool = true,
+        action: (() -> Void)? = nil,
+        accessibilityLabel: Text? = nil,
+        iconSystemName: String,
+        iconStyle: IconStyle,
+        leadingFactory: @escaping (_ systemName: String, _ style: IconStyle) -> Leading
+    ) {
+        self.init(
+            title: title,
+            detail: detail,
+            showsChevron: showsChevron,
+            action: action,
+            accessibilityLabel: accessibilityLabel,
+            leading: { leadingFactory(iconSystemName, iconStyle) }
+        )
+    }
+}

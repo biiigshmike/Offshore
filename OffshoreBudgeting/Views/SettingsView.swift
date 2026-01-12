@@ -178,12 +178,9 @@ struct SettingsView: View {
                 DesignSystemV2.SettingsRow(
                     title: "Help",
                     showsChevron: false,
-                    leading: {
-                        SettingsIconTile(
-                            systemName: "questionmark.circle",
-                            style: .gray
-                        )
-                    }
+                    iconSystemName: "questionmark.circle",
+                    iconStyle: SettingsIconStyle.gray,
+                    leadingFactory: settingsLeadingIcon
                 )
             }
         }
@@ -196,12 +193,9 @@ struct SettingsView: View {
                 DesignSystemV2.SettingsRow(
                     title: "General",
                     showsChevron: false,
-                    leading: {
-                        SettingsIconTile(
-                            systemName: "gear",
-                            style: .gray
-                        )
-                    }
+                    iconSystemName: "gear",
+                    iconStyle: SettingsIconStyle.gray,
+                    leadingFactory: settingsLeadingIcon
                 )
             }
             
@@ -209,12 +203,9 @@ struct SettingsView: View {
                 DesignSystemV2.SettingsRow(
                     title: "Privacy",
                     showsChevron: false,
-                    leading: {
-                        SettingsIconTile(
-                            systemName: biometricIconName,
-                            style: .blue
-                        )
-                    }
+                    iconSystemName: biometricIconName,
+                    iconStyle: SettingsIconStyle.blue,
+                    leadingFactory: settingsLeadingIcon
                 )
             }
             
@@ -222,12 +213,9 @@ struct SettingsView: View {
                 DesignSystemV2.SettingsRow(
                     title: "Notifications",
                     showsChevron: false,
-                    leading: {
-                        SettingsIconTile(
-                            systemName: "bell.badge",
-                            style: .red
-                        )
-                    }
+                    iconSystemName: "bell.badge",
+                    iconStyle: SettingsIconStyle.red,
+                    leadingFactory: settingsLeadingIcon
                 )
             }
             
@@ -235,12 +223,9 @@ struct SettingsView: View {
                 DesignSystemV2.SettingsRow(
                     title: "iCloud",
                     showsChevron: false,
-                    leading: {
-                        SettingsIconTile(
-                            systemName: "icloud",
-                            style: .blueOnWhite
-                        )
-                    }
+                    iconSystemName: "icloud",
+                    iconStyle: SettingsIconStyle.blueOnWhite,
+                    leadingFactory: settingsLeadingIcon
                 )
             }
         }
@@ -253,12 +238,9 @@ struct SettingsView: View {
                 DesignSystemV2.SettingsRow(
                     title: "Manage Categories",
                     showsChevron: false,
-                    leading: {
-                        SettingsIconTile(
-                            systemName: "tag",
-                            style: .lightPurple
-                        )
-                    }
+                    iconSystemName: "tag",
+                    iconStyle: SettingsIconStyle.lightPurple,
+                    leadingFactory: settingsLeadingIcon
                 )
             }
             .accessibilityIdentifier(AccessibilityID.Settings.manageCategoriesNavigation)
@@ -272,12 +254,9 @@ struct SettingsView: View {
                 DesignSystemV2.SettingsRow(
                     title: "Manage Presets",
                     showsChevron: false,
-                    leading: {
-                        SettingsIconTile(
-                            systemName: "list.bullet.rectangle",
-                            style: .orange
-                        )
-                    }
+                    iconSystemName: "list.bullet.rectangle",
+                    iconStyle: SettingsIconStyle.orange,
+                    leadingFactory: settingsLeadingIcon
                 )
             }
             .accessibilityIdentifier(AccessibilityID.Settings.managePresetsNavigation)
@@ -469,6 +448,10 @@ private struct SettingsRowLabel: View {
     }
 }
 
+private func settingsLeadingIcon(systemName: String, style: SettingsIconStyle) -> SettingsIconTile {
+    SettingsIconTile(systemName: systemName, style: style)
+}
+
 private enum SettingsIconStyle {
     case gray
     case blue
@@ -600,21 +583,21 @@ private struct AppInfoView: View {
             
             Section {
                 Link(destination: appStoreURL) {
-                    DesignSystemV2.SettingsRow(title: "View in App Store") {
-                        SettingsIconTile(
-                            systemName: "arrow.up.right.square",
-                            style: .gray
-                        )
-                    }
+                    DesignSystemV2.SettingsRow(
+                        title: "View in App Store",
+                        iconSystemName: "arrow.up.right.square",
+                        iconStyle: SettingsIconStyle.gray,
+                        leadingFactory: settingsLeadingIcon
+                    )
                 }
                 
                 Link(destination: developerURL) {
-                    DesignSystemV2.SettingsRow(title: "Developer Website") {
-                        SettingsIconTile(
-                            systemName: "safari",
-                            style: .gray
-                        )
-                    }
+                    DesignSystemV2.SettingsRow(
+                        title: "Developer Website",
+                        iconSystemName: "safari",
+                        iconStyle: SettingsIconStyle.gray,
+                        leadingFactory: settingsLeadingIcon
+                    )
                 }
             }
             
@@ -625,12 +608,9 @@ private struct AppInfoView: View {
                     DesignSystemV2.SettingsRow(
                         title: "Release Logs",
                         showsChevron: false,
-                        leading: {
-                            SettingsIconTile(
-                                systemName: "list.clipboard",
-                                style: .gray
-                            )
-                        }
+                        iconSystemName: "list.clipboard",
+                        iconStyle: SettingsIconStyle.gray,
+                        leadingFactory: settingsLeadingIcon
                     )
                 }
             }

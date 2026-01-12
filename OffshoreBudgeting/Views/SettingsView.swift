@@ -719,43 +719,35 @@ private struct GeneralSettingsView: View {
                     .font(Typography.subheadlineSemibold)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 44)
-                
-                if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-                    Button(role: .destructive) {
-                        showResetAlert = true
-                    } label: {
-                        label
-                    }
-                    .buttonStyle(.glassProminent)
-                    .tint(.red)
-                    .listRowInsets(EdgeInsets())
-                } else {
-                    Button(role: .destructive) {
-                        showResetAlert = true
-                    } label: {
-                        label
-                    }
-                    .buttonStyle(.plain)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(
-                                {
+
+                DesignSystemV2.Buttons.DestructiveCTA(
+                    tint: .red,
+                    action: { showResetAlert = true },
+                    label: { label },
+                    legacyStyle: { button in
+                        button
+                            .buttonStyle(.plain)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(
+                                        {
 #if canImport(UIKit)
-                                    return Color(UIColor { traits in
-                                        traits.userInterfaceStyle == .dark ? UIColor(white: 0.18, alpha: 1) : UIColor(white: 0.94, alpha: 1)
-                                    })
+                                            return Color(UIColor { traits in
+                                                traits.userInterfaceStyle == .dark ? UIColor(white: 0.18, alpha: 1) : UIColor(white: 0.94, alpha: 1)
+                                            })
 #elseif canImport(AppKit)
-                                    return Color(nsColor: NSColor.windowBackgroundColor)
+                                            return Color(nsColor: NSColor.windowBackgroundColor)
 #else
-                                    return Colors.grayOpacity02
+                                            return Colors.grayOpacity02
 #endif
-                                }()
+                                        }()
+                                    )
                             )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .listRowInsets(EdgeInsets())
-                }
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                )
+                .listRowInsets(EdgeInsets())
             }
         }
         .listStyle(.insetGrouped)
@@ -913,36 +905,26 @@ private struct NotificationsSettingsView: View {
             .font(Typography.subheadlineSemibold)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 44)
-        
-        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Button {
-                Task { await requestPermission() }
-            } label: {
-                label
+
+        DesignSystemV2.Buttons.PrimaryCTA(
+            tint: isGranted ? .green : .blue,
+            action: { Task { await requestPermission() } },
+            label: { label },
+            legacyStyle: { button in
+                button
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Colors.white)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(isGranted ? Color.green : Color.blue)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
-            .buttonStyle(.glassProminent)
-            .tint(isGranted ? .green : .blue)
-            .disabled(isGranted)
-            .opacity(isGranted ? 0.85 : 1)
-            .settingsListRowStyle(background: .colorsClear)
-        } else {
-            Button {
-                Task { await requestPermission() }
-            } label: {
-                label
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(Colors.white)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isGranted ? Color.green : Color.blue)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .disabled(isGranted)
-            .opacity(isGranted ? 0.85 : 1)
-            .settingsListRowStyle(background: .colorsClear)
-        }
+        )
+        .disabled(isGranted)
+        .opacity(isGranted ? 0.85 : 1)
+        .settingsListRowStyle(background: .colorsClear)
     }
     
     @ViewBuilder
@@ -951,28 +933,24 @@ private struct NotificationsSettingsView: View {
             .font(Typography.subheadlineSemibold)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 44)
-        
-        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Button(action: openSystemSettings) {
-                label
+
+        DesignSystemV2.Buttons.SecondaryCTA(
+            tint: .gray,
+            action: openSystemSettings,
+            label: { label },
+            legacyStyle: { button in
+                button
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Colors.stylePrimary)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(settingsButtonBackground)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
-            .buttonStyle(.glassProminent)
-            .tint(.gray)
-            .settingsListRowStyle(background: .colorsClear)
-        } else {
-            Button(action: openSystemSettings) {
-                label
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(Colors.stylePrimary)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(settingsButtonBackground)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .settingsListRowStyle(background: .colorsClear)
-        }
+        )
+        .settingsListRowStyle(background: .colorsClear)
     }
     
     private var settingsButtonBackground: Color {
@@ -1099,30 +1077,25 @@ private struct ICloudSettingsView: View {
         }
             .frame(maxWidth: .infinity)
             .frame(minHeight: 44)
-        
-        if cloudToggle,
-           capabilities.supportsOS26Translucency,
-           #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            Button(action: onForceRefresh) {
-                label
-            }
-            .buttonStyle(.glassProminent)
-            .tint(.red)
-            .disabled(isDisabled)
-            .opacity(isDisabled ? 0.6 : 1)
-            .settingsListRowStyle(background: .colorsClear)
-        } else if cloudToggle {
-            Button(action: onForceRefresh) {
-                label
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(Colors.white)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.red)
+
+        if cloudToggle {
+            DesignSystemV2.Buttons.DestructiveCTA(
+                tint: .red,
+                useGlassIfAvailable: capabilities.supportsOS26Translucency,
+                action: onForceRefresh,
+                label: { label },
+                legacyStyle: { button in
+                    button
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Colors.white)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.red)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
             )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .disabled(isDisabled)
             .opacity(isDisabled ? 0.6 : 1)
             .settingsListRowStyle(background: .colorsClear)

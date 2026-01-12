@@ -120,7 +120,7 @@ struct PresetsView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
-            Buttons.toolbarIcon(Icons.sfPlus) { isPresentingAdd = true }
+            DesignSystemV2.Buttons.ToolbarIcon(Icons.sfPlus) { isPresentingAdd = true }
                 .accessibilityLabel("Add Preset Planned Expense")
         }
     }

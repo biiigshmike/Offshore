@@ -68,15 +68,13 @@ struct ExpenseCategoryManagerView: View {
                     
                     // Right: Add Category (clear/plain, 33x33 hit box)
                     ToolbarItem(placement: .primaryAction) {
-                        DesignSystemV2.Toolbar.plusButton(
-                            accessibilityLabel: "Add Category",
-                            accessibilityIdentifier: AccessibilityID.Settings.Categories.addButton,
-                            action: {
+                        DesignSystemV2.Buttons.ToolbarIcon(Icons.sfPlus) {
                             // Refresh the sheet identity so @State in the sheet resets on each open
                             addSheetInstanceID = UUID()
                             isPresentingAddSheet = true
                         }
-                        )
+                        .accessibilityLabel("Add Category")
+                        .accessibilityIdentifier(AccessibilityID.Settings.Categories.addButton)
                     }
                 }
         }

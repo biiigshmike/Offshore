@@ -58,6 +58,7 @@ struct WorkspaceMenuButton: View {
         let activeID = UUID(uuidString: activeWorkspaceIDRaw)
         ForEach(workspaces) { workspace in
             let colorHex = WorkspaceService.shared.colorHex(for: workspace)
+            let rowTint = UBColorFromHex(colorHex) ?? .accentColor
             Button {
                 guard let id = workspace.id else { return }
                 WorkspaceService.shared.setActiveWorkspaceID(id)
@@ -66,6 +67,7 @@ struct WorkspaceMenuButton: View {
                 HStack(spacing: 10) {
                     if activeID == workspace.id {
                         Image(systemName: "checkmark")
+                            .foregroundStyle(rowTint)
                     }
                     WorkspaceColorDot(hex: colorHex, size: menuDotSize)
                     Text(workspace.name ?? "Untitled")
@@ -76,18 +78,14 @@ struct WorkspaceMenuButton: View {
     
     @ViewBuilder
     private var workspaceMenuLabel: some View {
-        let iconColor = activeWorkspaceColor
         if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            Image(systemName: "person.3.fill")
-                .font(.body.weight(.semibold))
-                .frame(width: menuButtonSize, height: menuButtonSize)
-                .foregroundStyle(.primary)
+            DesignSystemV2.Buttons.IconMenuLabel("person.3.fill", size: menuButtonSize)
         } else {
             Image(systemName: "person.3.fill")
                 .font(.body.weight(.semibold))
                 .padding(menuButtonPadding)
                 .frame(minWidth: menuButtonSize, minHeight: menuButtonSize)
-                .foregroundStyle(iconColor)
+                .foregroundStyle(activeWorkspaceColor)
         }
         //        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
         //            let label = Label("Profile", systemImage: "person.3.fill")

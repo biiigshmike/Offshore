@@ -1,0 +1,160 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/IncomeView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Income",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Income?",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 94
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 95
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 96
+        }
+      },
+      {
+        "comment": "",
+        "key": "This will remove the income entry.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 101
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Income",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 114
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ – %@",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 299
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select day",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 355
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 324
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 329
+        }
+      },
+      {
+        "comment": "",
+        "key": "No income",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 334
+        }
+      },
+      {
+        "comment": "",
+        "key": "No income for %@.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 476
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ – %@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 503
+        }
+      },
+      {
+        "comment": "",
+        "key": "Week Total Income",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 510
+        }
+      },
+      {
+        "comment": "",
+        "key": "No income for %@.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 549
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selected Day Income",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 605
+        }
+      },
+      {
+        "comment": "",
+        "key": "Week Total Income",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 617
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ – %@",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 623
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 638
+        }
+      }
+    ]
+  },
+  "version": 1
+}

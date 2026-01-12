@@ -1,0 +1,72 @@
+{
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Services/WorkspaceService.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/WorkspaceService.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/WorkspaceService.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/WorkspaceService.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/WorkspaceService.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/WorkspaceService.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Support/ColorHelpers.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ColorHelpers.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ColorHelpers.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ColorHelpers.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ColorHelpers.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ColorHelpers.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Support/Logging.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Logging.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Logging.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Logging.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Logging.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Logging.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/AppDelegate.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppDelegate.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppDelegate.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppDelegate.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppDelegate.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppDelegate.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/AppSettings.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppSettings.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppSettings.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppSettings.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppSettings.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppSettings.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/AppTheme.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppTheme.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppTheme.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppTheme.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppTheme.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppTheme.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/CardPickerStore.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerStore.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerStore.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerStore.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerStore.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerStore.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/CardTheme.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardTheme.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardTheme.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardTheme.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardTheme.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardTheme.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/Compatibility.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Compatibility.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Compatibility.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Compatibility.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Compatibility.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/Compatibility.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Systems/DataChangeDebounce.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/DataChangeDebounce.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/DataChangeDebounce.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/DataChangeDebounce.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/DataChangeDebounce.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/DataChangeDebounce.swiftdeps"
+  }
+}

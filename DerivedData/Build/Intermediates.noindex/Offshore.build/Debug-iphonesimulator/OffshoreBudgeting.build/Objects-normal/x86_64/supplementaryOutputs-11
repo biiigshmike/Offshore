@@ -1,0 +1,72 @@
+{
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddBudgetView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddBudgetView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddBudgetView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddBudgetView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddBudgetView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddBudgetView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddCardFormView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddCardFormView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddCardFormView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddCardFormView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddCardFormView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddCardFormView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddIncomeFormView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddIncomeFormView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddIncomeFormView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddIncomeFormView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddIncomeFormView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddIncomeFormView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddPlannedExpenseView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddPlannedExpenseView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddPlannedExpenseView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddPlannedExpenseView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddPlannedExpenseView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddPlannedExpenseView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddUnplannedExpenseView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddUnplannedExpenseView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddUnplannedExpenseView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddUnplannedExpenseView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddUnplannedExpenseView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AddUnplannedExpenseView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AppLockView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppLockView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppLockView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppLockView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppLockView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/AppLockView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/BudgetDetailsView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetDetailsView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetDetailsView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetDetailsView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetDetailsView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetDetailsView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/BudgetsView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetsView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetsView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetsView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetsView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/BudgetsView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CardDetailView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardDetailView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardDetailView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardDetailView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardDetailView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardDetailView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CardPickerItemTile.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerItemTile.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerItemTile.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerItemTile.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerItemTile.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerItemTile.swiftdeps"
+  }
+}

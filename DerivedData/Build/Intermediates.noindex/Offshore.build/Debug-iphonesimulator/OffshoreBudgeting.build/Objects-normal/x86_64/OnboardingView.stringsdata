@@ -1,0 +1,32 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/OnboardingView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Welcome to Offshore Budgeting",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 62
+        }
+      },
+      {
+        "comment": "",
+        "key": "Let's set up your budgeting workspace.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 63
+        }
+      },
+      {
+        "comment": "",
+        "key": "Preparing your workspace…",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 127
+        }
+      }
+    ]
+  },
+  "version": 1
+}

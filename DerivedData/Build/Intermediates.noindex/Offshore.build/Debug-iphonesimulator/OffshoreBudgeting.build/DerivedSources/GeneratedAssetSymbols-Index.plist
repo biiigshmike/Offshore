@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>colors</key>
+	<array/>
+	<key>images</key>
+	<array>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpBudgets1</string>
+			<key>relativePath</key>
+			<string>./Help-Budgets-1.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpBudgets1</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpBudgets2</string>
+			<key>relativePath</key>
+			<string>./Help-Budgets-2.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpBudgets2</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpBudgets3</string>
+			<key>relativePath</key>
+			<string>./Help-Budgets-3.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpBudgets3</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpCards1</string>
+			<key>relativePath</key>
+			<string>./Help-Cards-1.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpCards1</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpCards2</string>
+			<key>relativePath</key>
+			<string>./Help-Cards-2.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpCards2</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpCards3</string>
+			<key>relativePath</key>
+			<string>./Help-Cards-3.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpCards3</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpHome1</string>
+			<key>relativePath</key>
+			<string>./Help-Home-1.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpHome1</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpHome2</string>
+			<key>relativePath</key>
+			<string>./Help-Home-2.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpHome2</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpHome3</string>
+			<key>relativePath</key>
+			<string>./Help-Home-3.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpHome3</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpIncome1</string>
+			<key>relativePath</key>
+			<string>./Help-Income-1.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpIncome1</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpIncome2</string>
+			<key>relativePath</key>
+			<string>./Help-Income-2.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpIncome2</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpIncome3</string>
+			<key>relativePath</key>
+			<string>./Help-Income-3.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpIncome3</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpPresets1</string>
+			<key>relativePath</key>
+			<string>./Help-Presets-1.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpPresets1</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpPresets2</string>
+			<key>relativePath</key>
+			<string>./Help-Presets-2.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpPresets2</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpPresets3</string>
+			<key>relativePath</key>
+			<string>./Help-Presets-3.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpPresets3</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpSettings1</string>
+			<key>relativePath</key>
+			<string>./Help-Settings-1.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpSettings1</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpSettings2</string>
+			<key>relativePath</key>
+			<string>./Help-Settings-2.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpSettings2</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameHelpSettings3</string>
+			<key>relativePath</key>
+			<string>./Help-Settings-3.imageset</string>
+			<key>swiftSymbol</key>
+			<string>helpSettings3</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameSettingsAppIcon</string>
+			<key>relativePath</key>
+			<string>./SettingsAppIcon.imageset</string>
+			<key>swiftSymbol</key>
+			<string>settingsAppIcon</string>
+		</dict>
+	</array>
+	<key>symbols</key>
+	<array/>
+</dict>
+</plist>

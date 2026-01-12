@@ -1,0 +1,104 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CardsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Cards",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 127
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 107
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 108
+        }
+      },
+      {
+        "comment": "",
+        "key": "Error",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 145
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 105,
+          "startingLine": 145
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete “%@”?",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 148
+        }
+      },
+      {
+        "comment": "",
+        "key": "This will delete the card and all of its expenses.",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 149
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 150
+        }
+      },
+      {
+        "comment": "",
+        "key": "Rename Card",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 154
+        }
+      },
+      {
+        "comment": "",
+        "key": "Use Edit instead.",
+        "location": {
+          "startingColumn": 72,
+          "startingLine": 154
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 123,
+          "startingLine": 154
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Card",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 182
+        }
+      }
+    ]
+  },
+  "version": 1
+}

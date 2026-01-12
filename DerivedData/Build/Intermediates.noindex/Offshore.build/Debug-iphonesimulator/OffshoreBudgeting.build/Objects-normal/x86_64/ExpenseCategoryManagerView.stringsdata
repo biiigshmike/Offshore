@@ -1,0 +1,128 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Categories",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 53
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Category",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 84
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete %@?",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 124
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Category & Expenses",
+        "location": {
+          "startingColumn": 69,
+          "startingLine": 135
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 100,
+          "startingLine": 135
+        }
+      },
+      {
+        "comment": "",
+        "key": "This category is used by %lld planned and %lld variable expenses. Deleting it will also delete those expenses.",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 127
+        }
+      },
+      {
+        "comment": "",
+        "key": "This will remove the category.",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 129
+        }
+      },
+      {
+        "comment": "",
+        "key": "New Category",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 390
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shopping",
+        "location": {
+          "startingColumn": 65,
+          "startingLine": 361
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 361
+        }
+      },
+      {
+        "comment": "",
+        "key": "Name",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 371
+        }
+      },
+      {
+        "comment": "",
+        "key": "Color",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 378
+        }
+      },
+      {
+        "comment": "",
+        "key": "Color",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 382
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 395
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 407
+        }
+      }
+    ]
+  },
+  "version": 1
+}

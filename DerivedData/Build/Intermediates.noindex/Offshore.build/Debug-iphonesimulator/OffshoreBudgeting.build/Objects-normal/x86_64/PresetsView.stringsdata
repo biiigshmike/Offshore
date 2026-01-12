@@ -1,0 +1,48 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/PresetsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Presets",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 82
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete %@?",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 111
+        }
+      },
+      {
+        "comment": "",
+        "key": "This will remove the preset and its assignments.",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 112
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 113
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Preset Planned Expense",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 124
+        }
+      }
+    ]
+  },
+  "version": 1
+}

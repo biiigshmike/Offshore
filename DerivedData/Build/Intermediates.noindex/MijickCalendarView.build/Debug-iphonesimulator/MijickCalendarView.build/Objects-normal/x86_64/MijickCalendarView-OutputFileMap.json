@@ -1,0 +1,299 @@
+{
+  "" : {
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MijickCalendarView-primary.dia",
+    "emit-module-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MijickCalendarView-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MijickCalendarView-primary-emit-module.dia",
+    "pch" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MijickCalendarView-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MijickCalendarView-primary.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Data/Data.MCalendarView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MCalendarView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MCalendarView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MCalendarView.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MCalendarView.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MCalendarView.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MCalendarView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MCalendarView.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MCalendarView~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Data/Data.MonthView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MonthView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MonthView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MonthView.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MonthView.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MonthView.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MonthView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MonthView.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.MonthView~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Data/Data.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Data~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Enums/MWeekday.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MWeekday.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MWeekday.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MWeekday.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MWeekday.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MWeekday.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MWeekday.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MWeekday.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MWeekday~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Erasers/AnyWeekdayLabel.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/AnyWeekdayLabel.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/AnyWeekdayLabel.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/AnyWeekdayLabel.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/AnyWeekdayLabel.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/AnyWeekdayLabel.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/AnyWeekdayLabel.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/AnyWeekdayLabel.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/AnyWeekdayLabel~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Extensions/Color++.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Color++.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Color++.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Color++.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Color++.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Color++.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Color++.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Color++.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Color++~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Extensions/Date++.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Date++.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Date++.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Date++.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Date++.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Date++.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Date++.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Date++.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Date++~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Extensions/View++.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/View++.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/View++.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/View++.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/View++.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/View++.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/View++.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/View++.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/View++~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Helpers/MDateFormatter.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateFormatter.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateFormatter.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateFormatter.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateFormatter.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateFormatter.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateFormatter.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateFormatter.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateFormatter~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Models/MCalendar.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendar.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendar.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendar.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendar.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendar.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendar.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendar.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendar~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Models/MDateRange.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateRange.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateRange.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateRange.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateRange.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateRange.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateRange.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateRange.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MDateRange~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Protocols/Configurable.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Configurable.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Configurable.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Configurable.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Configurable.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Configurable.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Configurable.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Configurable.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Configurable~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Views/Default/DefaultDayView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultDayView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultDayView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultDayView.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultDayView.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultDayView.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultDayView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultDayView.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultDayView~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Views/Default/DefaultMonthLabel.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultMonthLabel.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultMonthLabel.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultMonthLabel.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultMonthLabel.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultMonthLabel.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultMonthLabel.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultMonthLabel.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultMonthLabel~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Views/Default/DefaultWeekdayLabel.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdayLabel.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdayLabel.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdayLabel.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdayLabel.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdayLabel.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdayLabel.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdayLabel.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdayLabel~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Views/Default/DefaultWeekdaysView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdaysView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdaysView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdaysView.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdaysView.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdaysView.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdaysView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdaysView.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/DefaultWeekdaysView~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Views/MCalendarView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendarView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendarView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendarView.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendarView.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendarView.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendarView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendarView.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MCalendarView~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Views/MonthView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MonthView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MonthView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MonthView.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MonthView.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MonthView.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MonthView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MonthView.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/MonthView~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Internal/Views/Others/RoundedRectangle.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/RoundedRectangle.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/RoundedRectangle.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/RoundedRectangle.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/RoundedRectangle.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/RoundedRectangle.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/RoundedRectangle.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/RoundedRectangle.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/RoundedRectangle~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Public/Configurables/Public+CalendarConfig.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+CalendarConfig.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+CalendarConfig.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+CalendarConfig.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+CalendarConfig.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+CalendarConfig.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+CalendarConfig.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+CalendarConfig.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+CalendarConfig~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Public/Enums/Public+MWeekday.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MWeekday.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MWeekday.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MWeekday.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MWeekday.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MWeekday.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MWeekday.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MWeekday.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MWeekday~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Public/Enums/Public+WeekdaySymbolFormat.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaySymbolFormat.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaySymbolFormat.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaySymbolFormat.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaySymbolFormat.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaySymbolFormat.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaySymbolFormat.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaySymbolFormat.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaySymbolFormat~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Public/Extensions/Public+MCalendarView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MCalendarView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MCalendarView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MCalendarView.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MCalendarView.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MCalendarView.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MCalendarView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MCalendarView.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MCalendarView~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Public/Extensions/Public+View.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+View.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+View.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+View.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+View.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+View.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+View.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+View.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+View~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Public/Models/Public+MDateRange.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MDateRange.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MDateRange.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MDateRange.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MDateRange.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MDateRange.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MDateRange.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MDateRange.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MDateRange~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Public/View Protocols/Public+DayView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+DayView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+DayView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+DayView.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+DayView.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+DayView.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+DayView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+DayView.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+DayView~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Public/View Protocols/Public+MonthLabel.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MonthLabel.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MonthLabel.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MonthLabel.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MonthLabel.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MonthLabel.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MonthLabel.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MonthLabel.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+MonthLabel~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Public/View Protocols/Public+WeekdayLabel.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdayLabel.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdayLabel.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdayLabel.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdayLabel.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdayLabel.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdayLabel.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdayLabel.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdayLabel~partial.swiftmodule"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/DerivedData/SourcePackages/checkouts/CalendarView/Sources/Public/View Protocols/Public+WeekdaysView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaysView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaysView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaysView.dia",
+    "index-unit-output-path" : "/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaysView.o",
+    "llvm-bc" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaysView.bc",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaysView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaysView.swiftdeps",
+    "swiftmodule" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/MijickCalendarView.build/Debug-iphonesimulator/MijickCalendarView.build/Objects-normal/x86_64/Public+WeekdaysView~partial.swiftmodule"
+  }
+}

@@ -1,0 +1,1568 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/HomeView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Home",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 457
+        }
+      },
+      {
+        "comment": "",
+        "key": "Error",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 2315
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 101,
+          "startingLine": 2315
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Budget?",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 2318
+        }
+      },
+      {
+        "comment": "",
+        "key": "This action cannot be undone.",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 2319
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 2320
+        }
+      },
+      {
+        "comment": "",
+        "key": "Loading…",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 519
+        }
+      },
+      {
+        "comment": "",
+        "key": "Apply date range",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1954
+        }
+      },
+      {
+        "comment": "",
+        "key": "Updates widgets for the selected dates.",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 1955
+        }
+      },
+      {
+        "comment": "",
+        "key": "Apply date range",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1971
+        }
+      },
+      {
+        "comment": "",
+        "key": "Updates widgets for the selected dates.",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 1972
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date presets",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1998
+        }
+      },
+      {
+        "comment": "",
+        "key": "Choose a preset date range.",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 1999
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date presets",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 2015
+        }
+      },
+      {
+        "comment": "",
+        "key": "Choose a preset date range.",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 2016
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start date",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 652
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start date",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 655
+        }
+      },
+      {
+        "comment": "",
+        "key": "End date",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 656
+        }
+      },
+      {
+        "comment": "",
+        "key": "End date",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 659
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 674
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add widgets",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 727
+        }
+      },
+      {
+        "comment": "",
+        "key": "Widgets",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 768
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 792
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 792
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done editing widgets",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 806
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit widgets",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 806
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reorder or add widgets.",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 807
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 809
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 809
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done editing widgets",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 822
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit widgets",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 822
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reorder or add widgets.",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 823
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Income",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 836
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned Income",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 844
+        }
+      },
+      {
+        "comment": "",
+        "key": "0%",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 852
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expenses",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 886
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Income",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 894
+        }
+      },
+      {
+        "comment": "",
+        "key": "0%",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 902
+        }
+      },
+      {
+        "comment": "",
+        "key": "Projected Savings",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 958
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Savings",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 966
+        }
+      },
+      {
+        "comment": "",
+        "key": "0%",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 976
+        }
+      },
+      {
+        "comment": "",
+        "key": "-100%",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 991
+        }
+      },
+      {
+        "comment": "",
+        "key": "No planned expenses in this range.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1025
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add expenses to see category trends.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1071
+        }
+      },
+      {
+        "comment": "",
+        "key": "Top %lld categories in this range.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1063
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1092
+        }
+      },
+      {
+        "comment": "",
+        "key": "No spending yet.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1105
+        }
+      },
+      {
+        "comment": "",
+        "key": "Highest: %@ • %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1129
+        }
+      },
+      {
+        "comment": "",
+        "key": "Unpin %@",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 1319
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pin %@",
+        "location": {
+          "startingColumn": 59,
+          "startingLine": 1319
+        }
+      },
+      {
+        "comment": "",
+        "key": "Removes this widget from the list.",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 1320
+        }
+      },
+      {
+        "comment": "",
+        "key": "Keeps this widget in the list.",
+        "location": {
+          "startingColumn": 78,
+          "startingLine": 1320
+        }
+      },
+      {
+        "comment": "",
+        "key": "No categories yet.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1585
+        }
+      },
+      {
+        "comment": "",
+        "key": "Over: %lld",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1566
+        }
+      },
+      {
+        "comment": "",
+        "key": "Near: %lld",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1570
+        }
+      },
+      {
+        "comment": "",
+        "key": "No categories yet.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1660
+        }
+      },
+      {
+        "comment": "",
+        "key": "Over: %lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1642
+        }
+      },
+      {
+        "comment": "",
+        "key": "Near: %lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1646
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Savings",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1721
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tap to plan scenarios and see how much you can still save.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1724
+        }
+      },
+      {
+        "comment": "",
+        "key": "No budget data yet.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 1890
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set a budget for the %@ window or pick a custom date range to see widgets.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 1892
+        }
+      },
+      {
+        "comment": "",
+        "key": "No spending in this range.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2556
+        }
+      },
+      {
+        "comment": "",
+        "key": "Highest: %@ • %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2746
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ spending chart",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 2716
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shows spending totals by period.",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 2717
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 2586
+        }
+      },
+      {
+        "comment": "",
+        "key": "Period",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 2587
+        }
+      },
+      {
+        "comment": "",
+        "key": "Period",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 2593
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 2594
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 2628
+        }
+      },
+      {
+        "comment": "",
+        "key": "Period",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 2629
+        }
+      },
+      {
+        "comment": "",
+        "key": "Period",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 2635
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 2636
+        }
+      },
+      {
+        "comment": "",
+        "key": "Day range",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 2724
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount spent",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 2736
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category Caps & Alerts",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2762
+        }
+      },
+      {
+        "comment": "",
+        "key": "No caps found for this range.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2774
+        }
+      },
+      {
+        "comment": "",
+        "key": "Over",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 2787
+        }
+      },
+      {
+        "comment": "",
+        "key": "Near",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 2793
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spent: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2803
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cap: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2807
+        }
+      },
+      {
+        "comment": "",
+        "key": "Not enough data for this range.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 4660
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ • Exp %@ • Inc %@ • Plan %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 4822
+        }
+      },
+      {
+        "comment": "",
+        "key": "Latest: %@ • Exp %@ • Inc %@ • Plan %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 4828
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expense to income chart",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 4765
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shows expenses, actual income, and planned income for the selected range.",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 4766
+        }
+      },
+      {
+        "comment": "",
+        "key": "Not enough data for this range.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 4840
+        }
+      },
+      {
+        "comment": "",
+        "key": "No planned expenses in this range.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2887
+        }
+      },
+      {
+        "comment": "",
+        "key": "No category data in this range.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2925
+        }
+      },
+      {
+        "comment": "",
+        "key": "Top Categories",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2910
+        }
+      },
+      {
+        "comment": "",
+        "key": "No categories or caps available.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2945
+        }
+      },
+      {
+        "comment": "",
+        "key": "No categories or caps available.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2986
+        }
+      },
+      {
+        "comment": "",
+        "key": "No expenses in this range.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 3013
+        }
+      },
+      {
+        "comment": "",
+        "key": "Adjust category allocations to see how much you could still save.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 3189
+        }
+      },
+      {
+        "comment": "",
+        "key": "Potential Savings",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 3196
+        }
+      },
+      {
+        "comment": "",
+        "key": "Over-allocated",
+        "location": {
+          "startingColumn": 76,
+          "startingLine": 3196
+        }
+      },
+      {
+        "comment": "",
+        "key": "Potential Savings",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 3207
+        }
+      },
+      {
+        "comment": "",
+        "key": "Over-allocated",
+        "location": {
+          "startingColumn": 76,
+          "startingLine": 3207
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 3219
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 3226
+        }
+      },
+      {
+        "comment": "",
+        "key": "0",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 3311
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 3316
+        }
+      },
+      {
+        "comment": "",
+        "key": "0",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 3321
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 3325
+        }
+      },
+      {
+        "comment": "",
+        "key": "No income in this range.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 3711
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ • %@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 3875
+        }
+      },
+      {
+        "comment": "",
+        "key": "Income timeline chart",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 3847
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shows planned income and actual income over time.",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 3848
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3732
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned Income",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3733
+        }
+      },
+      {
+        "comment": "",
+        "key": "Series",
+        "location": {
+          "startingColumn": 61,
+          "startingLine": 3736
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3741
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Income",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3742
+        }
+      },
+      {
+        "comment": "",
+        "key": "Series",
+        "location": {
+          "startingColumn": 61,
+          "startingLine": 3745
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3750
+        }
+      },
+      {
+        "comment": "",
+        "key": "Received",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3751
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selected",
+        "location": {
+          "startingColumn": 52,
+          "startingLine": 3795
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3770
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned Income",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3771
+        }
+      },
+      {
+        "comment": "",
+        "key": "Series",
+        "location": {
+          "startingColumn": 61,
+          "startingLine": 3774
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3779
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Income",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3780
+        }
+      },
+      {
+        "comment": "",
+        "key": "Series",
+        "location": {
+          "startingColumn": 61,
+          "startingLine": 3783
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3788
+        }
+      },
+      {
+        "comment": "",
+        "key": "Received",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 3789
+        }
+      },
+      {
+        "comment": "",
+        "key": "Range: %@ – %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 3852
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 3858
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 3865
+        }
+      },
+      {
+        "comment": "",
+        "key": "No income history for this period size.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 3930
+        }
+      },
+      {
+        "comment": "",
+        "key": "Trends",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 3903
+        }
+      },
+      {
+        "comment": "",
+        "key": "Period",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 3908
+        }
+      },
+      {
+        "comment": "",
+        "key": "Trends",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 3917
+        }
+      },
+      {
+        "comment": "",
+        "key": "Period",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 3921
+        }
+      },
+      {
+        "comment": "",
+        "key": "Income trends chart",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 3947
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shows income totals by period.",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 3948
+        }
+      },
+      {
+        "comment": "",
+        "key": "Income trends chart",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 3997
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shows income totals by period.",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 3998
+        }
+      },
+      {
+        "comment": "",
+        "key": "Period",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 3938
+        }
+      },
+      {
+        "comment": "",
+        "key": "Total",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 3939
+        }
+      },
+      {
+        "comment": "",
+        "key": "Period: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 3951
+        }
+      },
+      {
+        "comment": "",
+        "key": "Latest: %@ • %@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 3957
+        }
+      },
+      {
+        "comment": "",
+        "key": "Period",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 3967
+        }
+      },
+      {
+        "comment": "",
+        "key": "Total",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 3968
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Income",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 4033
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Latest",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 4046
+        }
+      },
+      {
+        "comment": "",
+        "key": "No Categories",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 4473
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 4725
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 4726
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 4684
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 4685
+        }
+      },
+      {
+        "comment": "",
+        "key": "Series",
+        "location": {
+          "startingColumn": 57,
+          "startingLine": 4688
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selected",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 4714
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 4706
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 4707
+        }
+      },
+      {
+        "comment": "",
+        "key": "Series",
+        "location": {
+          "startingColumn": 57,
+          "startingLine": 4710
+        }
+      },
+      {
+        "comment": "",
+        "key": "Range: %@ – %@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 4770
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expenses: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 4776
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Income: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 4783
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned Income: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 4790
+        }
+      },
+      {
+        "comment": "",
+        "key": "Savings chart",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 4968
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shows actual and projected savings over time.",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 4969
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 4928
+        }
+      },
+      {
+        "comment": "",
+        "key": "Savings",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 4929
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zero",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 4886
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4864
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4865
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4873
+        }
+      },
+      {
+        "comment": "",
+        "key": "Projected",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4874
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4879
+        }
+      },
+      {
+        "comment": "",
+        "key": "Projected",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4880
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selected",
+        "location": {
+          "startingColumn": 52,
+          "startingLine": 4920
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zero",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 4924
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4897
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4898
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4906
+        }
+      },
+      {
+        "comment": "",
+        "key": "Projected",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4907
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4912
+        }
+      },
+      {
+        "comment": "",
+        "key": "Projected",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 4913
+        }
+      },
+      {
+        "comment": "",
+        "key": "Range: %@ – %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 4973
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 4979
+        }
+      },
+      {
+        "comment": "",
+        "key": "Projected: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 4986
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ • %@ / %@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 5001
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ • %@ / %@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 5013
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete planned expense?",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 5137
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned: %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 5124
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual: %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 5126
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 5138
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 5139
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next Planned Expense",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 5343
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 5998
+        }
+      },
+      {
+        "comment": "",
+        "key": "No planned expenses in this period.\nPress the + to add a planned expense.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 6255
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 6303
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 6305
+        }
+      },
+      {
+        "comment": "",
+        "key": "No variable expenses in this period.\nTrack purchases as they happen.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 6475
+        }
+      }
+    ]
+  },
+  "version": 1
+}

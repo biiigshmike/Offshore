@@ -1,0 +1,272 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddUnplannedExpenseView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Edit Variable Expense",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 72
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Variable Expense",
+        "location": {
+          "startingColumn": 75,
+          "startingLine": 72
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 76
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Changes",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 84
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 96
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save and Add",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 105
+        }
+      },
+      {
+        "comment": "",
+        "key": "No cards yet. Add one to assign this expense.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 171
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Card",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 185
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Card",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 183
+        }
+      },
+      {
+        "comment": "",
+        "key": "Assign a Card to Expense",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 197
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 209
+        }
+      },
+      {
+        "comment": "",
+        "key": "Apple Store",
+        "location": {
+          "startingColumn": 79,
+          "startingLine": 226
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 226
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expense Description",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 231
+        }
+      },
+      {
+        "comment": "",
+        "key": "Apple Store",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 233
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expense Description",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 238
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expense Description",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 244
+        }
+      },
+      {
+        "comment": "",
+        "key": "299.99",
+        "location": {
+          "startingColumn": 76,
+          "startingLine": 253
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 253
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 257
+        }
+      },
+      {
+        "comment": "",
+        "key": "299.99",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 259
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 263
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 269
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 276
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transaction Date",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 279
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transaction Date",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 281
+        }
+      },
+      {
+        "comment": "",
+        "key": "No categories yet",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 494
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 534
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Category",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 546
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Category",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 565
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 549
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select category",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 612
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select category",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 625
+        }
+      }
+    ]
+  },
+  "version": 1
+}

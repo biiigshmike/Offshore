@@ -1,0 +1,496 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/AddPlannedExpenseView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Apply changes to related expenses?",
+        "location": {
+          "startingColumn": 13,
+          "startingLine": 390
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Planned Expense",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 297
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Planned Expense",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 297
+        }
+      },
+      {
+        "comment": "",
+        "key": "No cards yet. Add one to assign this expense.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 121
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Card",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 133
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Card",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "Card",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 145
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select a Budget",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 154
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add to a budget now?",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 156
+        }
+      },
+      {
+        "comment": "",
+        "key": "Electric",
+        "location": {
+          "startingColumn": 79,
+          "startingLine": 187
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 187
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expense Description",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 192
+        }
+      },
+      {
+        "comment": "",
+        "key": "Rent",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 194
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expense Description",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 199
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expense Description",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 205
+        }
+      },
+      {
+        "comment": "",
+        "key": "100",
+        "location": {
+          "startingColumn": 83,
+          "startingLine": 215
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 215
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned Amount",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 219
+        }
+      },
+      {
+        "comment": "",
+        "key": "2000",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 221
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned Amount",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 225
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned Amount",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 231
+        }
+      },
+      {
+        "comment": "",
+        "key": "102.50",
+        "location": {
+          "startingColumn": 82,
+          "startingLine": 241
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 241
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Amount",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 245
+        }
+      },
+      {
+        "comment": "",
+        "key": "102.50",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 247
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Amount",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 251
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual Amount",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 257
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 266
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transaction Date",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 269
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transaction Date",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 271
+        }
+      },
+      {
+        "comment": "",
+        "key": "Use in future budgets?",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 279
+        }
+      },
+      {
+        "comment": "",
+        "key": "Use in future budgets?",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 282
+        }
+      },
+      {
+        "comment": "",
+        "key": "Use in future budgets?",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 285
+        }
+      },
+      {
+        "comment": "",
+        "key": "You're editing an occurrence that's part of a Preset Planned Expense series.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 291
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 301
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Changes",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 309
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 321
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save and Add",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 327
+        }
+      },
+      {
+        "comment": "",
+        "key": "Only this expense",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 393
+        }
+      },
+      {
+        "comment": "",
+        "key": "Past instances",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 399
+        }
+      },
+      {
+        "comment": "",
+        "key": "Future instances",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 405
+        }
+      },
+      {
+        "comment": "",
+        "key": "All instances",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 411
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 417
+        }
+      },
+      {
+        "comment": "",
+        "key": "No matching budgets",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 510
+        }
+      },
+      {
+        "comment": "",
+        "key": "Show All Budgets, %lld more",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 551
+        }
+      },
+      {
+        "comment": "",
+        "key": "Show Less",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 554
+        }
+      },
+      {
+        "comment": "",
+        "key": "Show All (%lld more)",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 558
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search Budgets",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 488
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select budget %@",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 530
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selected",
+        "location": {
+          "startingColumn": 80,
+          "startingLine": 531
+        }
+      },
+      {
+        "comment": "",
+        "key": "Not Selected",
+        "location": {
+          "startingColumn": 93,
+          "startingLine": 531
+        }
+      },
+      {
+        "comment": "",
+        "key": "Show All Budgets",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 541
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 542
+        }
+      },
+      {
+        "comment": "",
+        "key": "Choose Budget",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 564
+        }
+      },
+      {
+        "comment": "",
+        "key": "No categories yet",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 741
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 792
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Category",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 804
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Category",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 823
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 807
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select category",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 869
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select category",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 880
+        }
+      }
+    ]
+  },
+  "version": 1
+}

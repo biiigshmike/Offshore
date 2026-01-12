@@ -1,0 +1,72 @@
+{
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CardPickerRow.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerRow.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerRow.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerRow.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerRow.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardPickerRow.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CardTileView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardTileView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardTileView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardTileView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardTileView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardTileView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CardsView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardsView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardsView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardsView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardsView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CardsView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CategoryChipStyle.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CategoryChipStyle.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CategoryChipStyle.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CategoryChipStyle.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CategoryChipStyle.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CategoryChipStyle.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CloudSyncGateView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CloudSyncGateView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CloudSyncGateView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CloudSyncGateView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CloudSyncGateView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CloudSyncGateView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/CustomRecurrenceEditorView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CustomRecurrenceEditorView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CustomRecurrenceEditorView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CustomRecurrenceEditorView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CustomRecurrenceEditorView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/CustomRecurrenceEditorView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/EditCategoryCapsView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/EditCategoryCapsView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/EditCategoryCapsView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/EditCategoryCapsView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/EditCategoryCapsView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/EditCategoryCapsView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ExpenseCategoryManagerView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ExpenseCategoryManagerView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ExpenseCategoryManagerView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ExpenseCategoryManagerView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ExpenseCategoryManagerView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/ExpenseImportView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ExpenseImportView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ExpenseImportView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ExpenseImportView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ExpenseImportView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/ExpenseImportView.swiftdeps"
+  },
+  "/Users/Michael/Xcode iOS/Offshore/OffshoreBudgeting/Views/HelpView.swift" : {
+    "const-values" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/HelpView.swiftconstvalues",
+    "dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/HelpView.d",
+    "diagnostics" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/HelpView.dia",
+    "object" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/HelpView.o",
+    "swift-dependencies" : "/Users/Michael/Xcode iOS/Offshore/DerivedData/Build/Intermediates.noindex/Offshore.build/Debug-iphonesimulator/OffshoreBudgeting.build/Objects-normal/x86_64/HelpView.swiftdeps"
+  }
+}

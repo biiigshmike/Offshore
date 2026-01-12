@@ -1,0 +1,72 @@
+{
+  "source": "/Users/Michael/Xcode iOS/Offshore/OffshoreWidgets/IncomeWidget.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Income Widget Settings",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 86
+        }
+      },
+      {
+        "comment": "",
+        "key": "Period",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 88
+        }
+      },
+      {
+        "comment": "",
+        "key": "Income",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 109
+        }
+      },
+      {
+        "comment": "",
+        "key": "received",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 123
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actual",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 130
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planned",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 138
+        }
+      },
+      {
+        "comment": "",
+        "key": "Income",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 178
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shows received vs planned income for the period.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 179
+        }
+      }
+    ]
+  },
+  "version": 1
+}

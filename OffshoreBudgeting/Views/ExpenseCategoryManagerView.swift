@@ -73,9 +73,9 @@ struct ExpenseCategoryManagerView: View {
                             addSheetInstanceID = UUID()
                             isPresentingAddSheet = true
                         }) {
-                            Image(systemName: "plus")
+                            Image(systemName: Icons.sfPlus)
                                 .symbolRenderingMode(.monochrome)
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(Colors.stylePrimary)
                                 .font(.system(size: 17, weight: .semibold))
                                 .frame(width: 33, height: 33)
                                 .contentShape(Circle())
@@ -222,15 +222,15 @@ struct ExpenseCategoryManagerView: View {
     @ViewBuilder
     private func rowLabel(for category: ExpenseCategory) -> some View {
         let name = category.name ?? "Untitled"
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.m) {
             ColorCircle(hex: category.color ?? "#999999")
             VStack(alignment: .leading) {
                 Text(name)
             }
             Spacer()
-            Image(systemName: "chevron.right")
+            Image(systemName: Icons.sfChevronRight)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
         }
     }
 
@@ -369,8 +369,8 @@ struct ExpenseCategoryEditorSheet: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 } header: {
                     Text("Name")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.footnote)
+                        .foregroundStyle(Colors.styleSecondary)
                         .textCase(.uppercase)
                 }
                 
@@ -380,8 +380,8 @@ struct ExpenseCategoryEditorSheet: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } header: {
                     Text("Color")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.footnote)
+                        .foregroundStyle(Colors.styleSecondary)
                         .textCase(.uppercase)
                 }
             }

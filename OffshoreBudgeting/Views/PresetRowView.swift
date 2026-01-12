@@ -28,11 +28,11 @@ struct PresetRowView: View {
 
     // MARK: Body
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             titleRow
             amountsRow
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Spacing.xxs)
         .accessibilityIdentifier(AccessibilityID.Settings.Presets.presetRow(id: item.id))
     }
 
@@ -44,24 +44,24 @@ struct PresetRowView: View {
     private var titleRow: some View {
         Group {
             if isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     Text(item.name)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .font(Typography.title3Semibold)
+                        .foregroundStyle(Colors.stylePrimary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
                     assignButton
                 }
             } else {
-                HStack(alignment: .center, spacing: 12) {
+                HStack(alignment: .center, spacing: Spacing.m) {
                     Text(item.name)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .font(Typography.title3Semibold)
+                        .foregroundStyle(Colors.stylePrimary)
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
                         .allowsTightening(true)
 
-                    Spacer(minLength: 12)
+                    Spacer(minLength: Spacing.m)
                     assignButton
                 }
             }
@@ -86,7 +86,7 @@ struct PresetRowView: View {
     private var amountsRow: some View {
         Group {
             if isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: Spacing.sPlus) {
                     HStack(spacing: 24) {
                         LabeledAmountBlock(title: "PLANNED", value: item.plannedCurrency)
                         LabeledAmountBlock(title: "ACTUAL", value: item.actualCurrency)
@@ -94,13 +94,13 @@ struct PresetRowView: View {
                     nextDateBlock(alignment: .leading)
                 }
             } else {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: Spacing.m) {
                     HStack(spacing: 32) {
                         LabeledAmountBlock(title: "PLANNED", value: item.plannedCurrency)
                         LabeledAmountBlock(title: "ACTUAL", value: item.actualCurrency)
                     }
 
-                    Spacer(minLength: 12)
+                    Spacer(minLength: Spacing.m)
 
                     nextDateBlock(alignment: .trailing)
                 }
@@ -109,15 +109,15 @@ struct PresetRowView: View {
     }
 
     private func nextDateBlock(alignment: HorizontalAlignment) -> some View {
-        VStack(alignment: alignment, spacing: 4) {
+        VStack(alignment: alignment, spacing: Spacing.xxs) {
             Text("NEXT DATE")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .font(Typography.caption2Semibold)
+                .foregroundStyle(Colors.styleSecondary)
                 .textCase(.uppercase)
 
             Text(item.nextDateLabel)
-                .font(.body)
-                .foregroundStyle(.primary)
+                .font(Typography.body)
+                .foregroundStyle(Colors.stylePrimary)
                 .lineLimit(isAccessibilitySize ? nil : 1)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -139,12 +139,12 @@ private struct LabeledAmountBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .font(Typography.caption2Semibold)
+                .foregroundStyle(Colors.styleSecondary)
                 .textCase(.uppercase)
             Text(value)
-                .font(.body)
-                .foregroundStyle(.primary)
+                .font(Typography.body)
+                .foregroundStyle(Colors.stylePrimary)
                 .lineLimit(isAccessibilitySize ? nil : 1)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -164,9 +164,9 @@ private struct AssignedBudgetsBadge: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Spacing.sPlus) {
             Text(title)
-                .font(.subheadline.weight(.semibold))
+                .font(Typography.subheadlineSemibold)
                 .foregroundStyle(titleColor)
                 .lineLimit(isAccessibilitySize ? nil : 1)
                 .minimumScaleFactor(0.85)
@@ -182,8 +182,8 @@ private struct AssignedBudgetsBadge: View {
             }
             .frame(width: countCircleSize, height: countCircleSize)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Spacing.m)
+        .padding(.vertical, Spacing.s)
         .fixedSize(horizontal: !isAccessibilitySize, vertical: false)
     }
 
@@ -209,7 +209,7 @@ private struct AssignedBudgetsBadge: View {
 #elseif canImport(AppKit)
         Color(nsColor: .systemGray5)
 #else
-        Color.gray.opacity(0.2)
+        Colors.grayOpacity02
 #endif
     }
 

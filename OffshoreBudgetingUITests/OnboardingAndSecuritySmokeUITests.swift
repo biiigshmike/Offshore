@@ -279,3 +279,4 @@ final class OnboardingAndSecuritySmokeUITests: XCTestCase {
         app.terminate()
     }
 }
+ 

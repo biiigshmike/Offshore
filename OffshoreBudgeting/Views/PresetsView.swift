@@ -32,10 +32,10 @@ struct PresetsView: View {
     private var presetsContent: some View {
         Group {
             if vm.items.isEmpty {
-                VStack(spacing: DS.Spacing.l) {
+                VStack(spacing: Spacing.l) {
                     if let header {
                         header
-                            .padding(.horizontal, DS.Spacing.l)
+                            .padding(.horizontal, Spacing.l)
                     }
                     UBEmptyState(message: "No presets found. Tap + to create a preset.")
                 }
@@ -45,14 +45,14 @@ struct PresetsView: View {
                 List {
                     if let header {
                         header
-                            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                            .listRowInsets(EdgeInsets(top: Spacing.m, leading: Spacing.l, bottom: Spacing.m, trailing: Spacing.l))
                             .listRowSeparator(.hidden)
                     }
 
                     Section {
                         ForEach(vm.items) { item in
                             PresetRowView(item: item) { template in sheetTemplateToAssign = template }
-                                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                                .listRowInsets(EdgeInsets(top: Spacing.m, leading: Spacing.l, bottom: Spacing.m, trailing: Spacing.l))
                                 .unifiedSwipeActions(
                                     swipeConfig,
                                     onEdit: { editingTemplate = item.template },
@@ -120,7 +120,7 @@ struct PresetsView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
-            Buttons.toolbarIcon("plus") { isPresentingAdd = true }
+            Buttons.toolbarIcon(Icons.sfPlus) { isPresentingAdd = true }
                 .accessibilityLabel("Add Preset Planned Expense")
         }
     }

@@ -29,7 +29,7 @@ struct SettingsView: View {
     @State private var showDisableCloudOptions = false
     @State private var isReconfiguringStores = false
     @StateObject private var cloudDiag = CloudDiagnostics.shared
-
+    
     private enum SettingsRoute: Hashable {
         case appInfo
         case help
@@ -40,11 +40,11 @@ struct SettingsView: View {
         case categories
         case presets
     }
-
+    
     // Guided walkthrough removed
-
+    
     var body: some View { settingsContent }
-
+    
     private var settingsContent: some View {
         settingsList
             .listStyle(.insetGrouped)
@@ -144,17 +144,17 @@ struct SettingsView: View {
                 if let overlayLabel = overlayStatusLabel {
                     ZStack {
                         Color.black.opacity(0.3).ignoresSafeArea()
-                        VStack(spacing: 12) {
+                        VStack(spacing: Spacing.m) {
                             ProgressView()
-                            Text(overlayLabel).foregroundStyle(.secondary)
+                            Text(overlayLabel).foregroundStyle(Colors.styleSecondary)
                         }
-                        .padding(16)
+                        .padding(Spacing.l)
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }
             }
     }
-
+    
     private var settingsList: some View {
         List {
             appSection
@@ -163,7 +163,7 @@ struct SettingsView: View {
             presetsSection
         }
     }
-
+    
     @ViewBuilder
     private var appSection: some View {
         Section {
@@ -173,7 +173,7 @@ struct SettingsView: View {
                     appIconGraphic: appIconGraphic
                 )
             }
-
+            
             NavigationLink(value: SettingsRoute.help) {
                 SettingsRowLabel(
                     iconSystemName: "questionmark.circle",
@@ -184,7 +184,7 @@ struct SettingsView: View {
             }
         }
     }
-
+    
     @ViewBuilder
     private var generalSection: some View {
         Section {
@@ -196,7 +196,7 @@ struct SettingsView: View {
                     iconStyle: .gray
                 )
             }
-
+            
             NavigationLink(value: SettingsRoute.privacy) {
                 SettingsRowLabel(
                     iconSystemName: biometricIconName,
@@ -205,7 +205,7 @@ struct SettingsView: View {
                     iconStyle: .blue
                 )
             }
-
+            
             NavigationLink(value: SettingsRoute.notifications) {
                 SettingsRowLabel(
                     iconSystemName: "bell.badge",
@@ -214,7 +214,7 @@ struct SettingsView: View {
                     iconStyle: .red
                 )
             }
-
+            
             NavigationLink(value: SettingsRoute.icloud) {
                 SettingsRowLabel(
                     iconSystemName: "icloud",
@@ -225,7 +225,7 @@ struct SettingsView: View {
             }
         }
     }
-
+    
     @ViewBuilder
     private var categoriesSection: some View {
         Section {
@@ -240,7 +240,7 @@ struct SettingsView: View {
             .accessibilityIdentifier(AccessibilityID.Settings.manageCategoriesNavigation)
         }
     }
-
+    
     @ViewBuilder
     private var presetsSection: some View {
         Section {
@@ -255,7 +255,7 @@ struct SettingsView: View {
             .accessibilityIdentifier(AccessibilityID.Settings.managePresetsNavigation)
         }
     }
-
+    
     // MARK: Data wipe
     private func performDataWipe() {
         do {
@@ -265,7 +265,7 @@ struct SettingsView: View {
             // No-op simple path
         }
     }
-
+    
     private func runMerge() {
         isMerging = true
         Task { @MainActor in
@@ -279,7 +279,7 @@ struct SettingsView: View {
             }
         }
     }
-
+    
     private func disableCloud(eraseLocal: Bool) {
         isReconfiguringStores = true
         Task { @MainActor in
@@ -287,7 +287,7 @@ struct SettingsView: View {
             await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: false)
             vm.enableCloudSync = false
             let personalID = WorkspaceService.shared.personalWorkspace()?.id
-                ?? WorkspaceService.shared.ensureActiveWorkspaceID()
+            ?? WorkspaceService.shared.ensureActiveWorkspaceID()
             await WorkspaceService.shared.assignWorkspaceIDIfMissing(to: personalID)
             if eraseLocal {
                 do { try CoreDataService.shared.wipeAllData() } catch { }
@@ -297,7 +297,7 @@ struct SettingsView: View {
             isReconfiguringStores = false
         }
     }
-
+    
     // Guided walkthrough removed
 }
 
@@ -317,7 +317,7 @@ private extension SettingsView {
                         try? await Task.sleep(nanoseconds: 80_000_000)
                         await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
                         let personalID = WorkspaceService.shared.personalWorkspace()?.id
-                            ?? WorkspaceService.shared.ensureActiveWorkspaceID()
+                        ?? WorkspaceService.shared.ensureActiveWorkspaceID()
                         await WorkspaceService.shared.assignWorkspaceIDIfMissing(to: personalID)
                         // Workspace-backed period will mirror via Core Data
                         await cloudDiag.refresh()
@@ -327,14 +327,14 @@ private extension SettingsView {
             }
         )
     }
-
+    
     var overlayStatusLabel: String? {
         if isMerging { return "Merging data…" }
         if isReconfiguringStores { return "Reconfiguring storage…" }
         if isForceReuploading { return "Refreshing iCloud sync…" }
         return nil
     }
-
+    
     /// Force a CloudKit re-export by "touching" all syncable entities.
     /// Uses ForceReuploadHelper to create history entries without user-visible changes.
     private func forceReupload() {
@@ -354,7 +354,7 @@ private extension SettingsView {
             showForceReuploadResult = true
         }
     }
-
+    
     // Removed: Store Mode and Container Reachable rows for a cleaner UI
 }
 
@@ -364,38 +364,38 @@ private extension SettingsView {
     var biometricType: LABiometryType {
         BiometricAuthenticationManager.shared.supportedBiometryType()
     }
-
+    
     var biometricName: String {
         if biometricType == .touchID { return "Touch ID" }
         if biometricType == .faceID { return "Face ID" }
         return "Biometrics"
     }
-
+    
     var biometricIconName: String {
         if biometricType == .touchID { return "touchid" }
         if biometricType == .faceID { return "faceid" }
         return "lock"
     }
-
+    
     var supportsBiometrics: Bool {
         biometricType != .none
     }
-
+    
     var appDisplayName: String {
         let info = Bundle.main.infoDictionary
         let name = info?["CFBundleDisplayName"] as? String
         let bundleName = info?["CFBundleName"] as? String
         return name ?? bundleName ?? "App"
     }
-
+    
     var appIconGraphic: AppIconGraphic {
         AppIconProvider.currentIconGraphic ?? .system(name: "square.fill")
     }
-
+    
     var appStoreURL: URL {
         URL(string: "https://apple.com")!
     }
-
+    
     var developerURL: URL {
         URL(string: "https://offshore-budgeting.notion.site/Offshore-Budgeting-295b42cd2e6c80cf817dd73a5761bb7e")!
     }
@@ -417,8 +417,8 @@ private struct SettingsRowLabel: View {
     let title: String
     var showsChevron: Bool = true
     var iconStyle: SettingsIconStyle = .gray
-    @ScaledMetric(relativeTo: .body) private var iconTextSpacing: CGFloat = 16
-
+    @ScaledMetric(relativeTo: .body) private var iconTextSpacing: CGFloat = Spacing.l
+    
     var body: some View {
         HStack(spacing: iconTextSpacing) {
             SettingsIconTile(
@@ -430,9 +430,9 @@ private struct SettingsRowLabel: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
             if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Image(systemName: Icons.sfChevronRight)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .accessibilityHidden(true)
             }
         }
@@ -448,7 +448,7 @@ private enum SettingsIconStyle {
     case red
     case lightPurple
     case orange
-
+    
     var tint: Color {
         switch self {
         case .gray:
@@ -463,7 +463,7 @@ private enum SettingsIconStyle {
             return Color(.systemOrange)
         }
     }
-
+    
     var background: Color {
         switch self {
         case .gray:
@@ -480,7 +480,7 @@ private enum SettingsIconStyle {
             return Color(.systemOrange).opacity(0.2)
         }
     }
-
+    
     var usesStroke: Bool {
         switch self {
         case .blueOnWhite:
@@ -496,7 +496,7 @@ private struct SettingsIconTile: View {
     let style: SettingsIconStyle
     @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 28
     @ScaledMetric(relativeTo: .body) private var cornerRadius: CGFloat = 7
-
+    
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -518,7 +518,7 @@ private struct SettingsIconTile: View {
 private struct AppInfoRow: View {
     let appName: String
     let appIconGraphic: AppIconGraphic
-
+    
     var body: some View {
         HStack(spacing: 14) {
             AppIconImageView(
@@ -526,19 +526,19 @@ private struct AppInfoRow: View {
                 size: 75,
                 shape: .circle
             )
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(appName)
-                    .font(.headline)
+                    .font(Typography.headline)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("About")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.subheadline)
+                    .foregroundStyle(Colors.styleSecondary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, Spacing.xs)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text("\(appName), About"))
     }
@@ -549,11 +549,11 @@ private struct AppInfoView: View {
     let appIconGraphic: AppIconGraphic
     let appStoreURL: URL
     let developerURL: URL
-
+    
     var body: some View {
         List {
             Section {
-                VStack(spacing: 12) {
+                VStack(spacing: Spacing.m) {
                     AppIconImageView(
                         graphic: appIconGraphic,
                         size: appInfoIconSize,
@@ -562,14 +562,14 @@ private struct AppInfoView: View {
                     Text(appName)
                         .font(.title2).bold()
                     Text(appVersionLine)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.subheadline)
+                        .foregroundStyle(Colors.styleSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 16)
+                .padding(.vertical, Spacing.l)
                 .listRowInsets(EdgeInsets())
             }
-
+            
             Section {
                 Link(destination: appStoreURL) {
                     SettingsRowLabel(
@@ -577,7 +577,7 @@ private struct AppInfoView: View {
                         title: "View in App Store"
                     )
                 }
-
+                
                 Link(destination: developerURL) {
                     SettingsRowLabel(
                         iconSystemName: "safari",
@@ -585,7 +585,7 @@ private struct AppInfoView: View {
                     )
                 }
             }
-
+            
             Section {
                 NavigationLink {
                     ReleaseLogsView()
@@ -602,22 +602,22 @@ private struct AppInfoView: View {
         .navigationTitle("About")
         .ub_windowTitle("About")
     }
-
+    
     private var appVersionLine: String {
         let info = Bundle.main.infoDictionary
         let version = info?["CFBundleShortVersionString"] as? String ?? "-"
         let build = info?["CFBundleVersion"] as? String ?? "-"
         return "Version \(version) • Build \(build)"
     }
-
+    
     private var appInfoIconSize: CGFloat {
-        #if os(iOS)
+#if os(iOS)
         let width = UIScreen.main.bounds.width
-        #elseif os(macOS)
+#elseif os(macOS)
         let width = NSScreen.main?.frame.width ?? 480
-        #else
+#else
         let width: CGFloat = 480
-        #endif
+#endif
         let scaled = min(width * 0.36, 200)
         return max(120, scaled)
     }
@@ -638,7 +638,7 @@ private struct ReleaseLogsView: View {
         .navigationTitle("Release Logs")
         .ub_windowTitle("Release Logs")
     }
-
+    
     private func releaseTitle(for versionToken: String) -> String {
         let parts = versionToken.split(separator: ".")
         guard parts.count >= 2 else { return "What's New • \(versionToken)" }
@@ -651,28 +651,28 @@ private struct ReleaseLogsView: View {
 private struct ReleaseLogItemRow: View {
     let item: TipsItem
     @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 22
-
+    
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             Image(systemName: item.symbolName)
                 .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
                 .frame(width: iconSize + 12, alignment: .center)
                 .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 6) {
+            
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(item.title)
-                    .font(.headline)
+                    .font(Typography.headline)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(item.detail)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.subheadline)
+                    .foregroundStyle(Colors.styleSecondary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Spacing.xxs)
         .accessibilityElement(children: .combine)
     }
 }
@@ -682,7 +682,7 @@ private struct GeneralSettingsView: View {
     @ObservedObject var vm: SettingsViewModel
     @Binding var showResetAlert: Bool
     @State private var selectedBudgetPeriod: BudgetPeriod = .monthly
-
+    
     var body: some View {
         List {
             Section {
@@ -691,17 +691,17 @@ private struct GeneralSettingsView: View {
                     ForEach(BudgetPeriod.selectableCases) { Text($0.displayName).tag($0) }
                 }
             }
-
+            
             Section {
                 tipsResetButton
             }
-
+            
             Section {
                 let label = Text("Delete Data & Reset")
-                    .font(.subheadline.weight(.semibold))
+                    .font(Typography.subheadlineSemibold)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 44)
-
+                
                 if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
                     Button(role: .destructive) {
                         showResetAlert = true
@@ -722,15 +722,15 @@ private struct GeneralSettingsView: View {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .fill(
                                 {
-                                    #if canImport(UIKit)
+#if canImport(UIKit)
                                     return Color(UIColor { traits in
                                         traits.userInterfaceStyle == .dark ? UIColor(white: 0.18, alpha: 1) : UIColor(white: 0.94, alpha: 1)
                                     })
-                                    #elseif canImport(AppKit)
+#elseif canImport(AppKit)
                                     return Color(nsColor: NSColor.windowBackgroundColor)
-                                    #else
-                                    return Color.gray.opacity(0.2)
-                                    #endif
+#else
+                                    return Colors.grayOpacity02
+#endif
                                 }()
                             )
                     )
@@ -750,14 +750,14 @@ private struct GeneralSettingsView: View {
             WorkspaceService.shared.setBudgetPeriod(newValue, in: viewContext)
         }
     }
-
+    
     @ViewBuilder
     private var tipsResetButton: some View {
         let label = Text("Reset Tips & Hints")
-            .font(.subheadline.weight(.semibold))
+            .font(Typography.subheadlineSemibold)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 44)
-
+        
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button {
                 TipsAndHintsStore.shared.resetAllTips()
@@ -777,7 +777,7 @@ private struct GeneralSettingsView: View {
             .listRowInsets(EdgeInsets())
         }
     }
-
+    
 }
 
 private struct PrivacySettingsView: View {
@@ -787,12 +787,12 @@ private struct PrivacySettingsView: View {
     @Binding var isLockEnabled: Bool
     @EnvironmentObject private var appLockViewModel: AppLockViewModel
     @Environment(\.uiTestingFlags) private var uiTestingFlags
-
+    
     var body: some View {
         let footerText = supportsBiometrics
-            ? "Requires a device passcode. Use \(biometricName) when available."
-            : "Requires a device passcode to be set."
-
+        ? "Requires a device passcode. Use \(biometricName) when available."
+        : "Requires a device passcode to be set."
+        
         return List {
             Section {
                 Toggle("Use App Lock", isOn: $isLockEnabled)
@@ -804,16 +804,16 @@ private struct PrivacySettingsView: View {
             if let availabilityMessage = appLockViewModel.availabilityMessage {
                 Section {
                     Text(availabilityMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.footnote)
+                        .foregroundStyle(Colors.styleSecondary)
                 }
             }
 #if DEBUG
             if uiTestingFlags.isUITesting {
                 Section {
                     Text("UI Test App Lock: allow=\(uiTestingFlags.allowAppLock ? "1" : "0"), available=\(appLockViewModel.isDeviceAuthAvailable ? "1" : "0")")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.footnote)
+                        .foregroundStyle(Colors.styleSecondary)
                         .accessibilityIdentifier(AccessibilityID.Settings.Privacy.appLockUITestState)
                 }
             }
@@ -824,7 +824,7 @@ private struct PrivacySettingsView: View {
         .ub_windowTitle("Privacy")
         .toolbar {
             ToolbarItem(placement: .principal) {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     Image(systemName: biometricIconName)
                     Text("Privacy")
                 }
@@ -843,19 +843,19 @@ private struct NotificationsSettingsView: View {
     @AppStorage(AppSettingsKeys.notificationReminderTimeMinutes.rawValue) private var reminderTimeMinutes: Int = 20 * 60
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @State private var showPermissionAlert = false
-
+    
     private let calendar: Calendar = .current
-
+    
     var body: some View {
         List {
             Section("Expenses") {
                 Toggle("Daily Expense Reminder", isOn: $enableDailyReminder)
             }
-
+            
             Section("Income") {
                 Toggle("Planned Income Reminder", isOn: $enablePlannedIncomeReminder)
             }
-
+            
             Section("Presets") {
                 Toggle("Preset Expense Due Reminder", isOn: $enablePresetExpenseDueReminder)
                 Toggle("Silence If Actual Amount > 0", isOn: $silencePresetWithActualAmount)
@@ -863,17 +863,17 @@ private struct NotificationsSettingsView: View {
                 Toggle("Exclude Non-global Preset Expenses", isOn: $excludeNonGlobalPresetExpenses)
                     .disabled(!enablePresetExpenseDueReminder)
             }
-
+            
             Section {
                 DatePicker("Reminder Time", selection: reminderTimeBinding, displayedComponents: .hourAndMinute)
             } footer: {
                 Text("Reminders are scheduled locally and never leave the device.")
             }
-
+            
             Section {
                 permissionButton
             }
-
+            
             Section {
                 settingsButton
             }
@@ -895,20 +895,20 @@ private struct NotificationsSettingsView: View {
             Text("Enable notifications in iOS Settings to receive reminders.")
         }
     }
-
+    
     @ViewBuilder
     private var permissionButton: some View {
         let isGranted = authorizationStatus == .authorized
-        let label = HStack(spacing: 8) {
+        let label = HStack(spacing: Spacing.s) {
             Text(isGranted ? "Notification Permission Granted" : "Request Notification Permission")
             if isGranted {
                 Image(systemName: "checkmark")
             }
         }
-        .font(.subheadline.weight(.semibold))
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: 44)
-
+            .font(Typography.subheadlineSemibold)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 44)
+        
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button {
                 Task { await requestPermission() }
@@ -920,7 +920,7 @@ private struct NotificationsSettingsView: View {
             .disabled(isGranted)
             .opacity(isGranted ? 0.85 : 1)
             .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+            .listRowBackground(Colors.clear)
         } else {
             Button {
                 Task { await requestPermission() }
@@ -928,7 +928,7 @@ private struct NotificationsSettingsView: View {
                 label
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.white)
+            .foregroundStyle(Colors.white)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(isGranted ? Color.green : Color.blue)
@@ -938,17 +938,17 @@ private struct NotificationsSettingsView: View {
             .disabled(isGranted)
             .opacity(isGranted ? 0.85 : 1)
             .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+            .listRowBackground(Colors.clear)
         }
     }
-
+    
     @ViewBuilder
     private var settingsButton: some View {
         let label = Text("Open System Settings")
-            .font(.subheadline.weight(.semibold))
+            .font(Typography.subheadlineSemibold)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 44)
-
+        
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: openSystemSettings) {
                 label
@@ -956,13 +956,13 @@ private struct NotificationsSettingsView: View {
             .buttonStyle(.glassProminent)
             .tint(.gray)
             .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+            .listRowBackground(Colors.clear)
         } else {
             Button(action: openSystemSettings) {
                 label
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.primary)
+            .foregroundStyle(Colors.stylePrimary)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(settingsButtonBackground)
@@ -970,20 +970,20 @@ private struct NotificationsSettingsView: View {
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+            .listRowBackground(Colors.clear)
         }
     }
-
+    
     private var settingsButtonBackground: Color {
-        #if canImport(UIKit)
+#if canImport(UIKit)
         return Color(UIColor.systemGray4)
-        #elseif canImport(AppKit)
+#elseif canImport(AppKit)
         return Color(nsColor: NSColor.windowBackgroundColor)
-        #else
-        return Color.gray.opacity(0.2)
-        #endif
+#else
+        return Colors.grayOpacity02
+#endif
     }
-
+    
     private var reminderTimeBinding: Binding<Date> {
         Binding(
             get: {
@@ -999,7 +999,7 @@ private struct NotificationsSettingsView: View {
             }
         )
     }
-
+    
     private func handleReminderToggleChange() {
         Task {
             await refreshAuthorizationStatus()
@@ -1021,13 +1021,13 @@ private struct NotificationsSettingsView: View {
             await LocalNotificationScheduler.shared.refreshAll()
         }
     }
-
+    
     private func requestPermission() async {
         _ = await LocalNotificationScheduler.shared.requestAuthorization()
         await refreshAuthorizationStatus()
         await LocalNotificationScheduler.shared.refreshAll()
     }
-
+    
     private func refreshAuthorizationStatus() async {
         let settings = await withCheckedContinuation { continuation in
             UNUserNotificationCenter.current().getNotificationSettings { settings in
@@ -1038,7 +1038,7 @@ private struct NotificationsSettingsView: View {
             authorizationStatus = settings.authorizationStatus
         }
     }
-
+    
     @MainActor
     private func disableRemindersAndAlert() async {
         enableDailyReminder = false
@@ -1046,17 +1046,17 @@ private struct NotificationsSettingsView: View {
         enablePresetExpenseDueReminder = false
         showPermissionAlert = true
     }
-
+    
     private func openSystemSettings() {
-        #if os(iOS)
+#if os(iOS)
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)
         }
-        #elseif os(macOS)
+#elseif os(macOS)
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
             NSWorkspace.shared.open(url)
         }
-        #endif
+#endif
     }
 }
 
@@ -1067,18 +1067,18 @@ private struct ICloudSettingsView: View {
     let isReconfiguringStores: Bool
     let onForceRefresh: () -> Void
     @Environment(\.platformCapabilities) private var capabilities
-
+    
     var body: some View {
         List {
             Section {
                 Toggle("Enable iCloud Sync", isOn: $cloudToggle)
             }
-
+            
             Section {
                 Toggle("Sync Home Widgets Across Devices", isOn: $widgetSyncToggle)
                     .disabled(!cloudToggle)
             }
-
+            
             Section {
                 forceRefreshButton
             }
@@ -1087,18 +1087,18 @@ private struct ICloudSettingsView: View {
         .navigationTitle("iCloud")
         .ub_windowTitle("iCloud")
     }
-
+    
     @ViewBuilder
     private var forceRefreshButton: some View {
         let isDisabled = isForceReuploading || isReconfiguringStores
-        let label = HStack(spacing: 10) {
+        let label = HStack(spacing: Spacing.sPlus) {
             Image(systemName: "arrow.triangle.2.circlepath")
             Text("Force iCloud Sync Refresh")
-                .font(.headline)
+                .font(Typography.headline)
         }
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: 44)
-
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 44)
+        
         if cloudToggle,
            capabilities.supportsOS26Translucency,
            #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
@@ -1110,13 +1110,13 @@ private struct ICloudSettingsView: View {
             .disabled(isDisabled)
             .opacity(isDisabled ? 0.6 : 1)
             .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+            .listRowBackground(Colors.clear)
         } else if cloudToggle {
             Button(action: onForceRefresh) {
                 label
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.white)
+            .foregroundStyle(Colors.white)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(Color.red)
@@ -1126,7 +1126,7 @@ private struct ICloudSettingsView: View {
             .disabled(isDisabled)
             .opacity(isDisabled ? 0.6 : 1)
             .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+            .listRowBackground(Colors.clear)
         }
     }
 }
@@ -1140,7 +1140,7 @@ private struct AppIconImageView: View {
     let graphic: AppIconGraphic
     let size: CGFloat
     let shape: AppIconShape
-
+    
     @ViewBuilder
     var body: some View {
         let image = graphic.image
@@ -1152,7 +1152,7 @@ private struct AppIconImageView: View {
                 .aspectRatio(contentMode: .fill)
                 .frame(width: size, height: size)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                .overlay(Circle().stroke(Colors.primaryOpacity008, lineWidth: 1))
         case .squircle:
             let mask = RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
             image
@@ -1161,7 +1161,7 @@ private struct AppIconImageView: View {
                 .scaledToFit()
                 .frame(width: size, height: size)
                 .clipShape(mask)
-                .overlay(mask.stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                .overlay(mask.stroke(Colors.primaryOpacity008, lineWidth: 1))
         }
     }
 }
@@ -1175,7 +1175,7 @@ private enum AppIconProvider {
 private enum AppIconGraphic {
     case asset(name: String)
     case system(name: String)
-
+    
     var image: Image {
         switch self {
         case .asset(let name):

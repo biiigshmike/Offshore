@@ -282,22 +282,135 @@ extension DesignSystemV2 {
         // MARK: - IconMenuLabel
         struct IconMenuLabel: View {
             let systemImage: String
-            let size: CGFloat
+            let iconSize: CGFloat
+            let legacyTint: Color
+            let legacyPadding: CGFloat
+            let hitSize: CGFloat
 
-            init(_ systemImage: String, size: CGFloat) {
+            init(
+                _ systemImage: String,
+                iconSize: CGFloat,
+                legacyTint: Color,
+                legacyPadding: CGFloat,
+                hitSize: CGFloat = 44
+            ) {
                 self.systemImage = systemImage
-                self.size = size
+                self.iconSize = iconSize
+                self.legacyTint = legacyTint
+                self.legacyPadding = legacyPadding
+                self.hitSize = hitSize
             }
 
             var body: some View {
-                Image(systemName: systemImage)
-                    .symbolRenderingMode(.monochrome)
-                    .font(.body.weight(.semibold))
-                    .frame(width: size, height: size)
-                    .tint(.primary)
-                    .foregroundStyle(.primary)
+                Group {
+                    if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+                        ZStack {
+                            Image(systemName: systemImage)
+                                .symbolRenderingMode(.monochrome)
+                                .font(.body.weight(.semibold))
+                                .frame(width: iconSize, height: iconSize)
+                                .foregroundStyle(.primary)
+                        }
+                        .frame(width: hitSize, height: hitSize)
+                        .contentShape(Circle())
+                    } else {
+                        Image(systemName: systemImage)
+                            .font(.body.weight(.semibold))
+                            .padding(legacyPadding)
+                            .frame(minWidth: iconSize, minHeight: iconSize)
+                            .foregroundStyle(legacyTint)
+                    }
+                }
             }
         }
+
+        // MARK: - GlassProminentIconMenu
+        struct GlassProminentIconMenu<MenuItems: View>: View {
+            let systemImage: String
+            let accessibilityLabel: String
+            let accessibilityHint: String
+            let tint: Color
+            let iconSize: CGFloat
+            let hitSize: CGFloat
+            let legacyTint: Color
+            let legacyPadding: CGFloat
+            @ViewBuilder let items: () -> MenuItems
+
+            init(
+                systemImage: String,
+                accessibilityLabel: String,
+                accessibilityHint: String,
+                tint: Color,
+                iconSize: CGFloat,
+                hitSize: CGFloat = 44,
+                legacyTint: Color,
+                legacyPadding: CGFloat,
+                @ViewBuilder items: @escaping () -> MenuItems
+            ) {
+                self.systemImage = systemImage
+                self.accessibilityLabel = accessibilityLabel
+                self.accessibilityHint = accessibilityHint
+                self.tint = tint
+                self.iconSize = iconSize
+                self.hitSize = hitSize
+                self.legacyTint = legacyTint
+                self.legacyPadding = legacyPadding
+                self.items = items
+            }
+
+            var body: some View {
+                Group {
+                    if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+                        Menu {
+                            items()
+                        } label: {
+                            Image(systemName: systemImage)
+                                .symbolRenderingMode(.monochrome)
+                                .font(.system(size: 17, weight: .semibold))
+                                .frame(width: iconSize, height: iconSize)
+                                .foregroundStyle(.primary)
+                                .frame(width: hitSize, height: hitSize)
+                                .contentShape(Circle())
+                        }
+                        .buttonStyle(.glassProminent)
+                        .tint(tint)
+                    } else {
+                        Menu {
+                            items()
+                        } label: {
+                            Image(systemName: systemImage)
+                                .font(.body.weight(.semibold))
+                                .padding(legacyPadding)
+                                .frame(minWidth: iconSize, minHeight: iconSize)
+                                .foregroundStyle(legacyTint)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .accessibilityLabel(accessibilityLabel)
+                .accessibilityHint(accessibilityHint)
+                .frame(minWidth: 44, minHeight: 44)
+            }
+        }
+
+        // MARK: - Menu Styling
+        struct GlassProminentTinted: ViewModifier {
+            let tint: Color
+
+            func body(content: Content) -> some View {
+                Group {
+                    if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+                        content
+                            .buttonStyle(.glassProminent)
+                            .tint(tint)
+                    } else {
+                        content
+                            .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+
 
         // MARK: - Private
         struct PlainLegacyCTA<Label: View>: View {

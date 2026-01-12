@@ -18,15 +18,19 @@ struct WorkspaceMenuButton: View {
     @ScaledMetric(relativeTo: .body) private var menuDotSize: CGFloat = 14
     
     var body: some View {
-        Group {
-            if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-                menuContent
-                    .buttonStyle(.glassProminent)
-                    .tint(activeWorkspaceColor)
-            } else {
-                menuContent
-                    .buttonStyle(.plain)
-            }
+        DesignSystemV2.Buttons.GlassProminentIconMenu(
+            systemImage: "person.3.fill",
+            accessibilityLabel: "Profile Menu",
+            accessibilityHint: "Switch or manage profiles.",
+            tint: activeWorkspaceColor,
+            iconSize: menuButtonSize,
+            legacyTint: activeWorkspaceColor,
+            legacyPadding: menuButtonPadding
+        ) {
+            workspaceListSection
+            Divider()
+            Button("Add New Profile") { showAdd = true }
+            Button("Manage Profiles") { showManage = true }
         }
         .task { _ = WorkspaceService.shared.ensureActiveWorkspaceID() }
         .sheet(isPresented: $showAdd) {
@@ -37,20 +41,6 @@ struct WorkspaceMenuButton: View {
             WorkspaceManagerView()
                 .environment(\.managedObjectContext, viewContext)
         }
-    }
-
-    private var menuContent: some View {
-        Menu {
-            workspaceListSection
-            Divider()
-            Button("Add New Profile") { showAdd = true }
-            Button("Manage Profiles") { showManage = true }
-        } label: {
-            workspaceMenuLabel
-        }
-        .accessibilityLabel("Profile Menu")
-        .accessibilityHint("Switch or manage profiles.")
-        .frame(minWidth: 44, minHeight: 44)
     }
 
     @ViewBuilder
@@ -76,34 +66,6 @@ struct WorkspaceMenuButton: View {
         }
     }
     
-    @ViewBuilder
-    private var workspaceMenuLabel: some View {
-        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-            DesignSystemV2.Buttons.IconMenuLabel("person.3.fill", size: menuButtonSize)
-        } else {
-            Image(systemName: "person.3.fill")
-                .font(.body.weight(.semibold))
-                .padding(menuButtonPadding)
-                .frame(minWidth: menuButtonSize, minHeight: menuButtonSize)
-                .foregroundStyle(activeWorkspaceColor)
-        }
-        //        if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-        //            let label = Label("Profile", systemImage: "person.3.fill")
-        //                .labelStyle(.iconOnly)
-        //                .font(.system(size: 16, weight: .semibold))
-        //                .frame(width: 44, height: 44, alignment: .center)
-        //                .glassEffect(.regular.tint(.clear).interactive(true))
-        //            label
-        //                .buttonStyle(.plain)
-        //                .frame(width: 44, height: 44, alignment: .center)
-        //                .clipShape(Circle())
-        //                .compositingGroup()
-        //        } else {
-        //            Image(systemName: "person.3.fill")
-        //                .font(.system(size: 16, weight: .semibold))
-        //                .frame(width: 33, height: 33)
-        //        }
-    }
 
     private var activeWorkspaceColor: Color {
         UBColorFromHex(activeWorkspaceColorHex) ?? .accentColor

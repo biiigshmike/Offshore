@@ -767,12 +767,16 @@ private struct GeneralSettingsView: View {
             .font(Typography.subheadlineSemibold)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 44)
-        
-        DesignSystemV2.Toolbar.prominentButton(
+
+        DesignSystemV2.Buttons.PrimaryCTA(
             tint: .orange,
+            action: { TipsAndHintsStore.shared.resetAllTips() },
             label: { label },
-            action: { TipsAndHintsStore.shared.resetAllTips() }
+            legacyStyle: { button in
+                button.buttonStyle(.plain)
+            }
         )
+        .listRowInsets(EdgeInsets())
     }
     
 }

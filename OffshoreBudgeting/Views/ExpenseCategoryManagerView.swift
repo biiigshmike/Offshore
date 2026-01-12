@@ -68,21 +68,15 @@ struct ExpenseCategoryManagerView: View {
                     
                     // Right: Add Category (clear/plain, 33x33 hit box)
                     ToolbarItem(placement: .primaryAction) {
-                        Button(action: {
+                        DesignSystemV2.Toolbar.plusButton(
+                            accessibilityLabel: "Add Category",
+                            accessibilityIdentifier: AccessibilityID.Settings.Categories.addButton,
+                            action: {
                             // Refresh the sheet identity so @State in the sheet resets on each open
                             addSheetInstanceID = UUID()
                             isPresentingAddSheet = true
-                        }) {
-                            Image(systemName: Icons.sfPlus)
-                                .symbolRenderingMode(.monochrome)
-                                .foregroundStyle(Colors.stylePrimary)
-                                .font(.system(size: 17, weight: .semibold))
-                                .frame(width: 33, height: 33)
-                                .contentShape(Circle())
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Add Category")
-                        .accessibilityIdentifier(AccessibilityID.Settings.Categories.addButton)
+                        )
                     }
                 }
         }

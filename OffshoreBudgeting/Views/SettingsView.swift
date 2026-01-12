@@ -448,6 +448,7 @@ private struct SettingsRowLabel: View {
     }
 }
 
+// Keep `style` explicit at call sites to preserve the exact icon appearance (and avoid inference drift) as Settings rows are refactored.
 private func settingsLeadingIcon(systemName: String, style: SettingsIconStyle) -> SettingsIconTile {
     SettingsIconTile(systemName: systemName, style: style)
 }
@@ -775,24 +776,11 @@ private struct GeneralSettingsView: View {
             .frame(maxWidth: .infinity)
             .frame(minHeight: 44)
         
-        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            Button {
-                TipsAndHintsStore.shared.resetAllTips()
-            } label: {
-                label
-            }
-            .buttonStyle(.glassProminent)
-            .tint(.orange)
-            .listRowInsets(EdgeInsets())
-        } else {
-            Button {
-                TipsAndHintsStore.shared.resetAllTips()
-            } label: {
-                label
-            }
-            .buttonStyle(.plain)
-            .listRowInsets(EdgeInsets())
-        }
+        DesignSystemV2.Toolbar.prominentButton(
+            tint: .orange,
+            label: { label },
+            action: { TipsAndHintsStore.shared.resetAllTips() }
+        )
     }
     
 }
@@ -936,8 +924,7 @@ private struct NotificationsSettingsView: View {
             .tint(isGranted ? .green : .blue)
             .disabled(isGranted)
             .opacity(isGranted ? 0.85 : 1)
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Colors.clear)
+            .settingsListRowStyle(background: .colorsClear)
         } else {
             Button {
                 Task { await requestPermission() }
@@ -954,8 +941,7 @@ private struct NotificationsSettingsView: View {
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .disabled(isGranted)
             .opacity(isGranted ? 0.85 : 1)
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Colors.clear)
+            .settingsListRowStyle(background: .colorsClear)
         }
     }
     
@@ -972,8 +958,7 @@ private struct NotificationsSettingsView: View {
             }
             .buttonStyle(.glassProminent)
             .tint(.gray)
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Colors.clear)
+            .settingsListRowStyle(background: .colorsClear)
         } else {
             Button(action: openSystemSettings) {
                 label
@@ -986,8 +971,7 @@ private struct NotificationsSettingsView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Colors.clear)
+            .settingsListRowStyle(background: .colorsClear)
         }
     }
     
@@ -1126,8 +1110,7 @@ private struct ICloudSettingsView: View {
             .tint(.red)
             .disabled(isDisabled)
             .opacity(isDisabled ? 0.6 : 1)
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Colors.clear)
+            .settingsListRowStyle(background: .colorsClear)
         } else if cloudToggle {
             Button(action: onForceRefresh) {
                 label
@@ -1142,8 +1125,7 @@ private struct ICloudSettingsView: View {
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .disabled(isDisabled)
             .opacity(isDisabled ? 0.6 : 1)
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Colors.clear)
+            .settingsListRowStyle(background: .colorsClear)
         }
     }
 }

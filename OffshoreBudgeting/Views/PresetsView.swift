@@ -81,7 +81,7 @@ struct PresetsView: View {
         }
         .navigationTitle("Presets")
         .ub_windowTitle("Presets")
-        .accessibilityIdentifier("presets_screen")
+        .accessibilityIdentifier(AccessibilityID.Settings.Presets.screen)
         .toolbar { toolbarContent }
         .onAppear { vm.startIfNeeded(using: viewContext) }
         .refreshable {

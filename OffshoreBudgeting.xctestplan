@@ -109,6 +109,7 @@
   },
   "testTargets" : [
     {
+      "parallelizable" : true,
       "skippedTests" : [
         "OffshoreBudgetingUITests",
         "OffshoreBudgetingUITests\/testLaunch()"

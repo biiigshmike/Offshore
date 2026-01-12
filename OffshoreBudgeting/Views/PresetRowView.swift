@@ -33,7 +33,7 @@ struct PresetRowView: View {
             amountsRow
         }
         .padding(.vertical, 4)
-        .accessibilityIdentifier(AccessibilityRowIdentifier.presetRow(id: item.id))
+        .accessibilityIdentifier(AccessibilityID.Settings.Presets.presetRow(id: item.id))
     }
 
     private var isAccessibilitySize: Bool {

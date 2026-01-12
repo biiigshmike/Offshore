@@ -237,7 +237,7 @@ struct SettingsView: View {
                     iconStyle: .lightPurple
                 )
             }
-            .accessibilityIdentifier("nav_manage_categories")
+            .accessibilityIdentifier(AccessibilityID.Settings.manageCategoriesNavigation)
         }
     }
 
@@ -252,7 +252,7 @@ struct SettingsView: View {
                     iconStyle: .orange
                 )
             }
-            .accessibilityIdentifier("nav_manage_presets")
+            .accessibilityIdentifier(AccessibilityID.Settings.managePresetsNavigation)
         }
     }
 
@@ -797,7 +797,7 @@ private struct PrivacySettingsView: View {
             Section {
                 Toggle("Use App Lock", isOn: $isLockEnabled)
                     .disabled(!appLockViewModel.isDeviceAuthAvailable || appLockViewModel.isToggleInFlight)
-                    .accessibilityIdentifier("toggle_app_lock")
+                    .accessibilityIdentifier(AccessibilityID.Settings.Privacy.appLockToggle)
             } footer: {
                 Text(footerText)
             }
@@ -814,7 +814,7 @@ private struct PrivacySettingsView: View {
                     Text("UI Test App Lock: allow=\(uiTestingFlags.allowAppLock ? "1" : "0"), available=\(appLockViewModel.isDeviceAuthAvailable ? "1" : "0")")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                        .accessibilityIdentifier("app_lock_ui_test_state")
+                        .accessibilityIdentifier(AccessibilityID.Settings.Privacy.appLockUITestState)
                 }
             }
 #endif

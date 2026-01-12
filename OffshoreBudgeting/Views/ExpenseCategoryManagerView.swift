@@ -82,7 +82,7 @@ struct ExpenseCategoryManagerView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Add Category")
-                        .accessibilityIdentifier("categories_add_button")
+                        .accessibilityIdentifier(AccessibilityID.Settings.Categories.addButton)
                     }
                 }
         }
@@ -216,7 +216,7 @@ struct ExpenseCategoryManagerView: View {
         )
         .accessibilityElement(children: uiTestingFlags.isUITesting ? .contain : .ignore)
         .accessibilityLabel(Text(name))
-        .accessibilityIdentifier(AccessibilityRowIdentifier.categoryRow(id: categoryUUID(for: category)))
+        .accessibilityIdentifier(AccessibilityID.Settings.Categories.categoryRow(id: categoryUUID(for: category)))
     }
     
     @ViewBuilder
@@ -363,7 +363,7 @@ struct ExpenseCategoryEditorSheet: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .autocorrectionDisabled(true)
                             .textInputAutocapitalization(.never)
-                            .accessibilityIdentifier("categories_name_field")
+                            .accessibilityIdentifier(AccessibilityID.Settings.Categories.nameField)
                         Spacer(minLength: 0)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -401,7 +401,7 @@ struct ExpenseCategoryEditorSheet: View {
                             forceDismissAnyPresentedControllerIfNeeded()
                         }
                     }
-                    .accessibilityIdentifier("categories_cancel_button")
+                    .accessibilityIdentifier(AccessibilityID.Settings.Categories.cancelButton)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
@@ -415,7 +415,7 @@ struct ExpenseCategoryEditorSheet: View {
                         }
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .accessibilityIdentifier("categories_save_button")
+                    .accessibilityIdentifier(AccessibilityID.Settings.Categories.saveButton)
                 }
             }
         }

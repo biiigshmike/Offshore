@@ -871,7 +871,7 @@ private struct CategoryChip: View {
             .frame(minHeight: minHeight, maxHeight: minHeight)
             .buttonStyle(.plain)
         } else {
-            let neutralFill = DS.Colors.chipFill
+            let neutralFill = Colors.chipFill
             Button(action: action) {
                 label
             }
@@ -881,14 +881,14 @@ private struct CategoryChip: View {
             .animation(.easeOut(duration: 0.15), value: isSelected)
             .frame(minHeight: minHeight, maxHeight: minHeight)
             .buttonStyle(.plain)
-            .background(
-                legacyShape.fill(isSelected ? glassTintColor : neutralFill)
+            .modifier(
+                DesignSystemV2.ChipLegacySurface(
+                    shape: legacyShape,
+                    fill: isSelected ? glassTintColor : neutralFill,
+                    stroke: neutralFill,
+                    lineWidth: 1
+                )
             )
-            .overlay(
-                legacyShape
-                    .stroke(neutralFill, lineWidth: 1)
-            )
-            .contentShape(legacyShape)
         }
     }
 

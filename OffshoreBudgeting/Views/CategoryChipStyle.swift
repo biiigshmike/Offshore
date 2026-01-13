@@ -24,13 +24,13 @@ struct CategoryChipStyle {
         categoryColor: Color,
         colorScheme: ColorScheme
     ) -> CategoryChipStyle {
-        let neutralStroke = Stroke(color: DS.Colors.chipFill, lineWidth: 1)
+        let neutralStroke = Stroke(color: Colors.chipFill, lineWidth: 1)
 
         guard isSelected else {
             return CategoryChipStyle(
                 scale: 1.0,
                 fallbackTextColor: .primary,
-                fallbackFill: DS.Colors.chipFill,
+                fallbackFill: Colors.chipFill,
                 fallbackStroke: neutralStroke,
                 glassTextColor: .primary,
                 glassTint: nil,
@@ -41,7 +41,7 @@ struct CategoryChipStyle {
         }
 
         let selectionFill = tintedColor(
-            baseNeutral: DS.Colors.chipSelectedFill,
+            baseNeutral: Colors.chipSelectedFill,
             accent: categoryColor,
             fraction: 0.4,
             colorScheme: colorScheme,
@@ -49,7 +49,7 @@ struct CategoryChipStyle {
         )
 
         let selectionGlassTint = tintedColor(
-            baseNeutral: DS.Colors.chipSelectedFill,
+            baseNeutral: Colors.chipSelectedFill,
             accent: categoryColor,
             fraction: 0.9,
             colorScheme: colorScheme,

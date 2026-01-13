@@ -1085,13 +1085,14 @@ private extension CardDetailView {
             .animation(.easeOut(duration: 0.15), value: isSelected)
             .frame(maxHeight: 33)
             .buttonStyle(.plain)
-            .background(
-                legacyShape.fill(isSelected ? glassTintColor : DS.Colors.chipFill)
+            .modifier(
+                DesignSystemV2.ChipLegacySurface(
+                    shape: legacyShape,
+                    fill: isSelected ? glassTintColor : Colors.chipFill,
+                    stroke: isSelected ? Colors.chipSelectedStroke : Colors.chipFill,
+                    lineWidth: 1
+                )
             )
-            .overlay(
-                legacyShape.stroke(isSelected ? DS.Colors.chipSelectedStroke : DS.Colors.chipFill, lineWidth: 1)
-            )
-            .contentShape(legacyShape)
         }
     }
 }

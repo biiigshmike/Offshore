@@ -903,7 +903,7 @@ private struct NotificationsSettingsView: View {
         let label = HStack(spacing: Spacing.s) {
             Text(isGranted ? "Notification Permission Granted" : "Request Notification Permission")
             if isGranted {
-                Image(systemName: "checkmark")
+                Image(systemName: Icons.sfCheckmark)
             }
         }
             .font(Typography.subheadlineSemibold)

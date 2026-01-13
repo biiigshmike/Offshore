@@ -54,9 +54,9 @@ struct WorkspaceMenuButton: View {
                 WorkspaceService.shared.setActiveWorkspaceID(id)
                 activeWorkspaceIDRaw = id.uuidString
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: Spacing.sPlus) {
                     if activeID == workspace.id {
-                        Image(systemName: "checkmark")
+                        Image(systemName: Icons.sfCheckmark)
                             .foregroundStyle(rowTint)
                     }
                     WorkspaceColorDot(hex: colorHex, size: menuDotSize)

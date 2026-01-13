@@ -7,6 +7,6 @@ import SwiftUI
 /// across Settings and Settings destinations.
 enum Icons {
     static let sfChevronRight: String = "chevron.right"
+    static let sfCheckmark: String = "checkmark"
     static let sfPlus: String = "plus"
 }
-

@@ -32,4 +32,24 @@ enum AccessibilityID {
             }
         }
     }
+
+    enum Cards {
+        static let screen = "cards_screen"
+
+        enum Detail {
+            static let screen = "card_details_screen"
+        }
+
+        enum List {
+            static func cardRow(id: String) -> String {
+                "card_row_\(id)"
+            }
+        }
+
+        enum Tile {
+            static func cardTile(id: String) -> String {
+                "card_tile_\(id)"
+            }
+        }
+    }
 }

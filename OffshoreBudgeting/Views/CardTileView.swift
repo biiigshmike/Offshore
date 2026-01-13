@@ -75,7 +75,7 @@ struct CardTileView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(resolvedCard.name)\(isSelected ? ", selected" : "")"))
         .accessibilityHint(Text("Tap to select card"))
-        .accessibilityIdentifier("card_tile_\(resolvedCard.id)")
+        .accessibilityIdentifier(AccessibilityID.Cards.Tile.cardTile(id: resolvedCard.id))
     }
 }
 

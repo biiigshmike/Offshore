@@ -21,8 +21,8 @@ struct CardsView: View {
     // MARK: Grid
     @ScaledMetric(relativeTo: .body) private var cardWidth: CGFloat = 260
     @ScaledMetric(relativeTo: .body) private var cardHeight: CGFloat = 160
-    @ScaledMetric(relativeTo: .body) private var gridSpacing: CGFloat = 16
-    @ScaledMetric(relativeTo: .body) private var gridPadding: CGFloat = 16
+    @ScaledMetric(relativeTo: .body) private var gridSpacing: CGFloat = DS.Spacing.l
+    @ScaledMetric(relativeTo: .body) private var gridPadding: CGFloat = DS.Spacing.l
 
     private var usesSingleColumn: Bool {
         dynamicTypeSize.isAccessibilitySize
@@ -102,7 +102,7 @@ struct CardsView: View {
                                         .frame(minHeight: cardHeight)
                                     }
                                     .buttonStyle(.plain)
-                                    .accessibilityIdentifier("card_row_\(cardRowID)")
+                                    .accessibilityIdentifier(AccessibilityID.Cards.List.cardRow(id: cardRowID))
                                     .contextMenu {
                                         Button("Edit", systemImage: "pencil") { editingCard = card }
                                         Button("Delete", systemImage: "trash", role: .destructive) {
@@ -126,7 +126,7 @@ struct CardsView: View {
         }
         .navigationTitle("Cards")
         .ub_windowTitle("Cards")
-        .accessibilityIdentifier("cards_screen")
+        .accessibilityIdentifier(AccessibilityID.Cards.screen)
         .toolbar { toolbarContent }
         .onAppear { vm.startIfNeeded() }
         .sheet(isPresented: $isPresentingAddCard) {
@@ -178,7 +178,7 @@ struct CardsView: View {
 
     @ViewBuilder
     private var addButton: some View {
-        Buttons.toolbarIcon("plus") { isPresentingAddCard = true }
+        Buttons.toolbarIcon(Icons.sfPlus) { isPresentingAddCard = true }
         .accessibilityLabel("Add Card")
         
     }

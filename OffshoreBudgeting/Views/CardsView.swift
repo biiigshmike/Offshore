@@ -21,8 +21,8 @@ struct CardsView: View {
     // MARK: Grid
     @ScaledMetric(relativeTo: .body) private var cardWidth: CGFloat = 260
     @ScaledMetric(relativeTo: .body) private var cardHeight: CGFloat = 160
-    @ScaledMetric(relativeTo: .body) private var gridSpacing: CGFloat = DS.Spacing.l
-    @ScaledMetric(relativeTo: .body) private var gridPadding: CGFloat = DS.Spacing.l
+    @ScaledMetric(relativeTo: .body) private var gridSpacing: CGFloat = Spacing.l
+    @ScaledMetric(relativeTo: .body) private var gridPadding: CGFloat = Spacing.l
 
     private var usesSingleColumn: Bool {
         dynamicTypeSize.isAccessibilitySize
@@ -104,7 +104,7 @@ struct CardsView: View {
                                     .buttonStyle(.plain)
                                     .accessibilityIdentifier(AccessibilityID.Cards.List.cardRow(id: cardRowID))
                                     .contextMenu {
-                                        Button("Edit", systemImage: "pencil") { editingCard = card }
+                                        Button("Edit", systemImage: Icons.sfPencil) { editingCard = card }
                                         Button("Delete", systemImage: "trash", role: .destructive) {
                                             vm.requestDelete(card: card)
                                         }

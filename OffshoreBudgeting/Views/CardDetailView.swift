@@ -212,7 +212,7 @@ struct CardDetailView: View {
         case .initial, .loading:
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
         case .error(let message):
-            VStack(spacing: DS.Spacing.m) {
+            VStack(spacing: Spacing.m) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 40, weight: .bold))
                 Text("Couldn’t load details")
@@ -234,8 +234,8 @@ struct CardDetailView: View {
     private func detailsList(cardMaxWidth: CGFloat?) -> some View {
         List {
             Section {
-                let topPadding: CGFloat = uiTestingFlags.isUITesting ? DS.Spacing.s : initialHeaderTopPadding
-                let bottomPadding: CGFloat = uiTestingFlags.isUITesting ? DS.Spacing.xs : DS.Spacing.m
+                let topPadding: CGFloat = uiTestingFlags.isUITesting ? Spacing.s : initialHeaderTopPadding
+                let bottomPadding: CGFloat = uiTestingFlags.isUITesting ? Spacing.xs : Spacing.m
 
                 let tile = CardTileView(card: cardSnapshot, enableMotionShine: true, showsEffectOverlay: true)
                     .frame(maxWidth: cardMaxWidth)
@@ -265,12 +265,12 @@ struct CardDetailView: View {
 
                     Group {
                         if isAccessibilitySize {
-                            VStack(alignment: .leading, spacing: DS.Spacing.m) {
-                                VStack(alignment: .leading, spacing: DS.Spacing.s) {
+                            VStack(alignment: .leading, spacing: Spacing.m) {
+                                VStack(alignment: .leading, spacing: Spacing.s) {
                                     startPicker
                                     endPicker
                                 }
-                                HStack(spacing: DS.Spacing.m) {
+                                HStack(spacing: Spacing.m) {
                                     // Go button: liquid glass circular on OS 26, rounded rect legacy
                                     goButton
                                     // Calendar menu: liquid glass circular on OS 26, plain legacy
@@ -279,13 +279,13 @@ struct CardDetailView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         } else {
-                            HStack(spacing: 10) {
-                                HStack(spacing: DS.Spacing.s) {
+                            HStack(spacing: Spacing.sPlus) {
+                                HStack(spacing: Spacing.s) {
                                     startPicker
                                     endPicker
                                 }
                                 Spacer(minLength: 0)
-                                HStack(spacing: DS.Spacing.s) {
+                                HStack(spacing: Spacing.s) {
                                     // Go button: liquid glass circular on OS 26, rounded rect legacy
                                     goButton
                                     // Calendar menu: liquid glass circular on OS 26, plain legacy
@@ -299,14 +299,14 @@ struct CardDetailView: View {
                 }
 
                 Section {
-                    let row = VStack(alignment: .leading, spacing: DS.Spacing.s) {
+                    let row = VStack(alignment: .leading, spacing: Spacing.s) {
                         Text(viewModel.filteredTotal, format: .currency(code: currencyCode))
                             .font(.system(.largeTitle, design: .rounded).weight(.bold))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityLabel(Text("Total spent \(viewModel.filteredTotal, format: .currency(code: currencyCode))"))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, DS.Spacing.s)
+                    .padding(.vertical, Spacing.s)
 
                     if let colors = totalSpentHeatmapColors {
                         row.listRowBackground(totalSpentHeatmapBackground(colors: colors))
@@ -322,14 +322,14 @@ struct CardDetailView: View {
                 // Category Chips (horizontal)
                 Section {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: Spacing.sPlus) {
                             ForEach(viewModel.filteredCategories) { cat in
                                 categoryChip(cat)
                             }
                             if viewModel.filteredCategories.isEmpty {
                                 Text("No categories yet")
                                     .foregroundStyle(Colors.styleSecondary)
-                                    .padding(.vertical, DS.Spacing.s)
+                                    .padding(.vertical, Spacing.s)
                             }
                         }
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
@@ -366,18 +366,18 @@ struct CardDetailView: View {
                 let expenses = viewModel.filteredExpenses
                 let trimmedSearch = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
                 let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
-                if expenses.isEmpty {
-                    let emptyMessage = trimmedSearch.isEmpty
-                        ? "No expenses yet for this date range."
-                        : "No results for “\(trimmedSearch)”"
-                    Text(emptyMessage)
-                        .font(.callout)
-                        .foregroundStyle(Colors.styleSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, DesignSystem.Spacing.l)
-                } else {
-                    ForEach(expenses) { expense in
-                        ExpenseRow(expense: expense, currencyCode: currencyCode)
+                    if expenses.isEmpty {
+                        let emptyMessage = trimmedSearch.isEmpty
+                            ? "No expenses yet for this date range."
+                            : "No results for “\(trimmedSearch)”"
+                        Text(emptyMessage)
+                            .font(.callout)
+                            .foregroundStyle(Colors.styleSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, Spacing.l)
+                    } else {
+                        ForEach(expenses) { expense in
+                            ExpenseRow(expense: expense, currencyCode: currencyCode)
 //                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
 //                                Button(role: .destructive) {
 //                                    requestDelete(expense)
@@ -528,7 +528,7 @@ struct CardDetailView: View {
             searchToolbarControl
         }
         ToolbarItemGroup(placement: .navigationBarTrailing) {
-            IconOnlyButton(systemName: "pencil") {
+            IconOnlyButton(systemName: Icons.sfPencil) {
                 isPresentingEditCard = true
             }
             // Add Expense menu (Planned or Variable) — rightmost control
@@ -563,13 +563,13 @@ struct CardDetailView: View {
 
     @available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *)
     private var searchToolbarControlGlass: some View {
-        GlassEffectContainer(spacing: DS.Spacing.s) {
-            HStack(spacing: DS.Spacing.xs) {
+        GlassEffectContainer(spacing: Spacing.s) {
+            HStack(spacing: Spacing.xs) {
                 if isSearchActive {
-                    Buttons.toolbarIcon("xmark") { closeSearch() }
+                    Buttons.toolbarIcon(Icons.sfXmark) { closeSearch() }
                     glassSearchField
                 } else {
-                    Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                    Buttons.toolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
                 }
             }
         }
@@ -646,12 +646,12 @@ struct CardDetailView: View {
     #endif
 
     private var searchToolbarControlLegacy: some View {
-        HStack(spacing: DS.Spacing.xs) {
+        HStack(spacing: Spacing.xs) {
             if isSearchActive {
-                Buttons.toolbarIcon("xmark") { closeSearch() }
+                Buttons.toolbarIcon(Icons.sfXmark) { closeSearch() }
                 legacySearchField
             } else {
-                Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                Buttons.toolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
             }
         }
     }
@@ -659,34 +659,34 @@ struct CardDetailView: View {
     @available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *)
     private var glassSearchField: some View {
         searchField
-            .padding(.horizontal, DS.Spacing.s)
-            .padding(.vertical, DS.Spacing.xs)
+            .padding(.horizontal, Spacing.s)
+            .padding(.vertical, Spacing.xs)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.secondary.opacity(0.12))
+                    .fill(Colors.secondaryOpacity012)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.secondary.opacity(0.18), lineWidth: 0.5)
+                    .stroke(Colors.secondaryOpacity018, lineWidth: 0.5)
             )
     }
 
     private var legacySearchField: some View {
         searchField
-            .padding(.horizontal, DS.Spacing.s)
-            .padding(.vertical, DS.Spacing.xs)
+            .padding(.horizontal, Spacing.s)
+            .padding(.vertical, Spacing.xs)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.secondary.opacity(0.12))
+                    .fill(Colors.secondaryOpacity012)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(Color.secondary.opacity(0.18), lineWidth: 0.5)
+                    .stroke(Colors.secondaryOpacity018, lineWidth: 0.5)
             )
     }
 
     private var searchField: some View {
-        HStack(spacing: DS.Spacing.xs) {
+        HStack(spacing: Spacing.xs) {
             TextField("Search expenses", text: $viewModel.searchText)
                 .textFieldStyle(.plain)
                 .focused($isSearchFieldFocused)
@@ -729,7 +729,7 @@ struct CardDetailView: View {
                     Circle()
                         .fill(.ultraThinMaterial)
                         .glassEffect(.regular, in: .rect(cornerRadius: buttonSize / 2))
-                    Image(systemName: "arrow.right")
+                    Image(systemName: Icons.sfArrowRight)
                         .font(dateActionSymbolFont)
                         .foregroundStyle(Colors.stylePrimary)
                 }
@@ -746,7 +746,7 @@ struct CardDetailView: View {
                 ZStack {
                     Circle()
                         .fill(Colors.primaryOpacity008)
-                    Image(systemName: "arrow.right")
+                    Image(systemName: Icons.sfArrowRight)
                         .font(dateActionSymbolFont)
                         .foregroundStyle(Colors.stylePrimary)
                 }
@@ -773,7 +773,7 @@ struct CardDetailView: View {
                     Circle()
                         .fill(.ultraThinMaterial)
                         .glassEffect(.regular, in: .rect(cornerRadius: buttonSize / 2))
-                    Image(systemName: "calendar")
+                    Image(systemName: Icons.sfCalendar)
                         .font(dateActionSymbolFont)
                         .foregroundStyle(Colors.stylePrimary)
                 }
@@ -796,7 +796,7 @@ struct CardDetailView: View {
                 ZStack {
                     Circle()
                         .fill(Colors.primaryOpacity008)
-                    Image(systemName: "calendar")
+                    Image(systemName: Icons.sfCalendar)
                         .font(dateActionSymbolFont)
                         .foregroundStyle(Colors.stylePrimary)
                 }
@@ -970,7 +970,7 @@ private struct ExpenseRow: View {
                     .font(.body.weight(.medium))
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: DS.Spacing.xs) {
+                HStack(spacing: Spacing.xs) {
                     let catColor = UBColorFromHex(expense.category?.color) ?? .secondary
                     let catName: String = {
                         let raw = expense.category?.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -980,14 +980,14 @@ private struct ExpenseRow: View {
                         .fill(catColor)
                         .frame(width: categoryDotSize, height: categoryDotSize)
                     Text(catName)
-                        .font(.caption)
+                        .font(Typography.caption)
                         .foregroundStyle(Colors.styleSecondary)
                     if let date = expense.date {
                         Text("·")
-                            .font(.caption)
+                            .font(Typography.caption)
                             .foregroundStyle(Colors.styleSecondary)
                         Text(df.string(from: date))
-                            .font(.caption)
+                            .font(Typography.caption)
                             .foregroundStyle(Colors.styleSecondary)
                     }
                 }
@@ -1047,12 +1047,12 @@ private extension CardDetailView {
         let glassTintColor = accentColor.opacity(0.25)
         let legacyShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
 
-        let label = HStack(spacing: DS.Spacing.s) {
+        let label = HStack(spacing: Spacing.s) {
             Circle().fill(accentColor).frame(width: categoryChipDotSize, height: categoryChipDotSize)
             Text(cat.name).font(.subheadline.weight(.medium))
             Text(cat.amount, format: .currency(code: currencyCode)).font(Typography.subheadlineSemibold)
         }
-        .padding(.horizontal, DS.Spacing.m)
+        .padding(.horizontal, Spacing.m)
         .frame(minHeight: 44, maxHeight: 44)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {

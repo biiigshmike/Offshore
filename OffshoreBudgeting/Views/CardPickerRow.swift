@@ -40,7 +40,7 @@ struct CardPickerRow: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: DS.Spacing.l) {
+                LazyHStack(spacing: Spacing.l) {
                     ForEach(allCards, id: \.objectID) { managedCard in
                         // MARK: Bridge Core Data → UI model
                         // Uses your existing CoreDataBridge to pull name/theme.
@@ -64,8 +64,8 @@ struct CardPickerRow: View {
                         .id(idString)
                     }
                 }
-                .padding(.horizontal, DS.Spacing.l)
-                .padding(.vertical, DS.Spacing.s)
+                .padding(.horizontal, Spacing.l)
+                .padding(.vertical, Spacing.s)
             }
             .scrollIndicators(.hidden)
             .onAppear {

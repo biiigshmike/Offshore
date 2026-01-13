@@ -59,7 +59,7 @@ struct CardTileView: View {
     // MARK: Layout
     private let cornerRadius: CGFloat = DS.Radius.card
     private let aspectRatio: CGFloat = 1.586 // credit card proportion
-    @ScaledMetric(relativeTo: .body) private var titlePadding: CGFloat = DS.Spacing.l
+    @ScaledMetric(relativeTo: .body) private var titlePadding: CGFloat = Spacing.l
     @ScaledMetric(relativeTo: .body) private var minimumTileHeight: CGFloat = 160
 
     // MARK: Body
@@ -170,17 +170,17 @@ private extension CardTileView {
     var selectionFillOverlay: some View {
         Group {
             if isSelected {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(resolvedCard.theme.selectionAccentColor.opacity(0.22))
-                    .blendMode(resolvedCard.theme.selectionAccentBlendMode)
-                    .overlay(alignment: .topTrailing) {
-                        selectionBadge
-                            .padding(DS.Spacing.m)
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(resolvedCard.theme.selectionAccentColor.opacity(0.22))
+                            .blendMode(resolvedCard.theme.selectionAccentBlendMode)
+                            .overlay(alignment: .topTrailing) {
+                                selectionBadge
+                                    .padding(Spacing.m)
+                            }
+                            .allowsHitTesting(false)
                     }
-                    .allowsHitTesting(false)
+                }
             }
-        }
-    }
 
     // MARK: Selection Ring (always visible, not clipped)
     /// A high-contrast ring drawn INSIDE the card bounds so it can’t be clipped.

@@ -180,11 +180,12 @@ struct IncomeView: View {
     @ViewBuilder
     private func navIcon(_ systemName: String, action: @escaping () -> Void) -> some View {
         let symbolFont = Font.title3.weight(.semibold)
+        let baseIcon = Image(systemName: systemName)
+            .font(symbolFont)
+            .frame(width: calendarNavButtonSize, height: calendarNavButtonSize)
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
-                Image(systemName: systemName)
-                    .font(symbolFont)
-                    .frame(width: calendarNavButtonSize, height: calendarNavButtonSize)
+                baseIcon
                     .glassEffect(.regular.tint(.clear).interactive(true))
             }
             .buttonStyle(.plain)
@@ -192,9 +193,7 @@ struct IncomeView: View {
             .tint(.accentColor)
         } else {
             Button(action: action) {
-                Image(systemName: systemName)
-                    .font(symbolFont)
-                    .frame(width: calendarNavButtonSize, height: calendarNavButtonSize)
+                baseIcon
                     .contentShape(Circle())
             }
                 .buttonStyle(.plain)
@@ -205,11 +204,12 @@ struct IncomeView: View {
     private func navLabel(_ title: String, action: @escaping () -> Void) -> some View {
         let labelFont = Typography.subheadlineSemibold
         let minWidth = dynamicTypeSize.isAccessibilitySize ? 0 : calendarNavLabelMinWidth
+        let baseLabel = Text(title)
+            .font(labelFont)
+            .frame(minWidth: minWidth, minHeight: calendarNavButtonSize)
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
-                Text(title)
-                    .font(labelFont)
-                    .frame(minWidth: minWidth, minHeight: calendarNavButtonSize)
+                baseLabel
                     .glassEffect(.regular.tint(.clear).interactive(true))
             }
             .buttonStyle(.plain)
@@ -217,9 +217,7 @@ struct IncomeView: View {
             .tint(.accentColor)
         } else {
             Button(action: action) {
-                Text(title)
-                    .font(labelFont)
-                    .frame(minWidth: minWidth, minHeight: calendarNavButtonSize)
+                baseLabel
                     .padding(.horizontal, 10)
             }
             .buttonStyle(.plain)
@@ -229,20 +227,19 @@ struct IncomeView: View {
     @ViewBuilder
     private func navText(_ title: String, action: @escaping () -> Void) -> some View {
         let labelFont = Typography.subheadlineSemibold
+        let baseText = Text(title)
+            .font(labelFont)
+            .frame(width: calendarNavButtonSize, height: calendarNavButtonSize)
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
-                Text(title)
-                    .font(labelFont)
-                    .frame(width: calendarNavButtonSize, height: calendarNavButtonSize)
+                baseText
             }
             .buttonStyle(.glass)
             .buttonBorderShape(.circle)
             .tint(.accentColor)
         } else {
             Button(action: action) {
-                Text(title)
-                    .font(labelFont)
-                    .frame(width: calendarNavButtonSize, height: calendarNavButtonSize)
+                baseText
                     .contentShape(Circle())
             }
                 .buttonStyle(.plain)
@@ -489,12 +486,7 @@ struct IncomeView: View {
                         .padding(.vertical, 4)
                 } else {
                     ForEach(vm.incomesForDay, id: \.objectID) { income in
-                        incomeRow(income)
-                            .unifiedSwipeActions(
-                                UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
-                                onEdit: { editingIncome = income },
-                                onDelete: { requestDelete(income: income) }
-                            )
+                        incomeRowWithSwipeActions(income)
                     }
                 }
             } header: {
@@ -562,12 +554,7 @@ struct IncomeView: View {
                         .padding(.vertical, 4)
                 } else {
                     ForEach(vm.incomesForDay, id: \.objectID) { income in
-                        incomeRow(income)
-                            .unifiedSwipeActions(
-                                UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
-                                onEdit: { editingIncome = income },
-                                onDelete: { requestDelete(income: income) }
-                            )
+                        incomeRowWithSwipeActions(income)
                     }
                 }
             }
@@ -637,6 +624,15 @@ struct IncomeView: View {
     }
 
     // MARK: Subviews
+    private func incomeRowWithSwipeActions(_ income: Income) -> some View {
+        incomeRow(income)
+            .unifiedSwipeActions(
+                UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
+                onEdit: { editingIncome = income },
+                onDelete: { requestDelete(income: income) }
+            )
+    }
+
     private func incomeRow(_ income: Income) -> some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {

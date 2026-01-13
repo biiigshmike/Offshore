@@ -221,7 +221,7 @@ struct ExpenseCategoryManagerView: View {
             }
             Spacer()
             Image(systemName: Icons.sfChevronRight)
-                .font(.caption.weight(.semibold))
+                .font(Typography.captionSemibold)
                 .foregroundStyle(Colors.styleSecondary)
         }
     }

@@ -11,7 +11,8 @@ enum Typography {
     static let subheadline: Font = .subheadline
     static let subheadlineSemibold: Font = .subheadline.weight(.semibold)
     static let footnote: Font = .footnote
+    static let title3Bold: Font = .title3.weight(.bold)
     static let title3Semibold: Font = .title3.weight(.semibold)
+    static let captionSemibold: Font = .caption.weight(.semibold)
     static let caption2Semibold: Font = .caption2.weight(.semibold)
 }
-

@@ -540,7 +540,7 @@ struct AddPlannedExpenseView: View {
                         HStack(spacing: DS.Spacing.xs) {
                             Text("Show All Budgets")
                             Text("\(remaining)")
-                                .font(.caption.weight(.semibold))
+                                .font(Typography.captionSemibold)
                                 .padding(.horizontal, DS.Spacing.xs)
                                 .padding(.vertical, 2)
                                 .background(Capsule().fill(Color.secondary.opacity(0.15)))

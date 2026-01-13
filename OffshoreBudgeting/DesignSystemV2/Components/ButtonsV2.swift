@@ -366,14 +366,13 @@ extension DesignSystemV2 {
                         } label: {
                             Image(systemName: systemImage)
                                 .symbolRenderingMode(.monochrome)
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(.body.weight(.semibold))
                                 .frame(width: iconSize, height: iconSize)
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(tint)
                                 .frame(width: hitSize, height: hitSize)
                                 .contentShape(Circle())
                         }
-                        .buttonStyle(.glassProminent)
-                        .tint(tint)
+                        .buttonStyle(.plain)
                     } else {
                         Menu {
                             items()

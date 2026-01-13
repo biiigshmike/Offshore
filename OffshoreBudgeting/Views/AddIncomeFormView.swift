@@ -41,7 +41,7 @@ struct AddIncomeFormView: View {
                         Button(viewModel.isEditing ? "Save Changes" : "Add Income") {
                             _ = saveTapped()
                         }
-                        .accessibilityIdentifier("btn_confirm")
+                        .accessibilityIdentifier(AccessibilityID.Income.Form.confirmButton)
                         .disabled(!viewModel.canSave)
                     }
                 }
@@ -108,7 +108,7 @@ struct AddIncomeFormView: View {
         Form {
             if viewModel.isEditing && viewModel.isPartOfSeries {
                 Text("Editing a recurring income. Choosing \"Edit this and all future instances\" will create a new series. Changes from this point forward will be treated as a new series.")
-                    .font(.footnote)
+                    .font(Typography.footnote)
                     .foregroundStyle(.secondary)
                     .padding(.bottom, 4)
             }
@@ -130,10 +130,10 @@ struct AddIncomeFormView: View {
                 Text("Planned").tag(true)
                 Text("Actual").tag(false)
             }
-            .accessibilityIdentifier("incomeTypeSegmentedControl")
+            .accessibilityIdentifier(AccessibilityID.Income.Form.typeSegmentedControl)
         } header: {
             Text("Type")
-                .font(.footnote)
+                .font(Typography.footnote)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
         }
@@ -151,7 +151,7 @@ struct AddIncomeFormView: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Income Source")
-                        .accessibilityIdentifier("txt_income_source")
+                        .accessibilityIdentifier(AccessibilityID.Income.Form.sourceField)
                 } else {
                     TextField("Paycheck", text: $viewModel.source)
                         .autocorrectionDisabled(true)
@@ -159,14 +159,14 @@ struct AddIncomeFormView: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Income Source")
-                        .accessibilityIdentifier("txt_income_source")
+                        .accessibilityIdentifier(AccessibilityID.Income.Form.sourceField)
                 }
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } header: {
             Text("Source")
-                .font(.footnote)
+                .font(Typography.footnote)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
         }
@@ -181,21 +181,21 @@ struct AddIncomeFormView: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Income Amount")
-                        .accessibilityIdentifier("txt_income_amount")
+                        .accessibilityIdentifier(AccessibilityID.Income.Form.amountField)
                 } else {
                     TextField("1542.75", text: $viewModel.amountInput)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityLabel("Income Amount")
-                        .accessibilityIdentifier("txt_income_amount")
+                        .accessibilityIdentifier(AccessibilityID.Income.Form.amountField)
                 }
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } header: {
             Text("Amount")
-                .font(.footnote)
+                .font(Typography.footnote)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
         }
@@ -206,11 +206,11 @@ struct AddIncomeFormView: View {
             DatePicker("", selection: $viewModel.firstDate, displayedComponents: [.date])
                 .labelsHidden()
                 .datePickerStyle(.compact)
-                .accessibilityIdentifier("incomeFirstDatePicker")
+                .accessibilityIdentifier(AccessibilityID.Income.Form.firstDatePicker)
                 .accessibilityLabel("Entry Date")
         } header: {
             Text("Entry Date")
-                .font(.footnote)
+                .font(Typography.footnote)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
         }
@@ -222,7 +222,7 @@ struct AddIncomeFormView: View {
                                  isPresentingCustomEditor: $viewModel.isPresentingCustomRecurrenceEditor)
         } header: {
             Text("Recurrence")
-                .font(.footnote)
+                .font(Typography.footnote)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
         }
@@ -250,7 +250,7 @@ struct AddIncomeFormView: View {
     }
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.footnote)
+            .font(Typography.footnote)
             .foregroundStyle(.secondary)
             .textCase(.uppercase)
     }

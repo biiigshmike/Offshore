@@ -112,7 +112,7 @@ struct IncomeView: View {
             // Clear, no-background toolbar icon per design
             Buttons.toolbarIcon("plus") { addIncome() }
             .accessibilityLabel("Add Income")
-            .accessibilityIdentifier("btn_add_income")
+            .accessibilityIdentifier(AccessibilityID.Income.addButton)
             
         }
         if uiTest.showTestControls {
@@ -120,7 +120,7 @@ struct IncomeView: View {
                 Buttons.toolbarIcon("trash") {
                     if let first = vm.incomesForDay.first { requestDelete(income: first) }
                 }
-                .accessibilityIdentifier("btn_delete_first_income")
+                .accessibilityIdentifier(AccessibilityID.Income.UITest.deleteFirstIncomeButton)
             }
         }
     }
@@ -138,30 +138,40 @@ struct IncomeView: View {
 
     private var calendarNavRow: some View {
         HStack(alignment: .center) {
-            navIcon("chevron.backward.2") { goToPreviousMonth() }
+            navIcon(Icons.sfChevronBackward2) { goToPreviousMonth() }
+                .accessibilityIdentifier(AccessibilityID.Income.CalendarNav.previousMonthButton)
             Spacer(minLength: calendarNavSpacing)
-            navIcon("chevron.backward") { goToPreviousDay() }
+            navIcon(Icons.sfChevronBackward) { goToPreviousDay() }
+                .accessibilityIdentifier(AccessibilityID.Income.CalendarNav.previousDayButton)
             Spacer(minLength: calendarNavSpacing)
-            navIcon("circle.fill") { goToToday() }
+            navIcon(Icons.sfCircleFill) { goToToday() }
+                .accessibilityIdentifier(AccessibilityID.Income.CalendarNav.todayButton)
             Spacer(minLength: calendarNavSpacing)
-            navIcon("chevron.forward") { goToNextDay() }
+            navIcon(Icons.sfChevronForward) { goToNextDay() }
+                .accessibilityIdentifier(AccessibilityID.Income.CalendarNav.nextDayButton)
             Spacer(minLength: calendarNavSpacing)
-            navIcon("chevron.forward.2") { goToNextMonth() }
+            navIcon(Icons.sfChevronForward2) { goToNextMonth() }
+                .accessibilityIdentifier(AccessibilityID.Income.CalendarNav.nextMonthButton)
         }
         .frame(maxWidth: .infinity)
     }
 
     private var calendarNavWrapped: some View {
-        VStack(spacing: DS.Spacing.s) {
+        VStack(spacing: Spacing.s) {
             HStack {
-                navIcon("chevron.backward.2") { goToPreviousMonth() }
-                navIcon("circle.fill") { goToToday() }
-                navIcon("chevron.forward.2") { goToNextMonth() }
+                navIcon(Icons.sfChevronBackward2) { goToPreviousMonth() }
+                    .accessibilityIdentifier(AccessibilityID.Income.CalendarNav.previousMonthButton)
+                navIcon(Icons.sfCircleFill) { goToToday() }
+                    .accessibilityIdentifier(AccessibilityID.Income.CalendarNav.todayButton)
+                navIcon(Icons.sfChevronForward2) { goToNextMonth() }
+                    .accessibilityIdentifier(AccessibilityID.Income.CalendarNav.nextMonthButton)
             }
             HStack {
-                navIcon("chevron.backward") { goToPreviousWeek() }
+                navIcon(Icons.sfChevronBackward) { goToPreviousWeek() }
+                    .accessibilityIdentifier(AccessibilityID.Income.CalendarNav.previousDayButton)
                 Spacer(minLength: calendarNavSpacing)
-                navIcon("chevron.forward") { goToNextWeek() }
+                navIcon(Icons.sfChevronForward) { goToNextWeek() }
+                    .accessibilityIdentifier(AccessibilityID.Income.CalendarNav.nextDayButton)
             }
         }
         .frame(maxWidth: .infinity)
@@ -193,7 +203,7 @@ struct IncomeView: View {
 
     @ViewBuilder
     private func navLabel(_ title: String, action: @escaping () -> Void) -> some View {
-        let labelFont = Font.subheadline.weight(.semibold)
+        let labelFont = Typography.subheadlineSemibold
         let minWidth = dynamicTypeSize.isAccessibilitySize ? 0 : calendarNavLabelMinWidth
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
@@ -218,7 +228,7 @@ struct IncomeView: View {
 
     @ViewBuilder
     private func navText(_ title: String, action: @escaping () -> Void) -> some View {
-        let labelFont = Font.subheadline.weight(.semibold)
+        let labelFont = Typography.subheadlineSemibold
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {
                 Text(title)
@@ -295,9 +305,9 @@ struct IncomeView: View {
         let weekRange = weekBounds(for: selected)
         return VStack(alignment: .leading, spacing: weekHeaderSpacing) {
             Text(monthTitle(for: selected))
-                .font(.headline)
+                .font(Typography.headline)
             Text("\(format(weekRange.start)) – \(format(weekRange.end))")
-                .font(.subheadline)
+                .font(Typography.subheadline)
                 .foregroundStyle(.secondary)
             VStack(spacing: weekCellSpacing) {
                 ForEach(weekDates, id: \.self) { date in
@@ -323,12 +333,12 @@ struct IncomeView: View {
                     if planned > 0 {
                         Text("Planned \(vm.currencyString(for: planned))")
                             .font(.caption)
-                            .foregroundStyle(DS.Colors.plannedIncome)
+                            .foregroundStyle(Colors.plannedIncome)
                     }
                     if actual > 0 {
                         Text("Actual \(vm.currencyString(for: actual))")
                             .font(.caption)
-                            .foregroundStyle(DS.Colors.actualIncome)
+                            .foregroundStyle(Colors.actualIncome)
                     }
                     if planned <= 0 && actual <= 0 {
                         Text("No income")
@@ -441,9 +451,9 @@ struct IncomeView: View {
     private var splitPanelSpacing: CGFloat { 16 }
     private var splitPanelHeight: CGFloat {
         guard useSplitLayout else { return calendarSizing.height }
-        let topPadding: CGFloat = 12
+        let topPadding: CGFloat = Spacing.m
         let navHeight: CGFloat = calendarNavButtonSize
-        let spacing: CGFloat = 8
+        let spacing: CGFloat = Spacing.s
         return calendarSizing.height + topPadding + navHeight + spacing
     }
     private var useSplitLayout: Bool {
@@ -463,11 +473,11 @@ struct IncomeView: View {
     private var listIncomeContent: some View {
         List {
             // Calendar section as a single row
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 calendarNav
                 calendarView
             }
-            .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
+            .listRowInsets(EdgeInsets(top: Spacing.m, leading: 20, bottom: Spacing.m, trailing: 20))
 
             // Selected Day Income section
             Section {
@@ -475,7 +485,7 @@ struct IncomeView: View {
                     let date = vm.selectedDate ?? Date()
                     Text("No income for \(format(date)).")
                         .foregroundStyle(.secondary)
-                        .font(.subheadline)
+                        .font(Typography.subheadline)
                         .padding(.vertical, 4)
                 } else {
                     ForEach(vm.incomesForDay, id: \.objectID) { income in
@@ -494,26 +504,26 @@ struct IncomeView: View {
             // Weekly totals section
             Section {
                 let (start, end) = weekBounds(for: vm.selectedDate ?? Date())
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     HStack(alignment: .lastTextBaseline) {
-                        totalsColumn(label: "Planned", amount: vm.plannedTotalForSelectedWeek, color: DS.Colors.plannedIncome)
+                        totalsColumn(label: "Planned", amount: vm.plannedTotalForSelectedWeek, color: Colors.plannedIncome)
                         Spacer(minLength: 0)
-                        totalsColumn(label: "Actual", amount: vm.actualTotalForSelectedWeek, color: DS.Colors.actualIncome)
+                        totalsColumn(label: "Actual", amount: vm.actualTotalForSelectedWeek, color: Colors.actualIncome)
                     }
                     Text("\(format(start)) – \(format(end))")
-                        .font(.subheadline)
+                        .font(Typography.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 4)
             } header: {
-                Text("Week Total Income").font(.headline).textCase(nil)
+                Text("Week Total Income").font(Typography.headline).textCase(nil)
             }
         }
     }
 
     private var splitIncomeContent: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: Spacing.m) {
             HStack(alignment: .top, spacing: splitPanelSpacing) {
                 calendarPanel
                     .frame(height: splitPanelHeight)
@@ -529,13 +539,13 @@ struct IncomeView: View {
         }
         .frame(maxWidth: .infinity, alignment: .top)
         .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.vertical, Spacing.m)
     }
 
     private var calendarPanel: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             calendarNav
-                .padding(.top, useSplitLayout ? 12 : 0)
+                .padding(.top, useSplitLayout ? Spacing.m : 0)
             calendarView
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -548,7 +558,7 @@ struct IncomeView: View {
                     let date = vm.selectedDate ?? Date()
                     Text("No income for \(format(date)).")
                         .foregroundStyle(.secondary)
-                        .font(.subheadline)
+                        .font(Typography.subheadline)
                         .padding(.vertical, 4)
                 } else {
                     ForEach(vm.incomesForDay, id: \.objectID) { income in
@@ -577,7 +587,7 @@ struct IncomeView: View {
 
         func body(content: Content) -> some View {
             content
-                .padding(12)
+                .padding(Spacing.m)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .background(
                     RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
@@ -602,9 +612,9 @@ struct IncomeView: View {
     private var selectedDayHeaderView: some View {
         let date = vm.selectedDate ?? Date()
         return VStack(alignment: .leading, spacing: 2) {
-            Text("Selected Day Income").font(.headline)
+            Text("Selected Day Income").font(Typography.headline)
             Text(DateFormatter.localizedString(from: date, dateStyle: .full, timeStyle: .none))
-                .font(.subheadline)
+                .font(Typography.subheadline)
                 .foregroundStyle(.secondary)
         }
         .textCase(nil)
@@ -613,15 +623,15 @@ struct IncomeView: View {
     // MARK: Weekly Totals Section
     private var weeklyTotalsSection: some View {
         let (start, end) = weekBounds(for: vm.selectedDate ?? Date())
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("Week Total Income").font(.headline)
+        return VStack(alignment: .leading, spacing: Spacing.s) {
+            Text("Week Total Income").font(Typography.headline)
             HStack(alignment: .lastTextBaseline) {
-                totalsColumn(label: "Planned", amount: vm.plannedTotalForSelectedWeek, color: DS.Colors.plannedIncome)
+                totalsColumn(label: "Planned", amount: vm.plannedTotalForSelectedWeek, color: Colors.plannedIncome)
                 Spacer(minLength: 0)
-                totalsColumn(label: "Actual", amount: vm.actualTotalForSelectedWeek, color: DS.Colors.actualIncome)
+                totalsColumn(label: "Actual", amount: vm.actualTotalForSelectedWeek, color: Colors.actualIncome)
             }
             Text("\(format(start)) – \(format(end))")
-                .font(.subheadline)
+                .font(Typography.subheadline)
                 .foregroundStyle(.secondary)
         }
     }
@@ -630,17 +640,17 @@ struct IncomeView: View {
     private func incomeRow(_ income: Income) -> some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(income.source ?? "—").font(.headline)
-                Text(vm.currencyString(for: income.amount)).font(.subheadline).foregroundStyle(.secondary)
+                Text(income.source ?? "—").font(Typography.headline)
+                Text(vm.currencyString(for: income.amount)).font(Typography.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
             if uiTest.showTestControls, let id = income.id?.uuidString {
                 Button("Delete") { requestDelete(income: income) }
                     .buttonStyle(.borderedProminent)
-                    .accessibilityIdentifier("btn_delete_income_\(id)")
+                    .accessibilityIdentifier(AccessibilityID.Income.UITest.deleteIncomeButton(id: id))
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, Spacing.xs)
         .accessibilityIdentifier(rowAccessibilityID(for: income))
     }
 
@@ -650,7 +660,7 @@ struct IncomeView: View {
 
     private func totalsColumn(label: String, amount: Double, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.subheadline).foregroundStyle(.secondary)
+            Text(label).font(Typography.subheadline).foregroundStyle(.secondary)
             Text(vm.currencyString(for: amount)).font(.title3.weight(.semibold)).foregroundStyle(color)
         }
     }

@@ -2,6 +2,35 @@ import Foundation
 
 // MARK: - AccessibilityID
 enum AccessibilityID {
+    enum Income {
+        static let addButton = "btn_add_income"
+
+        enum CalendarNav {
+            static let previousMonthButton = "btn_income_calendar_previous_month"
+            static let previousDayButton = "btn_income_calendar_previous_day"
+            static let todayButton = "btn_income_calendar_today"
+            static let nextDayButton = "btn_income_calendar_next_day"
+            static let nextMonthButton = "btn_income_calendar_next_month"
+        }
+
+        enum UITest {
+            static let deleteFirstIncomeButton = "btn_delete_first_income"
+
+            static func deleteIncomeButton(id: String?) -> String {
+                guard let id, !id.isEmpty else { return "btn_delete_income_missing_uuid" }
+                return "btn_delete_income_\(id)"
+            }
+        }
+
+        enum Form {
+            static let confirmButton = "btn_confirm"
+            static let typeSegmentedControl = "incomeTypeSegmentedControl"
+            static let sourceField = "txt_income_source"
+            static let amountField = "txt_income_amount"
+            static let firstDatePicker = "incomeFirstDatePicker"
+        }
+    }
+
     enum Settings {
         static let manageCategoriesNavigation = "nav_manage_categories"
         static let managePresetsNavigation = "nav_manage_presets"

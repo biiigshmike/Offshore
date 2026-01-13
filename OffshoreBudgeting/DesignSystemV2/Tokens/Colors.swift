@@ -9,9 +9,10 @@ enum Colors {
     static let clear: Color = .clear
     static let grayOpacity02: Color = Color.gray.opacity(0.2)
     static let primaryOpacity008: Color = Color.primary.opacity(0.08)
+    static let plannedIncome: Color = .orange
+    static let actualIncome: Color = .blue
     static let white: Color = .white
 
     static let stylePrimary: HierarchicalShapeStyle = .primary
     static let styleSecondary: HierarchicalShapeStyle = .secondary
 }
-

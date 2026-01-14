@@ -414,7 +414,7 @@ struct TipsAndHintsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Spacing.l) {
             HStack {
                 Text(content.title)
                     .font(.title2.weight(.semibold))
@@ -424,7 +424,7 @@ struct TipsAndHintsSheet: View {
             }
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: Spacing.l) {
                     ForEach(content.items) { item in
                         TipsItemRow(item: item)
                     }
@@ -476,19 +476,19 @@ private struct TipsItemRow: View {
     let item: TipsItem
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             Image(systemName: item.symbolName)
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(Color(.systemRed))
                 .frame(width: 44, alignment: .center)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(item.title)
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Colors.stylePrimary)
                 Text(item.detail)
                     .font(.system(size: 14, weight: .regular, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Colors.styleSecondary)
             }
         }
     }

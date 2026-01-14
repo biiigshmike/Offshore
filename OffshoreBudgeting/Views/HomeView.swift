@@ -457,7 +457,7 @@ struct HomeView: View {
         .navigationTitle("Home")
         .ub_windowTitle("Home")
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("home_screen")
+        .accessibilityIdentifier(AccessibilityID.Home.screen)
         .refreshable { await vm.refresh() }
         .task { await onAppearTask() }
         .onChange(of: vm.period) { _ in syncPickers(with: vm.currentDateRange) }
@@ -489,7 +489,7 @@ struct HomeView: View {
                     capStatuses: nil
                 )
             } else {
-                Color.clear
+                Colors.clear
                     .navigationTitle(route.title)
                     .ub_windowTitle(route.title)
             }
@@ -518,18 +518,12 @@ struct HomeView: View {
             Section {
                 ProgressView("Loading…")
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .listRowInsets(listRowInsets)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .ub_preOS26ListRowBackground(.clear)
+                    .homeListRowStyle(insets: listRowInsets)
             }
         case .empty:
             Section {
                 emptyState
-                    .listRowInsets(listRowInsets)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .ub_preOS26ListRowBackground(.clear)
+                    .homeListRowStyle(insets: listRowInsets)
             }
         case .loaded:
             if let summary = primarySummary {
@@ -537,10 +531,7 @@ struct HomeView: View {
             } else {
                 Section {
                     emptyState
-                        .listRowInsets(listRowInsets)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .ub_preOS26ListRowBackground(.clear)
+                        .homeListRowStyle(insets: listRowInsets)
                 }
             }
         }
@@ -560,10 +551,7 @@ struct HomeView: View {
         List {
             Section {
                 dateRow
-                    .listRowInsets(listRowInsets)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .ub_preOS26ListRowBackground(.clear)
+                    .homeListRowStyle(insets: listRowInsets)
             }
 
             contentSections
@@ -576,7 +564,7 @@ struct HomeView: View {
         let applyDisabled = startDateSelection > endDateSelection
         let useCompactLayout = isCompactDateRow || isAccessibilitySize
         let rangeLabel = Text(rangeDescription(currentRange))
-            .font(.headline.weight(.semibold))
+            .font(Typography.headlineSemibold)
             .lineLimit(isAccessibilitySize ? nil : (useCompactLayout ? 2 : 1))
             .multilineTextAlignment(.leading)
 
@@ -584,19 +572,19 @@ struct HomeView: View {
 
         Group {
             if useCompactLayout {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Spacing.m) {
                     rangeLabel
                     controls
                 }
             } else {
-                HStack(spacing: 12) {
+                HStack(spacing: Spacing.m) {
                     rangeLabel
                     Spacer()
                     controls
                 }
             }
         }
-        .padding(12)
+        .padding(Spacing.m)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(glassRowBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -607,10 +595,10 @@ struct HomeView: View {
         Group {
             if compactLayout {
                 if isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Spacing.s) {
                         datePickerRow(title: "Start date", selection: $startDateSelection)
                         datePickerRow(title: "End date", selection: $endDateSelection)
-                        HStack(spacing: 16) {
+                        HStack(spacing: Spacing.l) {
                             applyButton(disabled)
                             periodMenu
                         }
@@ -618,28 +606,28 @@ struct HomeView: View {
                     }
                 } else {
                     ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 12) {
+                        HStack(spacing: Spacing.m) {
                             datePickerRow(title: "Start date", selection: $startDateSelection)
                             datePickerRow(title: "End date", selection: $endDateSelection)
                             applyButton(disabled)
                             periodMenu
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: Spacing.s) {
+                            HStack(spacing: Spacing.s) {
                                 datePickerRow(title: "Start date", selection: $startDateSelection)
                                 datePickerRow(title: "End date", selection: $endDateSelection)
                             }
-                            HStack(spacing: 12) {
+                            HStack(spacing: Spacing.m) {
                                 applyButton(disabled)
                                 periodMenu
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: Spacing.s) {
                             datePickerRow(title: "Start date", selection: $startDateSelection)
                             datePickerRow(title: "End date", selection: $endDateSelection)
-                            HStack(spacing: 12) {
+                            HStack(spacing: Spacing.m) {
                                 applyButton(disabled)
                                 periodMenu
                             }
@@ -648,7 +636,7 @@ struct HomeView: View {
                     }
                 }
             } else {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     DatePicker("Start date", selection: $startDateSelection, displayedComponents: [.date])
                         .labelsHidden()
                         .datePickerStyle(.compact)
@@ -667,10 +655,10 @@ struct HomeView: View {
     @ViewBuilder
     private func datePickerRow(title: String, selection: Binding<Date>) -> some View {
         if isAccessibilitySize {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .font(Typography.subheadlineSemibold)
+                    .foregroundStyle(Colors.stylePrimary)
                 DatePicker("", selection: selection, displayedComponents: [.date])
                     .labelsHidden()
                     .datePickerStyle(.compact)
@@ -687,7 +675,7 @@ struct HomeView: View {
     private var glassRowBackground: some View {
         Group {
             if #available(iOS 26.0, macOS 15.0, macCatalyst 26.0, *) {
-                Color.clear
+                Colors.clear
                     .glassEffect(.regular, in: .rect(cornerRadius: 14))
             } else {
                 #if canImport(UIKit)
@@ -715,22 +703,16 @@ struct HomeView: View {
             Section(header: widgetsHeader) {
                 ForEach(visibleItems) { item in
                     widgetCell(for: item)
-                        .listRowInsets(listRowInsets)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .ub_preOS26ListRowBackground(.clear)
+                        .homeListRowStyle(insets: listRowInsets)
                 }
             }
 
             if isEditing && !libraryItems.isEmpty {
                 Section {
                     Text("Add widgets")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .listRowInsets(listRowInsets)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .ub_preOS26ListRowBackground(.clear)
+                        .font(Typography.subheadlineSemibold)
+                        .foregroundStyle(Colors.stylePrimary)
+                        .homeListRowStyle(insets: listRowInsets)
                     ForEach(libraryItems) { item in
                         Button {
                             pinWidget(item.id)
@@ -740,16 +722,13 @@ struct HomeView: View {
                                 Spacer()
                                 Image(systemName: "pin.fill")
                             }
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 12)
+                            .padding(.vertical, Spacing.sPlus)
+                            .padding(.horizontal, Spacing.m)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(cardBackground(kind: item.kind))
                         }
                         .buttonStyle(.plain)
-                        .listRowInsets(listRowInsets)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .ub_preOS26ListRowBackground(.clear)
+                        .homeListRowStyle(insets: listRowInsets)
                     }
                 }
             }
@@ -766,23 +745,20 @@ struct HomeView: View {
     private var widgetsHeader: some View {
         HStack {
             Text("Widgets")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(.primary)
+                .font(Typography.headlineSemibold)
+                .foregroundStyle(Colors.stylePrimary)
                 .padding(.horizontal, isHighContrast ? 8 : 0)
                 .padding(.vertical, isHighContrast ? 4 : 0)
-                .background(isHighContrast ? Color.primary.opacity(0.2) : Color.clear)
+                .background(isHighContrast ? Color.primary.opacity(0.2) : Colors.clear)
                 .clipShape(Capsule())
             Spacer()
             editWidgetsButton
         }
-        .listRowInsets(listRowInsets)
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .ub_preOS26ListRowBackground(.clear)
+        .homeListRowStyle(insets: listRowInsets)
     }
 
     private var listRowInsets: EdgeInsets {
-        EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)
+        EdgeInsets(top: Spacing.s, leading: 20, bottom: Spacing.s, trailing: 20)
     }
 
     @ViewBuilder
@@ -798,10 +774,10 @@ struct HomeView: View {
             .buttonStyle(.glass)
             .buttonBorderShape(.capsule)
             .tint(.clear)
-            .foregroundStyle(.primary)
+            .foregroundStyle(Colors.stylePrimary)
             .padding(.horizontal, isHighContrast ? 10 : 0)
             .padding(.vertical, isHighContrast ? 6 : 0)
-            .background(isHighContrast ? Color.primary.opacity(0.2) : Color.clear)
+            .background(isHighContrast ? Color.primary.opacity(0.2) : Colors.clear)
             .clipShape(Capsule())
             .accessibilityLabel(isEditing ? "Done editing widgets" : "Edit widgets")
             .accessibilityHint("Reorder or add widgets.")
@@ -814,10 +790,10 @@ struct HomeView: View {
             }
             .buttonStyle(.plain)
             .buttonBorderShape(.capsule)
-            .foregroundStyle(.primary)
+            .foregroundStyle(Colors.stylePrimary)
             .padding(.horizontal, isHighContrast ? 10 : 0)
             .padding(.vertical, isHighContrast ? 6 : 0)
-            .background(isHighContrast ? Color.primary.opacity(0.2) : Color.clear)
+            .background(isHighContrast ? Color.primary.opacity(0.2) : Colors.clear)
             .clipShape(Capsule())
             .accessibilityLabel(isEditing ? "Done editing widgets" : "Edit widgets")
             .accessibilityHint("Reorder or add widgets.")
@@ -828,30 +804,30 @@ struct HomeView: View {
     // MARK: Clarify help guide: % = received / planned
     private func incomeWidget(for summary: BudgetSummary) -> some View {
         widgetLink(title: "Income", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .income, span: WidgetSpan(width: 1, height: 1), summary: summary) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Spacing.s) {
                 let total = max(summary.potentialIncomeTotal, 1)
                 let percent = min(max(summary.actualIncomeTotal / total, 0), 1)
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Actual Income")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .font(Typography.subheadlineSemibold)
+                            .foregroundStyle(Colors.stylePrimary)
                         Text(formatCurrency(summary.actualIncomeTotal))
-                            .font(.headline)
+                            .font(Typography.headline)
                     }
                     Spacer()
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Planned Income")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .font(Typography.subheadlineSemibold)
+                            .foregroundStyle(Colors.stylePrimary)
                         Text(formatCurrency(summary.potentialIncomeTotal))
-                            .font(.headline)
+                            .font(Typography.headline)
                     }
                 }
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     Text("0%")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .font(Typography.subheadlineSemibold)
+                        .foregroundStyle(Colors.stylePrimary)
                     Gauge(value: percent, in: 0...1) {
                         EmptyView()
                     }
@@ -859,8 +835,8 @@ struct HomeView: View {
                     .tint(Gradient(colors: [HomeView.HomePalette.income.opacity(0.25), HomeView.HomePalette.income]))
                     .frame(maxWidth: .infinity)
                     Text(String(format: "%.0f%%", percent * 100))
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .font(Typography.subheadlineSemibold)
+                        .foregroundStyle(Colors.stylePrimary)
                 }
             }
         }
@@ -880,28 +856,28 @@ struct HomeView: View {
         let overReceived = (metrics.percentOfReceived ?? 0) > 100
         let tint: Color = overReceived ? .red : .green
         return widgetLink(title: "Expense to Income", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .expenseToIncome, span: WidgetSpan(width: 1, height: 1), summary: summary) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Spacing.s) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Expenses")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .font(Typography.subheadlineSemibold)
+                            .foregroundStyle(Colors.stylePrimary)
                         Text(formatCurrency(metrics.expenses))
-                            .font(.headline)
+                            .font(Typography.headline)
                     }
                     Spacer()
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Actual Income")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .font(Typography.subheadlineSemibold)
+                            .foregroundStyle(Colors.stylePrimary)
                         Text(formatCurrency(summary.actualIncomeTotal))
-                            .font(.headline)
+                            .font(Typography.headline)
                     }
                 }
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     Text("0%")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .font(Typography.subheadlineSemibold)
+                        .foregroundStyle(Colors.stylePrimary)
                     Gauge(value: gaugeValue, in: 0...1) {
                         EmptyView()
                     }
@@ -912,7 +888,7 @@ struct HomeView: View {
                         ? Color.primary
                         : (overReceived ? Color.red : Color.primary)
                     Text(hasReceived ? String(format: "%.0f%%", receivedPercent) : "—")
-                        .font(.subheadline.weight(.semibold))
+                        .font(Typography.subheadlineSemibold)
                         .foregroundStyle(percentColor)
                 }
             }
@@ -952,30 +928,30 @@ struct HomeView: View {
             return .red
         }()
         return widgetLink(title: "Savings Outlook", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .savingsOutlook, span: WidgetSpan(width: 1, height: 1), summary: summary) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Spacing.s) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Projected Savings")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .font(Typography.subheadlineSemibold)
+                            .foregroundStyle(Colors.stylePrimary)
                         Text(formatCurrency(projected))
-                            .font(.headline)
+                            .font(Typography.headline)
                     }
                     Spacer()
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Actual Savings")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .font(Typography.subheadlineSemibold)
+                            .foregroundStyle(Colors.stylePrimary)
                         Text(formatCurrency(actual))
-                            .font(.headline)
+                            .font(Typography.headline)
                             .foregroundStyle(isHighContrast ? .primary : statusTint)
                     }
                 }
                 if projectedPositive {
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         Text("0%")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .font(Typography.subheadlineSemibold)
+                            .foregroundStyle(Colors.stylePrimary)
                         Gauge(value: progressValue, in: 0...1) {
                             EmptyView()
                         }
@@ -983,14 +959,14 @@ struct HomeView: View {
                         .tint(Gradient(colors: [statusTint.opacity(0.25), statusTint]))
                         .frame(maxWidth: .infinity)
                         Text(percentLabel)
-                            .font(.subheadline.weight(.semibold))
+                            .font(Typography.subheadlineSemibold)
                             .foregroundStyle(isHighContrast ? .primary : statusTint)
                     }
                 } else {
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         Text("-100%")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .font(Typography.subheadlineSemibold)
+                            .foregroundStyle(Colors.stylePrimary)
                         Gauge(value: deficitRecovery, in: 0...1) {
                             EmptyView()
                         }
@@ -998,7 +974,7 @@ struct HomeView: View {
                         .tint(Gradient(colors: [deficitTint.opacity(0.25), deficitTint]))
                         .frame(maxWidth: .infinity)
                         Text(deficitLabel)
-                            .font(.subheadline.weight(.semibold))
+                            .font(Typography.subheadlineSemibold)
                             .foregroundStyle(isHighContrast ? .primary : deficitTint)
                     }
                 }
@@ -1023,7 +999,7 @@ struct HomeView: View {
                     )
                 } else {
                     Text("No planned expenses in this range.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Colors.styleSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -1051,7 +1027,7 @@ struct HomeView: View {
         return widgetLink(title: "Category Spotlight", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .presets, span: WidgetSpan(width: 1, height: 2), summary: summary, topCategory: topCategory) {
             if let top = slices.first, totalExpenses > 0 {
                 let donutHeight = isAccessibilitySize ? max(categorySpotlightHeight * 0.7, 140) : categorySpotlightHeight
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     CategoryDonutView(
                         slices: slices,
                         total: totalExpenses,
@@ -1062,14 +1038,14 @@ struct HomeView: View {
 
                     Text("Top \(min(3, slices.count)) categories in this range.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Colors.styleSecondary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
                 Text("Add expenses to see category trends.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Colors.styleSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -1078,7 +1054,7 @@ struct HomeView: View {
     private func cardWidget(card: CardItem, summary: BudgetSummary) -> some View {
         NavigationLink(value: card) {
             widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, span: WidgetSpan(width: 1, height: 2)) {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     CardTileView(
                         card: card,
                         isInteractive: false,
@@ -1103,7 +1079,7 @@ struct HomeView: View {
         return widgetLink(title: "Day of Week Spend", subtitle: weekdayRangeLabel, subtitleColor: .primary, kind: .dayOfWeek, span: WidgetSpan(width: 1, height: 2), summary: summary) {
             if self.widgetBuckets.isEmpty {
                 Text("No spending yet.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Colors.styleSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 let previewPeriod = resolvedPeriod(vm.period, range: currentRange)
@@ -1113,7 +1089,7 @@ struct HomeView: View {
                 let rowHeight = isAccessibilitySize ? dayOfWeekRowHeight * 1.35 : dayOfWeekRowHeight
                 let stackedHeight = CGFloat(rowCount) * rowHeight + CGFloat(max(rowCount - 1, 0)) * dayOfWeekRowSpacing
                 let chartHeight = max(dayOfWeekChartHeight, stackedHeight)
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     SpendBucketChart(
                         buckets: widgetBuckets,
                         maxAmount: maxAmount,
@@ -1127,8 +1103,8 @@ struct HomeView: View {
 
                     if let maxItem = self.widgetBuckets.max(by: { $0.amount < $1.amount }) {
                         Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .font(Typography.subheadlineSemibold)
+                            .foregroundStyle(Colors.stylePrimary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1182,10 +1158,10 @@ struct HomeView: View {
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
-                            HStack(spacing: 6) {
+                            HStack(spacing: Spacing.xs) {
                                 Text(displayLabel(item.label, period: period))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                                    .font(Typography.caption2)
+                                    .foregroundStyle(Colors.styleSecondary)
                                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                                     .fixedSize(horizontal: false, vertical: true)
                                     .frame(width: resolvedLabelWidth, alignment: .leading)
@@ -1210,14 +1186,14 @@ struct HomeView: View {
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
-                            VStack(spacing: 4) {
+                            VStack(spacing: Spacing.xxs) {
                                 Rectangle()
                                     .fill(gradient)
                                     .frame(width: barWidth, height: max(CGFloat(norm) * (barAreaHeight - 8), 6))
                                     .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
                                 Text(displayLabel(item.label, period: period))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                                    .font(Typography.caption2)
+                                    .foregroundStyle(Colors.styleSecondary)
                                     .lineLimit(1)
                                     .frame(width: barWidth, alignment: .center)
                             }
@@ -1311,11 +1287,11 @@ struct HomeView: View {
         } label: {
             Image(systemName: isPinned ? "pin.slash.fill" : "pin.fill")
                 .font(.footnote.weight(.bold))
-                .padding(8)
+                .padding(Spacing.s)
                 .background(.ultraThinMaterial, in: Circle())
         }
         .buttonStyle(.plain)
-        .padding(6)
+        .padding(Spacing.xs)
         .accessibilityLabel(isPinned ? "Unpin \(title)" : "Pin \(title)")
         .accessibilityHint(isPinned ? "Removes this widget from the list." : "Keeps this widget in the list.")
     }
@@ -1552,7 +1528,7 @@ struct HomeView: View {
 
             if isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 0) {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: Spacing.sPlus) {
                         PillSegmentedControl(selection: availabilitySegmentBinding) {
                             ForEach(CategoryAvailabilitySegment.allCases) { segment in
                                 Text(segment.title).tag(segment)
@@ -1560,22 +1536,22 @@ struct HomeView: View {
                         }
                         .ubSegmentedGlassStyle()
 
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 6) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            HStack(spacing: Spacing.xs) {
                                 Circle().fill(Color.red.opacity(0.2)).frame(width: availabilityStatusDotSize, height: availabilityStatusDotSize)
                                 Text("Over: \(overCount)")
                             }
-                            HStack(spacing: 6) {
+                            HStack(spacing: Spacing.xs) {
                                 Circle().fill(Color.orange.opacity(0.25)).frame(width: availabilityStatusDotSize, height: availabilityStatusDotSize)
                                 Text("Near: \(nearCount)")
                             }
                         }
-                        .font(.ubCaption)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.footnote)
+                        .foregroundStyle(Colors.styleSecondary)
                     }
                     .padding(.horizontal, 14)
-                    .padding(.top, 10)
-                    .padding(.bottom, 10)
+                    .padding(.top, Spacing.sPlus)
+                    .padding(.bottom, Spacing.sPlus)
 
                     Divider()
                         .padding(.horizontal, 14)
@@ -1583,8 +1559,8 @@ struct HomeView: View {
 
                     if pageItems.isEmpty {
                         Text("No categories yet.")
-                            .foregroundStyle(.secondary)
-                            .font(.ubCaption)
+                            .foregroundStyle(Colors.styleSecondary)
+                            .font(Typography.footnote)
                             .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
                             .padding(.vertical, tabPadding)
                     } else {
@@ -1605,7 +1581,7 @@ struct HomeView: View {
 
                         HStack {
                             Spacer(minLength: 0)
-                            HStack(spacing: 16) {
+                            HStack(spacing: Spacing.l) {
                                 availabilityNavButton("chevron.left", isDisabled: currentPageIndex == 0) {
                                     availabilityPage = max(currentPageIndex - 1, 0)
                                 }
@@ -1614,12 +1590,12 @@ struct HomeView: View {
                                 }
                             }
                             .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, Spacing.s)
                             Spacer(minLength: 0)
                         }
                     }
                 }
-                .padding(.top, 6)
+                .padding(.top, Spacing.xs)
                 .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
                 .onChange(of: pageCount) { _ in
                     availabilityPage = min(availabilityPage, max(pageCount - 1, 0))
@@ -1633,24 +1609,24 @@ struct HomeView: View {
                     }
                     .ubSegmentedGlassStyle()
                     .padding(.horizontal, 14)
-                    .padding(.top, 10)
-                    .padding(.bottom, 10)
+                    .padding(.top, Spacing.sPlus)
+                    .padding(.bottom, Spacing.sPlus)
 
                     HStack(spacing: 14) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: Spacing.xs) {
                             Circle().fill(Color.red.opacity(0.2)).frame(width: availabilityStatusDotSize, height: availabilityStatusDotSize)
                             Text("Over: \(overCount)")
                         }
-                        HStack(spacing: 6) {
+                        HStack(spacing: Spacing.xs) {
                             Circle().fill(Color.orange.opacity(0.25)).frame(width: availabilityStatusDotSize, height: availabilityStatusDotSize)
                             Text("Near: \(nearCount)")
                         }
                         Spacer()
                     }
-                    .font(.ubCaption)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .padding(.horizontal, 14)
-                    .padding(.bottom, 6)
+                    .padding(.bottom, Spacing.xs)
 
                     Divider()
                         .padding(.horizontal, 14)
@@ -1658,8 +1634,8 @@ struct HomeView: View {
 
                     if pageItems.isEmpty {
                         Text("No categories yet.")
-                            .foregroundStyle(.secondary)
-                            .font(.ubCaption)
+                            .foregroundStyle(Colors.styleSecondary)
+                            .font(Typography.footnote)
                             .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
                             .padding(.vertical, tabPadding)
                     } else {
@@ -1670,7 +1646,7 @@ struct HomeView: View {
                             }
                             let missingRows = max(0, pageSize - pageItems.count)
                             ForEach(0..<missingRows, id: \.self) { _ in
-                                Color.clear
+                                Colors.clear
                                     .frame(minHeight: rowHeight)
                             }
                         }
@@ -1686,7 +1662,7 @@ struct HomeView: View {
 
                         HStack {
                             Spacer(minLength: 0)
-                            HStack(spacing: 16) {
+                            HStack(spacing: Spacing.l) {
                                 availabilityNavButton("chevron.left", isDisabled: currentPageIndex == 0) {
                                     availabilityPage = max(currentPageIndex - 1, 0)
                                 }
@@ -1695,12 +1671,12 @@ struct HomeView: View {
                                 }
                             }
                             .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, Spacing.s)
                             Spacer(minLength: 0)
                         }
                     }
                 }
-                .padding(.top, 6)
+                .padding(.top, Spacing.xs)
                 .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
                 .onChange(of: pageCount) { _ in
                     availabilityPage = min(availabilityPage, max(pageCount - 1, 0))
@@ -1713,17 +1689,17 @@ struct HomeView: View {
         let actualSavings = summary.actualSavingsTotal
         let savingsColor: Color = actualSavings < 0 ? .red : .green
         return widgetLink(title: "What If?", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .scenario, span: WidgetSpan(width: 1, height: 1), summary: summary) {
-            VStack(alignment: .center, spacing: 6) {
+            VStack(alignment: .center, spacing: Spacing.xs) {
                 Text(formatCurrency(actualSavings))
-                    .font(.title3.weight(.semibold))
+                    .font(Typography.title3Semibold)
                     .foregroundStyle(isHighContrast ? .primary : savingsColor)
                     .lineLimit(isAccessibilitySize ? nil : 1)
                 Text("Actual Savings")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .font(Typography.subheadlineSemibold)
+                    .foregroundStyle(Colors.stylePrimary)
                 Text("Tap to plan scenarios and see how much you can still save.")
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
+                    .font(Typography.subheadline)
+                    .foregroundStyle(Colors.stylePrimary)
                     .lineLimit(isAccessibilitySize ? nil : 2)
             }
             .frame(maxWidth: .infinity, alignment: .center)
@@ -1742,7 +1718,7 @@ struct HomeView: View {
                         .glassEffect(.regular, in: .rect(cornerRadius: buttonSize / 2))
                     Image(systemName: systemName)
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Colors.stylePrimary)
                 }
                 .frame(width: buttonSize, height: buttonSize)
             }
@@ -1755,10 +1731,10 @@ struct HomeView: View {
                 let buttonSize: CGFloat = 44
                 ZStack {
                     Circle()
-                        .fill(Color.primary.opacity(0.08))
+                        .fill(Colors.primaryOpacity008)
                     Image(systemName: systemName)
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Colors.stylePrimary)
                 }
                 .frame(width: buttonSize, height: buttonSize)
             }
@@ -1790,15 +1766,15 @@ struct HomeView: View {
 
     private func widgetCard<Content: View>(title: String, subtitle: String? = nil, subtitleColor: Color = .secondary, kind: HomeWidgetKind, span: WidgetSpan, @ViewBuilder content: () -> Content) -> some View {
         let body = content()
-        return VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+        return VStack(alignment: .leading, spacing: Spacing.m) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(title)
-                        .font(.ubWidgetTitle)
+                        .font(Typography.headlineSemibold)
                         .foregroundStyle(isHighContrast ? kind.highContrastTitleColor : kind.baseTitleColor)
                         .lineLimit(isAccessibilitySize ? nil : 2)
                 if let subtitle {
                     Text(subtitle)
-                        .font(.ubWidgetSubtitle)
+                        .font(Typography.subheadline)
                         .foregroundStyle(subtitleColor)
                         .lineLimit(isAccessibilitySize ? nil : 2)
                         .multilineTextAlignment(.leading)
@@ -1807,7 +1783,7 @@ struct HomeView: View {
             }
             body
         }
-        .padding(16)
+        .padding(Spacing.l)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(cardBackground(kind: kind))
     }
@@ -1829,14 +1805,14 @@ struct HomeView: View {
                 shape
                     .fill(.regularMaterial)
                     .overlay(
-                        shape.stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                        shape.stroke(Colors.primaryOpacity008, lineWidth: 1)
                     )
                     .glassEffect(.regular, in: .rect(cornerRadius: corner))
             } else {
                 shape
                     .fill(fallback)
                     .overlay(
-                        shape.stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                        shape.stroke(Colors.primaryOpacity008, lineWidth: 1)
                     )
             }
         }
@@ -1886,15 +1862,15 @@ struct HomeView: View {
     }
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             Text("No budget data yet.")
-                .font(.headline)
+                .font(Typography.headline)
             Text("Set a budget for the \(vm.period.displayName.lowercased()) window or pick a custom date range to see widgets.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(Typography.subheadline)
+                .foregroundStyle(Colors.styleSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(Spacing.l)
         .background(cardBackground(kind: .budgets))
     }
 
@@ -1941,9 +1917,9 @@ struct HomeView: View {
                     Circle()
                         .fill(.ultraThinMaterial)
                         .glassEffect(.regular, in: .rect(cornerRadius: buttonSize / 2))
-                    Image(systemName: "arrow.right")
+                    Image(systemName: Icons.sfArrowRight)
                         .font(dateActionSymbolFont)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Colors.stylePrimary)
                 }
                 .frame(width: buttonSize, height: buttonSize)
             }
@@ -1959,10 +1935,10 @@ struct HomeView: View {
                 let buttonSize = max(dateActionButtonSize, 44)
                 ZStack {
                     Circle()
-                        .fill(Color.primary.opacity(0.08))
-                    Image(systemName: "arrow.right")
+                        .fill(Colors.primaryOpacity008)
+                    Image(systemName: Icons.sfArrowRight)
                         .font(dateActionSymbolFont)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Colors.stylePrimary)
                 }
                 .frame(width: buttonSize, height: buttonSize)
             }
@@ -1985,9 +1961,9 @@ struct HomeView: View {
                     Circle()
                         .fill(.ultraThinMaterial)
                         .glassEffect(.regular, in: .rect(cornerRadius: buttonSize / 2))
-                    Image(systemName: "calendar")
+                    Image(systemName: Icons.sfCalendar)
                         .font(dateActionSymbolFont)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Colors.stylePrimary)
                 }
                 .frame(width: buttonSize, height: buttonSize)
             }
@@ -2004,10 +1980,10 @@ struct HomeView: View {
                 let buttonSize = max(dateActionButtonSize, 44)
                 ZStack {
                     Circle()
-                        .fill(Color.primary.opacity(0.08))
-                    Image(systemName: "calendar")
+                        .fill(Colors.primaryOpacity008)
+                    Image(systemName: Icons.sfCalendar)
                         .font(dateActionSymbolFont)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Colors.stylePrimary)
                 }
                 .frame(width: buttonSize, height: buttonSize)
             }
@@ -2490,7 +2466,7 @@ private struct MetricDetailView: View {
                 if isAccessibilitySize {
                     ToolbarItem(placement: .principal) {
                         Text(title)
-                            .font(.headline)
+                            .font(Typography.headline)
                             .lineLimit(nil)
                             .multilineTextAlignment(.center)
                     }
@@ -2505,7 +2481,7 @@ private struct MetricDetailView: View {
             nextExpenseList
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: Spacing.l) {
                     detailContent
                 }
                 .padding()
@@ -2542,7 +2518,7 @@ private struct MetricDetailView: View {
 
     private var incomeContent: some View {
         let total = max(max(summary.potentialIncomeTotal, summary.actualIncomeTotal), 1)
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: Spacing.m) {
             incomeTimelineSection(total: total)
             incomeMoMSection
             quickIncomeActions
@@ -2551,10 +2527,10 @@ private struct MetricDetailView: View {
 
     private var weekdayContent: some View {
         let resolved = resolvedPeriod(period, range: range)
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: Spacing.m) {
             if spendSections.isEmpty {
                 Text("No spending in this range.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Colors.styleSecondary)
             } else {
                 ForEach(spendSections) { section in
                     let orientation = isAccessibilitySize ? .horizontal : detailBarOrientation(for: resolved, bucketCount: section.buckets.count)
@@ -2563,13 +2539,13 @@ private struct MetricDetailView: View {
                     let rowHeight = isAccessibilitySize ? detailDayRowHeight * 1.25 : detailDayRowHeight
                     let stackedHeight = CGFloat(rowCount) * rowHeight + CGFloat(max(rowCount - 1, 0)) * detailDayRowSpacing
                     let chartHeight = orientation == .horizontal ? max(resolvedDetailChartHeight, stackedHeight) : resolvedDetailChartHeight
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Spacing.s) {
                         Text(section.title)
-                            .font(.subheadline.weight(.semibold))
+                            .font(Typography.subheadlineSemibold)
                         if let subtitle = section.subtitle {
                             Text(subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.caption)
+                                .foregroundStyle(Colors.styleSecondary)
                         }
                         Group {
                             if isAccessibilitySize {
@@ -2604,7 +2580,7 @@ private struct MetricDetailView: View {
                                             if let label = value.as(String.self) {
                                                 AxisValueLabel {
                                                     Text(label)
-                                                        .font(.caption2)
+                                                        .font(Typography.caption2)
                                                         .lineLimit(2)
                                                         .fixedSize(horizontal: false, vertical: true)
                                                 }
@@ -2669,7 +2645,7 @@ private struct MetricDetailView: View {
                                     if let label = value.as(String.self) {
                                         AxisValueLabel {
                                             Text(label)
-                                                .font(.caption2)
+                                                .font(Typography.caption2)
                                                 .lineLimit(isAccessibilitySize ? 2 : 1)
                                                 .fixedSize(horizontal: false, vertical: true)
                                         }
@@ -2702,7 +2678,7 @@ private struct MetricDetailView: View {
                                                 AxisTick()
                                                 AxisValueLabel {
                                                     Text(String(label.prefix(1)))
-                                                        .font(.caption2)
+                                                        .font(Typography.caption2)
                                                         .lineLimit(1)
                                                 }
                                             }
@@ -2716,26 +2692,26 @@ private struct MetricDetailView: View {
                         .accessibilityLabel("\(section.title) spending chart")
                         .accessibilityValue("Shows spending totals by period.")
                         if isAccessibilitySize {
-                            HStack(spacing: 12) {
-                                HStack(spacing: 6) {
+                            HStack(spacing: Spacing.m) {
+                                HStack(spacing: Spacing.xs) {
                                     Circle()
                                         .fill(Color.secondary.opacity(0.7))
-                                        .frame(width: 8, height: 8)
+                                        .frame(width: Spacing.s, height: 8)
                                     Text("Day range")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
+                                        .font(Typography.caption2)
+                                        .foregroundStyle(Colors.styleSecondary)
                                 }
-                                HStack(spacing: 6) {
+                                HStack(spacing: Spacing.xs) {
                                     LinearGradient(
                                         colors: [Color.blue.opacity(0.35), Color.blue.opacity(0.85)],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
-                                    .frame(width: 22, height: 6)
+                                    .frame(width: 22, height: Spacing.xs)
                                     .clipShape(Capsule())
                                     Text("Amount spent")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
+                                        .font(Typography.caption2)
+                                        .foregroundStyle(Colors.styleSecondary)
                                 }
                             }
                         }
@@ -2744,8 +2720,8 @@ private struct MetricDetailView: View {
                         }
                         if let maxItem = section.buckets.max(by: { $0.amount < $1.amount }) {
                         Text("Highest: \(maxItem.label) • \(formatCurrency(maxItem.amount))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.caption)
+                                .foregroundStyle(Colors.styleSecondary)
                                 .lineLimit(nil)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -2758,9 +2734,9 @@ private struct MetricDetailView: View {
     private var capsContent: some View {
         let segment = detailAvailabilitySegment
         let filtered = (capStatuses ?? []).filter { $0.segment == segment }
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: Spacing.m) {
             Text("Category Caps & Alerts")
-                .font(.ubSectionTitle)
+                .font(Typography.headlineSemibold)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
             PillSegmentedControl(selection: detailAvailabilitySegmentBinding) {
@@ -2769,30 +2745,30 @@ private struct MetricDetailView: View {
                 }
             }
             .ubSegmentedGlassStyle()
-            .padding(.trailing, 6)
+            .padding(.trailing, Spacing.xs)
             if filtered.isEmpty {
                 Text("No caps found for this range.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Colors.styleSecondary)
             } else {
                 ForEach(filtered) { cap in
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         HStack {
                             Circle().fill(cap.color).frame(width: legendDotSize, height: legendDotSize)
                             Text(cap.name)
-                                .font(.ubDetailLabel.weight(.semibold))
+                                .font(Typography.subheadlineSemibold)
                                 .lineLimit(isAccessibilitySize ? nil : 1)
                                 .fixedSize(horizontal: false, vertical: true)
                             Spacer()
                             if cap.over {
                                 Text("Over")
-                                    .font(.ubChip)
-                                    .padding(6)
+                                    .font(Typography.captionSemibold)
+                                    .padding(Spacing.xs)
                                     .background(Color.red.opacity(0.12))
                                     .clipShape(Capsule())
                             } else if cap.near {
                                 Text("Near")
-                                    .font(.ubChip)
-                                    .padding(6)
+                                    .font(Typography.captionSemibold)
+                                    .padding(Spacing.xs)
                                     .background(Color.orange.opacity(0.12))
                                     .clipShape(Capsule())
                             }
@@ -2801,12 +2777,12 @@ private struct MetricDetailView: View {
                             .tint(cap.color)
                         HStack {
                             Text("Spent: \(formatCurrency(cap.amount))")
-                                .font(.ubCaption)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.footnote)
+                                .foregroundStyle(Colors.styleSecondary)
                             Spacer()
                             Text("Cap: \(formatCurrency(cap.cap))")
-                                .font(.ubCaption)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.footnote)
+                                .foregroundStyle(Colors.styleSecondary)
                         }
                     }
                 }
@@ -2827,9 +2803,9 @@ private struct MetricDetailView: View {
         let actualIncomeRemainingPercent = summary.actualIncomeTotal > 0
             ? (remainingIncome / summary.actualIncomeTotal) * 100
             : 0
-        return VStack(alignment: .leading, spacing: 16) {
+        return VStack(alignment: .leading, spacing: Spacing.l) {
             expenseIncomeChart(expensePoints: expensePoints, incomePoints: incomePoints, plannedPoints: plannedPoints)
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Spacing.s) {
                 metricRow(label: "Expenses", value: formatCurrency(expenses))
                 metricRow(label: "Actual Income", value: formatCurrency(summary.actualIncomeTotal))
                 metricRow(label: "Planned Income", value: formatCurrency(summary.potentialIncomeTotal))
@@ -2852,9 +2828,9 @@ private struct MetricDetailView: View {
         let savingsPoints = savingsSeries.isEmpty ? fallbackSavingsSeries(projected: projected, actual: summary.actualSavingsTotal) : savingsSeries
         let actualSavings = summary.actualSavingsTotal
 
-        return VStack(alignment: .leading, spacing: 16) {
+        return VStack(alignment: .leading, spacing: Spacing.l) {
             savingsChart(points: savingsPoints)
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Spacing.s) {
                 metricRow(label: "Planned Income", value: formatCurrency(outlook.remainingIncome))
                 metricRow(label: "Projected Savings", value: formatCurrency(projected))
                 metricRow(label: "Actual Savings", value: formatCurrency(actualSavings))
@@ -2885,7 +2861,7 @@ private struct MetricDetailView: View {
                 )
             } else {
                 Text("No planned expenses in this range.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Colors.styleSecondary)
             }
         }
     }
@@ -2898,7 +2874,7 @@ private struct MetricDetailView: View {
             if let leadingCategory = slices.first, !slices.isEmpty, totalExpenses > 0 {
                 let totalForList = max(totalExpenses, 1)
                 let topSlices = Array(slices.prefix(3))
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Spacing.m) {
                     CategoryDonutView(
                         slices: slices,
                         total: max(totalExpenses, 1),
@@ -2906,9 +2882,9 @@ private struct MetricDetailView: View {
                         centerValue: isAccessibilitySize ? "" : formatCurrency(leadingCategory.amount)
                     )
                     .frame(height: 220)
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text("Top Categories")
-                            .font(.headline)
+                            .font(Typography.headline)
                         ForEach(Array(topSlices.indices), id: \.self) { idx in
                             let slice = topSlices[idx]
                             CategoryTopRow(slice: slice, total: max(totalExpenses, 1))
@@ -2923,7 +2899,7 @@ private struct MetricDetailView: View {
                 }
             } else {
                 Text("No category data in this range.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Colors.styleSecondary)
             }
         }
     }
@@ -2933,23 +2909,23 @@ private struct MetricDetailView: View {
         let items = computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary), segment: segment)
         let rowSpacing: CGFloat = isAccessibilitySize ? 10 : 6
         let rowPadding: CGFloat = isAccessibilitySize ? 8 : 4
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: Spacing.m) {
             PillSegmentedControl(selection: detailAvailabilitySegmentBinding) {
                 ForEach(CategoryAvailabilitySegment.allCases) { segment in
                     Text(segment.title).tag(segment)
                 }
             }
             .ubSegmentedGlassStyle()
-            .padding(.trailing, 6)
+            .padding(.trailing, Spacing.xs)
             if items.isEmpty {
                 Text("No categories or caps available.")
-                    .font(.ubBody)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.body)
+                    .foregroundStyle(Colors.styleSecondary)
             } else {
                 VStack(spacing: rowSpacing) {
                     ForEach(items) { item in
                         let isExpanded = expandedCategoryName == item.name
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
                             Button {
                                 toggleExpandedCategory(item)
                             } label: {
@@ -2965,7 +2941,7 @@ private struct MetricDetailView: View {
                     .padding(rowPadding)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(isExpanded ? Color.primary.opacity(0.06) : Color.clear)
+                            .fill(isExpanded ? Color.primary.opacity(0.06) : Colors.clear)
                     )
                 }
             }
@@ -2981,11 +2957,11 @@ private struct MetricDetailView: View {
         let segment = CategoryAvailabilitySegment.variable
         let items = computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary), segment: segment)
         let remainingIncome = summary.actualSavingsTotal
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: Spacing.m) {
             if items.isEmpty {
                 Text("No categories or caps available.")
-                    .font(.ubBody)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.body)
+                    .foregroundStyle(Colors.styleSecondary)
             } else {
                 scenarioPlanner(items: items, remainingIncome: remainingIncome, segment: segment)
             }
@@ -3011,12 +2987,12 @@ private struct MetricDetailView: View {
                     .padding(.leading, 22)
             } else if expandedCategoryExpenses.isEmpty {
                 Text("No expenses in this range.")
-                    .font(.ubCaption)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.leading, 22)
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: Spacing.s) {
                     ForEach(expandedCategoryExpenses) { expense in
                         categoryExpenseRow(expense)
                     }
@@ -3027,21 +3003,21 @@ private struct MetricDetailView: View {
     }
 
     private func categoryExpenseRow(_ expense: CategoryExpenseItem) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.m) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(expense.title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(Typography.subheadlineSemibold)
                     .lineLimit(isAccessibilitySize ? nil : 2)
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.xs) {
                     categoryExpenseCardPreview(expense.card)
                     Text(expenseDateString(expense.date))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.styleSecondary)
                 }
             }
             Spacer(minLength: 8)
             Text(formatCurrency(expense.amount))
-                .font(.subheadline.weight(.semibold))
+                .font(Typography.subheadlineSemibold)
                 .monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -3064,12 +3040,12 @@ private struct MetricDetailView: View {
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
                         .stroke(Color.primary.opacity(0.18), lineWidth: 1)
                 )
-                .frame(width: 12, height: 8)
+                .frame(width: Spacing.m, height: 8)
                 .frame(width: symbolWidth, alignment: .leading)
         } else {
             RoundedRectangle(cornerRadius: 2, style: .continuous)
                 .stroke(Color.primary.opacity(0.12), lineWidth: 1)
-                .frame(width: 12, height: 8)
+                .frame(width: Spacing.m, height: 8)
                 .frame(width: symbolWidth, alignment: .leading)
         }
     }
@@ -3184,33 +3160,33 @@ private struct MetricDetailView: View {
         let savingsColor = potentialSavings >= 0 ? savingsBase : Color.red.opacity(0.85)
         let savingsTextStyle = savingsColor
 
-        VStack(alignment: .leading, spacing: 12) {
-            Divider().padding(.top, 4)
+        VStack(alignment: .leading, spacing: Spacing.m) {
+            Divider().padding(.top, Spacing.xxs)
             Text("Adjust category allocations to see how much you could still save.")
-                .font(.ubBody)
-                .foregroundStyle(.secondary)
+                .font(Typography.body)
+                .foregroundStyle(Colors.styleSecondary)
 
             Group {
                 if isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text(potentialSavings >= 0 ? "Potential Savings" : "Over-allocated")
-                            .font(.ubDetailLabel.weight(.semibold))
+                            .font(Typography.subheadlineSemibold)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                         Text(formatCurrency(potentialSavings))
-                            .font(.ubMetricValue)
+                            .font(Typography.title3Bold)
                             .foregroundStyle(savingsTextStyle)
-                            .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
+                            .shadow(color: Colors.primaryOpacity008, radius: 1, x: 0, y: 1)
                     }
                 } else {
                     HStack {
                         Text(potentialSavings >= 0 ? "Potential Savings" : "Over-allocated")
-                            .font(.ubDetailLabel.weight(.semibold))
+                            .font(Typography.subheadlineSemibold)
                         Spacer()
                         Text(formatCurrency(potentialSavings))
-                            .font(.ubMetricValue)
+                            .font(Typography.title3Bold)
                             .foregroundStyle(savingsTextStyle)
-                            .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
+                            .shadow(color: Colors.primaryOpacity008, radius: 1, x: 0, y: 1)
                     }
                 }
             }
@@ -3218,8 +3194,8 @@ private struct MetricDetailView: View {
                 if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
                     Button("Clear") { scenarioAllocationsRaw = "" }
                         .font(.ubCaption.weight(.semibold))
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 12)
+                        .padding(.vertical, Spacing.xs)
+                        .padding(.horizontal, Spacing.m)
                         .glassEffect(.regular, in: .capsule)
                         .buttonStyle(.plain)
                 } else {
@@ -3228,7 +3204,7 @@ private struct MetricDetailView: View {
                         .buttonStyle(.plain)
                 }
             }
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Colors.styleSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .disabled(scenarioAllocations.isEmpty)
             .opacity(scenarioAllocations.isEmpty ? 0.5 : 1)
@@ -3243,7 +3219,7 @@ private struct MetricDetailView: View {
             let listWidth = max(width - donutSize - 16, width * 0.48)
 
             ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 16) {
+                HStack(alignment: .top, spacing: Spacing.l) {
                 CategoryDonutView(
                     slices: slices,
                     total: max(slices.map(\.amount).reduce(0, +), 1),
@@ -3255,7 +3231,7 @@ private struct MetricDetailView: View {
                     .frame(width: donutSize, height: donutSize)
                     .frame(minWidth: 0, alignment: .leading)
 
-                    VStack(spacing: 10) {
+                    VStack(spacing: Spacing.sPlus) {
                         ForEach(items) { item in
                             scenarioAllocationRow(item: item, segment: segment)
                         }
@@ -3263,7 +3239,7 @@ private struct MetricDetailView: View {
                     .frame(width: listWidth, alignment: .leading)
                 }
 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: Spacing.l) {
                     CategoryDonutView(
                         slices: slices,
                         total: max(slices.map(\.amount).reduce(0, +), 1),
@@ -3275,7 +3251,7 @@ private struct MetricDetailView: View {
                     .frame(width: stackedDonutSize, height: stackedDonutSize)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                    VStack(spacing: 10) {
+                    VStack(spacing: Spacing.sPlus) {
                         ForEach(items) { item in
                             scenarioAllocationRow(item: item, segment: segment)
                         }
@@ -3286,7 +3262,7 @@ private struct MetricDetailView: View {
             .frame(minHeight: 300, alignment: .top)
             .background(
                 GeometryReader { geo in
-                    Color.clear
+                    Colors.clear
                         .preference(key: ScenarioPlannerWidthPreferenceKey.self, value: geo.size.width)
                 }
             )
@@ -3297,17 +3273,17 @@ private struct MetricDetailView: View {
     private func scenarioAllocationRow(item: CategoryAvailability, segment: CategoryAvailabilitySegment) -> some View {
         let binding = allocationBinding(for: item, segment: segment)
 
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: Spacing.s) {
                 HStack(alignment: .firstTextBaseline) {
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.xs) {
                     Circle().fill(item.color).frame(width: legendDotSize, height: legendDotSize)
                     Text(item.name)
             }
-                .font(.ubDetailLabel.weight(.semibold))
+                .font(Typography.subheadlineSemibold)
                 .lineLimit(isAccessibilitySize ? nil : 1)
             }
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) {
+                HStack(spacing: Spacing.m) {
                     TextField("0", value: binding, formatter: allocationFormatter)
                         .textFieldStyle(.roundedBorder)
                         .keyboardType(.decimalPad)
@@ -3317,7 +3293,7 @@ private struct MetricDetailView: View {
                         .labelsHidden()
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     TextField("0", value: binding, formatter: allocationFormatter)
                         .textFieldStyle(.roundedBorder)
                         .keyboardType(.decimalPad)
@@ -3472,27 +3448,27 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private func metricRow(label: String, value: String) -> some View {
         Group {
             if isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(label)
-                        .font(.ubBody)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.body)
+                        .foregroundStyle(Colors.styleSecondary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(value)
-                        .font(.ubMetricValue)
+                        .font(Typography.title3Bold)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             } else {
                 HStack {
                     Text(label)
-                        .font(.ubBody)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.body)
+                        .foregroundStyle(Colors.styleSecondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.9)
                     Spacer()
                     Text(value)
-                        .font(.ubMetricValue)
+                        .font(Typography.title3Bold)
                 }
             }
         }
@@ -3504,10 +3480,10 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     }
 
     private func legendRow(label: String, color: Color, symbol: LegendSymbol) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Spacing.xs) {
             legendSymbolView(symbol: symbol, color: color)
             Text(label)
-                .font(.caption)
+                .font(Typography.caption)
                 .foregroundStyle(color)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
@@ -3531,14 +3507,14 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
     private func axisCurrencyLabel(_ value: Double) -> some View {
         Text(formatCurrency(value))
-            .font(.caption2)
+            .font(Typography.caption2)
             .lineLimit(1)
             .minimumScaleFactor(isAccessibilitySize ? 0.6 : 0.8)
     }
 
     private func axisCurrencyLabelCompact(_ value: Double) -> some View {
         Text(formatAxisCurrency(value, compact: true))
-            .font(.caption2)
+            .font(Typography.caption2)
             .lineLimit(1)
             .minimumScaleFactor(isAccessibilitySize ? 0.5 : 0.8)
     }
@@ -3547,7 +3523,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d"
         return Text(formatter.string(from: date))
-            .font(.caption2)
+            .font(Typography.caption2)
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -3568,13 +3544,13 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
     // MARK: Income Sections
     private func incomeTimelineSection(total: Double) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             HStack {
                 Spacer()
                 paceBadge(total: total)
             }
             timelineChart
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.m) {
                 metricRow(label: "Received", value: formatCurrency(summary.actualIncomeTotal))
                 metricRow(label: "Planned", value: formatCurrency(summary.potentialIncomeTotal))
             }
@@ -3595,9 +3571,9 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             status = "Behind"
         }
         return Text(status)
-            .font(.ubChip)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .font(Typography.captionSemibold)
+            .padding(.horizontal, Spacing.sPlus)
+            .padding(.vertical, Spacing.xs)
             .background(
                 Capsule().fill(HomeView.HomePalette.income.opacity(0.15))
             )
@@ -3646,7 +3622,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         let label = Text(title)
             .font(.headline.weight(.bold))
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, Spacing.m)
             .foregroundStyle(Color.primary.opacity(0.9))
 
         return Group {
@@ -3663,7 +3639,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 }
                 .buttonStyle(.plain)
                 .background(heatmapBackground(for: shapeLegacy))
-                .overlay(shapeLegacy.stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                .overlay(shapeLegacy.stroke(Colors.primaryOpacity008, lineWidth: 1))
             }
         }
     }
@@ -3709,7 +3685,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private var timelineChart: some View {
         if incomeTimeline.isEmpty {
             Text("No income in this range.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
         } else {
             let plannedLineColor = HomeView.HomePalette.income
             let actualLineColor = Color.gray
@@ -3723,7 +3699,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
             let maxVal = max((actualLineSeries.map(\.value).max() ?? 0), (plannedSeries.map(\.value).max() ?? 0), 1)
             let domain: ClosedRange<Double> = 0...(maxVal * 1.1)
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Spacing.s) {
                 Group {
                     if isAccessibilitySize {
                         Chart {
@@ -3796,7 +3772,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                                     .foregroundStyle(.gray.opacity(0.35))
                                     .annotation(position: .topLeading) {
                                         Text(formatCurrency(selected.value))
-                                            .font(.caption2)
+                                            .font(Typography.caption2)
                                     }
                             }
                         }
@@ -3848,22 +3824,22 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 .accessibilityValue("Shows planned income and actual income over time.")
 
                 if isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text("Range: \(dateString(range.lowerBound)) – \(dateString(range.upperBound))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.styleSecondary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                         if let latestPlanned {
                             Text("Planned: \(formatCurrency(latestPlanned))")
-                                .font(.caption)
+                                .font(Typography.caption)
                                 .foregroundStyle(plannedLineColor)
                                 .lineLimit(nil)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         if let latestActual {
                             Text("Actual: \(formatCurrency(latestActual))")
-                                .font(.caption)
+                                .font(Typography.caption)
                                 .foregroundStyle(actualLineColor.opacity(0.9))
                                 .lineLimit(nil)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -3873,19 +3849,19 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
                 if let selected = timelineSelection {
                     Text("\(dateString(selected.date)) • \(formatCurrency(selected.value))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.styleSecondary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Group {
                         if isAccessibilitySize {
-                            VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: Spacing.xs) {
                                 legendRow(label: "Planned Income", color: plannedLineColor, symbol: .dot)
                                 legendRow(label: "Actual Income", color: actualLineColor.opacity(0.9), symbol: .dot)
                             }
                         } else {
-                            HStack(spacing: 16) {
+                            HStack(spacing: Spacing.l) {
                                 legendRow(label: "Planned Income", color: plannedLineColor, symbol: .dot)
                                 legendRow(label: "Actual Income", color: actualLineColor.opacity(0.9), symbol: .dot)
                             }
@@ -3897,11 +3873,11 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     }
 
     private var incomeMoMSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.sPlus) {
             ViewThatFits(in: .horizontal) {
                 HStack {
                     Text("Trends")
-                        .font(.ubSectionTitle)
+                        .font(Typography.headlineSemibold)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer()
@@ -3913,9 +3889,9 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                     .pickerStyle(.menu)
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     Text("Trends")
-                        .font(.ubSectionTitle)
+                        .font(Typography.headlineSemibold)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
                     Picker("Period", selection: $comparisonPeriod) {
@@ -3928,7 +3904,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             }
             if incomeBuckets.isEmpty {
                 Text("No income history for this period size.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Colors.styleSecondary)
             } else {
                 let latestBucket = incomeBuckets.last
                 Group {
@@ -3947,15 +3923,15 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                         .accessibilityLabel("Income trends chart")
                         .accessibilityValue("Shows income totals by period.")
 
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
                             Text("Period: \(comparisonPeriod.title)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.caption)
+                                .foregroundStyle(Colors.styleSecondary)
                                 .lineLimit(nil)
                                 .fixedSize(horizontal: false, vertical: true)
                             if let latestBucket {
                                 Text("Latest: \(latestBucket.label) • \(formatCurrency(latestBucket.total))")
-                                    .font(.caption)
+                                    .font(Typography.caption)
                                     .foregroundStyle(HomeView.HomePalette.income)
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -3974,7 +3950,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                                 if let label = value.as(String.self) {
                                     AxisValueLabel {
                                         Text(label)
-                                            .font(.caption2)
+                                            .font(Typography.caption2)
                                             .lineLimit(2)
                                             .fixedSize(horizontal: false, vertical: true)
                                     }
@@ -4005,12 +3981,12 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private var quickIncomeActions: some View {
         Group {
             if isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: Spacing.sPlus) {
                     addIncomeButton
                     editLatestButton
                 }
             } else {
-                HStack(spacing: 12) {
+                HStack(spacing: Spacing.m) {
                     addIncomeButton
                     editLatestButton
                 }
@@ -4031,7 +4007,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             showAddIncomeSheet = true
         } label: {
             Label("Add Income", systemImage: "plus.circle.fill")
-                .font(.subheadline.weight(.semibold))
+                .font(Typography.subheadlineSemibold)
         }
         .buttonStyle(.borderedProminent)
         .tint(HomeView.HomePalette.income)
@@ -4044,7 +4020,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             }
         } label: {
             Label("Edit Latest", systemImage: "pencil")
-                .font(.subheadline.weight(.semibold))
+                .font(Typography.subheadlineSemibold)
         }
         .buttonStyle(.bordered)
         .disabled(latestIncomeID == nil)
@@ -4076,7 +4052,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private var nextExpenseList: some View {
         List {
             nextExpenseContent
-                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                .listRowInsets(EdgeInsets(top: Spacing.m, leading: 16, bottom: Spacing.m, trailing: 16))
         }
         .listStyle(.plain)
         .sheet(item: $editingExpenseBox) { box in
@@ -4461,7 +4437,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private func spendCategoryChips(for bucket: SpendBucket) -> some View {
         let sorted = bucket.categoryTotals.sorted { $0.value > $1.value }
         return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: Spacing.s) {
                 if sorted.isEmpty {
                     CategoryChipPill(
                         glassTextColor: .secondary,
@@ -4484,19 +4460,19 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                             fallbackStrokeColor: color.opacity(0.35),
                             fallbackStrokeLineWidth: 1
                         ) {
-                            HStack(spacing: 6) {
+                            HStack(spacing: Spacing.xs) {
                                 Circle()
                                     .fill(color)
-                                    .frame(width: 6, height: 6)
+                                    .frame(width: Spacing.xs, height: 6)
                                 Text(name)
                                 Text(formatCurrency(entry.value))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Colors.styleSecondary)
                             }
                         }
                     }
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xxs)
         }
     }
 
@@ -4658,7 +4634,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private func expenseIncomeChart(expensePoints: [DatedValue], incomePoints: [DatedValue], plannedPoints: [DatedValue]) -> some View {
         if expensePoints.isEmpty && incomePoints.isEmpty && plannedPoints.isEmpty {
             Text("Not enough data for this range.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
         } else {
             let chartPoints =
                 expensePoints.map { ExpenseIncomePoint(date: $0.date, value: $0.value, series: .expenses) } +
@@ -4766,29 +4742,29 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             .accessibilityValue("Shows expenses, actual income, and planned income for the selected range.")
 
             if isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Range: \(dateString(range.lowerBound)) – \(dateString(range.upperBound))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.styleSecondary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
                     if let latestExpense {
                         Text("Expenses: \(formatCurrency(latestExpense.value))")
-                            .font(.caption)
+                            .font(Typography.caption)
                             .foregroundStyle(lineColor)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if let latestIncome {
                         Text("Actual Income: \(formatCurrency(latestIncome.value))")
-                            .font(.caption)
+                            .font(Typography.caption)
                             .foregroundStyle(incomeColor)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if let latestPlanned {
                         Text("Planned Income: \(formatCurrency(latestPlanned.value))")
-                            .font(.caption)
+                            .font(Typography.caption)
                             .foregroundStyle(plannedColor)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
@@ -4798,13 +4774,13 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
             Group {
                 if isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         legendRow(label: "Expenses", color: lineColor, symbol: .dot)
                         legendRow(label: "Actual Income", color: incomeColor, symbol: .dot)
                         legendRow(label: "Planned Income", color: plannedColor, symbol: .line)
                     }
                 } else {
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.m) {
                         legendRow(label: "Expenses", color: lineColor, symbol: .dot)
                         legendRow(label: "Actual Income", color: incomeColor, symbol: .dot)
                         legendRow(label: "Planned Income", color: plannedColor, symbol: .line)
@@ -4820,14 +4796,14 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 let incomeText = income.map { formatCurrency($0.value) } ?? "—"
                 let plannedText = planned.map { formatCurrency($0.value) } ?? "—"
                 Text("\(dateString(selected.date)) • Exp \(expenseText) • Inc \(incomeText) • Plan \(plannedText)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.styleSecondary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
             } else if let latestExpense, let latestIncome, let latestPlanned {
                 Text("Latest: \(dateString(latestExpense.date)) • Exp \(formatCurrency(latestExpense.value)) • Inc \(formatCurrency(latestIncome.value)) • Plan \(formatCurrency(latestPlanned.value))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.styleSecondary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -4838,7 +4814,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     private func savingsChart(points: [SavingsPoint]) -> some View {
         if points.isEmpty {
             Text("Not enough data for this range.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
         } else {
             let sampled = smoothSavings(points, maxCount: 14)
             let minVal = sampled.map { min($0.actual, $0.projected) }.min() ?? 0
@@ -4855,7 +4831,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
             let latestActual = actualSeries.last?.value
             let latestProjected = projectedSeries.last?.value
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Group {
                     if isAccessibilitySize {
                         Chart {
@@ -4969,22 +4945,22 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
                 .accessibilityValue("Shows actual and projected savings over time.")
 
                 if isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text("Range: \(dateString(range.lowerBound)) – \(dateString(range.upperBound))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.styleSecondary)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                         if let latestActual {
                             Text("Actual: \(formatCurrency(latestActual))")
-                                .font(.caption)
+                                .font(Typography.caption)
                                 .foregroundStyle(actualColor)
                                 .lineLimit(nil)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         if let latestProjected {
                             Text("Projected: \(formatCurrency(latestProjected))")
-                                .font(.caption)
+                                .font(Typography.caption)
                                 .foregroundStyle(projectedColor)
                                 .lineLimit(nil)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -4994,25 +4970,25 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
 
                 Group {
                     if isAccessibilitySize {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
                             legendRow(label: "Actual", color: actualColor, symbol: .dot)
                             legendRow(label: "Projected", color: projectedColor, symbol: .dot)
                             if let selected = savingsSelection {
                                 Text("\(dateString(selected.date)) • \(formatCurrency(selected.actual)) / \(formatCurrency(selected.projected))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(Typography.caption)
+                                    .foregroundStyle(Colors.styleSecondary)
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
                     } else {
-                        HStack(spacing: 12) {
+                        HStack(spacing: Spacing.m) {
                             legendRow(label: "Actual", color: actualColor, symbol: .dot)
                             legendRow(label: "Projected", color: projectedColor, symbol: .dot)
                             if let selected = savingsSelection {
                                 Text("\(dateString(selected.date)) • \(formatCurrency(selected.actual)) / \(formatCurrency(selected.projected))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(Typography.caption)
+                                    .foregroundStyle(Colors.styleSecondary)
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -5028,7 +5004,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         let items = summary.variableCategoryBreakdown
         let topItems = showAllCategories ? items : Array(items.prefix(5))
         let total = totalOverride ?? max(items.map(\.amount).reduce(0, +), 1)
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: Spacing.sPlus) {
             ForEach(topItems) { cat in
                 categoryRow(cat, total: total)
             }
@@ -5036,7 +5012,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     }
 
     private func categoriesCompactList(_ items: [BudgetSummary.CategorySpending], total: Double) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.sPlus) {
             ForEach(items) { cat in
                 categoryRow(cat, total: total)
             }
@@ -5048,35 +5024,35 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
         let share = max(min(cat.amount / max(total, 1), 1), 0)
         return Group {
             if isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    HStack(spacing: Spacing.s) {
                         Circle().fill(color).frame(width: legendDotSize, height: legendDotSize)
                         Text(cat.categoryName)
-                            .font(.subheadline.weight(.semibold))
+                            .font(Typography.subheadlineSemibold)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         Text(formatCurrency(cat.amount))
-                            .font(.subheadline)
+                            .font(Typography.subheadline)
                         Text(String(format: "%.0f%%", share * 100))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.styleSecondary)
                     }
                 }
             } else {
                 HStack {
                     Circle().fill(color).frame(width: legendDotSize, height: legendDotSize)
                     Text(cat.categoryName)
-                        .font(.subheadline.weight(.semibold))
+                        .font(Typography.subheadlineSemibold)
                         .lineLimit(1)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                     Text(formatCurrency(cat.amount))
-                        .font(.subheadline)
+                        .font(Typography.subheadline)
                     Text(String(format: "%.0f%%", share * 100))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.styleSecondary)
                 }
             }
         }
@@ -5103,28 +5079,28 @@ private struct NextPlannedDetailRow: View {
         let dotColor = UBColorFromHex(expense?.expenseCategory?.color) ?? .secondary
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                     Circle().fill(dotColor).frame(width: dotSize, height: dotSize)
                         .frame(width: symbolWidth, alignment: .leading)
                     Text(snapshot.title)
-                        .font(.headline)
+                        .font(Typography.headline)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                     cardIndicator
                         .frame(width: symbolWidth, alignment: .leading)
                     Text(shortDate(snapshot.date))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.subheadline)
+                        .foregroundStyle(Colors.styleSecondary)
                 }
             }
             Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: Spacing.xxs) {
                 Text("Planned: \(formatCurrency(snapshot.plannedAmount))")
-                    .font(.subheadline.weight(.semibold))
+                    .font(Typography.subheadlineSemibold)
                 Text("Actual: \(formatCurrency(snapshot.actualAmount))")
-                    .font(.subheadline)
+                    .font(Typography.subheadline)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -5189,18 +5165,18 @@ private struct PresetExpenseRowView: View {
     let dateText: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(title)
                 .font(.body.weight(.semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Colors.stylePrimary)
                 .lineLimit(2)
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.m) {
                 Text(amountText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.styleSecondary)
                 Text(dateText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.styleSecondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -5238,12 +5214,12 @@ private struct NextPlannedExpenseWidgetRow: View {
     var body: some View {
         Group {
             if isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Spacing.m) {
                     cardPreview
                     details
                 }
             } else {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: Spacing.m) {
                     cardPreview
                     details
                 }
@@ -5253,22 +5229,22 @@ private struct NextPlannedExpenseWidgetRow: View {
     }
 
     private var details: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(title)
                 .font(.body.weight(.semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Colors.stylePrimary)
                 .lineLimit(isAccessibilitySize ? nil : 1)
                 .minimumScaleFactor(isAccessibilitySize ? 1.0 : 0.82)
                 .allowsTightening(!isAccessibilitySize)
             Text(dateText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(Typography.caption)
+                .foregroundStyle(Colors.styleSecondary)
             Text(plannedText)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Colors.stylePrimary)
             Text(actualText)
-                .font(.caption)
-                .foregroundStyle(.primary)
+                .font(Typography.caption)
+                .foregroundStyle(Colors.stylePrimary)
         }
     }
 
@@ -5339,9 +5315,9 @@ private struct NextPlannedPresetsView: View {
         let gradient = LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
         let shadowColor = colors.last ?? HomeView.HomePalette.cards
         return AnyView(
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 Text("Next Planned Expense")
-                    .font(.title3.weight(.semibold))
+                    .font(Typography.title3Semibold)
                     .foregroundStyle(HomeView.HomePalette.cards)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -5767,7 +5743,7 @@ private func blendTail(colors: [Color], totalCount: Int, maxCount: Int) -> [Colo
     guard totalCount > maxCount, colors.count >= maxCount else { return colors }
     let head = Array(colors.prefix(maxCount - 1))
     let tail = colors.suffix(from: maxCount - 1)
-    let blended = tail.reduce(Color.clear) { acc, next in
+    let blended = tail.reduce(Colors.clear) { acc, next in
         if acc == .clear { return next }
         return acc.blend(with: next, fraction: 0.5)
     }
@@ -6021,12 +5997,12 @@ private struct CategoryDonutView: View {
                 .frame(maxWidth: .infinity)
             } else {
                 // Fallback: simple ring using proportional rectangles
-                HStack(spacing: 4) {
+                HStack(spacing: Spacing.xxs) {
                     ForEach(slices) { slice in
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(style(for: slice))
                             .frame(maxWidth: .infinity)
-                            .frame(height: 8)
+                            .frame(height: Spacing.s)
                             .opacity(0.9)
                             .shadow(color: savingsColor?.opacity(slice.name == "Savings" ? 0.35 : 0) ?? .clear, radius: 4, x: 0, y: 0)
                     }
@@ -6047,14 +6023,14 @@ private struct CategoryDonutView: View {
                 .allowsHitTesting(false)
             }
 
-            VStack(spacing: 4) {
+            VStack(spacing: Spacing.xxs) {
                 Text(centerTitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.styleSecondary)
                 Text(centerValue)
-                    .font(.headline.weight(.semibold))
+                    .font(Typography.headlineSemibold)
                     .foregroundStyle(centerStyle)
-                    .shadow(color: Color.primary.opacity(0.08), radius: 1, x: 0, y: 1)
+                    .shadow(color: Colors.primaryOpacity008, radius: 1, x: 0, y: 1)
             }
         }
     }
@@ -6131,38 +6107,38 @@ private struct CategoryTopRow: View {
 
     var body: some View {
         let share = max(min(slice.amount / max(total, 1), 1), 0)
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Group {
                 if isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        HStack(spacing: Spacing.s) {
                             Circle().fill(slice.color).frame(width: dotSize, height: dotSize)
                             Text(slice.name)
-                                .font(.subheadline.weight(.semibold))
+                                .font(Typography.subheadlineSemibold)
                                 .lineLimit(nil)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        HStack(spacing: 8) {
+                        HStack(spacing: Spacing.s) {
                             Text(String(format: "%.0f%%", share * 100))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.caption)
+                                .foregroundStyle(Colors.styleSecondary)
                             Text(formatCurrency(slice.amount))
-                                .font(.subheadline)
+                                .font(Typography.subheadline)
                         }
                     }
                 } else {
                     HStack {
                         Circle().fill(slice.color).frame(width: dotSize, height: dotSize)
                         Text(slice.name)
-                            .font(.subheadline.weight(.semibold))
+                            .font(Typography.subheadlineSemibold)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer()
                         Text(String(format: "%.0f%%", share * 100))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.styleSecondary)
                         Text(formatCurrency(slice.amount))
-                            .font(.subheadline)
+                            .font(Typography.subheadline)
                     }
                 }
             }
@@ -6171,7 +6147,7 @@ private struct CategoryTopRow: View {
                     .fill(slice.color.opacity(0.25))
                     .frame(width: CGFloat(share) * geo.size.width, height: 8)
             }
-            .frame(height: 8)
+            .frame(height: Spacing.s)
         }
     }
 
@@ -6253,9 +6229,9 @@ struct PlannedRowsList: View {
     var body: some View {
         if rows.isEmpty {
             Text("No planned expenses in this period.\nPress the + to add a planned expense.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
                 .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 8)
+                .padding(.vertical, Spacing.s)
                 .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
                 .listRowSeparator(.hidden)
         } else {
@@ -6263,13 +6239,13 @@ struct PlannedRowsList: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         let dotColor = UBColorFromHex(exp.expenseCategory?.color) ?? .secondary
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                             Circle().fill(dotColor).frame(width: dotSize, height: dotSize)
                                 .frame(width: symbolWidth, alignment: .leading)
                             Text(Self.readPlannedDescription(exp) ?? "Expense")
-                                .font(.headline)
+                                .font(Typography.headline)
                         }
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                             Group {
                                 if let card = exp.card {
                                     let theme: CardTheme = {
@@ -6294,16 +6270,16 @@ struct PlannedRowsList: View {
                             }
                             .frame(width: symbolWidth, alignment: .leading)
                             Text(Self.dateString(exp.transactionDate))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.subheadline)
+                                .foregroundStyle(Colors.styleSecondary)
                         }
                     }
                     Spacer(minLength: 8)
-                    VStack(alignment: .trailing, spacing: 4) {
+                    VStack(alignment: .trailing, spacing: Spacing.xxs) {
                         Text("Planned: \(Self.formatCurrency(exp.plannedAmount))")
-                            .font(.subheadline.weight(.semibold))
+                            .font(Typography.subheadlineSemibold)
                         Text("Actual: \(Self.formatCurrency(exp.actualAmount))")
-                            .font(.subheadline)
+                            .font(Typography.subheadline)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -6380,8 +6356,8 @@ private struct SegmentedGlassStyleModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
+            .padding(.vertical, Spacing.xs)
+            .padding(.horizontal, Spacing.s)
             .background(background)
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
@@ -6389,7 +6365,7 @@ private struct SegmentedGlassStyleModifier: ViewModifier {
     @ViewBuilder
     private var background: some View {
         if #available(iOS 26.0, macOS 15.0, macCatalyst 26.0, *) {
-            Color.clear
+            Colors.clear
                 .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             #if canImport(UIKit)
@@ -6473,9 +6449,9 @@ struct VariableRowsList: View {
     var body: some View {
         if rows.isEmpty {
             Text("No variable expenses in this period.\nTrack purchases as they happen.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
                 .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 8)
+                .padding(.vertical, Spacing.s)
                 .listRowInsets(EdgeInsets(top: 0, leading: horizontalPadding, bottom: 0, trailing: horizontalPadding))
                 .listRowSeparator(.hidden)
         } else {
@@ -6483,15 +6459,15 @@ struct VariableRowsList: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         let dotColor = UBColorFromHex(exp.expenseCategory?.color) ?? .secondary
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                             Circle().fill(dotColor).frame(width: dotSize, height: dotSize)
                                 .frame(width: symbolWidth, alignment: .leading)
                             Text(Self.readUnplannedDescription(exp) ?? "Expense")
-                                .font(.headline)
+                                .font(Typography.headline)
                                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                             Group {
                                 if let card = exp.card {
                                     let theme: CardTheme = {
@@ -6516,13 +6492,13 @@ struct VariableRowsList: View {
                             }
                             .frame(width: symbolWidth, alignment: .leading)
                             Text(Self.dateString(exp.transactionDate))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.subheadline)
+                                .foregroundStyle(Colors.styleSecondary)
                         }
                     }
                     Spacer(minLength: 8)
                     Text(Self.formatCurrency(exp.amount))
-                        .font(.headline)
+                        .font(Typography.headline)
                 }
                 .frame(maxWidth: .infinity)
                 .unifiedSwipeActions(

@@ -2,6 +2,10 @@ import Foundation
 
 // MARK: - AccessibilityID
 enum AccessibilityID {
+    enum Home {
+        static let screen = "home_screen"
+    }
+
     enum Budgets {
         static let screen = "budgets_screen"
         static let detailsScreen = "budget_details_screen"

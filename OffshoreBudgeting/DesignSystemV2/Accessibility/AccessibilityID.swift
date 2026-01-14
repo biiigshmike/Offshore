@@ -81,4 +81,35 @@ enum AccessibilityID {
             }
         }
     }
+
+    enum ExpenseImport {
+        static let screen = "expense_import_screen"
+        static let list = "expense_import_list"
+
+        static let cancelButton = "btn_expense_import_cancel"
+        static let addCategoryButton = "btn_expense_import_add_category"
+        static let selectButton = "btn_expense_import_select"
+        static let selectAllButton = "btn_expense_import_select_all"
+        static let deselectAllButton = "btn_expense_import_deselect_all"
+        static let importButton = "btn_expense_import_import"
+
+        enum Section {
+            static let readyForImportHeader = "expense_import_section_ready_for_import"
+            static let possibleMatchesHeader = "expense_import_section_possible_matches"
+            static let possibleDuplicatesHeader = "expense_import_section_possible_duplicates"
+            static let needsMoreDataHeader = "expense_import_section_needs_more_data"
+            static let paymentsHeader = "expense_import_section_payments"
+            static let creditsHeader = "expense_import_section_credits"
+        }
+
+        static func row(id: UUID?) -> String {
+            guard let id else { return "expense_import_row_missing_uuid" }
+            return "expense_import_row_\(id.uuidString)"
+        }
+
+        static func rowCategoryMenu(id: UUID?) -> String {
+            guard let id else { return "expense_import_row_category_menu_missing_uuid" }
+            return "expense_import_row_category_menu_\(id.uuidString)"
+        }
+    }
 }

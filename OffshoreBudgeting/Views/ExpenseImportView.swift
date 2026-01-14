@@ -99,22 +99,23 @@ struct ExpenseImportView: View {
                 dismissButton: .cancel(Text("OK"))
             )
         }
+        .accessibilityIdentifier(AccessibilityID.ExpenseImport.screen)
     }
 
     // MARK: Content
     @ViewBuilder
     private var content: some View {
         switch viewModel.state {
-        case .idle, .loading:
-            ProgressView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        case .failed(let message):
-            VStack(spacing: 12) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 40, weight: .bold))
-                Text("Couldn’t load CSV")
-                    .font(.headline)
-                Text(message)
+	        case .idle, .loading:
+	            ProgressView()
+	                .frame(maxWidth: .infinity, maxHeight: .infinity)
+	        case .failed(let message):
+	            VStack(spacing: Spacing.m) {
+	                Image(systemName: "exclamationmark.triangle")
+	                    .font(.system(size: 40, weight: .bold))
+	                Text("Couldn’t load CSV")
+	                    .font(.headline)
+	                Text(message)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -127,111 +128,112 @@ struct ExpenseImportView: View {
 
     private var listContent: some View {
         List {
-            if !viewModel.readyRowIDs.isEmpty {
-                Section(header: sectionHeader(title: "Ready for Import", isExpanded: $isReadyExpanded)) {
-                    if isReadyExpanded {
-                        ForEach(viewModel.readyRowIDs, id: \.self) { id in
-                            if let binding = binding(for: id) {
-                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-                            }
+	            if !viewModel.readyRowIDs.isEmpty {
+	                Section(header: sectionHeader(title: "Ready for Import", isExpanded: $isReadyExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.readyForImportHeader)) {
+	                    if isReadyExpanded {
+	                        ForEach(viewModel.readyRowIDs, id: \.self) { id in
+	                            if let binding = binding(for: id) {
+	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
+	                            }
                         }
                     }
                 }
             }
 
-            if !viewModel.possibleMatchRowIDs.isEmpty {
-                Section(header: sectionHeader(title: "Possible Matches", isExpanded: $isPossibleExpanded)) {
-                    if isPossibleExpanded {
-                        ForEach(viewModel.possibleMatchRowIDs, id: \.self) { id in
-                            if let binding = binding(for: id) {
-                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-                            }
+	            if !viewModel.possibleMatchRowIDs.isEmpty {
+	                Section(header: sectionHeader(title: "Possible Matches", isExpanded: $isPossibleExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.possibleMatchesHeader)) {
+	                    if isPossibleExpanded {
+	                        ForEach(viewModel.possibleMatchRowIDs, id: \.self) { id in
+	                            if let binding = binding(for: id) {
+	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
+	                            }
                         }
                     }
                 }
             }
 
-            if !viewModel.possibleDuplicateRowIDs.isEmpty {
-                Section(header: sectionHeader(title: "Possible Duplicates", isExpanded: $isDuplicatesExpanded)) {
-                    if isDuplicatesExpanded {
-                        ForEach(viewModel.possibleDuplicateRowIDs, id: \.self) { id in
-                            if let binding = binding(for: id) {
-                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-                            }
+	            if !viewModel.possibleDuplicateRowIDs.isEmpty {
+	                Section(header: sectionHeader(title: "Possible Duplicates", isExpanded: $isDuplicatesExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.possibleDuplicatesHeader)) {
+	                    if isDuplicatesExpanded {
+	                        ForEach(viewModel.possibleDuplicateRowIDs, id: \.self) { id in
+	                            if let binding = binding(for: id) {
+	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
+	                            }
                         }
                     }
                 }
             }
 
-            if !viewModel.missingDataRowIDs.isEmpty {
-                Section(header: sectionHeader(title: "Needs More Data", isExpanded: $isNeedsExpanded)) {
-                    if isNeedsExpanded {
-                        ForEach(viewModel.missingDataRowIDs, id: \.self) { id in
-                            if let binding = binding(for: id) {
-                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-                            }
+	            if !viewModel.missingDataRowIDs.isEmpty {
+	                Section(header: sectionHeader(title: "Needs More Data", isExpanded: $isNeedsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.needsMoreDataHeader)) {
+	                    if isNeedsExpanded {
+	                        ForEach(viewModel.missingDataRowIDs, id: \.self) { id in
+	                            if let binding = binding(for: id) {
+	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
+	                            }
                         }
                     }
                 }
             }
 
-            if !viewModel.paymentRowIDs.isEmpty {
-                Section(header: sectionHeader(title: "Payments", isExpanded: $isPaymentsExpanded)) {
-                    if isPaymentsExpanded {
-                        ForEach(viewModel.paymentRowIDs, id: \.self) { id in
-                            if let binding = binding(for: id) {
-                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-                            }
+	            if !viewModel.paymentRowIDs.isEmpty {
+	                Section(header: sectionHeader(title: "Payments", isExpanded: $isPaymentsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.paymentsHeader)) {
+	                    if isPaymentsExpanded {
+	                        ForEach(viewModel.paymentRowIDs, id: \.self) { id in
+	                            if let binding = binding(for: id) {
+	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
+	                            }
                         }
                     }
                 }
             }
 
-            if !viewModel.creditRowIDs.isEmpty {
-                Section(header: sectionHeader(title: "Credits", isExpanded: $isCreditsExpanded)) {
-                    if isCreditsExpanded {
-                        ForEach(viewModel.creditRowIDs, id: \.self) { id in
-                            if let binding = binding(for: id) {
-                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-                            }
+	            if !viewModel.creditRowIDs.isEmpty {
+	                Section(header: sectionHeader(title: "Credits", isExpanded: $isCreditsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.creditsHeader)) {
+	                    if isCreditsExpanded {
+	                        ForEach(viewModel.creditRowIDs, id: \.self) { id in
+	                            if let binding = binding(for: id) {
+	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
+	                            }
                         }
                     }
                 }
             }
-        }
-        .listStyle(.insetGrouped)
-    }
+	        }
+	        .listStyle(.insetGrouped)
+	        .accessibilityIdentifier(AccessibilityID.ExpenseImport.list)
+	    }
 
     @ViewBuilder
     private func importRowView(_ row: Binding<ExpenseImportViewModel.ImportRow>, isSelectable: Bool) -> some View {
         let selectedCategoryName = viewModel.categoryName(for: row.wrappedValue.selectedCategoryID)
-        let selectedCategoryHex = viewModel.categoryHex(for: row.wrappedValue.selectedCategoryID)
-        let isSelected = selectedIDs.contains(row.wrappedValue.id)
-
-        HStack(alignment: .top, spacing: 12) {
-            if editMode == .active {
-                Button(action: { toggleSelection(for: row.wrappedValue.id, isSelectable: isSelectable) }) {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(isSelected ? Color.accentColor : (isSelectable ? Color.secondary : Color.secondary.opacity(0.4)))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(isSelected ? "Selected" : (isSelectable ? "Not selected" : "Selection unavailable"))
-                .padding(.top, 4)
-                .disabled(!isSelectable)
-            } else if isSelected, isSelectable {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
-                    .accessibilityLabel("Selected")
-                    .padding(.top, 4)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                badgeRow(for: row)
-                TextField("Expense Description", text: row.descriptionText)
-                    .autocorrectionDisabled(true)
-                    .textInputAutocapitalization(.never)
+	        let selectedCategoryHex = viewModel.categoryHex(for: row.wrappedValue.selectedCategoryID)
+	        let isSelected = selectedIDs.contains(row.wrappedValue.id)
+	
+	        HStack(alignment: .top, spacing: Spacing.m) {
+	            if editMode == .active {
+	                Button(action: { toggleSelection(for: row.wrappedValue.id, isSelectable: isSelectable) }) {
+		                    Image(systemName: isSelected ? Icons.sfCheckmarkCircleFill : "circle")
+	                        .font(.system(size: 18, weight: .semibold))
+	                        .foregroundStyle(isSelected ? Color.accentColor : (isSelectable ? Color.secondary : Color.secondary.opacity(0.4)))
+	                }
+	                .buttonStyle(.plain)
+	                .accessibilityLabel(isSelected ? "Selected" : (isSelectable ? "Not selected" : "Selection unavailable"))
+	                .padding(.top, Spacing.xxs)
+	                .disabled(!isSelectable)
+	            } else if isSelected, isSelectable {
+		                Image(systemName: Icons.sfCheckmarkCircleFill)
+	                    .font(.system(size: 18, weight: .semibold))
+	                    .foregroundStyle(Color.accentColor)
+	                    .accessibilityLabel("Selected")
+	                    .padding(.top, Spacing.xxs)
+	            }
+	
+	            VStack(alignment: .leading, spacing: Spacing.s) {
+	                badgeRow(for: row)
+	                TextField("Expense Description", text: row.descriptionText)
+	                    .autocorrectionDisabled(true)
+	                    .textInputAutocapitalization(.never)
                     .accessibilityLabel("Expense Description")
 
                 TextField("Amount", text: row.amountText)
@@ -253,21 +255,22 @@ struct ExpenseImportView: View {
                         row.selectedCategoryID.wrappedValue = nil
                         row.matchQuality.wrappedValue = .none
                     }
-            } label: {
-                menuLabel(
-                    content: HStack(spacing: 8) {
-                        Circle()
-                            .fill(UBColorFromHex(selectedCategoryHex) ?? .secondary)
-                            .frame(width: categoryDotSize, height: categoryDotSize)
-                        Text(selectedCategoryName)
-                            .font(.subheadline)
-                        Image(systemName: "chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                )
+	            } label: {
+	                menuLabel(
+	                    content: HStack(spacing: Spacing.s) {
+	                        Circle()
+	                            .fill(UBColorFromHex(selectedCategoryHex) ?? .secondary)
+	                            .frame(width: categoryDotSize, height: categoryDotSize)
+	                        Text(selectedCategoryName)
+	                            .font(.subheadline)
+		                        Image(systemName: Icons.sfChevronDown)
+	                            .font(Typography.captionSemibold)
+	                            .foregroundStyle(.secondary)
+	                    }
+	                )
             }
             .accessibilityLabel("Category")
+            .accessibilityIdentifier(AccessibilityID.ExpenseImport.rowCategoryMenu(id: row.wrappedValue.id))
             .ub_menuButtonStyle()
 
                 if !row.wrappedValue.categoryNameFromCSV.isEmpty {
@@ -282,8 +285,9 @@ struct ExpenseImportView: View {
             }
         }
         .padding(.vertical, 4)
-        .listRowBackground(isSelected ? Color.secondary.opacity(0.08) : Color.clear)
+        .listRowBackground(isSelected ? Colors.secondaryOpacity008 : Color.clear)
         .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityID.ExpenseImport.row(id: row.wrappedValue.id))
     }
 
     // MARK: Toolbar
@@ -298,6 +302,7 @@ struct ExpenseImportView: View {
                 }
             }
             .accessibilityLabel(editMode == .active ? "Cancel Selection" : "Cancel Import")
+            .accessibilityIdentifier(AccessibilityID.ExpenseImport.cancelButton)
         }
 
         ToolbarItem(placement: .primaryAction) {
@@ -305,6 +310,7 @@ struct ExpenseImportView: View {
                 Image(systemName: "plus")
             }
             .accessibilityLabel("Add Category")
+            .accessibilityIdentifier(AccessibilityID.ExpenseImport.addCategoryButton)
         }
 
         ToolbarItemGroup(placement: .bottomBar) {
@@ -314,15 +320,19 @@ struct ExpenseImportView: View {
                     editMode = .active
                 }
                     .accessibilityLabel("Select Expenses")
+                    .accessibilityIdentifier(AccessibilityID.ExpenseImport.selectButton)
             } else {
                 Button("Select All") { selectAllEligible() }
                     .accessibilityLabel("Select All Expenses")
+                    .accessibilityIdentifier(AccessibilityID.ExpenseImport.selectAllButton)
                 Button("Deselect All") { selectedIDs.removeAll() }
                     .accessibilityLabel("Deselect All Expenses")
+                    .accessibilityIdentifier(AccessibilityID.ExpenseImport.deselectAllButton)
             }
             Button("Import") { importSelected() }
                 .disabled(selectedIDs.isEmpty)
                 .accessibilityLabel("Import Selected Expenses")
+                .accessibilityIdentifier(AccessibilityID.ExpenseImport.importButton)
         }
     }
 
@@ -365,27 +375,28 @@ struct ExpenseImportView: View {
         editMode = .inactive
     }
 
-    private func sectionHeader(title: String, isExpanded: Binding<Bool>) -> some View {
-        Button(action: { isExpanded.wrappedValue.toggle() }) {
-            HStack {
-                Text(title)
+	    private func sectionHeader(title: String, isExpanded: Binding<Bool>, accessibilityID: String) -> some View {
+	        Button(action: { isExpanded.wrappedValue.toggle() }) {
+	            HStack {
+	                Text(title)
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .buttonStyle(.plain)
+	                Image(systemName: "chevron.right")
+	                    .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
+	                    .font(Typography.captionSemibold)
+	                    .foregroundStyle(.secondary)
+	            }
+	        }
+	        .buttonStyle(.plain)
         .accessibilityLabel(isExpanded.wrappedValue ? "Collapse \(title)" : "Expand \(title)")
+        .accessibilityIdentifier(accessibilityID)
     }
 
-    private func badgeRow(for row: Binding<ExpenseImportViewModel.ImportRow>) -> some View {
-        HStack(spacing: 8) {
-            Menu {
-                Button("Variable") { row.isPreset.wrappedValue = false }
-                Button("Preset") { row.isPreset.wrappedValue = true }
-            } label: {
+	    private func badgeRow(for row: Binding<ExpenseImportViewModel.ImportRow>) -> some View {
+	        HStack(spacing: Spacing.s) {
+	            Menu {
+	                Button("Variable") { row.isPreset.wrappedValue = false }
+	                Button("Preset") { row.isPreset.wrappedValue = true }
+	            } label: {
                 menuBadge(text: row.wrappedValue.isPreset ? "Preset" : "Variable")
             }
             .accessibilityLabel("Expense Type")
@@ -408,26 +419,26 @@ struct ExpenseImportView: View {
         .accessibilityElement(children: .contain)
     }
 
-    private func menuBadge(text: String) -> some View {
-        menuLabel(
-            content: HStack(spacing: 6) {
-                Text(text)
-                    .font(.caption.weight(.semibold))
-                Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-        )
-        .accessibilityLabel(text)
+	    private func menuBadge(text: String) -> some View {
+	        menuLabel(
+	            content: HStack(spacing: Spacing.xs) {
+	                Text(text)
+	                    .font(Typography.captionSemibold)
+		                Image(systemName: Icons.sfChevronDown)
+	                    .font(Typography.captionSemibold)
+	                    .foregroundStyle(.secondary)
+	            }
+	        )
+	        .accessibilityLabel(text)
     }
 
-    private func staticBadge(text: String, accessibilityLabel: String) -> some View {
-        menuLabel(
-            content: Text(text)
-                .font(.caption.weight(.semibold))
-        )
-        .accessibilityLabel(accessibilityLabel)
-    }
+	    private func staticBadge(text: String, accessibilityLabel: String) -> some View {
+	        menuLabel(
+	            content: Text(text)
+	                .font(Typography.captionSemibold)
+	        )
+	        .accessibilityLabel(accessibilityLabel)
+	    }
 
     private func kindLabel(for kind: ExpenseImportViewModel.ImportKind) -> String {
         switch kind {
@@ -438,22 +449,22 @@ struct ExpenseImportView: View {
     }
 
     @ViewBuilder
-    private func menuLabel<Content: View>(content: Content) -> some View {
-        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
-            content
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .glassEffect(.regular.tint(.clear).interactive(true))
-                .clipShape(Capsule())
-                .contentShape(Capsule())
-        } else {
-            content
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.secondary.opacity(0.08))
-                )
+	    private func menuLabel<Content: View>(content: Content) -> some View {
+	        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+	            content
+	                .padding(.horizontal, Spacing.sPlus)
+	                .padding(.vertical, Spacing.xs)
+	                .glassEffect(.regular.tint(.clear).interactive(true))
+	                .clipShape(Capsule())
+	                .contentShape(Capsule())
+	        } else {
+	            content
+	                .padding(.horizontal, Spacing.sPlus)
+	                .padding(.vertical, Spacing.xs)
+	                .background(
+	                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+		                        .fill(Colors.secondaryOpacity008)
+	                )
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(Color.secondary.opacity(0.3), lineWidth: 1)

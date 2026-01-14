@@ -12,6 +12,7 @@ enum Colors {
     static let clear: Color = .clear
     static let grayOpacity02: Color = Color.gray.opacity(0.2)
     static let primaryOpacity008: Color = Color.primary.opacity(0.08)
+    static let secondaryOpacity008: Color = Color.secondary.opacity(0.08)
     static let secondaryOpacity012: Color = Color.secondary.opacity(0.12)
     static let secondaryOpacity018: Color = Color.secondary.opacity(0.18)
     static let plannedIncome: Color = .orange

@@ -247,20 +247,20 @@ private struct EffectSwatch: View {
     var body: some View {
         ZStack {
             ZStack {
-                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(theme.backgroundStyle(for: themeManager.selectedTheme))
-                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(theme.adaptiveOverlay(for: colorScheme, isHighContrast: colorSchemeContrast == .increased))
                 theme
-                    .patternOverlay(cornerRadius: DS.Radius.card)
+                    .patternOverlay(cornerRadius: Radius.card)
                     .blendMode(.overlay)
                 CardMaterialBackground(
                     theme: theme,
                     effect: effect,
-                    cornerRadius: DS.Radius.card,
+                    cornerRadius: Radius.card,
                     enableMotion: false
                 )
-                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .stroke(Color.white.opacity(0.06), lineWidth: 1)
             }
             .frame(minHeight: swatchMinHeight)
@@ -271,7 +271,7 @@ private struct EffectSwatch: View {
                 .ub_cardTitleShadow()
         }
         .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
+            RoundedRectangle(cornerRadius: Radius.card)
                 .stroke(isSelected ? theme.glowColor : Color.primary.opacity(0.15), lineWidth: isSelected ? 2 : 1)
                 .shadow(color: theme.glowColor.opacity(isSelected ? 0.55 : 0), radius: isSelected ? 12 : 0)
                 .shadow(color: theme.glowColor.opacity(isSelected ? 0.30 : 0), radius: isSelected ? 24 : 0)
@@ -300,11 +300,11 @@ private struct ThemeSwatch: View {
         ZStack {
             // Background: theme gradient + subtle outline
             ZStack {
-                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(theme.backgroundStyle(for: themeManager.selectedTheme))
-                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(theme.adaptiveOverlay(for: colorScheme, isHighContrast: colorSchemeContrast == .increased))
-                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .stroke(Color.white.opacity(0.06), lineWidth: 1)
             }
             .frame(minHeight: swatchMinHeight)
@@ -317,7 +317,7 @@ private struct ThemeSwatch: View {
         }
         // Selection ring + color-matched glow
         .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
+            RoundedRectangle(cornerRadius: Radius.card)
                 .stroke(isSelected ? theme.glowColor : Color.primary.opacity(0.15), lineWidth: isSelected ? 2 : 1)
                 .shadow(color: theme.glowColor.opacity(isSelected ? 0.55 : 0), radius: isSelected ? 12 : 0)
                 .shadow(color: theme.glowColor.opacity(isSelected ? 0.30 : 0), radius: isSelected ? 24 : 0)

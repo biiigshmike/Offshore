@@ -37,8 +37,8 @@ struct CardPickerItemTile: View {
 
             // Clip & hit area match the card’s continuous rounded rect.
             .compositingGroup()
-            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
 
             // No additional shadow here; keep tiles flat in pickers.
 

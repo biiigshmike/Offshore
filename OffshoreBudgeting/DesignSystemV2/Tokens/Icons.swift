@@ -1,10 +1,9 @@
 import SwiftUI
 
 // MARK: - Icons
-/// DesignSystemV2 SF Symbol name tokens (Settings scope).
+/// DesignSystemV2 SF Symbol name tokens.
 ///
-/// This file is intentionally small and only includes symbol names that repeat
-/// across Settings and Settings destinations.
+/// Keep additions minimal and prefer reuse across screens.
 enum Icons {
     static let sfChevronBackward2: String = "chevron.backward.2"
     static let sfChevronBackward: String = "chevron.backward"
@@ -23,4 +22,13 @@ enum Icons {
     static let sfCalendar: String = "calendar"
     static let sfPencil: String = "pencil"
     static let sfEllipsis: String = "ellipsis"
+    static let sfHouse: String = "house"
+    static let sfChartPie: String = "chart.pie"
+    static let sfCreditcard: String = "creditcard"
+    static let sfGear: String = "gear"
+    static let sfPlusRectangle: String = "plus.rectangle"
+    static let sfListBulletRectangle: String = "list.bullet.rectangle"
+    static let sfTag: String = "tag"
+    static let sfInsetFilledTopthirdRectangle: String = "inset.filled.topthird.rectangle"
+    static let sfSidebarLeading: String = "sidebar.leading"
 }

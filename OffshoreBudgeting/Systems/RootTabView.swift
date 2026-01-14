@@ -254,22 +254,22 @@ struct RootTabView: View {
             Section("Add Expenses") {
                 let plannedItem = SidebarItem.addPlannedExpense
                 sidebarRow(item: plannedItem) {
-                    Label("Add Planned Expense", systemImage: "plus.rectangle")
+                    Label("Add Planned Expense", systemImage: Icons.sfPlusRectangle)
                 }
                 let variableItem = SidebarItem.addVariableExpense
                 sidebarRow(item: variableItem) {
-                    Label("Add Variable Expense", systemImage: "plus.rectangle")
+                    Label("Add Variable Expense", systemImage: Icons.sfPlusRectangle)
                 }
             }
             
             Section("Quick Links") {
                 let presetsItem = SidebarItem.managePresets
                 sidebarRow(item: presetsItem) {
-                    Label("Manage Presets", systemImage: "list.bullet.rectangle")
+                    Label("Manage Presets", systemImage: Icons.sfListBulletRectangle)
                 }
                 let categoriesItem = SidebarItem.manageCategories
                 sidebarRow(item: categoriesItem) {
-                    Label("Manage Categories", systemImage: "tag")
+                    Label("Manage Categories", systemImage: Icons.sfTag)
                 }
             }
         }
@@ -285,7 +285,7 @@ struct RootTabView: View {
                         usesCompactTabsOverride = true
                     }
                 } label: {
-                    Image(systemName: "inset.filled.topthird.rectangle")
+                    Image(systemName: Icons.sfInsetFilledTopthirdRectangle)
                 }
                 .accessibilityLabel("Show Compact Tabs")
             }
@@ -347,7 +347,7 @@ struct RootTabView: View {
                                 usesCompactTabsOverride = false
                             }
                         } label: {
-                            Label("Show Sidebar", systemImage: "sidebar.leading")
+                            Label("Show Sidebar", systemImage: Icons.sfSidebarLeading)
                         }
                     }
                 }
@@ -434,7 +434,7 @@ struct RootTabView: View {
     private func sidebarRowBackground(isSelected: Bool) -> some View {
         Group {
             if isSelected {
-                RoundedRectangle(cornerRadius: DesignSystem.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(selectedSidebarTint)
                     .padding(.horizontal, DesignSystem.Spacing.s)
             } else {
@@ -487,11 +487,11 @@ extension RootTabView.Tab {
     
     var systemImage: String {
         switch self {
-        case .home: return "house"
-        case .budgets: return "chart.pie"
-        case .income: return "calendar"
-        case .cards: return "creditcard"
-        case .settings: return "gear"
+        case .home: return Icons.sfHouse
+        case .budgets: return Icons.sfChartPie
+        case .income: return Icons.sfCalendar
+        case .cards: return Icons.sfCreditcard
+        case .settings: return Icons.sfGear
         }
     }
     

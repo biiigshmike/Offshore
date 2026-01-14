@@ -5,6 +5,9 @@ import CoreData
 struct BudgetDetailsView: View {
     private struct ObjectIDBox: Identifiable { let id: NSManagedObjectID }
 
+    // MARK: - Row Style (2G)
+    private static let contentRowInsets = EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
+
     let budgetID: NSManagedObjectID
     @StateObject private var vm: BudgetDetailsViewModel
     @Environment(\.dismiss) private var dismiss
@@ -42,7 +45,7 @@ struct BudgetDetailsView: View {
             Section { summaryCard }
             if case .loaded = vm.loadState, let summary = vm.summary {
                 Section { statRow(for: summary) }
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    .listRowInsets(Self.contentRowInsets)
             }
             Section { segmentRow }
             Section { sortRow }
@@ -145,7 +148,7 @@ struct BudgetDetailsView: View {
             selection: $segment
         )
         .padding(.vertical, 4)
-        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowInsets(Self.contentRowInsets)
     }
 
     private var sortRow: some View {
@@ -160,7 +163,7 @@ struct BudgetDetailsView: View {
             ]
         )
         .padding(.vertical, 4)
-        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowInsets(Self.contentRowInsets)
     }
 
     @ViewBuilder
@@ -260,7 +263,7 @@ struct BudgetDetailsView: View {
         }
         .frame(minHeight: categoryChipRowMinHeight)
         .padding(.vertical, 2)
-        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowInsets(Self.contentRowInsets)
     }
 
     @ToolbarContentBuilder

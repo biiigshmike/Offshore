@@ -577,7 +577,7 @@ struct IncomeView: View {
                 .padding(Spacing.m)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .background(
-                    RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                         .fill(background)
                 )
         }

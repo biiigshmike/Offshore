@@ -57,7 +57,7 @@ struct CardTileView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     // MARK: Layout
-    private let cornerRadius: CGFloat = DS.Radius.card
+    private let cornerRadius: CGFloat = Radius.card
     private let aspectRatio: CGFloat = 1.586 // credit card proportion
     @ScaledMetric(relativeTo: .body) private var titlePadding: CGFloat = Spacing.l
     @ScaledMetric(relativeTo: .body) private var minimumTileHeight: CGFloat = 160

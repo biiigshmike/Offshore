@@ -9,9 +9,11 @@ enum Typography {
     static let body: Font = .body
     static let headline: Font = .headline
     static let subheadline: Font = .subheadline
+    static let subheadlineMedium: Font = .subheadline.weight(.medium)
     static let subheadlineSemibold: Font = .subheadline.weight(.semibold)
     static let footnote: Font = .footnote
     static let caption: Font = .caption
+    static let largeTitleBold: Font = .largeTitle.weight(.bold)
     static let title3Bold: Font = .title3.weight(.bold)
     static let title3Semibold: Font = .title3.weight(.semibold)
     static let captionSemibold: Font = .caption.weight(.semibold)

@@ -37,7 +37,7 @@ struct PresetsView: View {
                         header
                             .padding(.horizontal, Spacing.l)
                     }
-                    UBEmptyState(message: "No presets found. Tap + to create a preset.")
+                    DesignSystemV2.EmptyState(message: "No presets found. Tap + to create a preset.")
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {

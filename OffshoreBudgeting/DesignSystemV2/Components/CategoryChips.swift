@@ -16,9 +16,13 @@ extension DesignSystemV2 {
 
     struct CategoryChip: View {
         let title: String
+        let trailingText: String?
         let color: Color
         let isSelected: Bool
         let showsButtonBorderShapeOnOS26: Bool
+        let titleFont: Font
+        let trailingFont: Font
+        let trailingForeground: Color?
         let action: () -> Void
 
         @ScaledMetric(relativeTo: .subheadline) private var dotSize: CGFloat = 10
@@ -34,9 +38,39 @@ extension DesignSystemV2 {
             action: @escaping () -> Void
         ) {
             self.title = title
+            self.trailingText = nil
             self.color = color
             self.isSelected = isSelected
             self.showsButtonBorderShapeOnOS26 = showsButtonBorderShapeOnOS26
+            self.titleFont = Typography.subheadlineSemibold
+            self.trailingFont = Typography.subheadlineSemibold
+            self.trailingForeground = nil
+            self.action = action
+            _dotSize = ScaledMetric(wrappedValue: dotSize, relativeTo: .subheadline)
+            _minHeight = ScaledMetric(wrappedValue: minHeight, relativeTo: .body)
+        }
+
+        init(
+            title: String,
+            trailingText: String,
+            trailingForeground: Color? = nil,
+            color: Color,
+            isSelected: Bool,
+            showsButtonBorderShapeOnOS26: Bool = true,
+            titleFont: Font = Typography.subheadlineSemibold,
+            trailingFont: Font = Typography.subheadlineSemibold,
+            dotSize: CGFloat = 10,
+            minHeight: CGFloat = 44,
+            action: @escaping () -> Void
+        ) {
+            self.title = title
+            self.trailingText = trailingText
+            self.trailingForeground = trailingForeground
+            self.color = color
+            self.isSelected = isSelected
+            self.showsButtonBorderShapeOnOS26 = showsButtonBorderShapeOnOS26
+            self.titleFont = titleFont
+            self.trailingFont = trailingFont
             self.action = action
             _dotSize = ScaledMetric(wrappedValue: dotSize, relativeTo: .subheadline)
             _minHeight = ScaledMetric(wrappedValue: minHeight, relativeTo: .body)
@@ -52,9 +86,15 @@ extension DesignSystemV2 {
                     .fill(accentColor)
                     .frame(width: dotSize, height: dotSize)
                 Text(title)
-                    .font(Typography.subheadlineSemibold)
+                    .font(titleFont)
                     .foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
+                if let trailingText {
+                    Text(trailingText)
+                        .font(trailingFont)
+                        .foregroundStyle(trailingForeground ?? .primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .padding(.horizontal, 12)
             .frame(minHeight: minHeight, maxHeight: minHeight)

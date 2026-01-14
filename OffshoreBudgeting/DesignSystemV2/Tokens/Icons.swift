@@ -17,8 +17,10 @@ enum Icons {
     static let sfChevronForward2: String = "chevron.forward.2"
     static let sfPlus: String = "plus"
     static let sfXmark: String = "xmark"
+    static let sfXmarkCircleFill: String = "xmark.circle.fill"
     static let sfMagnifyingglass: String = "magnifyingglass"
     static let sfArrowRight: String = "arrow.right"
     static let sfCalendar: String = "calendar"
     static let sfPencil: String = "pencil"
+    static let sfEllipsis: String = "ellipsis"
 }

@@ -27,7 +27,7 @@ struct BudgetsView: View {
 
     var body: some View {
         content
-            .accessibilityIdentifier("budgets_screen")
+            .accessibilityIdentifier(AccessibilityID.Budgets.screen)
             .navigationTitle("Budgets")
             .ub_windowTitle("Budgets")
             .toolbar { toolbarContent }
@@ -68,7 +68,7 @@ struct BudgetsView: View {
             ProgressView("Loading Budgets…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         } else if !isSearchActive && activeBudgets.isEmpty && upcomingBudgets.isEmpty && pastBudgets.isEmpty {
-            UBEmptyState(message: "No budgets found. Tap + to create a budget.")
+            DesignSystemV2.EmptyState(message: "No budgets found. Tap + to create a budget.")
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .sheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
         } else {
@@ -104,7 +104,7 @@ struct BudgetsView: View {
             searchToolbarControl
         }
         ToolbarItem(placement: .navigationBarTrailing) {
-            Buttons.toolbarIcon("plus") { isPresentingAddBudget = true }
+            Buttons.toolbarIcon(Icons.sfPlus) { isPresentingAddBudget = true }
                 .accessibilityLabel("Add Budget")
         }
     }
@@ -276,7 +276,7 @@ struct BudgetsView: View {
                         NavigationLink(value: budget.objectID) {
                             BudgetRow(budget: budget)
                         }
-                        .accessibilityIdentifier(AccessibilityRowIdentifier.budgetRow(id: budgetUUID(for: budget)))
+                        .accessibilityIdentifier(AccessibilityID.Budgets.budgetRow(id: budgetUUID(for: budget)))
                     }
                 }
             }
@@ -294,7 +294,7 @@ struct BudgetsView: View {
                 Text(sectionTitle(title: title, count: count))
                     .font(.subheadline.weight(.semibold))
                 Spacer()
-                Image(systemName: "chevron.right")
+                Image(systemName: Icons.sfChevronRight)
                     .rotationEffect(isExpanded ? .degrees(90) : .zero)
                     .font(.caption.weight(.semibold))
             }
@@ -326,11 +326,11 @@ struct BudgetsView: View {
         GlassEffectContainer(spacing: 8) {
             HStack(spacing: 6) {
                 if isSearching {
-                    Buttons.toolbarIcon("xmark") { closeSearch() }
+                    Buttons.toolbarIcon(Icons.sfXmark) { closeSearch() }
                         .accessibilityLabel("Close Search")
                     glassSearchField
                 } else {
-                    Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                    Buttons.toolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
                         .accessibilityLabel("Search Budgets")
                 }
             }
@@ -340,11 +340,11 @@ struct BudgetsView: View {
     private var searchToolbarControlLegacy: some View {
         HStack(spacing: 6) {
             if isSearching {
-                Buttons.toolbarIcon("xmark") { closeSearch() }
+                Buttons.toolbarIcon(Icons.sfXmark) { closeSearch() }
                     .accessibilityLabel("Close Search")
                 legacySearchField
             } else {
-                Buttons.toolbarIcon("magnifyingglass") { openSearch() }
+                Buttons.toolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
                     .accessibilityLabel("Search Budgets")
             }
         }
@@ -388,7 +388,7 @@ struct BudgetsView: View {
                 .accessibilityLabel("Search Budgets")
             if !searchText.isEmpty {
                 Button(action: { searchText = "" }) {
-                    Image(systemName: "xmark.circle.fill")
+                    Image(systemName: Icons.sfXmarkCircleFill)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }

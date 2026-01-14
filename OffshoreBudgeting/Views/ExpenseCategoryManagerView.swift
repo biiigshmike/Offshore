@@ -233,7 +233,7 @@ struct ExpenseCategoryManagerView: View {
     
     // MARK: - Empty State
     private var emptyState: some View {
-        UBEmptyState(message: "No categories found. Tap + to create a category.")
+        DesignSystemV2.EmptyState(message: "No categories found. Tap + to create a category.")
     }
     
     // MARK: - CRUD

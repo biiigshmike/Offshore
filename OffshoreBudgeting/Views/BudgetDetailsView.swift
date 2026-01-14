@@ -50,7 +50,7 @@ struct BudgetDetailsView: View {
             Section { rowsSection }
         }
         .listStyle(.insetGrouped)
-        .accessibilityIdentifier("budget_details_screen")
+        .accessibilityIdentifier(AccessibilityID.Budgets.detailsScreen)
         .navigationTitle(vm.budget?.name ?? "Budget")
         .ub_windowTitle(vm.budget?.name ?? "Budget")
         .task {
@@ -233,16 +233,18 @@ struct BudgetDetailsView: View {
             HStack(spacing: 10) {
                 ForEach(categories) { cat in
                     let isSelected = (selectedCategoryURI == cat.categoryURI)
-                    BudgetCategoryChipView(
+                    DesignSystemV2.CategoryChip(
                         title: cat.categoryName,
-                        amount: cat.amount,
-                        hex: cat.hexColor,
+                        trailingText: formatCurrency(cat.amount),
+                        trailingForeground: isOverCap(category: cat, segment: segment) ? .red : nil,
+                        color: UBColorFromHex(cat.hexColor) ?? .secondary,
                         isSelected: isSelected,
-                        isExceeded: isOverCap(category: cat, segment: segment),
-                        onTap: {
-                            selectedCategoryURI = isSelected ? nil : cat.categoryURI
-                        }
-                    )
+                        showsButtonBorderShapeOnOS26: false,
+                        titleFont: Typography.subheadlineMedium,
+                        trailingFont: Typography.subheadlineSemibold
+                    ) {
+                        selectedCategoryURI = isSelected ? nil : cat.categoryURI
+                    }
                     .simultaneousGesture(
                         LongPressGesture(minimumDuration: 0.35)
                             .onEnded { _ in presentCapGauge(for: cat) }
@@ -378,7 +380,7 @@ struct BudgetDetailsView: View {
                 Button("Add Planned Expense") { isPresentingAddPlanned = true }
                 Button("Add Variable Expense") { isPresentingAddVariable = true }
             } label: {
-                Image(systemName: "plus")
+                Image(systemName: Icons.sfPlus)
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
@@ -390,13 +392,13 @@ struct BudgetDetailsView: View {
                     Button("Edit Budget") { editingBudgetBox = ObjectIDBox(id: budget.objectID) }
                 }
                 Button("Delete Budget", role: .destructive) { isConfirmingDelete = true }
-                    .accessibilityIdentifier("budget_delete_button")
+                    .accessibilityIdentifier(AccessibilityID.Budgets.deleteButton)
             } label: {
-                Image(systemName: "ellipsis")
+                Image(systemName: Icons.sfEllipsis)
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 30, height: 30)
             }
-            .accessibilityIdentifier("budget_overflow_menu")
+            .accessibilityIdentifier(AccessibilityID.Budgets.overflowMenu)
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
@@ -430,6 +432,23 @@ struct BudgetDetailsView: View {
             formatter.currencyCode = (locale.object(forKey: .currencyCode) as? String) ?? "USD"
         }
         return formatter
+    }
+
+    private func formatCurrency(_ amount: Double) -> String {
+        if #available(iOS 15.0, macCatalyst 15.0, *) {
+            let currencyCode: String
+            if #available(iOS 16.0, macCatalyst 16.0, *) {
+                currencyCode = Locale.current.currency?.identifier ?? "USD"
+            } else {
+                currencyCode = Locale.current.currencyCode ?? "USD"
+            }
+            return amount.formatted(.currency(code: currencyCode))
+        } else {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .currency
+            formatter.currencyCode = Locale.current.currencyCode ?? "USD"
+            return formatter.string(from: amount as NSNumber) ?? String(format: "%.2f", amount)
+        }
     }
 
     private func deleteBudget() {

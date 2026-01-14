@@ -10,6 +10,7 @@ struct BudgetCategoryChipView: View {
     let isSelected: Bool
     let isExceeded: Bool
     let onTap: () -> Void
+
     @ScaledMetric(relativeTo: .subheadline) private var dotSize: CGFloat = 10
     @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 44
 

@@ -2,6 +2,18 @@ import Foundation
 
 // MARK: - AccessibilityID
 enum AccessibilityID {
+    enum Budgets {
+        static let screen = "budgets_screen"
+        static let detailsScreen = "budget_details_screen"
+        static let deleteButton = "budget_delete_button"
+        static let overflowMenu = "budget_overflow_menu"
+
+        static func budgetRow(id: UUID?) -> String {
+            guard let id else { return "budget_row_missing_uuid" }
+            return "budget_row_\(id.uuidString)"
+        }
+    }
+
     enum Income {
         static let addButton = "btn_add_income"
 

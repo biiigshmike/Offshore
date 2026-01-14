@@ -61,7 +61,7 @@ struct CardsView: View {
     private var cardsContent: some View {
         Group {
             if case .empty = vm.state {
-                UBEmptyState(message: "No cards found. Tap + to create a card.")
+                DesignSystemV2.EmptyState(message: "No cards found. Tap + to create a card.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
                 ScrollView {

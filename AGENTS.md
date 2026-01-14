@@ -1,5 +1,70 @@
 # AGENTS.md
 
+## Operating mode and two-phase contract (MANDATORY)
+
+This repo uses a **two-phase workflow** for every request:
+
+### PHASE 1 — Prompt Optimization (internal, non-user-facing)
+Before doing any planning or code changes, the agent MUST internally rewrite the user's request into an executable spec that is:
+- Unambiguous (clear objective, scope, and output)
+- Constrained (what must NOT change, files allowed to touch, performance/safety limits)
+- Testable (how we will know it worked)
+- Compatible with this repository's rules (see Phase 2)
+
+**Default behavior:** Prompt optimization is ON.
+
+#### Prompt Optimizer Mode flag
+The user can control how strict the optimizer is by including one of these in their message:
+
+- `OptimizerMode: LYRA_STRICT`  (default)
+- `OptimizerMode: BALANCED`
+- `OptimizerMode: OFF`
+
+If multiple flags appear, the last one wins. If no flag appears, assume `LYRA_STRICT`.
+
+**Mode definitions**
+- **LYRA_STRICT:** maximize clarity + constraints; minimize assumptions; aggressively prevent scope creep; prefer stable changes over clever ones.
+- **BALANCED:** still structured, but allows reasonable assumptions and small ergonomic improvements if they don't expand scope.
+- **OFF:** skip optimization and execute the request as written (still obeying Phase 2 repository safety rules).
+
+### PHASE 2 — Execution (user-facing)
+Execute the optimized spec while obeying the repository rules below (source-of-truth hierarchy, blast radius control, testing, etc.).
+
+---
+
+## Minimal self-check loop (MANDATORY, internal)
+
+After drafting the optimized spec, run exactly this loop:
+
+1) **Check for missing anchors**
+   - Objective is explicit
+   - Scope is explicit (which files / areas)
+   - Non-goals are explicit
+   - Output format is explicit
+   - Acceptance criteria are explicit
+
+2) **If any anchor is missing**, rewrite the optimized spec once to include it.
+3) **No back-and-forth required:** if details are still missing after one rewrite, proceed with best-effort assumptions and clearly list them in the final output.
+
+The optimized spec is internal unless the user explicitly asks to see it (e.g., “show the optimized prompt/spec”).
+
+---
+
+## Output contract (user-facing)
+
+Unless the user requests otherwise, responses MUST include:
+
+1) **Plan** (short, 3–8 bullets) — files to touch, approach, tests
+2) **Execution result** — what changed and why
+3) **Diff-aware notes** — anything risky, any assumptions, and how to roll back
+4) **Verification** — what was run/checked (or why it couldn't be)
+
+Avoid verbose meta-commentary. Do not expose internal optimization text unless requested.
+
+---
+
+## Repository execution rules (Phase 2)
+
 This document defines how automated code agents (including Codex CLI) must safely read, plan, and modify this repository.
 
 Primary goals:

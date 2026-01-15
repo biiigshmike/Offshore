@@ -5,6 +5,7 @@ import CoreData
 /// Lists active budgets in reverse chronological order and links to details.
 struct BudgetsView: View {
     // MARK: State
+    @StateObject private var budgetsViewState = BudgetsViewState()
     @State private var isLoading = false
     @State private var alert: AlertItem?
     @State private var isPresentingAddBudget = false
@@ -442,47 +443,38 @@ struct BudgetsView: View {
     }
 
     private func loadExpandedValue(defaultValue: Bool, localKey: String, cloudKey: String) -> Bool {
-        let defaults = UserDefaults.standard
-        if cloudEnabled {
-            let kv = NSUbiquitousKeyValueStore.default
-            if kv.object(forKey: cloudKey) != nil {
-                let value = kv.bool(forKey: cloudKey)
-                defaults.set(value, forKey: localKey)
-                return value
-            }
-            if defaults.object(forKey: localKey) != nil {
-                let value = defaults.bool(forKey: localKey)
-                kv.set(value, forKey: cloudKey)
-                kv.synchronize()
-                return value
-            }
-        }
-        if defaults.object(forKey: localKey) != nil {
-            return defaults.bool(forKey: localKey)
-        }
-        return defaultValue
+        budgetsViewState.loadExpandedValue(
+            defaultValue: defaultValue,
+            localKey: localKey,
+            cloudKey: cloudKey,
+            cloudEnabled: cloudEnabled
+        )
     }
 
     private func persistExpandedState(for key: BudgetSectionKey, value: Bool) {
-        let defaults = UserDefaults.standard
         switch key {
         case .active:
-            defaults.set(value, forKey: ExpansionStorageKey.activeLocal)
-            syncExpandedValueIfNeeded(value, cloudKey: ExpansionStorageKey.activeCloud)
+            budgetsViewState.persistExpandedValue(
+                value,
+                localKey: ExpansionStorageKey.activeLocal,
+                cloudKey: ExpansionStorageKey.activeCloud,
+                cloudEnabled: cloudEnabled
+            )
         case .upcoming:
-            defaults.set(value, forKey: ExpansionStorageKey.upcomingLocal)
-            syncExpandedValueIfNeeded(value, cloudKey: ExpansionStorageKey.upcomingCloud)
+            budgetsViewState.persistExpandedValue(
+                value,
+                localKey: ExpansionStorageKey.upcomingLocal,
+                cloudKey: ExpansionStorageKey.upcomingCloud,
+                cloudEnabled: cloudEnabled
+            )
         case .past:
-            defaults.set(value, forKey: ExpansionStorageKey.pastLocal)
-            syncExpandedValueIfNeeded(value, cloudKey: ExpansionStorageKey.pastCloud)
+            budgetsViewState.persistExpandedValue(
+                value,
+                localKey: ExpansionStorageKey.pastLocal,
+                cloudKey: ExpansionStorageKey.pastCloud,
+                cloudEnabled: cloudEnabled
+            )
         }
-    }
-
-    private func syncExpandedValueIfNeeded(_ value: Bool, cloudKey: String) {
-        guard cloudEnabled else { return }
-        let kv = NSUbiquitousKeyValueStore.default
-        kv.set(value, forKey: cloudKey)
-        kv.synchronize()
     }
 
     private func startObservingUbiquitousChangesIfNeeded() {

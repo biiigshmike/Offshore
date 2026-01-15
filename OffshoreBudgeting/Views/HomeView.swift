@@ -1403,22 +1403,7 @@ struct HomeView: View {
     }
 
     private func loadSyncedString(localKey: String, cloudKey: String) -> String {
-        let defaults = UserDefaults.standard
-        if shouldSyncWidgets {
-            let kv = NSUbiquitousKeyValueStore.default
-            if kv.object(forKey: cloudKey) != nil {
-                let value = kv.string(forKey: cloudKey) ?? ""
-                defaults.set(value, forKey: localKey)
-                return value
-            }
-            if defaults.object(forKey: localKey) != nil {
-                let value = defaults.string(forKey: localKey) ?? ""
-                kv.set(value, forKey: cloudKey)
-                kv.synchronize()
-                return value
-            }
-        }
-        return defaults.string(forKey: localKey) ?? ""
+        homeWidgetState.loadSyncedString(localKey: localKey, cloudKey: cloudKey, shouldSync: shouldSyncWidgets)
     }
 
     private func syncWidgetStorageIfNeeded(_ value: String, cloudKey: String) {

@@ -100,4 +100,22 @@ final class HomeWidgetState: ObservableObject {
 
         isSyncingFromDefaults = false
     }
+
+    func loadSyncedString(localKey: String, cloudKey: String, shouldSync: Bool) -> String {
+        if shouldSync {
+            let kv = NSUbiquitousKeyValueStore.default
+            if kv.object(forKey: cloudKey) != nil {
+                let value = kv.string(forKey: cloudKey) ?? ""
+                defaults.set(value, forKey: localKey)
+                return value
+            }
+            if defaults.object(forKey: localKey) != nil {
+                let value = defaults.string(forKey: localKey) ?? ""
+                kv.set(value, forKey: cloudKey)
+                kv.synchronize()
+                return value
+            }
+        }
+        return defaults.string(forKey: localKey) ?? ""
+    }
 }

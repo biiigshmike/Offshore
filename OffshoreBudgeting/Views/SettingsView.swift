@@ -389,10 +389,7 @@ private extension SettingsView {
     }
     
     var appDisplayName: String {
-        let info = Bundle.main.infoDictionary
-        let name = info?["CFBundleDisplayName"] as? String
-        let bundleName = info?["CFBundleName"] as? String
-        return name ?? bundleName ?? "App"
+        AppVersion.shared.displayName
     }
     
     var appIconGraphic: AppIconGraphic {
@@ -622,10 +619,7 @@ private struct AppInfoView: View {
     }
     
     private var appVersionLine: String {
-        let info = Bundle.main.infoDictionary
-        let version = info?["CFBundleShortVersionString"] as? String ?? "-"
-        let build = info?["CFBundleVersion"] as? String ?? "-"
-        return "Version \(version) • Build \(build)"
+        AppVersion.shared.settingsLine
     }
     
     private var appInfoIconSize: CGFloat {

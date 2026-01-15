@@ -329,11 +329,7 @@ struct TipsAndHintsStore {
     }
 
     private func currentWhatsNewVersionToken() -> String? {
-        let info = Bundle.main.infoDictionary
-        let version = info?["CFBundleShortVersionString"] as? String
-        let build = info?["CFBundleVersion"] as? String
-        guard let version, !version.isEmpty, let build, !build.isEmpty else { return nil }
-        return "\(version).\(build)"
+        AppVersion.shared.versionToken
     }
 }
 

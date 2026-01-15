@@ -542,21 +542,6 @@ private struct CategoryPickerSheet: View {
     }
 }
 
-// MARK: - Menu Button Style
-private extension View {
-    @ViewBuilder
-    func ub_menuButtonStyle() -> some View {
-        if #available(iOS 16.0, macCatalyst 16.0, *) {
-            self
-                .buttonStyle(.plain)
-                .buttonBorderShape(.capsule)
-        } else {
-            self
-                .buttonStyle(.plain)
-        }
-    }
-}
-
 // MARK: - Selection Disabled Compat
 private extension View {
     @ViewBuilder

@@ -30,7 +30,7 @@ enum DesignSystem {
         static let m: CGFloat = Offshore.Spacing.m
         static let l: CGFloat = Offshore.Spacing.l
         static let xl: CGFloat = Offshore.Spacing.xl
-        static let xxl: CGFloat = 32
+        static let xxl: CGFloat = Offshore.Spacing.xxl
     }
 
     // MARK: Corner Radii
@@ -50,23 +50,19 @@ enum DesignSystem {
         /// Actual income series/accent.
         static let actualIncome: Color = Offshore.Colors.actualIncome
         /// Positive savings/accent.
-        static let savingsGood    = Color.green
+        static let savingsGood: Color = Offshore.Colors.savingsGood
         /// Negative savings/accent.
-        static let savingsBad     = Color.red
+        static let savingsBad: Color = Offshore.Colors.savingsBad
 
         // Neutrals
         /// Subtle card/container fill over grouped/system backgrounds.
-        static let cardFill       = Color.gray.opacity(0.08)
+        static let cardFill: Color = Offshore.Colors.cardFill
 
         // MARK: System‑Aware Container Background
         /// A dynamic background color that adapts to light/dark mode across UIKit platforms.
         /// Use behind pickers, lists, or lightweight surfaces to ensure contrast with content.
         static var containerBackground: Color {
-            if #available(iOS 13.0, macCatalyst 13.0, *) {
-                return Color(UIColor.secondarySystemBackground)
-            } else {
-                return Color(UIColor(white: 0.92, alpha: 1.0))
-            }
+            Offshore.Colors.containerBackground
         }
 
         // MARK: Chip and Pill Fills

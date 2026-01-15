@@ -18,11 +18,27 @@ enum Colors {
     static let secondaryOpacity018: Color = Color.secondary.opacity(0.18)
     static let plannedIncome: Color = .orange
     static let actualIncome: Color = .blue
+    static let savingsGood: Color = Color.green
+    static let savingsBad: Color = Color.red
+    static let cardFill: Color = Color.gray.opacity(0.08)
     static let white: Color = .white
     static let whiteOpacity006: Color = Color.white.opacity(0.06)
 
     static let stylePrimary: HierarchicalShapeStyle = .primary
     static let styleSecondary: HierarchicalShapeStyle = .secondary
+
+    // MARK: System‑Aware Container Background
+    static var containerBackground: Color {
+        #if canImport(UIKit)
+        if #available(iOS 13.0, macCatalyst 13.0, *) {
+            return Color(UIColor.secondarySystemBackground)
+        } else {
+            return Color(UIColor(white: 0.92, alpha: 1.0))
+        }
+        #else
+        return Color(white: 0.92, opacity: 1.0)
+        #endif
+    }
 
     // MARK: Chip and Pill Fills
     static var chipFill: Color {

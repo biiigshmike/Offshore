@@ -20,7 +20,7 @@ final class WorkspaceService {
     private var defaults: UserDefaults { .standard }
 
     private var cloudEnabled: Bool {
-        UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        CloudStateFacade.isCloudSyncEnabled
     }
 
     /// Returns the active workspace ID, creating one if necessary.
@@ -598,8 +598,7 @@ private extension WorkspaceService {
     func readSeedWorkspaceID(for seed: WorkspaceSeed) -> UUID? {
         let key = seed.defaultsKey
         if cloudEnabled {
-            let kv = NSUbiquitousKeyValueStore.default
-            if let raw = kv.string(forKey: key), let id = UUID(uuidString: raw) {
+            if let raw = CloudStateFacade.string(forKey: key), let id = UUID(uuidString: raw) {
                 defaults.set(raw, forKey: key)
                 return id
             }
@@ -624,16 +623,14 @@ private extension WorkspaceService {
         let key = seed.defaultsKey
         defaults.set(raw, forKey: key)
         if cloudEnabled {
-            let kv = NSUbiquitousKeyValueStore.default
-            kv.set(raw, forKey: key)
-            kv.synchronize()
+            CloudStateFacade.set(raw, forKey: key)
+            CloudStateFacade.synchronize()
         }
     }
 
     func legacyActiveWorkspaceID() -> UUID? {
         if cloudEnabled {
-            let kv = NSUbiquitousKeyValueStore.default
-            if let raw = kv.string(forKey: ubiquitousKey), let id = UUID(uuidString: raw) {
+            if let raw = CloudStateFacade.string(forKey: ubiquitousKey), let id = UUID(uuidString: raw) {
                 defaults.set(raw, forKey: defaultsCloudKey)
                 return id
             }

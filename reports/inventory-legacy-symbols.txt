@@ -1,0 +1,84 @@
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:7:enum WidgetSharedStore {
+OffshoreBudgeting/Services/UnplannedExpenseService.swift:233:        WidgetRefreshCoordinator.refreshAllTimelines()
+OffshoreBudgeting/Services/UnplannedExpenseService.swift:302:        WidgetRefreshCoordinator.refreshAllTimelines()
+OffshoreBudgeting/Services/UnplannedExpenseService.swift:316:        WidgetRefreshCoordinator.refreshAllTimelines()
+OffshoreBudgeting/Services/UnplannedExpenseService.swift:328:        WidgetRefreshCoordinator.refreshAllTimelines()
+OffshoreBudgeting/Core/Widgets/WidgetRefreshCoordinator.swift:6:// MARK: - WidgetRefreshCoordinator
+OffshoreBudgeting/Core/Widgets/WidgetRefreshCoordinator.swift:8:enum WidgetRefreshCoordinator {
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:425:        let snapshot = WidgetSharedStore.IncomeSnapshot(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:432:        WidgetSharedStore.writeIncomeSnapshot(snapshot, periodRaw: period.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:440:        let snapshot = WidgetSharedStore.ExpenseToIncomeSnapshot(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:446:        WidgetSharedStore.writeExpenseToIncomeSnapshot(snapshot, periodRaw: period.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:459:        let snapshot = WidgetSharedStore.SavingsOutlookSnapshot(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:465:        WidgetSharedStore.writeSavingsOutlookSnapshot(snapshot, periodRaw: period.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:473:                WidgetSharedStore.CategorySpotlightSnapshot.CategoryItem(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:479:        let snapshot = WidgetSharedStore.CategorySpotlightSnapshot(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:484:        WidgetSharedStore.writeCategorySpotlightSnapshot(snapshot, periodRaw: period.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:493:        let snapshot = WidgetSharedStore.DayOfWeekSnapshot(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:495:                WidgetSharedStore.DayOfWeekSnapshot.Bucket(label: $0.label, amount: $0.amount, hexColors: $0.hexColors)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:501:        WidgetSharedStore.writeDayOfWeekSnapshot(snapshot, periodRaw: period.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:508:        WidgetSharedStore.writeIncomeDefaultPeriod(defaultPeriod.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:520:        WidgetSharedStore.writeExpenseToIncomeDefaultPeriod(defaultPeriod.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:532:        WidgetSharedStore.writeSavingsOutlookDefaultPeriod(defaultPeriod.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:544:        WidgetSharedStore.writeCategorySpotlightDefaultPeriod(defaultPeriod.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:556:        WidgetSharedStore.writeDayOfWeekDefaultPeriod(defaultPeriod.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:568:        WidgetSharedStore.writeCategoryAvailabilityDefaultPeriod(defaultPeriod.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:569:        WidgetSharedStore.writeCategoryAvailabilityDefaultSegment(CategoryAvailabilitySegment.combined.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:570:        WidgetSharedStore.writeCategoryAvailabilityDefaultSort("alphabetical")
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:580:                let snapshot = WidgetSharedStore.CategoryAvailabilitySnapshot(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:585:                WidgetSharedStore.writeCategoryAvailabilitySnapshot(snapshot, periodRaw: period.rawValue, segmentRaw: segment.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:592:        WidgetSharedStore.writeCategoryAvailabilityCategories(sortedNames)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:605:        WidgetSharedStore.writeCardWidgetDefaultPeriod(defaultPeriod.rawValue)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:612:        var cardsForPicker: [WidgetSharedStore.CardWidgetCard] = []
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:624:                    let cardItem = CardItem(from: card)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:628:                    return WidgetSharedStore.CardWidgetCard(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:641:                let cardItem = CardItem(from: card)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:690:                    WidgetSharedStore.CardWidgetSnapshot.Transaction(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:698:                    WidgetSharedStore.CardWidgetSnapshot.Transaction(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:706:                let snapshot = WidgetSharedStore.CardWidgetSnapshot(
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:719:                WidgetSharedStore.writeCardWidgetSnapshot(snapshot, periodRaw: period.rawValue, cardID: uuid.uuidString)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:723:        WidgetSharedStore.writeCardWidgetCards(cardsForPicker)
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:793:    private func computeCategoryAvailabilityWidget(summary: BudgetSummary, caps: [String: (planned: Double?, variable: Double?)], segment: CategoryAvailabilitySegment) -> [WidgetSharedStore.CategoryAvailabilitySnapshot.Item] {
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:805:        let items = breakdown.map { cat -> WidgetSharedStore.CategoryAvailabilitySnapshot.Item in
+OffshoreBudgeting/ViewModels/HomeViewModel.swift:825:            return WidgetSharedStore.CategoryAvailabilitySnapshot.Item(
+OffshoreBudgeting/Services/IncomeService.swift:460:        WidgetRefreshCoordinator.refreshAllTimelines()
+OffshoreBudgeting/App/AppDelegate.swift:15:        WidgetRefreshCoordinator.refreshAllTimelines()
+OffshoreBudgeting/ViewModels/CardsViewModel.swift:178:                return CardItem(
+OffshoreBudgeting/App/OffshoreBudgetingApp.swift:56:                            RootTabView(isWorkspaceReady: workspaceReady)
+OffshoreBudgeting/Views/CardPickerItemTile.swift:30:        let uiItem = CardItem(from: card)
+OffshoreBudgeting/App/Navigation/RootTabView.swift:2://  RootTabView.swift
+OffshoreBudgeting/App/Navigation/RootTabView.swift:24:struct RootTabView: View {
+OffshoreBudgeting/App/Navigation/RootTabView.swift:477:extension RootTabView.Tab {
+OffshoreBudgeting/App/Navigation/RootTabView.swift:510:private extension RootTabView {
+OffshoreBudgeting/App/Navigation/RootTabView.swift:533:private extension RootTabView {
+OffshoreBudgeting/Core/Persistence/Bridges/CardItem+CoreDataBridge.swift:9://    let uiItem = CardItem(from: card) // card: CoreData `Card`
+OffshoreBudgeting/Views/CardPickerRow.swift:47:                        let item = CardItem(from: managedCard)
+OffshoreBudgeting/Views/AddCardFormView.swift:313:            HolographicMetallicText(
+OffshoreBudgeting/DesignSystem/v2/Components/Effects/UnifiedSwipeActions.swift:2://  UnifiedSwipeActions.swift
+OffshoreBudgeting/DesignSystem/v2/Components/Effects/UnifiedSwipeActions.swift:102:// MARK: - UnifiedSwipeActionsModifier
+OffshoreBudgeting/DesignSystem/v2/Components/Effects/UnifiedSwipeActions.swift:103:private struct UnifiedSwipeActionsModifier: ViewModifier {
+OffshoreBudgeting/DesignSystem/v2/Components/Effects/UnifiedSwipeActions.swift:251:        modifier(UnifiedSwipeActionsModifier(
+OffshoreBudgeting/DesignSystem/v2/Components/Effects/HolographicMetallicText.swift:2://  HolographicMetallicText.swift
+OffshoreBudgeting/DesignSystem/v2/Components/Effects/HolographicMetallicText.swift:11://  HolographicMetallicText(text: "Apple Card")
+OffshoreBudgeting/DesignSystem/v2/Components/Effects/HolographicMetallicText.swift:18:// MARK: - HolographicMetallicText
+OffshoreBudgeting/DesignSystem/v2/Components/Effects/HolographicMetallicText.swift:27:struct HolographicMetallicText: View {
+OffshoreBudgeting/DesignSystem/v2/Components/Effects/HolographicMetallicText.swift:76:private extension HolographicMetallicText {
+OffshoreBudgeting/DesignSystem/v2/Components/EmptyState.swift:7:    /// This is a DSv2 port of `UBEmptyState` intended to keep behavior stable while
+OffshoreBudgeting/Views/CardTileView.swift:96:            var item = CardItem(from: managedCard)
+OffshoreBudgeting/Views/CardTileView.swift:102:            var item = CardItem(from: managedCard)
+OffshoreBudgeting/Views/CardTileView.swift:237:                HolographicMetallicText(
+OffshoreBudgeting/Views/HomeView.swift:992:                    let cardItem = detachedCardItem(from: expense?.card)
+OffshoreBudgeting/Views/HomeView.swift:1017:    private func detachedCardItem(from card: Card?) -> CardItem? {
+OffshoreBudgeting/Views/HomeView.swift:1019:        return CardItem(from: card)
+OffshoreBudgeting/Views/HomeView.swift:2093:            WidgetSharedStore.clearNextPlannedExpenseSnapshot()
+OffshoreBudgeting/Views/HomeView.swift:2097:        let cardItem = detachedCardItem(from: expense?.card)
+OffshoreBudgeting/Views/HomeView.swift:2101:        let widgetSnapshot = WidgetSharedStore.NextPlannedExpenseSnapshot(
+OffshoreBudgeting/Views/HomeView.swift:2114:        WidgetSharedStore.writeNextPlannedExpenseSnapshot(widgetSnapshot)
+OffshoreBudgeting/Views/HomeView.swift:2211:            .map { CardItem(from: $0) }
+OffshoreBudgeting/Views/HomeView.swift:2225:            var item = CardItem(from: card)
+OffshoreBudgeting/Views/HomeView.swift:4078:    private func detachedCardItem(from card: Card?) -> CardItem? {
+OffshoreBudgeting/Views/HomeView.swift:4080:        return CardItem(from: card)
+OffshoreBudgeting/Views/UBEmptyState.swift:2://  UBEmptyState.swift
+OffshoreBudgeting/Views/UBEmptyState.swift:10://  UBEmptyState(
+OffshoreBudgeting/Views/UBEmptyState.swift:20:// MARK: - UBEmptyState
+OffshoreBudgeting/Views/UBEmptyState.swift:23:struct UBEmptyState: View {

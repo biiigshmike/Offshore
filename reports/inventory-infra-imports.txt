@@ -1,0 +1,95 @@
+OffshoreBudgeting/App/AppDelegate.swift:import CloudKit
+OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift:    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
+OffshoreBudgeting/Views/ExpenseCategoryManagerView.swift:    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
+OffshoreBudgeting/Views/CardDetailView.swift:    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
+OffshoreBudgeting/Views/PresetsView.swift:    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
+OffshoreBudgeting/Views/CloudSyncGateView.swift:    @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
+OffshoreBudgeting/Views/CloudSyncGateView.swift:    @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
+OffshoreBudgeting/Views/CloudSyncGateView.swift:    @AppStorage("didChooseCloudDataOnboarding") private var didChooseCloudDataOnboarding: Bool = false
+OffshoreBudgeting/Services/WorkspaceService.swift:            let kv = NSUbiquitousKeyValueStore.default
+OffshoreBudgeting/Services/WorkspaceService.swift:            let kv = NSUbiquitousKeyValueStore.default
+OffshoreBudgeting/Services/WorkspaceService.swift:            let kv = NSUbiquitousKeyValueStore.default
+OffshoreBudgeting/Views/HomeView.swift:    @AppStorage("homePinnedWidgetIDs") private var pinnedStorage: String = ""
+OffshoreBudgeting/Views/HomeView.swift:    @AppStorage("homeWidgetOrderIDs") private var orderStorage: String = ""
+OffshoreBudgeting/Views/HomeView.swift:    @AppStorage("homeAvailabilitySegment") private var availabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
+OffshoreBudgeting/Views/HomeView.swift:    @AppStorage("homeScenarioAllocations") private var scenarioAllocationsRaw: String = ""
+OffshoreBudgeting/Views/HomeView.swift:    @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
+OffshoreBudgeting/Views/HomeView.swift:    @AppStorage(AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue) private var syncHomeWidgetsAcrossDevices: Bool = false
+OffshoreBudgeting/Views/HomeView.swift:            let kv = NSUbiquitousKeyValueStore.default
+OffshoreBudgeting/Views/HomeView.swift:        let kv = NSUbiquitousKeyValueStore.default
+OffshoreBudgeting/Views/HomeView.swift:            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+OffshoreBudgeting/Views/HomeView.swift:            object: NSUbiquitousKeyValueStore.default,
+OffshoreBudgeting/Views/HomeView.swift:    @AppStorage("homeScenarioAllocations") private var scenarioAllocationsRaw: String = ""
+OffshoreBudgeting/Views/HomeView.swift:    @AppStorage("homeAvailabilitySegment") private var detailAvailabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
+OffshoreBudgeting/Views/HomeView.swift:    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
+OffshoreBudgeting/Views/WorkspaceProfilesView.swift:    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
+OffshoreBudgeting/Views/WorkspaceProfilesView.swift:    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
+OffshoreBudgeting/App/Environment/DataRevisionEnvironment.swift:private struct DataRevisionKey: EnvironmentKey {
+OffshoreBudgeting/Views/BudgetsView.swift:            let kv = NSUbiquitousKeyValueStore.default
+OffshoreBudgeting/Views/BudgetsView.swift:        let kv = NSUbiquitousKeyValueStore.default
+OffshoreBudgeting/Views/BudgetsView.swift:            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+OffshoreBudgeting/Views/BudgetsView.swift:            object: NSUbiquitousKeyValueStore.default,
+OffshoreBudgeting/Views/OnboardingView.swift:    @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
+OffshoreBudgeting/Views/OnboardingView.swift:    @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
+OffshoreBudgeting/Views/IncomeView.swift:    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
+OffshoreBudgeting/Views/HelpView.swift:    @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
+OffshoreBudgeting/Views/PresetBudgetAssignmentSheet.swift:    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
+OffshoreBudgeting/App/Navigation/RootTabView.swift:    @AppStorage("uitest_seed_done") private var uiTestSeedDone: Bool = false
+OffshoreBudgeting/Views/SettingsView.swift:    @AppStorage(AppSettingsKeys.enableDailyReminder.rawValue) private var enableDailyReminder: Bool = false
+OffshoreBudgeting/Views/SettingsView.swift:    @AppStorage(AppSettingsKeys.enablePlannedIncomeReminder.rawValue) private var enablePlannedIncomeReminder: Bool = false
+OffshoreBudgeting/Views/SettingsView.swift:    @AppStorage(AppSettingsKeys.enablePresetExpenseDueReminder.rawValue) private var enablePresetExpenseDueReminder: Bool = false
+OffshoreBudgeting/Views/SettingsView.swift:    @AppStorage(AppSettingsKeys.silencePresetWithActualAmount.rawValue) private var silencePresetWithActualAmount: Bool = false
+OffshoreBudgeting/Views/SettingsView.swift:    @AppStorage(AppSettingsKeys.excludeNonGlobalPresetExpenses.rawValue) private var excludeNonGlobalPresetExpenses: Bool = false
+OffshoreBudgeting/Views/SettingsView.swift:    @AppStorage(AppSettingsKeys.notificationReminderTimeMinutes.rawValue) private var reminderTimeMinutes: Int = 20 * 60
+OffshoreBudgeting/Systems/OnboardingEnvironment.swift:struct OnboardingPresentationKey: EnvironmentKey {
+OffshoreBudgeting/App/OffshoreBudgetingApp.swift:    @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:#if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:import WidgetKit
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:// Lightweight shared storage for WidgetKit snapshots.
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetSharedStore.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Views/Components/ExpenseCategoryChipsRow.swift:    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
+OffshoreBudgeting/Core/Widgets/WidgetRefreshCoordinator.swift:#if canImport(WidgetKit)
+OffshoreBudgeting/Core/Widgets/WidgetRefreshCoordinator.swift:import WidgetKit
+OffshoreBudgeting/Core/Widgets/WidgetRefreshCoordinator.swift:/// Centralizes lightweight WidgetKit refresh calls.
+OffshoreBudgeting/Core/Widgets/WidgetRefreshCoordinator.swift:        #if canImport(WidgetKit)
+OffshoreBudgeting/Systems/ResponsiveLayoutContext.swift:private struct ResponsiveLayoutContextKey: EnvironmentKey {
+OffshoreBudgeting/ViewModels/SettingsViewModel.swift:/// Observable settings source of truth. Persists via @AppStorage for simplicity.
+OffshoreBudgeting/ViewModels/SettingsViewModel.swift:    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
+OffshoreBudgeting/ViewModels/SettingsViewModel.swift:    @AppStorage(AppSettingsKeys.calendarHorizontal.rawValue)
+OffshoreBudgeting/ViewModels/SettingsViewModel.swift:    @AppStorage(AppSettingsKeys.presetsDefaultUseInFutureBudgets.rawValue)
+OffshoreBudgeting/ViewModels/SettingsViewModel.swift:    @AppStorage(AppSettingsKeys.enableCloudSync.rawValue)
+OffshoreBudgeting/ViewModels/SettingsViewModel.swift:    @AppStorage(AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue)
+OffshoreBudgeting/ViewModels/AppLockViewModel.swift:    @AppStorage("appLockEnabled") public var isLockEnabled: Bool = true
+OffshoreBudgeting/Systems/UITestingEnvironment.swift:private struct UITestingFlagsKey: EnvironmentKey {
+OffshoreBudgeting/Systems/UITestingEnvironment.swift:private struct StartTabIdentifierKey: EnvironmentKey {
+OffshoreBudgeting/Systems/UITestingEnvironment.swift:private struct StartRouteIdentifierKey: EnvironmentKey {
+OffshoreBudgeting/Core/Cloud/CloudSyncAccelerator.swift:import CloudKit
+OffshoreBudgeting/Systems/PlatformCapabilities.swift:private struct PlatformCapabilitiesKey: EnvironmentKey {
+OffshoreBudgeting/Core/Cloud/CloudClient.swift:import CloudKit
+OffshoreBudgeting/Systems/SafeAreaInsetsCompatibility.swift:private struct UBSafeAreaInsetsEnvironmentKey: EnvironmentKey {
+OffshoreBudgeting/Systems/SafeAreaInsetsCompatibility.swift:        get { self[UBSafeAreaInsetsEnvironmentKey.self] }
+OffshoreBudgeting/Systems/SafeAreaInsetsCompatibility.swift:        set { self[UBSafeAreaInsetsEnvironmentKey.self] = newValue }
+OffshoreBudgeting/Systems/GuidedWalkthroughManager.swift:    private let ubiquitousStore: NSUbiquitousKeyValueStore
+OffshoreBudgeting/Systems/GuidedWalkthroughManager.swift:        ubiquitousStore: NSUbiquitousKeyValueStore = .default
+OffshoreBudgeting/Systems/GuidedWalkthroughManager.swift:    @AppStorage(AppSettingsKeys.tipsHintsResetToken.rawValue) private var resetToken: String = ""
+OffshoreBudgeting/Core/Cloud/CloudDiagnostics.swift:import CloudKit
+OffshoreBudgeting/Core/Cloud/CloudStatus.swift:import CloudKit
+OffshoreBudgeting/Core/Cloud/CloudProbe.swift:import CloudKit
+OffshoreBudgeting/Core/Theme/AppTheme.swift:// entitlement so they can interact with `NSUbiquitousKeyValueStore`.
+OffshoreBudgeting/Core/Theme/AppTheme.swift:/// An abstraction over `NSUbiquitousKeyValueStore`.
+OffshoreBudgeting/Core/Theme/AppTheme.swift:extension NSUbiquitousKeyValueStore: UbiquitousKeyValueStoring {}
+OffshoreBudgeting/Core/Theme/AppTheme.swift:        ubiquitousStoreFactory: @escaping () -> UbiquitousKeyValueStoring = { NSUbiquitousKeyValueStore.default },
+OffshoreBudgeting/Core/Theme/AppTheme.swift:            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+OffshoreBudgeting/Core/Cloud/CloudAccountStatusProvider.swift:import CloudKit
+OffshoreBudgeting/Core/Cloud/State/UbiquitousFlags.swift:        NSUbiquitousKeyValueStore.default.bool(forKey: hasCloudDataKey)
+OffshoreBudgeting/Core/Cloud/State/UbiquitousFlags.swift:        let kv = NSUbiquitousKeyValueStore.default
+OffshoreBudgeting/Core/Cloud/State/UbiquitousFlags.swift:        let kv = NSUbiquitousKeyValueStore.default

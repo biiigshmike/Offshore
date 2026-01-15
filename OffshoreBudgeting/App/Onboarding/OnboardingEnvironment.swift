@@ -11,6 +11,7 @@ struct OnboardingPresentationKey: EnvironmentKey {
 extension EnvironmentValues {
     /// Flag describing whether the current view is shown as part of the
     /// onboarding experience.
+    // PLATFORM: KEEP
     var isOnboardingPresentation: Bool {
         get { self[OnboardingPresentationKey.self] }
         set { self[OnboardingPresentationKey.self] = newValue }
@@ -23,6 +24,7 @@ extension View {
     /// - Parameter isOnboarding: Pass `true` to enable onboarding-specific
     ///   styling adjustments (default is `true`).
     /// - Returns: A view with the environment value applied.
+    // PLATFORM: KEEP
     func onboardingPresentation(_ isOnboarding: Bool = true) -> some View {
         environment(\.isOnboardingPresentation, isOnboarding)
     }

@@ -5,9 +5,9 @@ private struct DataRevisionKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
+    // PLATFORM: KEEP
     var dataRevision: Int {
         get { self[DataRevisionKey.self] }
         set { self[DataRevisionKey.self] = newValue }
     }
 }
-

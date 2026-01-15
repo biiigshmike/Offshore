@@ -30,6 +30,7 @@ private struct UITestingFlagsKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
+    // PLATFORM: KEEP
     var uiTestingFlags: UITestingFlags {
         get { self[UITestingFlagsKey.self] }
         set { self[UITestingFlagsKey.self] = newValue }
@@ -44,6 +45,7 @@ private struct StartTabIdentifierKey: EnvironmentKey {
 extension EnvironmentValues {
     /// Optional string identifier for the tab to select at launch during UI tests.
     /// Expected values: "home", "income", "cards", "presets", "settings".
+    // PLATFORM: KEEP
     var startTabIdentifier: String? {
         get { self[StartTabIdentifierKey.self] }
         set { self[StartTabIdentifierKey.self] = newValue }
@@ -58,6 +60,7 @@ private struct StartRouteIdentifierKey: EnvironmentKey {
 extension EnvironmentValues {
     /// Optional string identifier for the screen to show at launch during UI tests.
     /// Expected values: "categories".
+    // PLATFORM: KEEP
     var startRouteIdentifier: String? {
         get { self[StartRouteIdentifierKey.self] }
         set { self[StartRouteIdentifierKey.self] = newValue }

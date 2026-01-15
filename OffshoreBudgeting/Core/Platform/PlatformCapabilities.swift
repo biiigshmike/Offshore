@@ -117,6 +117,7 @@ private struct PlatformCapabilitiesKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// Active platform capabilities for this view hierarchy.
+    // PLATFORM: KEEP
     var platformCapabilities: PlatformCapabilities {
         get { self[PlatformCapabilitiesKey.self] }
         set { self[PlatformCapabilitiesKey.self] = newValue }

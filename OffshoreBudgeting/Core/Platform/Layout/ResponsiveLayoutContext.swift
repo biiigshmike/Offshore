@@ -76,6 +76,7 @@ private struct ResponsiveLayoutContextKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// Active responsive layout context for this view subtree.
+    // PLATFORM: KEEP
     var responsiveLayoutContext: ResponsiveLayoutContext {
         get { self[ResponsiveLayoutContextKey.self] }
         set { self[ResponsiveLayoutContextKey.self] = newValue }
@@ -85,6 +86,7 @@ extension EnvironmentValues {
 extension View {
     /// Injects the provided responsive layout context into the environment so
     /// that descendants can opt into it without threading values manually.
+    // PLATFORM: KEEP
     func responsiveLayoutContext(_ context: ResponsiveLayoutContext) -> some View {
         environment(\.responsiveLayoutContext, context)
     }

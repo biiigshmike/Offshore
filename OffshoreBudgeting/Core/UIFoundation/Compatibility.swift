@@ -58,6 +58,7 @@ extension View {
     // MARK: ub_rootNavigationChrome()
     /// Hides the navigation bar background for root-level navigation stacks on modern OS releases.
     /// Earlier platforms ignore the call so they retain their default opaque chrome.
+    // PLATFORM: KEEP
     @ViewBuilder
     func ub_rootNavigationChrome() -> some View {
         modifier(UBRootNavigationChromeModifier())
@@ -67,6 +68,7 @@ extension View {
     /// Tight, offset shadow for card titles (small 3D lift). Softer gray tone, not harsh black.
     /// Use on text layers: `.ub_cardTitleShadow()`
     /// - Returns: A view with a subtle title shadow applied.
+    // PLATFORM: KEEP
     func ub_cardTitleShadow() -> some View {
         return self.shadow(
             color: UBTypography.cardTitleShadowColor,
@@ -84,6 +86,7 @@ extension View {
     ///   - configuration: Fine-tuning for the glass parameters.
     ///   - edges: Edges to extend through the safe area if needed.
     /// - Returns: A view with a theme-appropriate surface background.
+    // PLATFORM: KEEP
     func ub_surfaceBackground(
         _ theme: AppTheme,
         configuration: AppTheme.GlassConfiguration,
@@ -105,6 +108,7 @@ extension View {
     ///   - theme: The active app theme controlling glass usage.
     ///   - configuration: Glass configuration used on eligible systems.
     /// - Returns: A view that adopts theme-aware navigation backgrounds.
+    // PLATFORM: KEEP
     func ub_navigationBackground(
         theme: AppTheme,
         configuration: AppTheme.GlassConfiguration
@@ -124,6 +128,7 @@ extension View {
     /// expose this knob directly, so we bridge via a lightweight `UIViewRepresentable`
     /// that walks up the view hierarchy and toggles the UIKit flags.
     /// - Returns: A view that disables horizontal bouncing on the underlying scroll view.
+    // PLATFORM: KEEP
     func ub_disableHorizontalBounce() -> some View {
         overlay(alignment: .topLeading) {
             UBHorizontalBounceDisabler()
@@ -138,6 +143,7 @@ extension View {
     /// - On earlier OSes: prefer `.insetGrouped` and hide the scroll background (iOS 16+/macOS 13+)
     ///   so our app’s surface background remains consistent.
     /// - Returns: A view whose list style adapts to OS capabilities.
+    // PLATFORM: KEEP
     func ub_listStyleLiquidAware() -> some View {
         modifier(UBListStyleLiquidAwareModifier())
     }
@@ -147,6 +153,7 @@ extension View {
     /// the system’s default row background (Liquid Glass) can be used.
     /// - Parameter color: The background color for list rows on pre‑OS26.
     /// - Returns: A view that conditionally sets the list row background.
+    // PLATFORM: KEEP
     func ub_preOS26ListRowBackground(_ color: Color) -> some View {
         modifier(UBPreOS26ListRowBackgroundModifier(color: color))
     }
@@ -154,6 +161,7 @@ extension View {
     // MARK: ub_windowTitle(_:)
     /// Updates the Catalyst window title using the provided string.
     /// On non-Catalyst platforms this is a no-op.
+    // PLATFORM: KEEP
     func ub_windowTitle(_ title: String) -> some View {
 #if targetEnvironment(macCatalyst)
         return self
@@ -258,6 +266,7 @@ private struct UBListStyleLiquidAwareModifier: ViewModifier {
 private extension View {
     /// Applies visible list row separators tinted with a neutral system color,
     /// guarded by availability to avoid compile‑time/platform issues.
+    // PLATFORM: KEEP
     @ViewBuilder
     func ub_applyListRowSeparators() -> some View {
         if #available(iOS 15.0, macCatalyst 15.0, *) {
@@ -270,6 +279,7 @@ private extension View {
     }
 
     /// Applies compact section spacing when the OS provides the list API.
+    // PLATFORM: KEEP
     @ViewBuilder
     func ub_applyCompactSectionSpacingIfAvailable() -> some View {
         #if os(iOS)
@@ -284,6 +294,7 @@ private extension View {
     }
 
     /// Applies zero row spacing on lists when the OS provides the API.
+    // PLATFORM: KEEP
     @ViewBuilder
     func ub_applyZeroRowSpacingIfAvailable() -> some View {
         #if os(iOS)
@@ -457,6 +468,7 @@ extension View {
     /// Bridges iOS 17's `.ignoresSafeArea(.container, edges:)` to earlier APIs.
     /// - Parameter edges: Edges to ignore when extending backgrounds.
     /// - Returns: A view that ignores only the specified safe area edges.
+    // PLATFORM: LEGACY
     @ViewBuilder
     func ub_ignoreSafeArea(edges: Edge.Set) -> some View {
         if #available(iOS 17.0, macCatalyst 17.0, *) {
@@ -474,6 +486,7 @@ extension View {
 /// Call this in your save actions to neatly resign the first responder before
 /// dismissing a sheet.  On macOS and other platforms this is a no‑op.
 /// - Note: Safe to call multiple times; no effect when no responder is active.
+// PLATFORM: KEEP (used by Add* form views)
 func ub_dismissKeyboard() {
     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
 }

@@ -21,6 +21,7 @@ extension EnvironmentValues {
     /// available on the most recent SDKs which caused compilation failures on
     /// older toolchains. By providing our own key we can continue to query the
     /// insets in a consistent manner across iOS, iPadOS, macOS and Mac Catalyst.
+    // PLATFORM: KEEP
     var ub_safeAreaInsets: EdgeInsets {
         get { self[UBSafeAreaInsetsEnvironmentKey.self] }
         set { self[UBSafeAreaInsetsEnvironmentKey.self] = newValue }
@@ -29,6 +30,7 @@ extension EnvironmentValues {
 
 // MARK: - Preference Key
 /// Preference used internally to propagate measured safe area insets upward.
+// PLATFORM: KEEP
 private struct UBSafeAreaInsetsPreferenceKey: PreferenceKey {
     static var defaultValue = EdgeInsets()
 
@@ -66,6 +68,7 @@ extension View {
     /// Injects the current view's safe area insets into the environment so that
     /// descendants can query `@Environment(\.ub_safeAreaInsets)` without
     /// directly depending on the newest SwiftUI APIs.
+    // PLATFORM: KEEP
     func ub_captureSafeAreaInsets() -> some View {
         modifier(UBSafeAreaInsetsReader())
     }

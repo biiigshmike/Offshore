@@ -31,6 +31,21 @@ struct AddUnplannedExpenseView: View {
     @EnvironmentObject private var cardPickerStore: CardPickerStore
     @State private var isPresentingAddCard = false
     @State private var didApplyInitialCardSelection = false
+    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
+
+    @FetchRequest(
+        sortDescriptors: [
+            NSSortDescriptor(
+                key: "name",
+                ascending: true,
+                selector: #selector(NSString.localizedCaseInsensitiveCompare(_:))
+            )
+        ]
+    )
+    private var expenseCategories: FetchedResults<ExpenseCategory>
+
+    @State private var isPresentingNewCategory = false
+    @State private var addCategorySheetInstanceID = UUID()
     
     // MARK: - Layout
     /// Height of the card picker row.  This matches the tile height defined in
@@ -65,6 +80,7 @@ struct AddUnplannedExpenseView: View {
 
     // MARK: Body
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
         navigationContainer {
@@ -201,7 +217,58 @@ struct AddUnplannedExpenseView: View {
 
             // MARK: Category Chips Row
             Section {
-                ExpenseCategoryChipsRow(selectedCategoryID: $vm.selectedCategoryID)
+                DesignSystemV2.CategoryChipsRow(
+                    items: expenseCategoryChipItems,
+                    selectedID: expenseCategorySelectedID,
+                    onAddTapped: {
+                        addCategorySheetInstanceID = UUID()
+                        isPresentingNewCategory = true
+                    }
+                )
+                .listRowInsets(expenseCategoryRowInsets)
+                .listRowSeparator(.hidden)
+                .ub_preOS26ListRowBackground(.clear)
+                .sheet(isPresented: $isPresentingNewCategory) {
+                    let base = ExpenseCategoryEditorSheet(
+                        initialName: "",
+                        initialHex: "#4E9CFF"
+                    ) { name, hex in
+                        let category = ExpenseCategory(context: viewContext)
+                        category.id = UUID()
+                        category.name = name
+                        category.color = hex
+                        WorkspaceService.shared.applyWorkspaceID(on: category)
+                        do {
+                            try viewContext.obtainPermanentIDs(for: [category])
+                            try viewContext.save()
+                            vm.selectedCategoryID = category.objectID
+                        } catch {
+                            AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
+                        }
+                    }
+                    .environment(\.managedObjectContext, viewContext)
+
+                    Group {
+                        if #available(iOS 16.0, *) {
+                            base.presentationDetents([.medium])
+                        } else {
+                            base
+                        }
+                    }
+                    .id(addCategorySheetInstanceID)
+                }
+                .onChange(of: expenseCategories.count) { _ in
+                    if vm.selectedCategoryID == nil, let first = filteredExpenseCategories.first {
+                        vm.selectedCategoryID = first.objectID
+                    }
+                }
+                .onChange(of: activeWorkspaceIDRaw) { _ in
+                    if let first = filteredExpenseCategories.first {
+                        vm.selectedCategoryID = first.objectID
+                    } else {
+                        vm.selectedCategoryID = nil
+                    }
+                }
                 .accessibilityElement(children: .contain)
             } header: {
                 Text("Category")
@@ -315,7 +382,60 @@ struct AddUnplannedExpenseView: View {
         vm.amountString = ""
         // Keep selected card, category, and date.
     }
+
+    // MARK: - Category Chips (DSv2)
+    private var filteredExpenseCategories: [ExpenseCategory] {
+        guard let workspaceID = UUID(uuidString: activeWorkspaceIDRaw) else { return Array(expenseCategories) }
+        return expenseCategories.filter { category in
+            (category.value(forKey: "workspaceID") as? UUID) == workspaceID
+        }
     }
+
+    private var expenseCategoryIDToObjectID: [String: NSManagedObjectID] {
+        Dictionary(
+            uniqueKeysWithValues: filteredExpenseCategories.map { category in
+                (category.objectID.uriRepresentation().absoluteString, category.objectID)
+            }
+        )
+    }
+
+    private var expenseCategorySelectedID: Binding<String?> {
+        Binding<String?>(
+            get: { vm.selectedCategoryID?.uriRepresentation().absoluteString },
+            set: { newValue in
+                guard let newValue else {
+                    vm.selectedCategoryID = nil
+                    return
+                }
+                if let mapped = expenseCategoryIDToObjectID[newValue] {
+                    vm.selectedCategoryID = mapped
+                } else {
+                    vm.selectedCategoryID = nil
+                }
+            }
+        )
+    }
+
+    private var expenseCategoryChipItems: [DesignSystemV2.CategoryChipItem] {
+        filteredExpenseCategories.map { category in
+            let id = category.objectID.uriRepresentation().absoluteString
+            let title = category.name ?? "Untitled"
+            let colorHex = category.color ?? "#999999"
+            let color = UBColorFromHex(colorHex) ?? .secondary
+            return DesignSystemV2.CategoryChipItem(id: id, title: title, color: color)
+        }
+    }
+
+    private var expenseCategoryRowInsets: EdgeInsets {
+        let verticalInset: CGFloat = Spacing.s + Spacing.xs
+        return EdgeInsets(
+            top: verticalInset,
+            leading: Spacing.l,
+            bottom: verticalInset,
+            trailing: Spacing.l
+        )
+    }
+}
 
 private extension AddUnplannedExpenseView {
     func applyInitialCardSelectionIfNeeded() {

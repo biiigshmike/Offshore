@@ -39,7 +39,7 @@ enum AppUpdateLogs {
     // MARK: - Release Logs Source (Newest First)
     static var releaseLogs: [AppUpdateLogEntry] {
         let candidates: [(String, TipsContent?)] = [
-            ("2.1.1.1", AppUpdateLog_2_1.content(for: .home)),
+            ("2.1.1.1", AppUpdateLog_2_1_1.content(for: .home)),
             ("2.1.4", AppUpdateLog_2_1.content(for: .home)),
             ("2.0.1.1", AppUpdateLog_2_0_1.content(for: .home)),
             ("2.0.1", AppUpdateLog_2_0.content(for: .home))

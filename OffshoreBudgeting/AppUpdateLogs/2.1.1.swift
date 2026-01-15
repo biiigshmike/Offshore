@@ -16,7 +16,7 @@ enum AppUpdateLog_2_1_1 {
                     TipsItem(
                         symbolName: "dollarsign.bank.building",
                         title: "Behind the Vault Improvements",
-                        detail: "Worked on restructuring the app, improving loading speeds, and helping Offshore prepare for the future of budgeting. Ahoy!"
+                        detail: "Worked on restructuring the app, improving loading speeds, and helping Offshore prepare for the future of budgeting."
                     )
                 ],
                 actionTitle: "Got It"

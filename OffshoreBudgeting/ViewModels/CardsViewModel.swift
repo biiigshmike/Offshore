@@ -198,7 +198,7 @@ final class CardsViewModel: ObservableObject {
                     delayMS = max(delayMS, 900)
                 }
                 #if canImport(UIKit)
-                if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue), CloudSyncMonitor.shared.isImporting {
+                if (UserDefaultsAppSettingsStore().bool(for: .enableCloudSync) ?? false), CloudSyncMonitor.shared.isImporting {
                     delayMS = max(delayMS, 1100)
                 }
                 #endif
@@ -274,9 +274,7 @@ final class CardsViewModel: ObservableObject {
     // MARK: requestDelete(card:)
     /// Presents confirmation to delete a card.
     func requestDelete(card: CardItem) {
-        let confirm = UserDefaults.standard.object(
-            forKey: AppSettingsKeys.confirmBeforeDelete.rawValue
-        ) as? Bool ?? true
+        let confirm = UserDefaultsAppSettingsStore().bool(for: .confirmBeforeDelete) ?? true
         if confirm {
             alert = CardsViewAlert(kind: .confirmDelete(card: card))
         } else {

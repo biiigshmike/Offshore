@@ -27,7 +27,7 @@ final class MergeService {
         // deletions will propagate to iCloud and other devices. Let Core Data
         // mirroring upload local records and rely on manual review for
         // duplicates. We can add a preview-based dedupe later.
-        if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue) {
+        if UserDefaultsAppSettingsStore().bool(for: .enableCloudSync) ?? false {
             // Under cloud sync, perform only a strict, safe dedupe for template children
             // scoped to (workspaceID, budget, globalTemplateID).
             didChange = try mergeStrictTemplateChildren(ctx) || didChange

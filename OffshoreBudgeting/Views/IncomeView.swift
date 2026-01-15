@@ -25,8 +25,7 @@ struct IncomeView: View {
     @Environment(\.managedObjectContext) private var moc
     @Environment(\.responsiveLayoutContext) private var layoutContext
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
-    private var confirmBeforeDelete: Bool = true
+    @EnvironmentObject private var settings: AppSettingsState
 
     // Guided walkthrough removed
 
@@ -627,7 +626,7 @@ struct IncomeView: View {
     private func incomeRowWithSwipeActions(_ income: Income) -> some View {
         incomeRow(income)
             .unifiedSwipeActions(
-                UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
+                UnifiedSwipeConfig(allowsFullSwipeToDelete: !settings.confirmBeforeDelete),
                 onEdit: { editingIncome = income },
                 onDelete: { requestDelete(income: income) }
             )
@@ -701,7 +700,7 @@ struct IncomeView: View {
     }
 
     private func requestDelete(income: Income) {
-        if confirmBeforeDelete {
+        if settings.confirmBeforeDelete {
             incomePendingDeletion = income
             isConfirmingDelete = true
         } else {

@@ -206,8 +206,9 @@ struct TipsAndHintsStore {
     static let shared = TipsAndHintsStore()
 
     private let defaults: UserDefaults
+    private let settingsStore: UserDefaultsAppSettingsStore
     private let ubiquitousStore: NSUbiquitousKeyValueStore
-    private let resetTokenKey = AppSettingsKeys.tipsHintsResetToken.rawValue
+    private let resetTokenKey = "tipsHintsResetToken"
     private let migrationKey = "tipsHints.migratedToUbiquitous.v1"
 
     init(
@@ -215,6 +216,7 @@ struct TipsAndHintsStore {
         ubiquitousStore: NSUbiquitousKeyValueStore = .default
     ) {
         self.defaults = defaults
+        self.settingsStore = UserDefaultsAppSettingsStore(defaults: defaults)
         self.ubiquitousStore = ubiquitousStore
         migrateDefaultsToUbiquitousIfNeeded()
     }
@@ -237,7 +239,7 @@ struct TipsAndHintsStore {
     }
 
     func resetAllTips() {
-        set(UUID().uuidString, forKey: resetTokenKey)
+        settingsStore.set(UUID().uuidString, for: .tipsHintsResetToken)
     }
 
     private func seenKey(for screen: TipsScreen, kind: TipsKind, versionToken: String?) -> String {
@@ -294,7 +296,8 @@ struct TipsAndHintsStore {
 
     private func migrateDefaultsToUbiquitousIfNeeded() {
         guard !ubiquitousStore.bool(forKey: migrationKey) else { return }
-        guard let resetToken = defaults.string(forKey: resetTokenKey) else {
+        let resetTokenKey = "tipsHintsResetToken"
+        guard let resetToken = settingsStore.string(for: .tipsHintsResetToken) else {
             ubiquitousStore.set(true, forKey: migrationKey)
             ubiquitousStore.synchronize()
             return
@@ -340,9 +343,9 @@ struct TipsAndHintsOverlayModifier: ViewModifier {
     var versionToken: String? = nil
 
     @ObservedObject private var coordinator = TipsPresentationCoordinator.shared
+    @EnvironmentObject private var settings: AppSettingsState
     @State private var isPresented = false
     @State private var isVisible = false
-    @AppStorage(AppSettingsKeys.tipsHintsResetToken.rawValue) private var resetToken: String = ""
 
     func body(content: Content) -> some View {
         content
@@ -352,7 +355,7 @@ struct TipsAndHintsOverlayModifier: ViewModifier {
                 maybeShow()
             }
             .onDisappear { isVisible = false }
-            .onChange(of: resetToken) { _ in
+            .onChange(of: settings.tipsHintsResetToken) { _ in
                 maybeShow()
             }
             .onChange(of: coordinator.isPresenting) { presenting in

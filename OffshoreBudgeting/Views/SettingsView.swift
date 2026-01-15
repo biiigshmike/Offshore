@@ -15,9 +15,9 @@ struct SettingsView: View {
     // MARK: Env
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var appLockViewModel: AppLockViewModel
+    @EnvironmentObject private var settings: AppSettingsState
     
     // MARK: State
-    @StateObject private var vm = SettingsViewModel()
     @State private var showResetAlert = false
     @State private var showMergeConfirm = false
     @State private var showForceReuploadConfirm = false
@@ -70,7 +70,6 @@ struct SettingsView: View {
                         .ub_windowTitle("Help")
                 case .general:
                     GeneralSettingsView(
-                        vm: vm,
                         showResetAlert: $showResetAlert
                     )
                     .ub_windowTitle("General")
@@ -88,7 +87,7 @@ struct SettingsView: View {
                 case .icloud:
                     ICloudSettingsView(
                         cloudToggle: cloudToggleBinding,
-                        widgetSyncToggle: $vm.syncHomeWidgetsAcrossDevices,
+                        widgetSyncToggle: $settings.syncHomeWidgetsAcrossDevices,
                         isForceReuploading: isForceReuploading,
                         isReconfiguringStores: isReconfiguringStores,
                         onForceRefresh: { showForceReuploadConfirm = true }
@@ -292,7 +291,7 @@ struct SettingsView: View {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 80_000_000)
             await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: false)
-            vm.enableCloudSync = false
+            settings.enableCloudSync = false
             let personalID = WorkspaceService.shared.personalWorkspace()?.id
             ?? WorkspaceService.shared.ensureActiveWorkspaceID()
             await WorkspaceService.shared.assignWorkspaceIDIfMissing(to: personalID)
@@ -311,15 +310,15 @@ struct SettingsView: View {
 private extension SettingsView {
     var cloudToggleBinding: Binding<Bool> {
         Binding<Bool>(
-            get: { vm.enableCloudSync },
+            get: { settings.enableCloudSync },
             set: { newValue in
-                if vm.enableCloudSync && newValue == false {
+                if settings.enableCloudSync && newValue == false {
                     showDisableCloudOptions = true
                     return
                 }
-                if !vm.enableCloudSync && newValue == true {
+                if !settings.enableCloudSync && newValue == true {
                     isReconfiguringStores = true
-                    vm.enableCloudSync = true
+                    settings.enableCloudSync = true
                     Task { @MainActor in
                         try? await Task.sleep(nanoseconds: 80_000_000)
                         await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
@@ -691,14 +690,14 @@ private struct ReleaseLogItemRow: View {
 
 private struct GeneralSettingsView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @ObservedObject var vm: SettingsViewModel
+    @EnvironmentObject private var settings: AppSettingsState
     @Binding var showResetAlert: Bool
     @State private var selectedBudgetPeriod: BudgetPeriod = .monthly
     
     var body: some View {
         List {
             Section {
-                Toggle("Confirm Before Deleting", isOn: $vm.confirmBeforeDelete)
+                Toggle("Confirm Before Deleting", isOn: $settings.confirmBeforeDelete)
                 Picker("Default Budget Period", selection: $selectedBudgetPeriod) {
                     ForEach(BudgetPeriod.selectableCases) { Text($0.displayName).tag($0) }
                 }
@@ -830,12 +829,7 @@ private struct PrivacySettingsView: View {
 }
 
 private struct NotificationsSettingsView: View {
-    @AppStorage(AppSettingsKeys.enableDailyReminder.rawValue) private var enableDailyReminder: Bool = false
-    @AppStorage(AppSettingsKeys.enablePlannedIncomeReminder.rawValue) private var enablePlannedIncomeReminder: Bool = false
-    @AppStorage(AppSettingsKeys.enablePresetExpenseDueReminder.rawValue) private var enablePresetExpenseDueReminder: Bool = false
-    @AppStorage(AppSettingsKeys.silencePresetWithActualAmount.rawValue) private var silencePresetWithActualAmount: Bool = false
-    @AppStorage(AppSettingsKeys.excludeNonGlobalPresetExpenses.rawValue) private var excludeNonGlobalPresetExpenses: Bool = false
-    @AppStorage(AppSettingsKeys.notificationReminderTimeMinutes.rawValue) private var reminderTimeMinutes: Int = 20 * 60
+    @EnvironmentObject private var settings: AppSettingsState
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @State private var showPermissionAlert = false
     
@@ -844,19 +838,19 @@ private struct NotificationsSettingsView: View {
     var body: some View {
         List {
             Section("Expenses") {
-                Toggle("Daily Expense Reminder", isOn: $enableDailyReminder)
+                Toggle("Daily Expense Reminder", isOn: $settings.enableDailyReminder)
             }
             
             Section("Income") {
-                Toggle("Planned Income Reminder", isOn: $enablePlannedIncomeReminder)
+                Toggle("Planned Income Reminder", isOn: $settings.enablePlannedIncomeReminder)
             }
             
             Section("Presets") {
-                Toggle("Preset Expense Due Reminder", isOn: $enablePresetExpenseDueReminder)
-                Toggle("Silence If Actual Amount > 0", isOn: $silencePresetWithActualAmount)
-                    .disabled(!enablePresetExpenseDueReminder)
-                Toggle("Exclude Non-global Preset Expenses", isOn: $excludeNonGlobalPresetExpenses)
-                    .disabled(!enablePresetExpenseDueReminder)
+                Toggle("Preset Expense Due Reminder", isOn: $settings.enablePresetExpenseDueReminder)
+                Toggle("Silence If Actual Amount > 0", isOn: $settings.silencePresetWithActualAmount)
+                    .disabled(!settings.enablePresetExpenseDueReminder)
+                Toggle("Exclude Non-global Preset Expenses", isOn: $settings.excludeNonGlobalPresetExpenses)
+                    .disabled(!settings.enablePresetExpenseDueReminder)
             }
             
             Section {
@@ -877,12 +871,12 @@ private struct NotificationsSettingsView: View {
         .navigationTitle("Notifications")
         .ub_windowTitle("Notifications")
         .task { await refreshAuthorizationStatus() }
-        .onChange(of: enableDailyReminder) { _ in handleReminderToggleChange() }
-        .onChange(of: enablePlannedIncomeReminder) { _ in handleReminderToggleChange() }
-        .onChange(of: enablePresetExpenseDueReminder) { _ in handleReminderToggleChange() }
-        .onChange(of: silencePresetWithActualAmount) { _ in Task { await LocalNotificationScheduler.shared.refreshAll() } }
-        .onChange(of: excludeNonGlobalPresetExpenses) { _ in Task { await LocalNotificationScheduler.shared.refreshAll() } }
-        .onChange(of: reminderTimeMinutes) { _ in Task { await LocalNotificationScheduler.shared.refreshAll() } }
+        .onChange(of: settings.enableDailyReminder) { _ in handleReminderToggleChange() }
+        .onChange(of: settings.enablePlannedIncomeReminder) { _ in handleReminderToggleChange() }
+        .onChange(of: settings.enablePresetExpenseDueReminder) { _ in handleReminderToggleChange() }
+        .onChange(of: settings.silencePresetWithActualAmount) { _ in Task { await LocalNotificationScheduler.shared.refreshAll() } }
+        .onChange(of: settings.excludeNonGlobalPresetExpenses) { _ in Task { await LocalNotificationScheduler.shared.refreshAll() } }
+        .onChange(of: settings.notificationReminderTimeMinutes) { _ in Task { await LocalNotificationScheduler.shared.refreshAll() } }
         .alert("Notifications Disabled", isPresented: $showPermissionAlert) {
             Button("Open Settings") { openSystemSettings() }
             Button("OK", role: .cancel) { }
@@ -964,15 +958,16 @@ private struct NotificationsSettingsView: View {
     private var reminderTimeBinding: Binding<Date> {
         Binding(
             get: {
-                let hour = max(0, min(23, reminderTimeMinutes / 60))
-                let minute = max(0, min(59, reminderTimeMinutes % 60))
+                let minutesRaw = settings.notificationReminderTimeMinutes
+                let hour = max(0, min(23, minutesRaw / 60))
+                let minute = max(0, min(59, minutesRaw % 60))
                 return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
             },
             set: { newValue in
                 let comps = calendar.dateComponents([.hour, .minute], from: newValue)
                 let hour = comps.hour ?? 20
                 let minute = comps.minute ?? 0
-                reminderTimeMinutes = max(0, min(24 * 60 - 1, hour * 60 + minute))
+                settings.notificationReminderTimeMinutes = max(0, min(24 * 60 - 1, hour * 60 + minute))
             }
         )
     }
@@ -980,7 +975,7 @@ private struct NotificationsSettingsView: View {
     private func handleReminderToggleChange() {
         Task {
             await refreshAuthorizationStatus()
-            guard enableDailyReminder || enablePlannedIncomeReminder || enablePresetExpenseDueReminder else {
+            guard settings.enableDailyReminder || settings.enablePlannedIncomeReminder || settings.enablePresetExpenseDueReminder else {
                 await LocalNotificationScheduler.shared.refreshAll()
                 return
             }
@@ -1018,9 +1013,9 @@ private struct NotificationsSettingsView: View {
     
     @MainActor
     private func disableRemindersAndAlert() async {
-        enableDailyReminder = false
-        enablePlannedIncomeReminder = false
-        enablePresetExpenseDueReminder = false
+        settings.enableDailyReminder = false
+        settings.enablePlannedIncomeReminder = false
+        settings.enablePresetExpenseDueReminder = false
         showPermissionAlert = true
     }
     

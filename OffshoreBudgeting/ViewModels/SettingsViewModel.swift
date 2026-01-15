@@ -6,62 +6,6 @@
 //
 
 import SwiftUI
-import Combine
-
-// MARK: - SettingsViewModel
-/// Observable settings source of truth. Persists via @AppStorage for simplicity.
-/// Properties trigger view updates by sending `objectWillChange` on write.
-@MainActor
-final class SettingsViewModel: ObservableObject {
-
-    /// When true, show a confirmation dialog before deleting items.
-    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
-    var confirmBeforeDelete: Bool = true { willSet { objectWillChange.send() } }
-
-    /// Controls whether the income calendar presents horizontally.
-    @AppStorage(AppSettingsKeys.calendarHorizontal.rawValue)
-    var calendarHorizontal: Bool = true { willSet { objectWillChange.send() } }
-
-    /// When adding from Presets, default "Use in future budgets?" to ON.
-    @AppStorage(AppSettingsKeys.presetsDefaultUseInFutureBudgets.rawValue)
-    var presetsDefaultUseInFutureBudgets: Bool = true { willSet { objectWillChange.send() } }
-
-    // Preferred budgeting period now persists via Workspace (Core Data), not here.
-
-    // Removed: syncCardThemes and syncBudgetPeriod – both are Core Data backed now.
-
-    /// Enable iCloud/CloudKit synchronization for Core Data.
-    /// When turned off, dependent sync options are also disabled.
-    @AppStorage(AppSettingsKeys.enableCloudSync.rawValue)
-    var enableCloudSync: Bool = false {
-        willSet { objectWillChange.send() }
-        didSet {
-            // No dependent toggles
-        }
-    }
-
-    /// When enabled, Home widget layouts are synced via iCloud key-value storage.
-    @AppStorage(AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue)
-    var syncHomeWidgetsAcrossDevices: Bool = false { willSet { objectWillChange.send() } }
-
-    // MARK: - Init
-    init() {
-        UserDefaults.standard.register(defaults: [
-            AppSettingsKeys.confirmBeforeDelete.rawValue: true,
-            AppSettingsKeys.calendarHorizontal.rawValue: true,
-            AppSettingsKeys.presetsDefaultUseInFutureBudgets.rawValue: true,
-            AppSettingsKeys.budgetPeriod.rawValue: BudgetPeriod.monthly.rawValue,
-            AppSettingsKeys.enableCloudSync.rawValue: false,
-            AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue: false,
-            AppSettingsKeys.enableDailyReminder.rawValue: false,
-            AppSettingsKeys.enablePlannedIncomeReminder.rawValue: false,
-            AppSettingsKeys.enablePresetExpenseDueReminder.rawValue: false,
-            AppSettingsKeys.silencePresetWithActualAmount.rawValue: false,
-            AppSettingsKeys.excludeNonGlobalPresetExpenses.rawValue: false,
-            AppSettingsKeys.notificationReminderTimeMinutes.rawValue: 20 * 60
-        ])
-    }
-}
 
 // MARK: - Cross-Platform Colors
 /// iOS has `UIColor.secondarySystemBackground/tertiarySystemBackground`; macOS does not.

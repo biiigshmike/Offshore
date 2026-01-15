@@ -9,10 +9,10 @@ final class WorkspaceService {
 
     private init() {}
 
+    private let settingsStore = UserDefaultsAppSettingsStore()
     private let defaultsLocalKey = "workspace.active.local"
     private let defaultsCloudKey = "workspace.active.cloud"
     private let ubiquitousKey = "workspace.active.id"
-    private let defaultsActiveKey = AppSettingsKeys.activeWorkspaceID.rawValue
     private let defaultsSeedPersonalKey = "workspace.seed.personal"
     private let defaultsSeedWorkKey = "workspace.seed.work"
     private let defaultsSeedEducationKey = "workspace.seed.education"
@@ -181,9 +181,7 @@ extension WorkspaceService {
     }
 
     nonisolated static func activeWorkspaceIDFromDefaults() -> UUID? {
-        guard let raw = UserDefaults.standard.string(forKey: AppSettingsKeys.activeWorkspaceID.rawValue) else {
-            return nil
-        }
+        guard let raw = UserDefaultsAppSettingsStore().string(for: .activeWorkspaceID) else { return nil }
         return UUID(uuidString: raw)
     }
 
@@ -226,7 +224,7 @@ extension WorkspaceService {
     }
 
     func setActiveWorkspaceID(_ id: UUID, notify: Bool = true) {
-        defaults.set(id.uuidString, forKey: defaultsActiveKey)
+        settingsStore.set(id.uuidString, for: .activeWorkspaceID)
         if notify {
             NotificationCenter.default.post(name: .workspaceDidChange, object: nil)
             NotificationCenter.default.post(name: .dataStoreDidChange, object: nil)
@@ -353,7 +351,7 @@ extension WorkspaceService {
 
 private extension WorkspaceService {
     func loadActiveWorkspaceID() -> UUID? {
-        guard let raw = defaults.string(forKey: defaultsActiveKey),
+        guard let raw = settingsStore.string(for: .activeWorkspaceID),
               let id = UUID(uuidString: raw) else {
             return nil
         }

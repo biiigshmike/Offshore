@@ -17,6 +17,7 @@ struct OffshoreBudgetingApp: App {
     // MARK: Dependencies
     @StateObject private var themeManager = ThemeManager()
     @StateObject private var cardPickerStore = CardPickerStore()
+    @StateObject private var appSettings = AppSettingsState(store: UserDefaultsAppSettingsStore())
     @State private var coreDataReady = false
     @State private var dataReady = false
     @State private var dataRevision: Int = 0
@@ -104,6 +105,7 @@ struct OffshoreBudgetingApp: App {
         let base = content()
             .environmentObject(themeManager)
             .environmentObject(cardPickerStore)
+            .environmentObject(appSettings)
             .environment(\.platformCapabilities, platformCapabilities)
             .environment(\.uiTestingFlags, testFlags)
             .environment(\.startTabIdentifier, startTab)
@@ -137,7 +139,7 @@ struct OffshoreBudgetingApp: App {
                     CoreDataService.shared.ensureLoaded()
                     await CoreDataService.shared.waitUntilStoresLoaded()
                     // Initialize workspace and reflect cloud flags
-                    if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue) {
+                    if appSettings.enableCloudSync {
                         if CloudDataProbe().hasAnyData() { UbiquitousFlags.setHasCloudDataTrue() }
                     }
                     await WorkspaceService.shared.initializeOnLaunch()
@@ -201,7 +203,7 @@ struct OffshoreBudgetingApp: App {
 
     @MainActor
     private func startDataReadinessFlow() {
-        let cloudOn = UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        let cloudOn = appSettings.enableCloudSync
         if !cloudOn {
             dataReady = true
             return
@@ -536,8 +538,8 @@ private extension OffshoreBudgetingApp {
         switch scenario.lowercased() {
         case "core_universe":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
-            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
-            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            appSettings.activeWorkspaceID = workspaceID.uuidString
+            appSettings.confirmBeforeDelete = true
             _ = WorkspaceService.shared.fetchOrCreateWorkspace(in: ctx)
 
             let budgetID = UUID(uuidString: "DCE9E4FD-4EC7-4EA1-9A67-1E5C3A3A8AA1")!
@@ -624,8 +626,8 @@ private extension OffshoreBudgetingApp {
             return
         case "homeview_multi_budget":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
-            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
-            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            appSettings.activeWorkspaceID = workspaceID.uuidString
+            appSettings.confirmBeforeDelete = true
             _ = WorkspaceService.shared.fetchOrCreateWorkspace(in: ctx)
 
             let calendar = Calendar.current
@@ -866,8 +868,8 @@ private extension OffshoreBudgetingApp {
             return
         case "homeview_no_budget":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
-            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
-            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            appSettings.activeWorkspaceID = workspaceID.uuidString
+            appSettings.confirmBeforeDelete = true
             _ = WorkspaceService.shared.fetchOrCreateWorkspace(in: ctx)
 
             let calendar = Calendar.current
@@ -963,14 +965,14 @@ private extension OffshoreBudgetingApp {
             return
         case "categories_empty":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
-            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
-            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            appSettings.activeWorkspaceID = workspaceID.uuidString
+            appSettings.confirmBeforeDelete = true
             markSeedDone()
             return
         case "categories_with_one":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
-            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
-            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            appSettings.activeWorkspaceID = workspaceID.uuidString
+            appSettings.confirmBeforeDelete = true
 
             let category = ExpenseCategory(context: ctx)
             category.setValue(groceriesID, forKey: "id")
@@ -1001,8 +1003,8 @@ private extension OffshoreBudgetingApp {
             return
         case "categories_with_testcat":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
-            UserDefaults.standard.set(workspaceID.uuidString, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
-            UserDefaults.standard.set(true, forKey: AppSettingsKeys.confirmBeforeDelete.rawValue)
+            appSettings.activeWorkspaceID = workspaceID.uuidString
+            appSettings.confirmBeforeDelete = true
 
             let category = ExpenseCategory(context: ctx)
             category.setValue(testCatID, forKey: "id")

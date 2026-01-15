@@ -48,7 +48,7 @@ struct CloudOnboardingDecisionEngine {
 // MARK: - SystemCloudAvailabilityChecker
 final class SystemCloudAvailabilityChecker: CloudAvailabilityChecking {
     var isCloudSyncEnabledSetting: Bool {
-        UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        UserDefaultsAppSettingsStore().bool(for: .enableCloudSync) ?? false
     }
 
     func iCloudAccountAvailable() async -> Bool {

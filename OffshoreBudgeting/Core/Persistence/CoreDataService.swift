@@ -63,7 +63,7 @@ final class CoreDataService: ObservableObject {
     
     /// Reads the user's preference to enable CloudKit sync.
     private var enableCloudKitSync: Bool {
-        UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        UserDefaultsAppSettingsStore().bool(for: .enableCloudSync) ?? false
     }
 
     private var loadingTask: Task<Void, Never>?
@@ -450,7 +450,7 @@ private extension CoreDataService {
 
     func disableCloudSyncPreferences() {
         let defaults = UserDefaults.standard
-        defaults.set(false, forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        UserDefaultsAppSettingsStore(defaults: defaults).set(false, for: .enableCloudSync)
     }
 
     @MainActor

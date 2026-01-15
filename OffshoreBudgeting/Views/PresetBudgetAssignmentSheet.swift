@@ -18,8 +18,7 @@ struct PresetBudgetAssignmentSheet: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var themeManager: ThemeManager
-    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
-    private var confirmBeforeDelete: Bool = true
+    @EnvironmentObject private var settings: AppSettingsState
 
     // MARK: Inputs
     let template: PlannedExpense
@@ -55,7 +54,7 @@ struct PresetBudgetAssignmentSheet: View {
                         .labelsHidden()
                     }
                     .unifiedSwipeActions(
-                        UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
+                        UnifiedSwipeConfig(allowsFullSwipeToDelete: !settings.confirmBeforeDelete),
                         onEdit: { editingBudgetBox = ObjectIDBox(id: budget.objectID) },
                         onDelete: { requestDeleteBudget(budget) }
                     )
@@ -170,7 +169,7 @@ struct PresetBudgetAssignmentSheet: View {
 
     // MARK: - Delete Budget (Swipe)
     private func requestDeleteBudget(_ budget: Budget) {
-        if confirmBeforeDelete {
+        if settings.confirmBeforeDelete {
             budgetPendingDeletion = budget.objectID
             isConfirmingDelete = true
         } else {

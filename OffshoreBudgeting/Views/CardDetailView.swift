@@ -29,13 +29,12 @@ struct CardDetailView: View {
     @StateObject private var viewModel: CardDetailViewModel
     @Environment(\.responsiveLayoutContext) private var layoutContext
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var settings: AppSettingsState
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.uiTestingFlags) private var uiTestingFlags
-    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue)
-    private var confirmBeforeDelete: Bool = true
     @State private var isSearchActive: Bool = false
     @FocusState private var isSearchFieldFocused: Bool
     // Add flows
@@ -365,7 +364,7 @@ struct CardDetailView: View {
             Section {
                 let expenses = viewModel.filteredExpenses
                 let trimmedSearch = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-                let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
+                let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !settings.confirmBeforeDelete)
                     if expenses.isEmpty {
                         let emptyMessage = trimmedSearch.isEmpty
                             ? "No expenses yet for this date range."
@@ -443,7 +442,7 @@ struct CardDetailView: View {
     }
 
     private func requestDelete(_ expense: CardExpense) {
-        if confirmBeforeDelete {
+        if settings.confirmBeforeDelete {
             expensePendingDeletion = expense
             isConfirmingDelete = true
         } else {
@@ -458,7 +457,7 @@ struct CardDetailView: View {
         }
         guard !targets.isEmpty else { return }
 
-        if confirmBeforeDelete, let first = targets.first {
+        if settings.confirmBeforeDelete, let first = targets.first {
             expensePendingDeletion = first
             isConfirmingDelete = true
         } else {

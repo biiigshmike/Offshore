@@ -344,7 +344,7 @@ final class HomeViewModel: ObservableObject {
                 }
             }
             #if canImport(UIKit)
-            if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue), CloudSyncMonitor.shared.isImporting {
+            if (UserDefaultsAppSettingsStore().bool(for: .enableCloudSync) ?? false), CloudSyncMonitor.shared.isImporting {
                 delayMS = max(delayMS, 1100)
             }
             #endif
@@ -1237,9 +1237,7 @@ final class HomeViewModel: ObservableObject {
     // MARK: Deletion
     /// Requests deletion for the provided budget object ID, honoring the user's confirm setting.
     func requestDelete(budgetID: NSManagedObjectID) {
-        let confirm = UserDefaults.standard.object(
-            forKey: AppSettingsKeys.confirmBeforeDelete.rawValue
-        ) as? Bool ?? true
+        let confirm = UserDefaultsAppSettingsStore().bool(for: .confirmBeforeDelete) ?? true
         if confirm {
             alert = HomeViewAlert(kind: .confirmDelete(budgetID: budgetID))
         } else {

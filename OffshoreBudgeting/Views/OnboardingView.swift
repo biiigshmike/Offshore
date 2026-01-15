@@ -4,9 +4,9 @@ import Combine
 // MARK: - OnboardingView2
 struct OnboardingView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var settings: AppSettingsState
     @Environment(\.platformCapabilities) private var capabilities
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
-    @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
 
     enum Step { case welcome, categories, cards, presets, loading }
     @State private var step: Step = .welcome
@@ -44,7 +44,7 @@ struct OnboardingView: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(AccessibilityID.Onboarding.screen)
         .onboardingPresentation() // mark hierarchy for onboarding-specific styling
-        .onChange(of: enableCloudSync) { newValue in
+        .onChange(of: settings.enableCloudSync) { newValue in
             Task { @MainActor in
                 await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: newValue)
             }

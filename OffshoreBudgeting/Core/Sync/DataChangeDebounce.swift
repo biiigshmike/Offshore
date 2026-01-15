@@ -13,7 +13,7 @@ enum DataChangeDebounce {
     /// Debounce in milliseconds.
     @MainActor
     static func milliseconds() -> Int {
-        let cloudOn = UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        let cloudOn = UserDefaultsAppSettingsStore().bool(for: .enableCloudSync) ?? false
         let isImporting = cloudOn && CloudSyncMonitor.shared.isImporting
         return Debouncer<Void>.intervalMilliseconds(isImporting: isImporting, normal: 100, importing: 250)
     }
@@ -22,7 +22,7 @@ enum DataChangeDebounce {
     /// to avoid visible flicker during CloudKit imports.
     @MainActor
     static func outputMilliseconds() -> Int {
-        let cloudOn = UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        let cloudOn = UserDefaultsAppSettingsStore().bool(for: .enableCloudSync) ?? false
         let isImporting = cloudOn && CloudSyncMonitor.shared.isImporting
         return Debouncer<Void>.intervalMilliseconds(isImporting: isImporting, normal: 140, importing: 300)
     }

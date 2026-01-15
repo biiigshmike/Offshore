@@ -16,6 +16,7 @@ struct BudgetsView: View {
     @State private var ubiquitousObserver: NSObjectProtocol?
     @FocusState private var searchFocused: Bool
     @FetchRequest private var fetchedBudgets: FetchedResults<Budget>
+    @EnvironmentObject private var settings: AppSettingsState
 
     // MARK: Services
     init() {
@@ -416,7 +417,7 @@ struct BudgetsView: View {
 
     // MARK: Expansion Persistence
     private var cloudEnabled: Bool {
-        UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue)
+        settings.enableCloudSync
     }
 
     private enum ExpansionStorageKey {

@@ -34,7 +34,7 @@ final class CloudSyncAccelerator {
     /// Trigger a tiny CloudKit read to warm the pipe and encourage prompt
     /// delivery of any pending pushes for the app’s private database.
     func nudgeOnForeground() {
-        guard UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue) else { return }
+        guard UserDefaultsAppSettingsStore().bool(for: .enableCloudSync) ?? false else { return }
 
         let now = Date()
         if let last = lastNudge, now.timeIntervalSince(last) < minNudgeInterval { return }

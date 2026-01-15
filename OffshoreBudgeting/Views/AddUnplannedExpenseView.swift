@@ -29,9 +29,9 @@ struct AddUnplannedExpenseView: View {
     // MARK: State
     @StateObject private var vm: AddUnplannedExpenseViewModel
     @EnvironmentObject private var cardPickerStore: CardPickerStore
+    @EnvironmentObject private var settings: AppSettingsState
     @State private var isPresentingAddCard = false
     @State private var didApplyInitialCardSelection = false
-    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
 
     @FetchRequest(
         sortDescriptors: [
@@ -262,7 +262,7 @@ struct AddUnplannedExpenseView: View {
                         vm.selectedCategoryID = first.objectID
                     }
                 }
-                .onChange(of: activeWorkspaceIDRaw) { _ in
+                .onChange(of: settings.activeWorkspaceID) { _ in
                     if let first = filteredExpenseCategories.first {
                         vm.selectedCategoryID = first.objectID
                     } else {
@@ -385,7 +385,7 @@ struct AddUnplannedExpenseView: View {
 
     // MARK: - Category Chips (DSv2)
     private var filteredExpenseCategories: [ExpenseCategory] {
-        guard let workspaceID = UUID(uuidString: activeWorkspaceIDRaw) else { return Array(expenseCategories) }
+        guard let workspaceID = UUID(uuidString: settings.activeWorkspaceID) else { return Array(expenseCategories) }
         return expenseCategories.filter { category in
             (category.value(forKey: "workspaceID") as? UUID) == workspaceID
         }

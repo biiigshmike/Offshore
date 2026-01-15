@@ -36,10 +36,10 @@ struct AddPlannedExpenseView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var cardPickerStore: CardPickerStore
+    @EnvironmentObject private var settings: AppSettingsState
     @StateObject private var vm: AddPlannedExpenseViewModel
     @State private var isAssigningToBudget: Bool
     @State private var didSyncAssignBudgetToggle = false
-    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
 
     @FetchRequest(
         sortDescriptors: [
@@ -228,7 +228,7 @@ struct AddPlannedExpenseView: View {
                         vm.selectedCategoryID = first.objectID
                     }
                 }
-                .onChange(of: activeWorkspaceIDRaw) { _ in
+                .onChange(of: settings.activeWorkspaceID) { _ in
                     if let first = filteredExpenseCategories.first {
                         vm.selectedCategoryID = first.objectID
                     } else {
@@ -662,7 +662,7 @@ struct AddPlannedExpenseView: View {
 
     // MARK: - Category Chips (DSv2)
     private var filteredExpenseCategories: [ExpenseCategory] {
-        guard let workspaceID = UUID(uuidString: activeWorkspaceIDRaw) else { return Array(expenseCategories) }
+        guard let workspaceID = UUID(uuidString: settings.activeWorkspaceID) else { return Array(expenseCategories) }
         return expenseCategories.filter { category in
             (category.value(forKey: "workspaceID") as? UUID) == workspaceID
         }

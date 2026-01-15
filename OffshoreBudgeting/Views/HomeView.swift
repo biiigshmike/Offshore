@@ -228,6 +228,7 @@ struct HomeView: View {
     @Environment(\.platformCapabilities) private var capabilities
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    @EnvironmentObject private var settings: AppSettingsState
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
 
@@ -235,8 +236,6 @@ struct HomeView: View {
     @AppStorage("homeWidgetOrderIDs") private var orderStorage: String = ""
     @AppStorage("homeAvailabilitySegment") private var availabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
     @AppStorage("homeScenarioAllocations") private var scenarioAllocationsRaw: String = ""
-    @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
-    @AppStorage(AppSettingsKeys.syncHomeWidgetsAcrossDevices.rawValue) private var syncHomeWidgetsAcrossDevices: Bool = false
 
     private static let defaultWidgets: [WidgetID] = [
         .income, .expenseToIncome, .savings, .nextPlanned, .categorySpotlight, .dayOfWeek, .availability, .scenario
@@ -288,7 +287,7 @@ struct HomeView: View {
     }
 
     private var shouldSyncWidgets: Bool {
-        enableCloudSync && syncHomeWidgetsAcrossDevices
+        settings.enableCloudSync && settings.syncHomeWidgetsAcrossDevices
     }
 
     private var columnCount: Int {
@@ -5065,7 +5064,7 @@ private struct NextPlannedDetailRow: View {
     let onDelete: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
+    @EnvironmentObject private var settings: AppSettingsState
     @State private var showDeleteAlert = false
     @ScaledMetric(relativeTo: .body) private var symbolWidth: CGFloat = 14
     @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 8
@@ -5103,9 +5102,9 @@ private struct NextPlannedDetailRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .unifiedSwipeActions(
-            UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete),
+            UnifiedSwipeConfig(allowsFullSwipeToDelete: !settings.confirmBeforeDelete),
             onEdit: onEdit,
-            onDelete: { confirmBeforeDelete ? (showDeleteAlert = true) : onDelete() }
+            onDelete: { settings.confirmBeforeDelete ? (showDeleteAlert = true) : onDelete() }
         )
         .alert("Delete planned expense?", isPresented: $showDeleteAlert) {
             Button("Delete", role: .destructive) { onDelete() }

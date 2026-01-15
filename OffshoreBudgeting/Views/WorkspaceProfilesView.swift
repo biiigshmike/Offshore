@@ -5,11 +5,11 @@ import CoreData
 /// Toolbar menu for selecting and managing profiles/workspaces.
 struct WorkspaceMenuButton: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var settings: AppSettingsState
     @FetchRequest(
         entity: Workspace.entity(),
         sortDescriptors: [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
     ) private var workspaces: FetchedResults<Workspace>
-    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
     
     @State private var showAdd = false
     @State private var showManage = false
@@ -45,14 +45,14 @@ struct WorkspaceMenuButton: View {
 
     @ViewBuilder
     private var workspaceListSection: some View {
-        let activeID = UUID(uuidString: activeWorkspaceIDRaw)
+        let activeID = UUID(uuidString: settings.activeWorkspaceID)
         ForEach(workspaces) { workspace in
             let colorHex = WorkspaceService.shared.colorHex(for: workspace)
             let rowTint = UBColorFromHex(colorHex) ?? .accentColor
             Button {
                 guard let id = workspace.id else { return }
                 WorkspaceService.shared.setActiveWorkspaceID(id)
-                activeWorkspaceIDRaw = id.uuidString
+                settings.activeWorkspaceID = id.uuidString
             } label: {
                 HStack(spacing: Spacing.sPlus) {
                     if activeID == workspace.id {
@@ -72,7 +72,7 @@ struct WorkspaceMenuButton: View {
     }
 
     private var activeWorkspaceColorHex: String {
-        let activeID = UUID(uuidString: activeWorkspaceIDRaw)
+        let activeID = UUID(uuidString: settings.activeWorkspaceID)
         if let activeID, let workspace = workspaces.first(where: { $0.id == activeID }) {
             return WorkspaceService.shared.colorHex(for: workspace)
         }
@@ -101,11 +101,11 @@ struct WorkspaceColorDot: View {
 struct WorkspaceManagerView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var settings: AppSettingsState
     @FetchRequest(
         entity: Workspace.entity(),
         sortDescriptors: [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
     ) private var workspaces: FetchedResults<Workspace>
-    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
     
     @State private var editingWorkspace: Workspace?
     @State private var workspaceToDelete: Workspace?
@@ -153,12 +153,12 @@ struct WorkspaceManagerView: View {
         }
         .task {
             let id = WorkspaceService.shared.ensureActiveWorkspaceID()
-            activeWorkspaceIDRaw = id.uuidString
+            settings.activeWorkspaceID = id.uuidString
         }
     }
     
     private func workspaceRow(for workspace: Workspace) -> some View {
-        let isActive = UUID(uuidString: activeWorkspaceIDRaw) == workspace.id
+        let isActive = UUID(uuidString: settings.activeWorkspaceID) == workspace.id
         let isPersonal = WorkspaceService.shared.isPersonalWorkspace(workspace)
         let colorHex = WorkspaceService.shared.colorHex(for: workspace)
         let config = UnifiedSwipeConfig(

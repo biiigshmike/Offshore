@@ -8,10 +8,10 @@ struct CloudSyncGateView: View {
     @Environment(\.uiTestingFlags) private var uiTesting
     @Environment(\.platformCapabilities) private var capabilities
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var settings: AppSettingsState
 
     // MARK: App Storage
     @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
-    @AppStorage(AppSettingsKeys.enableCloudSync.rawValue) private var enableCloudSync: Bool = false
     @AppStorage("didChooseCloudDataOnboarding") private var didChooseCloudDataOnboarding: Bool = false
 
     // MARK: Local State
@@ -80,7 +80,7 @@ struct CloudSyncGateView: View {
                let cloudDataExists = uiTesting.cloudDataExistsOverride {
                 decideCloudOnboardingPath(
                     checker: UITestCloudAvailabilityChecker(
-                        isCloudSyncEnabledSetting: enableCloudSync,
+                        isCloudSyncEnabledSetting: settings.enableCloudSync,
                         accountAvailable: accountAvailable,
                         cloudDataExists: cloudDataExists
                     )
@@ -91,7 +91,7 @@ struct CloudSyncGateView: View {
             return
         }
 
-        if enableCloudSync {
+        if settings.enableCloudSync {
             decideCloudOnboardingPath(checker: SystemCloudAvailabilityChecker())
         } else {
             presentStandardOnboardingFlow()
@@ -128,9 +128,9 @@ struct CloudSyncGateView: View {
     }
 
     private func declineCloudThenOnboard() {
-        if enableCloudSync {
+        if settings.enableCloudSync {
             // If previously enabled, honor user's decision to go local for onboarding.
-            enableCloudSync = false
+            settings.enableCloudSync = false
             Task { @MainActor in
                 await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: false)
             }
@@ -140,7 +140,7 @@ struct CloudSyncGateView: View {
 
     private func enableAndProbeForExistingData() {
         // Turn on Cloud sync up-front.
-        enableCloudSync = true
+        settings.enableCloudSync = true
 
         // If any device previously indicated cloud data exists, verify remotely first.
         if UbiquitousFlags.hasCloudData() {
@@ -203,8 +203,8 @@ struct CloudSyncGateView: View {
     private func startFreshLocalOnboarding() {
         didChooseCloudDataOnboarding = true
         // To avoid impacting existing Cloud data, disable sync and proceed locally.
-        if enableCloudSync {
-            enableCloudSync = false
+        if settings.enableCloudSync {
+            settings.enableCloudSync = false
             Task { @MainActor in
                 await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: false)
             }

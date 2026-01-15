@@ -15,6 +15,7 @@ struct ExpenseCategoryManagerView: View {
     // MARK: Dependencies
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var settings: AppSettingsState
     @Environment(\.platformCapabilities) private var capabilities
     @Environment(\.ub_safeAreaInsets) private var legacySafeAreaInsets
     @Environment(\.dismiss) private var dismiss
@@ -38,8 +39,6 @@ struct ExpenseCategoryManagerView: View {
     @State private var addSheetInstanceID = UUID()
     @State private var categoryToEdit: ExpenseCategory?
     @State private var categoryToDelete: ExpenseCategory?
-    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
-    @AppStorage(AppSettingsKeys.activeWorkspaceID.rawValue) private var activeWorkspaceIDRaw: String = ""
     let wrapsInNavigation: Bool
 
     init(wrapsInNavigation: Bool = true) {
@@ -132,7 +131,7 @@ struct ExpenseCategoryManagerView: View {
     }
 
     private var filteredCategories: [ExpenseCategory] {
-        guard let workspaceID = UUID(uuidString: activeWorkspaceIDRaw) else { return Array(categories) }
+        guard let workspaceID = UUID(uuidString: settings.activeWorkspaceID) else { return Array(categories) }
         return categories.filter { category in
             (category.value(forKey: "workspaceID") as? UUID) == workspaceID
         }
@@ -150,14 +149,14 @@ struct ExpenseCategoryManagerView: View {
 //                        .foregroundStyle(.secondary)
                     
                     Section() {
-                        let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
+                        let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !settings.confirmBeforeDelete)
 
                         ForEach(filteredCategories, id: \.objectID) { category in
                             categoryRow(for: category, swipeConfig: swipeConfig)
                         }
                         .onDelete { offsets in
                             let targets = offsets.map { filteredCategories[$0] }
-                            if confirmBeforeDelete {
+                            if settings.confirmBeforeDelete {
                                 if let used = targets.first(where: { usageCounts(for: $0).total > 0 }) {
                                     categoryToDelete = used
                                 } else if let first = targets.first {
@@ -197,7 +196,7 @@ struct ExpenseCategoryManagerView: View {
             onTap: { categoryToEdit = category },
             onEdit: { categoryToEdit = category },
             onDelete: {
-                if confirmBeforeDelete {
+                if settings.confirmBeforeDelete {
                     // Show confirmation (with cascade details if in use)
                     categoryToDelete = category
                 } else {

@@ -12,6 +12,7 @@ struct PresetsView: View {
 
     // MARK: Env
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var settings: AppSettingsState
     
     // MARK: State
     @StateObject private var vm = PresetsViewModel()
@@ -19,7 +20,6 @@ struct PresetsView: View {
     @State private var sheetTemplateToAssign: PlannedExpense? = nil
     @State private var editingTemplate: PlannedExpense? = nil
     @State private var templateToDelete: PlannedExpense? = nil
-    @AppStorage(AppSettingsKeys.confirmBeforeDelete.rawValue) private var confirmBeforeDelete: Bool = true
 
     // Guided walkthrough removed
 
@@ -41,7 +41,7 @@ struct PresetsView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
-                let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !confirmBeforeDelete)
+                let swipeConfig = UnifiedSwipeConfig(allowsFullSwipeToDelete: !settings.confirmBeforeDelete)
                 List {
                     if let header {
                         header
@@ -57,7 +57,7 @@ struct PresetsView: View {
                                     swipeConfig,
                                     onEdit: { editingTemplate = item.template },
                                     onDelete: {
-                                        if confirmBeforeDelete {
+                                        if settings.confirmBeforeDelete {
                                             templateToDelete = item.template
                                         } else {
                                             delete(template: item.template)
@@ -68,7 +68,7 @@ struct PresetsView: View {
                         }
                         .onDelete { indexSet in
                             let targets = indexSet.compactMap { vm.items[safe: $0]?.template }
-                            if confirmBeforeDelete, let first = targets.first {
+                            if settings.confirmBeforeDelete, let first = targets.first {
                                 templateToDelete = first
                             } else {
                                 targets.forEach(delete(template:))

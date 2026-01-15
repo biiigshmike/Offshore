@@ -137,7 +137,7 @@ final class PresetsViewModel: ObservableObject {
                 delayMS = max(delayMS, 900)
             }
             #if canImport(UIKit)
-            if UserDefaults.standard.bool(forKey: AppSettingsKeys.enableCloudSync.rawValue), CloudSyncMonitor.shared.isImporting {
+            if (UserDefaultsAppSettingsStore().bool(for: .enableCloudSync) ?? false), CloudSyncMonitor.shared.isImporting {
                 delayMS = max(delayMS, 1100)
             }
             #endif

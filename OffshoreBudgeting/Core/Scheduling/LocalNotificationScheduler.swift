@@ -10,6 +10,7 @@ final class LocalNotificationScheduler {
     private let center: UNUserNotificationCenter
     private let calendar: Calendar
     private let defaults: UserDefaults
+    private let settingsStore: UserDefaultsAppSettingsStore
     private let incomeService: IncomeService
     private let plannedExpenseService: PlannedExpenseService
 
@@ -28,6 +29,7 @@ final class LocalNotificationScheduler {
         self.center = center
         self.calendar = calendar
         self.defaults = defaults
+        self.settingsStore = UserDefaultsAppSettingsStore(defaults: defaults)
         self.incomeService = incomeService
         self.plannedExpenseService = plannedExpenseService
     }
@@ -56,7 +58,7 @@ final class LocalNotificationScheduler {
 
     func refreshDailyReminder() async {
         await removePendingRequests(prefix: dailyReminderPrefix)
-        guard defaults.bool(forKey: AppSettingsKeys.enableDailyReminder.rawValue) else { return }
+        guard settingsStore.bool(for: .enableDailyReminder) ?? false else { return }
 
         let now = Date()
         let todayStart = calendar.startOfDay(for: now)
@@ -75,7 +77,7 @@ final class LocalNotificationScheduler {
 
     func refreshPlannedIncomeReminders() async {
         await removePendingRequests(prefix: plannedIncomePrefix)
-        guard defaults.bool(forKey: AppSettingsKeys.enablePlannedIncomeReminder.rawValue) else { return }
+        guard settingsStore.bool(for: .enablePlannedIncomeReminder) ?? false else { return }
 
         let now = Date()
         let (hour, minute) = reminderTimeComponents()
@@ -95,7 +97,7 @@ final class LocalNotificationScheduler {
 
     func refreshPresetExpenseReminders() async {
         await removePendingRequests(prefix: presetExpensePrefix)
-        guard defaults.bool(forKey: AppSettingsKeys.enablePresetExpenseDueReminder.rawValue) else { return }
+        guard settingsStore.bool(for: .enablePresetExpenseDueReminder) ?? false else { return }
 
         let now = Date()
         let (hour, minute) = reminderTimeComponents()
@@ -104,8 +106,8 @@ final class LocalNotificationScheduler {
 
         let interval = DateInterval(start: start, end: end)
         let expenses = (try? plannedExpenseService.fetchAll(in: interval, sortedByDateAscending: true)) ?? []
-        let excludeNonGlobal = defaults.bool(forKey: AppSettingsKeys.excludeNonGlobalPresetExpenses.rawValue)
-        let silenceIfActual = defaults.bool(forKey: AppSettingsKeys.silencePresetWithActualAmount.rawValue)
+        let excludeNonGlobal = settingsStore.bool(for: .excludeNonGlobalPresetExpenses) ?? false
+        let silenceIfActual = settingsStore.bool(for: .silencePresetWithActualAmount) ?? false
 
         for expense in expenses {
             if excludeNonGlobal && expense.isGlobal == false { continue }
@@ -177,7 +179,7 @@ final class LocalNotificationScheduler {
     }
 
     private func reminderTimeComponents() -> (hour: Int, minute: Int) {
-        let minutes = defaults.object(forKey: AppSettingsKeys.notificationReminderTimeMinutes.rawValue) as? Int ?? 20 * 60
+        let minutes = settingsStore.int(for: .notificationReminderTimeMinutes) ?? (20 * 60)
         let clamped = max(0, min(24 * 60 - 1, minutes))
         return (clamped / 60, clamped % 60)
     }

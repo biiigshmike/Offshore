@@ -23,6 +23,8 @@ enum AppUpdateLogs {
     static func content(for screen: TipsScreen, versionToken: String?) -> TipsContent? {
         guard let versionToken else { return nil }
         switch versionToken {
+        case "2.1.1.1":
+            return AppUpdateLog_2_1_1.content(for: screen)
         case "2.1.4":
             return AppUpdateLog_2_1.content(for: screen)
         case "2.0.1.1":
@@ -37,6 +39,7 @@ enum AppUpdateLogs {
     // MARK: - Release Logs Source (Newest First)
     static var releaseLogs: [AppUpdateLogEntry] {
         let candidates: [(String, TipsContent?)] = [
+            ("2.1.1.1", AppUpdateLog_2_1.content(for: .home)),
             ("2.1.4", AppUpdateLog_2_1.content(for: .home)),
             ("2.0.1.1", AppUpdateLog_2_0_1.content(for: .home)),
             ("2.0.1", AppUpdateLog_2_0.content(for: .home))

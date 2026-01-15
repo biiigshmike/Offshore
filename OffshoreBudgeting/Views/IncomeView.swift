@@ -110,14 +110,14 @@ struct IncomeView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             // Clear, no-background toolbar icon per design
-            Buttons.toolbarIcon("plus") { addIncome() }
+            DesignSystemV2.Buttons.LegacyToolbarIcon("plus") { addIncome() }
             .accessibilityLabel("Add Income")
             .accessibilityIdentifier(AccessibilityID.Income.addButton)
             
         }
         if uiTest.showTestControls {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Buttons.toolbarIcon("trash") {
+                DesignSystemV2.Buttons.LegacyToolbarIcon("trash") {
                     if let first = vm.incomesForDay.first { requestDelete(income: first) }
                 }
                 .accessibilityIdentifier(AccessibilityID.Income.UITest.deleteFirstIncomeButton)

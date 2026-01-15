@@ -178,7 +178,7 @@ struct CardsView: View {
 
     @ViewBuilder
     private var addButton: some View {
-        Buttons.toolbarIcon(Icons.sfPlus) { isPresentingAddCard = true }
+        DesignSystemV2.Buttons.LegacyToolbarIcon(Icons.sfPlus) { isPresentingAddCard = true }
         .accessibilityLabel("Add Card")
         
     }

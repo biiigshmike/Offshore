@@ -104,7 +104,7 @@ struct BudgetsView: View {
             searchToolbarControl
         }
         ToolbarItem(placement: .navigationBarTrailing) {
-            Buttons.toolbarIcon(Icons.sfPlus) { isPresentingAddBudget = true }
+            DesignSystemV2.Buttons.LegacyToolbarIcon(Icons.sfPlus) { isPresentingAddBudget = true }
                 .accessibilityLabel("Add Budget")
         }
     }
@@ -326,11 +326,11 @@ struct BudgetsView: View {
         GlassEffectContainer(spacing: 8) {
             HStack(spacing: 6) {
                 if isSearching {
-                    Buttons.toolbarIcon(Icons.sfXmark) { closeSearch() }
+                    DesignSystemV2.Buttons.LegacyToolbarIcon(Icons.sfXmark) { closeSearch() }
                         .accessibilityLabel("Close Search")
                     glassSearchField
                 } else {
-                    Buttons.toolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
+                    DesignSystemV2.Buttons.LegacyToolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
                         .accessibilityLabel("Search Budgets")
                 }
             }
@@ -340,11 +340,11 @@ struct BudgetsView: View {
     private var searchToolbarControlLegacy: some View {
         HStack(spacing: 6) {
             if isSearching {
-                Buttons.toolbarIcon(Icons.sfXmark) { closeSearch() }
+                DesignSystemV2.Buttons.LegacyToolbarIcon(Icons.sfXmark) { closeSearch() }
                     .accessibilityLabel("Close Search")
                 legacySearchField
             } else {
-                Buttons.toolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
+                DesignSystemV2.Buttons.LegacyToolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
                     .accessibilityLabel("Search Budgets")
             }
         }

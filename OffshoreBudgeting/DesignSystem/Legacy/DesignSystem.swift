@@ -25,11 +25,11 @@ enum DesignSystem {
     /// Spacing scale used throughout the UI. Values are in points and chosen to
     /// align with common iOS rhythm. Prefer these over magic numbers.
     enum Spacing {
-        static let xs: CGFloat = 6
-        static let s:  CGFloat = 8
-        static let m:  CGFloat = 12
-        static let l:  CGFloat = 16
-        static let xl: CGFloat = 24
+        static let xs: CGFloat = Offshore.Spacing.xs
+        static let s: CGFloat = Offshore.Spacing.s
+        static let m: CGFloat = Offshore.Spacing.m
+        static let l: CGFloat = Offshore.Spacing.l
+        static let xl: CGFloat = Offshore.Spacing.xl
         static let xxl: CGFloat = 32
     }
 
@@ -37,7 +37,7 @@ enum DesignSystem {
     /// Corner radius tokens for common components.
     enum Radius {
         /// Rounded card/container corners.
-        static let card: CGFloat = 16
+        static let card: CGFloat = Offshore.Radius.card
     }
 
     // MARK: Colors
@@ -46,9 +46,9 @@ enum DesignSystem {
     enum Colors {
         // Accent hues
         /// Planned income series/accent.
-        static let plannedIncome  = Color.orange
+        static let plannedIncome: Color = Offshore.Colors.plannedIncome
         /// Actual income series/accent.
-        static let actualIncome   = Color.blue
+        static let actualIncome: Color = Offshore.Colors.actualIncome
         /// Positive savings/accent.
         static let savingsGood    = Color.green
         /// Negative savings/accent.
@@ -75,7 +75,7 @@ enum DesignSystem {
         /// background on all platforms.  Increase or decrease the opacity to tune
         /// the visual weight of chips globally.
         static var chipFill: Color {
-            return dynamicChipNeutral(opacity: 0.06)
+            Offshore.Colors.chipFill
         }
 
         /// Fill color for selected category chips and pills.  This uses a slightly
@@ -84,7 +84,7 @@ enum DesignSystem {
         /// contrast across themes, update this constant instead of hardcoding
         /// values in your views.
         static var chipSelectedFill: Color {
-            return dynamicChipNeutral(opacity: 0.12)
+            Offshore.Colors.chipSelectedFill
         }
 
         /// Stroke color for the selection outline around a chip or pill.  Using
@@ -92,7 +92,7 @@ enum DesignSystem {
         /// independent of the fill opacity.  When unselected, you may choose to
         /// return `.clear` or a low‑opacity stroke for subtle definition.
         static var chipSelectedStroke: Color {
-            return dynamicChipNeutral(opacity: 0.35)
+            Offshore.Colors.chipSelectedStroke
         }
 
         /// Generates a dynamic neutral color that keeps light mode behavior intact

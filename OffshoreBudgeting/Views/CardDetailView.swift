@@ -566,10 +566,10 @@ struct CardDetailView: View {
         GlassEffectContainer(spacing: Spacing.s) {
             HStack(spacing: Spacing.xs) {
                 if isSearchActive {
-                    Buttons.toolbarIcon(Icons.sfXmark) { closeSearch() }
+                    DesignSystemV2.Buttons.LegacyToolbarIcon(Icons.sfXmark) { closeSearch() }
                     glassSearchField
                 } else {
-                    Buttons.toolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
+                    DesignSystemV2.Buttons.LegacyToolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
                 }
             }
         }
@@ -648,10 +648,10 @@ struct CardDetailView: View {
     private var searchToolbarControlLegacy: some View {
         HStack(spacing: Spacing.xs) {
             if isSearchActive {
-                Buttons.toolbarIcon(Icons.sfXmark) { closeSearch() }
+                DesignSystemV2.Buttons.LegacyToolbarIcon(Icons.sfXmark) { closeSearch() }
                 legacySearchField
             } else {
-                Buttons.toolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
+                DesignSystemV2.Buttons.LegacyToolbarIcon(Icons.sfMagnifyingglass) { openSearch() }
             }
         }
     }

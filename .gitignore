@@ -1,0 +1,53 @@
+# ===============================
+# macOS
+# ===============================
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ===============================
+# Xcode
+# ===============================
+DerivedData/
+*.xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# ===============================
+# Swift / Build Artifacts
+# ===============================
+.build/
+.swiftpm/
+Packages/
+*.log
+
+# ===============================
+# App Build Outputs
+# ===============================
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ===============================
+# Temporary / Tooling
+# ===============================
+.tmp/
+.temp/
+.cache/
+.cache-build/
+node_modules/
+
+# ===============================
+# Environment / Secrets
+# ===============================
+.env
+.env.*
+*.plist.local
+
+# ===============================
+# Repo hygiene
+# ===============================
+repo-tree.txt

@@ -1,9 +1,0 @@
-MOVE-ONLY.
-
-Create: OffshoreBudgeting/Core/Scheduling/
-
-Move:
-- Services/LocalNotificationScheduler.swift → Core/Scheduling/LocalNotificationScheduler.swift
-
-Baseline build must succeed.
-Deliverables: moved path + build confirmation.

@@ -1,6 +1,12 @@
-import Foundation
-import CloudKit
+//
+//  CloudSyncAccelerator.swift
+//  Offshore
+//
 
+import CloudKit
+import Foundation
+
+// MARK: - CloudSyncAccelerator
 /// Lightweight helper to improve perceived cross‑device sync latency while the app is active.
 ///
 /// Notes:
@@ -12,15 +18,19 @@ import CloudKit
 ///   and avoids the “stale for a few seconds after open” feeling.
 @MainActor
 final class CloudSyncAccelerator {
+    // MARK: Shared
     static let shared = CloudSyncAccelerator()
 
+    // MARK: Private
     private var lastNudge: Date?
 
     /// Minimum time between foreground nudges to avoid excessive traffic.
     private let minNudgeInterval: TimeInterval = 5.0
 
+    // MARK: Init
     private init() {}
 
+    // MARK: Public API
     /// Trigger a tiny CloudKit read to warm the pipe and encourage prompt
     /// delivery of any pending pushes for the app’s private database.
     func nudgeOnForeground() {

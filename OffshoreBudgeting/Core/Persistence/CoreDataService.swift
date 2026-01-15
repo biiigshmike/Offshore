@@ -273,24 +273,6 @@ final class CoreDataService: ObservableObject {
         guard viewContext.hasChanges else { return }
         try viewContext.save()
     }
-    
-    // MARK: Background Task
-    /// Performs a write on a background context and saves it.
-    /// - Parameter work: Closure with the background context to perform your writes.
-    func performBackgroundTask(_ work: @escaping (NSManagedObjectContext) throws -> Void) {
-        container.performBackgroundTask { context in
-            context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-            context.automaticallyMergesChangesFromParent = true
-            do {
-                try work(context)
-                if context.hasChanges {
-                    try context.save()
-                }
-            } catch {
-                assertionFailure("❌ Background task failed: \(error)")
-            }
-        }
-    }
 
     // MARK: Await Stores Loaded (Tiny helper)
     /// Suspends until `storesLoaded` is true. Optionally provide a timeout to

@@ -1,19 +1,30 @@
+//
+//  CloudStatus.swift
+//  Offshore
+//
+
 import CloudKit
 import CoreData
 import Foundation
 
+// MARK: - CloudStatus
 /// Centralizes CloudKit account status caching and container reachability checks.
 @MainActor
 final class CloudStatus {
+    // MARK: Shared
     static let shared = CloudStatus()
 
+    // MARK: Notifications
     /// Used by CloudKit event monitors to observe import/setup progress.
     static let cloudKitEventChangedNotification = NSPersistentCloudKitContainer.eventChangedNotification
 
+    // MARK: Private
     private var lastStatus: CKAccountStatus?
 
+    // MARK: Init
     private init() {}
 
+    // MARK: Public API
     func invalidateCache() {
         lastStatus = nil
     }
@@ -59,6 +70,7 @@ final class CloudStatus {
         return ok
     }
 
+    // MARK: Private
     private func probeNamedContainer(_ client: CloudClient, coreDataZoneID: CKRecordZone.ID?) async -> Bool {
         await withCheckedContinuation { continuation in
             let query = CKQuery(recordType: "CD_Budget", predicate: NSPredicate(value: true))
@@ -104,4 +116,3 @@ final class CloudStatus {
         }
     }
 }
-

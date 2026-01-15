@@ -1,22 +1,32 @@
-import Foundation
-import CoreData
-import CloudKit
+//
+//  CloudDiagnostics.swift
+//  Offshore
+//
 
+import CloudKit
+import CoreData
+import Foundation
+
+// MARK: - CloudDiagnostics
 /// Presents a lightweight, user-facing view of cloud sync status for Settings.
 @MainActor
 final class CloudDiagnostics: ObservableObject {
+    // MARK: Shared
     static let shared = CloudDiagnostics()
 
+    // MARK: Published
     @Published private(set) var storeMode: String = "Local"
     @Published private(set) var containerReachable: Bool? = nil
     @Published private(set) var lastCloudKitErrorDescription: String? = nil
 
+    // MARK: Private
     private var cloudEventObserver: NSObjectProtocol?
 
+    // MARK: Init
     private init() {
         // Observe CloudKit events to capture the most recent error (if any).
         cloudEventObserver = NotificationCenter.default.addObserver(
-            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            forName: CloudStatus.cloudKitEventChangedNotification,
             object: nil,
             queue: .main
         ) { note in
@@ -42,8 +52,10 @@ final class CloudDiagnostics: ObservableObject {
         }
     }
 
+    // MARK: Deinit
     deinit { if let obs = cloudEventObserver { NotificationCenter.default.removeObserver(obs) } }
 
+    // MARK: Public API
     /// Refreshes all diagnostic fields.
     func refresh() async {
         // Store mode

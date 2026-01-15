@@ -1,5 +1,11 @@
+//
+//  CloudKitConfig.swift
+//  Offshore
+//
+
 import Foundation
 
+// MARK: - CloudKitConfig
 /// Central location for CloudKit configuration constants that must be
 /// accessible from non-MainActor contexts.
 enum CloudKitConfig {

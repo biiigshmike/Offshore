@@ -119,19 +119,4 @@ final class CoreDataRepository<Entity: NSManagedObject> {
         guard viewContext.hasChanges else { return }
         try viewContext.save()
     }
-    
-    // MARK: performBackgroundTask(_:)
-    /// Run work on a background context and save if there were changes.
-    /// - Parameter work: Closure with a background context.
-    func performBackgroundTask(_ work: @escaping (NSManagedObjectContext) throws -> Void) {
-        stack.container.performBackgroundTask { ctx in
-            ctx.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-            do {
-                try work(ctx)
-                if ctx.hasChanges { try ctx.save() }
-            } catch {
-                assertionFailure("❌ Background task failed: \(error)")
-            }
-        }
-    }
 }

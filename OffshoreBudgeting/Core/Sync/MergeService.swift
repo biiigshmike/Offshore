@@ -1,15 +1,24 @@
+//
+//  MergeService.swift
+//  Offshore
+//
+
 import Foundation
 import CoreData
 
+// MARK: - MergeService
 /// Performs a conservative merge that collapses likely-duplicate records after
 /// enabling iCloud on a device that already had local data. This is a stepping
 /// stone toward a full Workspace-based merge; it avoids modifying fetch logic.
 @MainActor
 final class MergeService {
+    // MARK: Shared
     static let shared = MergeService()
 
+    // MARK: Init
     private init() {}
 
+    // MARK: Public API
     func mergeLocalDataIntoCloud() throws {
         let ctx = CoreDataService.shared.viewContext
         var didChange = false

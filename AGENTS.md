@@ -411,7 +411,7 @@ OffshoreBudgeting/
 
 ### Systems / Environment / Helpers
 - OffshoreBudgeting/Systems/MetallicTextStyles.swift — types: UBTypography, UBDecor
-- OffshoreBudgeting/Core/Sync/AppSettings.swift — types: AppSettingsKeys
+- OffshoreBudgeting/Core/Config/AppSettings.swift — types: AppSettingsKeys
 - OffshoreBudgeting/Systems/ScrollViewInsetAdjustment.swift — types: UBScrollViewInsetAdjustmentDisabler
 - OffshoreBudgeting/Systems/PlatformCapabilities.swift — types: PlatformCapabilities, PlatformCapabilitiesKey
 - OffshoreBudgeting/Systems/Compatibility.swift — types: UBListStyleLiquidAwareModifier, UBListStyleSeparators, UBPreOS26ListRowBackgroundModifier, UBRootNavigationChromeModifier, UBNavigationBackgroundModifier, UBHorizontalBounceDisabler
@@ -422,7 +422,7 @@ OffshoreBudgeting/
 - OffshoreBudgeting/Systems/MotionSupport.swift — types: MotionMonitor
 - OffshoreBudgeting/Systems/CardTheme.swift — types: CardTheme, BackgroundPattern, DiagonalStripesOverlay, CrossHatchOverlay, GridOverlay
 - OffshoreBudgeting/Systems/ResponsiveLayoutContext.swift — types: ResponsiveLayoutContext, Idiom, ResponsiveLayoutContextKey, ResponsiveLayoutReader, LegacySafeAreaCapture
-- OffshoreBudgeting/Core/Sync/AppTheme.swift — types: NotificationCenterAdapter, CloudSyncPreferences, AppTheme, TabBarPalette, GlassConfiguration
+- OffshoreBudgeting/Core/Theme/AppTheme.swift — types: NotificationCenterAdapter, CloudSyncPreferences, AppTheme, TabBarPalette, GlassConfiguration
 - OffshoreBudgeting/Systems/OnboardingEnvironment.swift — types: OnboardingPresentationKey
 - OffshoreBudgeting/Systems/CardAppearanceStore.swift — types: CardAppearanceStore
 - OffshoreBudgeting/Systems/SystemTheme.swift — types: SystemThemeAdapter, Flavor
@@ -688,7 +688,7 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - UBTypography: cardTitleStatic, cardTitleShadowColor
 - UBDecor: metallicSilverLinear, holographicGradient, holographicShine, metallicShine
 
-**OffshoreBudgeting/Core/Sync/AppSettings.swift**
+**OffshoreBudgeting/Core/Config/AppSettings.swift**
 - // MARK: - AppSettingsKeys
 
 **OffshoreBudgeting/Systems/PlatformCapabilities.swift**
@@ -764,7 +764,7 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: DotsOverlay
 - // MARK: NoiseOverlay
 
-**OffshoreBudgeting/Core/Sync/AppTheme.swift**
+**OffshoreBudgeting/Core/Theme/AppTheme.swift**
 - // MARK: - Cloud Sync Infrastructure
 - // MARK: - AppTheme
 - // MARK: - AppTheme.GlassConfiguration

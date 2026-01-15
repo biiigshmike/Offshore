@@ -51,7 +51,7 @@ struct RootTabView: View {
     @Environment(\.startTabIdentifier) private var startTabIdentifier
     @Environment(\.startRouteIdentifier) private var startRouteIdentifier
     @Environment(\.uiTestingFlags) private var uiTestingFlags
-    @AppStorage("uitest_seed_done") private var uiTestSeedDone: Bool = false
+    @EnvironmentObject private var uiTesting: UITestingState
     @State private var selectedTab: Tab = .home
     @State private var appliedStartTab: Bool = false
     @State private var appliedStartRoute: Bool = false
@@ -65,7 +65,7 @@ struct RootTabView: View {
     var body: some View {
         rootBody
             .overlay(alignment: .topLeading) {
-                if uiTestingFlags.isUITesting, uiTestSeedDone {
+                if uiTestingFlags.isUITesting, uiTesting.seedDone {
                     Text("Seed Done")
                         .font(.caption2)
                         .opacity(0.01)

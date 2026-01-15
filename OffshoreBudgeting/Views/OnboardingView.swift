@@ -5,8 +5,8 @@ import Combine
 struct OnboardingView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var settings: AppSettingsState
+    @EnvironmentObject private var onboarding: OnboardingState
     @Environment(\.platformCapabilities) private var capabilities
-    @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
 
     enum Step { case welcome, categories, cards, presets, loading }
     @State private var step: Step = .welcome
@@ -36,7 +36,7 @@ struct OnboardingView: View {
                     onBack: { step = .cards }
                 )
             case .loading:
-                LoadingStep2 { didCompleteOnboarding = true }
+                LoadingStep2 { onboarding.didCompleteOnboarding = true }
             }
         }
         .animation(.easeInOut, value: step)

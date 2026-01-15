@@ -229,13 +229,9 @@ struct HomeView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @EnvironmentObject private var settings: AppSettingsState
+    @EnvironmentObject private var homeWidgetState: HomeWidgetState
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
-
-    @AppStorage("homePinnedWidgetIDs") private var pinnedStorage: String = ""
-    @AppStorage("homeWidgetOrderIDs") private var orderStorage: String = ""
-    @AppStorage("homeAvailabilitySegment") private var availabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
-    @AppStorage("homeScenarioAllocations") private var scenarioAllocationsRaw: String = ""
 
     private static let defaultWidgets: [WidgetID] = [
         .income, .expenseToIncome, .savings, .nextPlanned, .categorySpotlight, .dayOfWeek, .availability, .scenario
@@ -307,16 +303,16 @@ struct HomeView: View {
         #endif
     }
     private var availabilitySegment: CategoryAvailabilitySegment {
-        CategoryAvailabilitySegment(rawValue: availabilitySegmentRawValue) ?? .combined
+        CategoryAvailabilitySegment(rawValue: homeWidgetState.availabilitySegmentRawValue) ?? .combined
     }
     private var availabilitySegmentBinding: Binding<CategoryAvailabilitySegment> {
         Binding(
             get: { availabilitySegment },
-            set: { availabilitySegmentRawValue = $0.rawValue }
+            set: { homeWidgetState.availabilitySegmentRawValue = $0.rawValue }
         )
     }
     private var scenarioAllocations: [String: Double] {
-        decodeScenarioAllocations(from: scenarioAllocationsRaw)
+        decodeScenarioAllocations(from: homeWidgetState.scenarioAllocationsRaw)
     }
     private func decodeScenarioAllocations(from raw: String) -> [String: Double] {
         guard !raw.isEmpty else { return [:] }
@@ -1310,8 +1306,8 @@ struct HomeView: View {
     private func initializeLayoutStateIfNeeded(with items: [WidgetItem]) {
         let available = items.map(\.id)
         refreshWidgetStorageFromCloudIfNeeded()
-        let storedPinned = decodeIDs(from: pinnedStorage)
-        let storedOrder = decodeIDs(from: orderStorage)
+        let storedPinned = decodeIDs(from: homeWidgetState.pinnedStorage)
+        let storedOrder = decodeIDs(from: homeWidgetState.orderStorage)
         let hasStoredPrefs = !storedPinned.isEmpty || !storedOrder.isEmpty
 
         if pinnedIDs.isEmpty {
@@ -1380,8 +1376,8 @@ struct HomeView: View {
     }
 
     private func persistPinned() {
-        pinnedStorage = encodeIDs(pinnedIDs)
-        syncWidgetStorageIfNeeded(pinnedStorage, cloudKey: WidgetStorageKey.pinnedCloud)
+        homeWidgetState.pinnedStorage = encodeIDs(pinnedIDs)
+        syncWidgetStorageIfNeeded(homeWidgetState.pinnedStorage, cloudKey: WidgetStorageKey.pinnedCloud)
     }
 
     private func persistOrder() {
@@ -1390,19 +1386,19 @@ struct HomeView: View {
             unique.append(id)
         }
         widgetOrder = unique
-        orderStorage = encodeIDs(unique)
-        syncWidgetStorageIfNeeded(orderStorage, cloudKey: WidgetStorageKey.orderCloud)
+        homeWidgetState.orderStorage = encodeIDs(unique)
+        syncWidgetStorageIfNeeded(homeWidgetState.orderStorage, cloudKey: WidgetStorageKey.orderCloud)
     }
 
     private func refreshWidgetStorageFromCloudIfNeeded() {
         guard shouldSyncWidgets else { return }
         let pinned = loadSyncedString(localKey: WidgetStorageKey.pinnedLocal, cloudKey: WidgetStorageKey.pinnedCloud)
         let order = loadSyncedString(localKey: WidgetStorageKey.orderLocal, cloudKey: WidgetStorageKey.orderCloud)
-        if pinnedStorage != pinned {
-            pinnedStorage = pinned
+        if homeWidgetState.pinnedStorage != pinned {
+            homeWidgetState.pinnedStorage = pinned
         }
-        if orderStorage != order {
-            orderStorage = order
+        if homeWidgetState.orderStorage != order {
+            homeWidgetState.orderStorage = order
         }
     }
 
@@ -1591,7 +1587,7 @@ struct HomeView: View {
                     }
                 }
                 .padding(.top, Spacing.xs)
-                .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
+                .onChange(of: homeWidgetState.availabilitySegmentRawValue) { _ in availabilityPage = 0 }
                 .onChange(of: pageCount) { _ in
                     availabilityPage = min(availabilityPage, max(pageCount - 1, 0))
                 }
@@ -1672,7 +1668,7 @@ struct HomeView: View {
                     }
                 }
                 .padding(.top, Spacing.xs)
-                .onChange(of: availabilitySegmentRawValue) { _ in availabilityPage = 0 }
+                .onChange(of: homeWidgetState.availabilitySegmentRawValue) { _ in availabilityPage = 0 }
                 .onChange(of: pageCount) { _ in
                     availabilityPage = min(availabilityPage, max(pageCount - 1, 0))
                 }
@@ -2341,10 +2337,9 @@ private struct MetricDetailView: View {
     @State private var expandedCategoryName: String? = nil
     @State private var expandedCategoryExpenses: [CategoryExpenseItem] = []
     @State private var expandedCategoryLoading: Bool = false
-    @AppStorage("homeScenarioAllocations") private var scenarioAllocationsRaw: String = ""
     @State private var scenarioWidth: CGFloat = 0
-    @AppStorage("homeAvailabilitySegment") private var detailAvailabilitySegmentRawValue: String = CategoryAvailabilitySegment.combined.rawValue
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var homeWidgetState: HomeWidgetState
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var legendDotSize: CGFloat = 12
     @ScaledMetric(relativeTo: .body) private var legendLineWidth: CGFloat = 18
@@ -2353,12 +2348,12 @@ private struct MetricDetailView: View {
     @ScaledMetric(relativeTo: .body) private var detailDayRowHeight: CGFloat = 28
     @ScaledMetric(relativeTo: .body) private var detailDayRowSpacing: CGFloat = 10
     private var detailAvailabilitySegment: CategoryAvailabilitySegment {
-        CategoryAvailabilitySegment(rawValue: detailAvailabilitySegmentRawValue) ?? .combined
+        CategoryAvailabilitySegment(rawValue: homeWidgetState.detailAvailabilitySegmentRawValue) ?? .combined
     }
     private var detailAvailabilitySegmentBinding: Binding<CategoryAvailabilitySegment> {
         Binding(
             get: { detailAvailabilitySegment },
-            set: { detailAvailabilitySegmentRawValue = $0.rawValue }
+            set: { homeWidgetState.detailAvailabilitySegmentRawValue = $0.rawValue }
         )
     }
 
@@ -2942,7 +2937,7 @@ private struct MetricDetailView: View {
             }
             }
         }
-        .onChange(of: detailAvailabilitySegmentRawValue) { _ in
+        .onChange(of: homeWidgetState.detailAvailabilitySegmentRawValue) { _ in
             guard let name = expandedCategoryName else { return }
             loadExpandedCategoryExpenses(categoryName: name, segment: detailAvailabilitySegment)
         }
@@ -3187,14 +3182,14 @@ private struct MetricDetailView: View {
             }
             Group {
                 if #available(iOS 26.0, macOS 26.0, macCatalyst 26.0, *) {
-                    Button("Clear") { scenarioAllocationsRaw = "" }
+                    Button("Clear") { homeWidgetState.scenarioAllocationsRaw = "" }
                         .font(.ubCaption.weight(.semibold))
                         .padding(.vertical, Spacing.xs)
                         .padding(.horizontal, Spacing.m)
                         .glassEffect(.regular, in: .capsule)
                         .buttonStyle(.plain)
                 } else {
-                    Button("Clear") { scenarioAllocationsRaw = "" }
+                    Button("Clear") { homeWidgetState.scenarioAllocationsRaw = "" }
                         .font(.ubCaption.weight(.semibold))
                         .buttonStyle(.plain)
                 }
@@ -3320,7 +3315,7 @@ private struct MetricDetailView: View {
             set: { newValue in
                 var next = scenarioAllocations
                 next[key] = max(newValue, 0)
-                scenarioAllocationsRaw = encodeScenarioAllocations(next)
+                homeWidgetState.scenarioAllocationsRaw = encodeScenarioAllocations(next)
             }
         )
     }
@@ -3344,7 +3339,7 @@ private struct MetricDetailView: View {
     }
 
     private var scenarioAllocations: [String: Double] {
-        decodeScenarioAllocations(from: scenarioAllocationsRaw)
+        decodeScenarioAllocations(from: homeWidgetState.scenarioAllocationsRaw)
     }
 
 private func scenarioSlices(items: [CategoryAvailability], savings: Double, segment: CategoryAvailabilitySegment) -> [CategorySlice] {

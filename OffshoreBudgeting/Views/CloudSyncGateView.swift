@@ -9,10 +9,7 @@ struct CloudSyncGateView: View {
     @Environment(\.platformCapabilities) private var capabilities
     @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var settings: AppSettingsState
-
-    // MARK: App Storage
-    @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
-    @AppStorage("didChooseCloudDataOnboarding") private var didChooseCloudDataOnboarding: Bool = false
+    @EnvironmentObject private var onboarding: OnboardingState
 
     // MARK: Local State
     @State private var shouldShowOnboarding: Bool = false
@@ -104,7 +101,7 @@ struct CloudSyncGateView: View {
             let decision = await engine.initialDecision()
             switch decision {
             case .promptForCloudDataChoice:
-                if didChooseCloudDataOnboarding {
+                if onboarding.didChooseCloudDataOnboarding {
                     shouldShowOnboarding = true
                 } else {
                     showExistingDataPrompt = true
@@ -188,20 +185,20 @@ struct CloudSyncGateView: View {
     private func useExistingDataAndSkipOnboarding() {
         // Prepare workspace and wait briefly for initial Cloud import to surface data.
         preparingWorkspace = true
-        didChooseCloudDataOnboarding = true
+        onboarding.didChooseCloudDataOnboarding = true
         if uiTesting.isUITesting {
-            didCompleteOnboarding = true
+            onboarding.didCompleteOnboarding = true
             return
         }
         Task { @MainActor in
             // Kick off a short wait for import to finish; don't block forever.
             _ = await CloudSyncMonitor.shared.awaitInitialImport(timeout: 10.0, pollInterval: 0.2)
-            didCompleteOnboarding = true
+            onboarding.didCompleteOnboarding = true
         }
     }
 
     private func startFreshLocalOnboarding() {
-        didChooseCloudDataOnboarding = true
+        onboarding.didChooseCloudDataOnboarding = true
         // To avoid impacting existing Cloud data, disable sync and proceed locally.
         if settings.enableCloudSync {
             settings.enableCloudSync = false

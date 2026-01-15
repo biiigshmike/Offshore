@@ -37,17 +37,17 @@ public final class AppLockViewModel: ObservableObject {
     @Published public private(set) var availabilityMessage: String? = nil
 
     // MARK: User Setting
-    /// Persisted user preference for enabling the lock.
-    /// Toggle this in your Settings screen.
-    @AppStorage("appLockEnabled") public var isLockEnabled: Bool = true
-    /// Published mirror for UI bindings (AppStorage does not publish changes from ObservableObject).
+    /// Published mirror for UI bindings.
     @Published public private(set) var isLockEnabledPublished: Bool = false
+    public var isLockEnabled: Bool { isLockEnabledPublished }
 
     // MARK: Dependencies
+    private let appLockState: AppLockState
     private var authenticator: BiometricAuthenticating
     private var keychainStore: AppLockKeychainStoring
     private var uiTestDeviceAuthAvailableOverride: Bool? = nil
     private var uiTestAuthResultOverride: BiometricAuthResult? = nil
+    private var cancellables: Set<AnyCancellable> = []
 
     // MARK: Internal Guards (debounce & reentrancy)
     private var lastPromptAt: Date? = nil
@@ -56,14 +56,17 @@ public final class AppLockViewModel: ObservableObject {
     private let unlockGraceSeconds: TimeInterval = 0.8
 
     // MARK: Initialization
-    init(authenticator: BiometricAuthenticating = LocalAuthenticationBiometricAuthenticator(),
+    init(appLockState: AppLockState,
+         authenticator: BiometricAuthenticating = LocalAuthenticationBiometricAuthenticator(),
          keychainStore: AppLockKeychainStoring = KeychainAppLockStore()) {
+        self.appLockState = appLockState
         self.authenticator = authenticator
         self.keychainStore = keychainStore
 #if DEBUG
         configureForUITestingIfNeeded()
 #endif
-        isLockEnabledPublished = isLockEnabled
+        isLockEnabledPublished = appLockState.isEnabled
+        observeLockEnabledSetting()
         observeLifecycle()
     }
 
@@ -338,8 +341,18 @@ public final class AppLockViewModel: ObservableObject {
     }
 
     private func setLockEnabled(_ value: Bool) {
-        isLockEnabled = value
+        appLockState.isEnabled = value
         isLockEnabledPublished = value
+    }
+
+    private func observeLockEnabledSetting() {
+        appLockState.$isEnabled
+            .removeDuplicates()
+            .sink { [weak self] newValue in
+                guard let self else { return }
+                self.isLockEnabledPublished = newValue
+            }
+            .store(in: &cancellables)
     }
 
     private func disableLockForUnavailableAuth(_ error: BiometricError?) {

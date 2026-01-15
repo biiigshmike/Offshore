@@ -18,6 +18,9 @@ struct OffshoreBudgetingApp: App {
     @StateObject private var themeManager = ThemeManager()
     @StateObject private var cardPickerStore = CardPickerStore()
     @StateObject private var appSettings = AppSettingsState(store: UserDefaultsAppSettingsStore())
+    @StateObject private var onboarding = OnboardingState()
+    @StateObject private var homeWidgetState = HomeWidgetState()
+    @StateObject private var uiTestingState = UITestingState()
     @State private var coreDataReady = false
     @State private var dataReady = false
     @State private var dataRevision: Int = 0
@@ -29,15 +32,16 @@ struct OffshoreBudgetingApp: App {
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
 
-    // MARK: Onboarding State
-    /// Persisted flag indicating whether the intro flow has been completed.
-    @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
-
     // MARK: App Lock (Biometrics)
-    @StateObject private var appLockViewModel = AppLockViewModel()
+    @StateObject private var appLockState: AppLockState
+    @StateObject private var appLockViewModel: AppLockViewModel
 
     // MARK: Init
     init() {
+        let appLockState = AppLockState()
+        _appLockState = StateObject(wrappedValue: appLockState)
+        _appLockViewModel = StateObject(wrappedValue: AppLockViewModel(appLockState: appLockState))
+
         // Defer Core Data store loading and CardPickerStore start to onAppear
         configureForUITestingIfNeeded()
         configureAppLockForUITestingIfNeeded()
@@ -53,7 +57,7 @@ struct OffshoreBudgetingApp: App {
             configuredScene {
                 ResponsiveLayoutReader { _ in
                     ZStack {
-                        if didCompleteOnboarding {
+                        if onboarding.didCompleteOnboarding {
                             RootTabView(isWorkspaceReady: workspaceReady)
                                 .environment(\.dataRevision, dataRevision)
                                 .transition(.opacity)
@@ -106,6 +110,10 @@ struct OffshoreBudgetingApp: App {
             .environmentObject(themeManager)
             .environmentObject(cardPickerStore)
             .environmentObject(appSettings)
+            .environmentObject(onboarding)
+            .environmentObject(homeWidgetState)
+            .environmentObject(uiTestingState)
+            .environmentObject(appLockState)
             .environment(\.platformCapabilities, platformCapabilities)
             .environment(\.uiTestingFlags, testFlags)
             .environment(\.startTabIdentifier, startTab)

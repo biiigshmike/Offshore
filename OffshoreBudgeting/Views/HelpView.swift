@@ -6,7 +6,7 @@ import UIKit
 /// explore the same hierarchy developers see.
 struct HelpView: View {
     @EnvironmentObject private var themeManager: ThemeManager
-    @AppStorage("didCompleteOnboarding") private var didCompleteOnboarding: Bool = false
+    @EnvironmentObject private var onboarding: OnboardingState
     @State private var showOnboardingAlert = false
     let wrapsInNavigation: Bool
     private enum HelpRoute: Hashable {
@@ -152,7 +152,7 @@ struct HelpView: View {
             }
         }
         .alert("Repeat Onboarding?", isPresented: $showOnboardingAlert) {
-            Button("Go", role: .destructive) { didCompleteOnboarding = false }
+            Button("Go", role: .destructive) { onboarding.didCompleteOnboarding = false }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("You can restart onboarding at any time.")

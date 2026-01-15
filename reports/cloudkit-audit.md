@@ -15,7 +15,7 @@ Responsibility (per code):
 Public surface area:
 - availability (Published), isCloudAccountAvailable, requestAccountStatusCheck(force:), resolveAvailability(forceRefresh:), invalidateCache(), availabilityPublisher.
 Usage:
-- OffshoreBudgeting/Services/CoreDataService.swift:313
+- OffshoreBudgeting/Core/Persistence/CoreDataService.swift:313
 - OffshoreBudgeting/Systems/AppTheme.swift:817, 936
 - OffshoreBudgeting/Services/CloudDiagnostics.swift:53
 - OffshoreBudgeting/Views/CloudSyncGateView.swift:84
@@ -31,7 +31,7 @@ Responsibility (per code):
 Public surface area:
 - CloudKitConfig.containerIdentifier.
 Usage:
-- OffshoreBudgeting/Services/CoreDataService.swift:31
+- OffshoreBudgeting/Core/Persistence/CoreDataService.swift:31
 - OffshoreBudgeting/Services/CloudAccountStatusProvider.swift:24
 - OffshoreBudgeting/Services/CloudSyncAccelerator.swift:35
 - OffshoreBudgeting/Services/CloudDataRemoteProbe.swift:15

@@ -1,0 +1,51 @@
+import Foundation
+import CloudKit
+
+/// Performs lightweight CloudKit queries to detect whether any app records
+/// exist remotely in the user's private database.
+struct CloudDataRemoteProbe {
+    private let client: CloudClient
+    // NSPersistentCloudKitContainer mirrors Core Data entities using the
+    // "CD_<EntityName>" record type convention by default.
+    private let recordTypes = [
+        "CD_Budget", "CD_Card", "CD_Income", "CD_PlannedExpense", "CD_UnplannedExpense", "CD_ExpenseCategory"
+    ]
+
+    init(containerIdentifier: String = CloudKitConfig.containerIdentifier) {
+        self.client = CloudClient(containerIdentifier: containerIdentifier)
+    }
+
+    /// Returns true if any of the app's record types have at least one record in iCloud.
+    func hasAnyRemoteData(timeout: TimeInterval = 6.0) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        for type in recordTypes {
+            if Date() > deadline { break }
+            do {
+                let found = try await hasRecord(ofType: type)
+                if found { return true }
+            } catch {
+                // Non-fatal: continue to next type
+                continue
+            }
+        }
+        return false
+    }
+
+    private func hasRecord(ofType recordType: String) async throws -> Bool {
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = CKQuery(recordType: recordType, predicate: NSPredicate(value: true))
+            let op = CKQueryOperation(query: query)
+            op.resultsLimit = 1
+            var foundAny = false
+            op.recordMatchedBlock = { _, result in
+                if case .success(_) = result {
+                    foundAny = true
+                }
+            }
+            op.queryResultBlock = { _ in
+                continuation.resume(returning: foundAny)
+            }
+            client.privateDatabase.add(op)
+        }
+    }
+}

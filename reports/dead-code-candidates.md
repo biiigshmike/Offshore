@@ -553,112 +553,112 @@ SAFE-REMOVE-CANDIDATE
   Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CloudSyncMonitor.swift:41
   Def: func awaitInitialImport(timeout: TimeInterval = 10.0, pollInterval: TimeInterval = 0.1) async -> Bool {
   Dynamic-Risk Checklist: none flagged
-- modelName (let) — OffshoreBudgeting/Services/CoreDataService.swift:28
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:28
+- modelName (let) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:28
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:28
   Def: private let modelName = "OffshoreBudgetingModel"
   Dynamic-Risk Checklist: none flagged
-- cloudKitContainerIdentifier (var) — OffshoreBudgeting/Services/CoreDataService.swift:31
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:31
+- cloudKitContainerIdentifier (var) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:31
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:31
   Def: private var cloudKitContainerIdentifier: String { CloudKitConfig.containerIdentifier }
   Dynamic-Risk Checklist: none flagged
-- enableCloudKitSync (var) — OffshoreBudgeting/Services/CoreDataService.swift:34
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:34
+- enableCloudKitSync (var) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:34
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:34
   Def: private var enableCloudKitSync: Bool {
   Dynamic-Risk Checklist: none flagged
-- loadingTask (var) — OffshoreBudgeting/Services/CoreDataService.swift:38
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:38
+- loadingTask (var) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:38
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:38
   Def: private var loadingTask: Task<Void, Never>?
   Dynamic-Risk Checklist: none flagged
-- didSaveObserver (var) — OffshoreBudgeting/Services/CoreDataService.swift:46
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:46
+- didSaveObserver (var) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:46
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:46
   Def: private var didSaveObserver: NSObjectProtocol?
   Dynamic-Risk Checklist: none flagged
-- remoteChangeObserver (var) — OffshoreBudgeting/Services/CoreDataService.swift:47
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:47
+- remoteChangeObserver (var) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:47
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:47
   Def: private var remoteChangeObserver: NSObjectProtocol?
   Dynamic-Risk Checklist: none flagged
-- cloudKitEventObserver (var) — OffshoreBudgeting/Services/CoreDataService.swift:48
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:48
+- cloudKitEventObserver (var) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:48
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:48
   Def: private var cloudKitEventObserver: NSObjectProtocol?
   Dynamic-Risk Checklist: none flagged
-- isRebuildingStores (var) — OffshoreBudgeting/Services/CoreDataService.swift:49
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:49
+- isRebuildingStores (var) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:49
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:49
   Def: private var isRebuildingStores: Bool = false
   Dynamic-Risk Checklist: none flagged
-- storeModeDescription (var) — OffshoreBudgeting/Services/CoreDataService.swift:56
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:56
+- storeModeDescription (var) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:56
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:56
   Def: public var storeModeDescription: String { _currentMode == .cloudKit ? "CloudKit" : "Local" }
   Dynamic-Risk Checklist: none flagged
-- isCloudStoreActive (var) — OffshoreBudgeting/Services/CoreDataService.swift:58
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:58
+- isCloudStoreActive (var) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:58
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:58
   Def: public var isCloudStoreActive: Bool { _currentMode == .cloudKit }
   Dynamic-Risk Checklist: none flagged
-- cloudContainer (let) — OffshoreBudgeting/Services/CoreDataService.swift:65
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:65
+- cloudContainer (let) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:65
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:65
   Def: let cloudContainer = NSPersistentCloudKitContainer(name: modelName)
   Dynamic-Risk Checklist: none flagged
-- storeURL (let) — OffshoreBudgeting/Services/CoreDataService.swift:68
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:68
+- storeURL (let) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:68
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:68
   Def: let storeURL = NSPersistentContainer.defaultDirectoryURL()
   Dynamic-Risk Checklist: none flagged
-- initialMode (let) — OffshoreBudgeting/Services/CoreDataService.swift:82
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:82
+- initialMode (let) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:82
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:82
   Def: let initialMode: PersistentStoreMode = (enableCloudKitSync ? .cloudKit : .local)
   Dynamic-Risk Checklist: none flagged
-- ensureLoaded (func) — OffshoreBudgeting/Services/CoreDataService.swift:107
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:107
+- ensureLoaded (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:107
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:107
   Def: func ensureLoaded(file: StaticString = #file, line: UInt = #line) {
   Dynamic-Risk Checklist: none flagged
-- postLoadConfiguration (func) — OffshoreBudgeting/Services/CoreDataService.swift:126
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:126
+- postLoadConfiguration (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:126
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:126
   Def: private func postLoadConfiguration() {
   Dynamic-Risk Checklist: none flagged
-- startObservingChanges (func) — OffshoreBudgeting/Services/CoreDataService.swift:148
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:148
+- startObservingChanges (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:148
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:148
   Def: private func startObservingChanges() {
   Dynamic-Risk Checklist: none flagged
-- startObservingRemoteChangesIfNeeded (func) — OffshoreBudgeting/Services/CoreDataService.swift:165
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:165
+- startObservingRemoteChangesIfNeeded (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:165
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:165
   Def: private func startObservingRemoteChangesIfNeeded() {
   Dynamic-Risk Checklist: none flagged
-- startObservingCloudKitEventsIfNeeded (func) — OffshoreBudgeting/Services/CoreDataService.swift:178
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:178
+- startObservingCloudKitEventsIfNeeded (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:178
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:178
   Def: private func startObservingCloudKitEventsIfNeeded() {
   Dynamic-Risk Checklist: none flagged
-- performBackgroundTask (func) — OffshoreBudgeting/Services/CoreDataService.swift:212
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:212
+- performBackgroundTask (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:212
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:212
   Def: func performBackgroundTask(_ work: @escaping (NSManagedObjectContext) throws -> Void) {
   Dynamic-Risk Checklist: none flagged
-- loadStores (func) — OffshoreBudgeting/Services/CoreDataService.swift:333
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:333
+- loadStores (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:333
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:333
   Def: func loadStores(file: StaticString, line: UInt) async {
   Dynamic-Risk Checklist: none flagged
-- disableCloudSyncPreferences (func) — OffshoreBudgeting/Services/CoreDataService.swift:374
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:374
+- disableCloudSyncPreferences (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:374
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:374
   Def: func disableCloudSyncPreferences() {
   Dynamic-Risk Checklist: none flagged
-- reconfigurePersistentStoresForLocalMode (func) — OffshoreBudgeting/Services/CoreDataService.swift:380
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:380
+- reconfigurePersistentStoresForLocalMode (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:380
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:380
   Def: func reconfigurePersistentStoresForLocalMode() async {
   Dynamic-Risk Checklist: none flagged
-- PersistentStoreMode (enum) — OffshoreBudgeting/Services/CoreDataService.swift:384
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:384
+- PersistentStoreMode (enum) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:384
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:384
   Def: private enum PersistentStoreMode: Equatable { case local, cloudKit
   Dynamic-Risk Checklist: none flagged
-- logDescription (var) — OffshoreBudgeting/Services/CoreDataService.swift:385
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:385
+- logDescription (var) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:385
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:385
   Def: var logDescription: String {
   Dynamic-Risk Checklist: none flagged
-- configure (func) — OffshoreBudgeting/Services/CoreDataService.swift:393
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:393
+- configure (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:393
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:393
   Def: private func configure(description: NSPersistentStoreDescription, for mode: PersistentStoreMode) {
   Dynamic-Risk Checklist: none flagged
-- rebuildPersistentStores (func) — OffshoreBudgeting/Services/CoreDataService.swift:406
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:406
+- rebuildPersistentStores (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:406
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:406
   Def: private func rebuildPersistentStores(for mode: PersistentStoreMode) async {
   Dynamic-Risk Checklist: none flagged
-- initializeCloudKitSchemaIfNeeded (func) — OffshoreBudgeting/Services/CoreDataService.swift:469
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/CoreDataService.swift:469
+- initializeCloudKitSchemaIfNeeded (func) — OffshoreBudgeting/Core/Persistence/CoreDataService.swift:469
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataService.swift:469
   Def: func initializeCloudKitSchemaIfNeeded() async {
   Dynamic-Risk Checklist: none flagged
 - ExpenseCategoryService (class) — OffshoreBudgeting/Services/ExpenseCategoryService.swift:16
@@ -961,12 +961,12 @@ SAFE-REMOVE-CANDIDATE
   Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/RecurrenceEngine.swift:237
   Def: static func regenerateIncomeRecurrences(base income: Income,
   Dynamic-Risk Checklist: none flagged
-- deleteAll (func) — OffshoreBudgeting/Services/Repository/CoreDataRepository.swift:98
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/Repository/CoreDataRepository.swift:98
+- deleteAll (func) — OffshoreBudgeting/Core/Persistence/CoreDataRepository.swift:98
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataRepository.swift:98
   Def: func deleteAll(predicate: NSPredicate? = nil) throws {
   Dynamic-Risk Checklist: none flagged
-- performBackgroundTask (func) — OffshoreBudgeting/Services/Repository/CoreDataRepository.swift:122
-  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Services/Repository/CoreDataRepository.swift:122
+- performBackgroundTask (func) — OffshoreBudgeting/Core/Persistence/CoreDataRepository.swift:122
+  Evidence: 0 refs (token-based); def at OffshoreBudgeting/Core/Persistence/CoreDataRepository.swift:122
   Def: func performBackgroundTask(_ work: @escaping (NSManagedObjectContext) throws -> Void) {
   Dynamic-Risk Checklist: none flagged
 - hasCloudData (func) — OffshoreBudgeting/Services/UbiquitousFlags.swift:6

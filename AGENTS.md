@@ -383,16 +383,16 @@ OffshoreBudgeting/
 
 ### Services / Data access
 - OffshoreBudgeting/Resources/PlannedExpenseService+Templates.swift
-- OffshoreBudgeting/Services/CoreDataService.swift
+- OffshoreBudgeting/Core/Persistence/CoreDataService.swift
 - OffshoreBudgeting/Services/CardService.swift
 - OffshoreBudgeting/Services/BudgetService.swift
 - OffshoreBudgeting/Services/ExpenseCategoryService.swift
 - OffshoreBudgeting/Services/RecurrenceEngine.swift
-- OffshoreBudgeting/Services/CloudAccountStatusProvider.swift
+- OffshoreBudgeting/Core/Cloud/CloudAccountStatusProvider.swift
 - OffshoreBudgeting/Services/PlannedExpenseService.swift
 - OffshoreBudgeting/Services/IncomeService.swift
 - OffshoreBudgeting/Services/UnplannedExpenseService.swift
-- OffshoreBudgeting/Services/Repository/CoreDataRepository.swift
+- OffshoreBudgeting/Core/Persistence/CoreDataRepository.swift
 
 ### Models / Entities
 - OffshoreBudgeting/View Models/AddIncomeFormViewModel.swift — AddIncomeFormViewModel
@@ -411,7 +411,7 @@ OffshoreBudgeting/
 
 ### Systems / Environment / Helpers
 - OffshoreBudgeting/Systems/MetallicTextStyles.swift — types: UBTypography, UBDecor
-- OffshoreBudgeting/Systems/AppSettings.swift — types: AppSettingsKeys
+- OffshoreBudgeting/Core/Sync/AppSettings.swift — types: AppSettingsKeys
 - OffshoreBudgeting/Systems/ScrollViewInsetAdjustment.swift — types: UBScrollViewInsetAdjustmentDisabler
 - OffshoreBudgeting/Systems/PlatformCapabilities.swift — types: PlatformCapabilities, PlatformCapabilitiesKey
 - OffshoreBudgeting/Systems/Compatibility.swift — types: UBListStyleLiquidAwareModifier, UBListStyleSeparators, UBPreOS26ListRowBackgroundModifier, UBRootNavigationChromeModifier, UBNavigationBackgroundModifier, UBHorizontalBounceDisabler
@@ -422,7 +422,7 @@ OffshoreBudgeting/
 - OffshoreBudgeting/Systems/MotionSupport.swift — types: MotionMonitor
 - OffshoreBudgeting/Systems/CardTheme.swift — types: CardTheme, BackgroundPattern, DiagonalStripesOverlay, CrossHatchOverlay, GridOverlay
 - OffshoreBudgeting/Systems/ResponsiveLayoutContext.swift — types: ResponsiveLayoutContext, Idiom, ResponsiveLayoutContextKey, ResponsiveLayoutReader, LegacySafeAreaCapture
-- OffshoreBudgeting/Systems/AppTheme.swift — types: NotificationCenterAdapter, CloudSyncPreferences, AppTheme, TabBarPalette, GlassConfiguration
+- OffshoreBudgeting/Core/Sync/AppTheme.swift — types: NotificationCenterAdapter, CloudSyncPreferences, AppTheme, TabBarPalette, GlassConfiguration
 - OffshoreBudgeting/Systems/OnboardingEnvironment.swift — types: OnboardingPresentationKey
 - OffshoreBudgeting/Systems/CardAppearanceStore.swift — types: CardAppearanceStore
 - OffshoreBudgeting/Systems/SystemTheme.swift — types: SystemThemeAdapter, Flavor
@@ -590,7 +590,7 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: - Event Cache Management
 - // MARK: - Currency NumberFormatter
 
-**OffshoreBudgeting/Resources/CoreDataEntityChangeMonitor.swift**
+**OffshoreBudgeting/Core/Sync/CoreDataEntityChangeMonitor.swift**
 - // MARK: - CoreDataEntityChangeMonitor
 - // MARK: Private
 - // MARK: Init
@@ -688,7 +688,7 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - UBTypography: cardTitleStatic, cardTitleShadowColor
 - UBDecor: metallicSilverLinear, holographicGradient, holographicShine, metallicShine
 
-**OffshoreBudgeting/Systems/AppSettings.swift**
+**OffshoreBudgeting/Core/Sync/AppSettings.swift**
 - // MARK: - AppSettingsKeys
 
 **OffshoreBudgeting/Systems/PlatformCapabilities.swift**
@@ -764,7 +764,7 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: DotsOverlay
 - // MARK: NoiseOverlay
 
-**OffshoreBudgeting/Systems/AppTheme.swift**
+**OffshoreBudgeting/Core/Sync/AppTheme.swift**
 - // MARK: - Cloud Sync Infrastructure
 - // MARK: - AppTheme
 - // MARK: - AppTheme.GlassConfiguration
@@ -1213,7 +1213,7 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: - Preference Infrastructure
 - // MARK: - Padding Helpers
 
-**OffshoreBudgeting/Services/CoreDataService.swift**
+**OffshoreBudgeting/Core/Persistence/CoreDataService.swift**
 - // MARK: - CoreDataService
 - // MARK: Singleton
 - // MARK: Configuration
@@ -1278,7 +1278,7 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: - Utilities
 - // MARK: - Persistence Helpers (Income)
 
-**OffshoreBudgeting/Services/CloudAccountStatusProvider.swift**
+**OffshoreBudgeting/Core/Cloud/CloudAccountStatusProvider.swift**
 - // MARK: Shared Instance
 - // MARK: Availability State
 - // MARK: Init
@@ -1352,7 +1352,7 @@ Use the following // MARK anchors to understand intent and safe insertion points
 - // MARK: totalForCard(_:in:)
 - // MARK: totalForBudget(_:in:)
 
-**OffshoreBudgeting/Services/Repository/CoreDataRepository.swift**
+**OffshoreBudgeting/Core/Persistence/CoreDataRepository.swift**
 - // MARK: - CoreDataStackProviding
 - // MARK: - CoreDataService + CoreDataStackProviding
 - // MARK: - CoreDataRepository

@@ -1304,64 +1304,77 @@ struct HomeView: View {
         persistPinned()
     }
 
-    private func initializeLayoutStateIfNeeded(with items: [WidgetItem]) {
-        let available = items.map(\.id)
-        refreshWidgetStorageFromCloudIfNeeded()
-        let storedPinned = decodeIDs(from: homeWidgetState.pinnedStorage)
-        let storedOrder = decodeIDs(from: homeWidgetState.orderStorage)
-        let hasStoredPrefs = !storedPinned.isEmpty || !storedOrder.isEmpty
+	    private func initializeLayoutStateIfNeeded(with items: [WidgetItem]) {
+	        let available = items.map(\.id)
+	        let hasAnyCardItems = available.contains { id in
+	            if case .card = id { return true }
+	            return false
+	        }
+	        refreshWidgetStorageFromCloudIfNeeded()
+	        let storedPinned = decodeIDs(from: homeWidgetState.pinnedStorage)
+	        let storedOrder = decodeIDs(from: homeWidgetState.orderStorage)
+	        let hasStoredPrefs = !storedPinned.isEmpty || !storedOrder.isEmpty
 
-        if pinnedIDs.isEmpty {
-            let decoded = storedPinned.filter { available.contains($0) }
-            if decoded.isEmpty && !hasStoredPrefs {
-                pinnedIDs = HomeView.defaultWidgets.filter { available.contains($0) }
-            } else {
-                pinnedIDs = decoded
-            }
-        } else {
-            pinnedIDs = pinnedIDs.filter { available.contains($0) }
-        }
+	        if pinnedIDs.isEmpty {
+	            let decoded = hasAnyCardItems
+	                ? storedPinned.filter { available.contains($0) }
+	                : storedPinned
+	            if decoded.isEmpty && !hasStoredPrefs {
+	                pinnedIDs = HomeView.defaultWidgets.filter { available.contains($0) }
+	            } else {
+	                pinnedIDs = decoded
+	            }
+	        } else {
+	            pinnedIDs = hasAnyCardItems
+	                ? pinnedIDs.filter { available.contains($0) }
+	                : pinnedIDs
+	        }
 
-        // Auto-add any newly discovered cards so they surface without manual pinning.
-        let knownOrder = Set(storedOrder)
-        let cardIDs = available.filter {
-            if case .card = $0 { return true }
-            return false
-        }
-        for cardID in cardIDs where !knownOrder.contains(cardID) && !pinnedIDs.contains(cardID) {
-            pinnedIDs.append(cardID)
-        }
-        if available.contains(.scenario), !knownOrder.contains(.scenario), !pinnedIDs.contains(.scenario) {
-            pinnedIDs.append(.scenario)
-        }
+	        let knownOrder = Set(storedOrder)
+	        if available.contains(.scenario), !knownOrder.contains(.scenario), !pinnedIDs.contains(.scenario) {
+	            pinnedIDs.append(.scenario)
+	        }
 
-        if widgetOrder.isEmpty {
-            let decoded = storedOrder.filter { available.contains($0) }
-            if decoded.isEmpty {
-                let seed = hasStoredPrefs ? pinnedIDs : HomeView.defaultWidgets
-                widgetOrder = normalize(order: seed, available: available)
-            } else {
-                widgetOrder = normalize(order: decoded, available: available)
-            }
-        } else {
-            widgetOrder = normalize(order: widgetOrder, available: available)
-        }
-        if available.contains(.scenario), !widgetOrder.contains(.scenario) {
-            if let availabilityIndex = widgetOrder.firstIndex(of: .availability) {
-                widgetOrder.insert(.scenario, at: widgetOrder.index(after: availabilityIndex))
+	        if widgetOrder.isEmpty {
+	            let decoded = hasAnyCardItems
+	                ? storedOrder.filter { available.contains($0) }
+	                : storedOrder
+	            if decoded.isEmpty {
+	                let seed = hasStoredPrefs ? pinnedIDs : HomeView.defaultWidgets
+	                widgetOrder = mergeOrderPreservingUnknown(seed, available: available)
+	            } else {
+	                widgetOrder = mergeOrderPreservingUnknown(decoded, available: available)
+	            }
+	        } else {
+	            widgetOrder = mergeOrderPreservingUnknown(widgetOrder, available: available)
+	        }
+	        if available.contains(.scenario), !widgetOrder.contains(.scenario) {
+	            if let availabilityIndex = widgetOrder.firstIndex(of: .availability) {
+	                widgetOrder.insert(.scenario, at: widgetOrder.index(after: availabilityIndex))
             } else {
                 widgetOrder.append(.scenario)
             }
         }
 
-        persistPinned()
-        persistOrder()
-    }
+	        persistPinned()
+	        persistOrder()
+	    }
 
-    private func normalize(order: [WidgetID], available: [WidgetID]) -> [WidgetID] {
-        var normalized = order.filter { available.contains($0) }
-        for id in available where !normalized.contains(id) {
-            normalized.append(id)
+	    private func mergeOrderPreservingUnknown(_ order: [WidgetID], available: [WidgetID]) -> [WidgetID] {
+	        var merged: [WidgetID] = []
+	        for id in order where !merged.contains(id) {
+	            merged.append(id)
+	        }
+	        for id in available where !merged.contains(id) {
+	            merged.append(id)
+	        }
+	        return merged
+	    }
+
+	    private func normalize(order: [WidgetID], available: [WidgetID]) -> [WidgetID] {
+	        var normalized = order.filter { available.contains($0) }
+	        for id in available where !normalized.contains(id) {
+	            normalized.append(id)
         }
         return normalized
     }

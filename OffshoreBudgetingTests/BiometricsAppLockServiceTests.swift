@@ -22,48 +22,52 @@ final class BiometricsAppLockServiceTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    func testEnableSuccessSetsToggleAndKeychainMarker() async {
-        let keychain = InMemoryAppLockStore()
-        let authenticator = TestBiometricAuthenticator(result: .success)
-        let viewModel = AppLockViewModel(authenticator: authenticator, keychainStore: keychain)
+	    func testEnableSuccessSetsToggleAndKeychainMarker() async {
+	        let keychain = InMemoryAppLockStore()
+	        let authenticator = TestBiometricAuthenticator(result: .success)
+	        let appLockState = AppLockState()
+	        let viewModel = AppLockViewModel(appLockState: appLockState, authenticator: authenticator, keychainStore: keychain)
 
-        await viewModel.setAppLockEnabled(true)
+	        await viewModel.setAppLockEnabled(true)
 
-        XCTAssertTrue(viewModel.isLockEnabled)
-        XCTAssertTrue(keychain.hasUnlockToken())
-    }
+	        XCTAssertTrue(viewModel.isLockEnabled)
+	        XCTAssertTrue(keychain.hasUnlockToken())
+	    }
 
-    func testEnableFailureLeavesToggleOffAndNoKeychainMarker() async {
-        let keychain = InMemoryAppLockStore()
-        let authenticator = TestBiometricAuthenticator(result: .failure(.authenticationFailed))
-        let viewModel = AppLockViewModel(authenticator: authenticator, keychainStore: keychain)
+	    func testEnableFailureLeavesToggleOffAndNoKeychainMarker() async {
+	        let keychain = InMemoryAppLockStore()
+	        let authenticator = TestBiometricAuthenticator(result: .failure(.authenticationFailed))
+	        let appLockState = AppLockState()
+	        let viewModel = AppLockViewModel(appLockState: appLockState, authenticator: authenticator, keychainStore: keychain)
 
-        await viewModel.setAppLockEnabled(true)
+	        await viewModel.setAppLockEnabled(true)
 
-        XCTAssertFalse(viewModel.isLockEnabled)
-        XCTAssertFalse(keychain.hasUnlockToken())
-    }
+	        XCTAssertFalse(viewModel.isLockEnabled)
+	        XCTAssertFalse(keychain.hasUnlockToken())
+	    }
 
-    func testDisableRemovesKeychainMarkerAndTurnsOffToggle() async {
-        let keychain = InMemoryAppLockStore()
-        let authenticator = TestBiometricAuthenticator(result: .success)
-        let viewModel = AppLockViewModel(authenticator: authenticator, keychainStore: keychain)
+	    func testDisableRemovesKeychainMarkerAndTurnsOffToggle() async {
+	        let keychain = InMemoryAppLockStore()
+	        let authenticator = TestBiometricAuthenticator(result: .success)
+	        let appLockState = AppLockState()
+	        let viewModel = AppLockViewModel(appLockState: appLockState, authenticator: authenticator, keychainStore: keychain)
 
-        await viewModel.setAppLockEnabled(true)
-        await viewModel.setAppLockEnabled(false)
+	        await viewModel.setAppLockEnabled(true)
+	        await viewModel.setAppLockEnabled(false)
 
-        XCTAssertFalse(viewModel.isLockEnabled)
-        XCTAssertFalse(keychain.hasUnlockToken())
-    }
+	        XCTAssertFalse(viewModel.isLockEnabled)
+	        XCTAssertFalse(keychain.hasUnlockToken())
+	    }
 
-    func testLockGatingRequiresKeychainMarker() async {
-        let keychain = InMemoryAppLockStore()
-        let authenticator = TestBiometricAuthenticator(result: .success)
-        let viewModel = AppLockViewModel(authenticator: authenticator, keychainStore: keychain)
+	    func testLockGatingRequiresKeychainMarker() async {
+	        let keychain = InMemoryAppLockStore()
+	        let authenticator = TestBiometricAuthenticator(result: .success)
+	        let appLockState = AppLockState()
+	        let viewModel = AppLockViewModel(appLockState: appLockState, authenticator: authenticator, keychainStore: keychain)
 
-        await viewModel.setAppLockEnabled(true)
-        viewModel.lock()
-        XCTAssertTrue(viewModel.isLocked)
+	        await viewModel.setAppLockEnabled(true)
+	        viewModel.lock()
+	        XCTAssertTrue(viewModel.isLocked)
 
         await viewModel.setAppLockEnabled(false)
         viewModel.lock()

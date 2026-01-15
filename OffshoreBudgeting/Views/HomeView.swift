@@ -553,25 +553,26 @@ struct HomeView: View {
     @ViewBuilder
     private var dateRow: some View {
         let applyDisabled = startDateSelection > endDateSelection
-        let useCompactLayout = isCompactDateRow || isAccessibilitySize
         let rangeLabel = Text(rangeDescription(currentRange))
             .font(Typography.headlineSemibold)
-            .lineLimit(isAccessibilitySize ? nil : (useCompactLayout ? 2 : 1))
+            .lineLimit(1)
             .multilineTextAlignment(.leading)
 
-        let controls = dateRowControls(disabled: applyDisabled, compactLayout: useCompactLayout)
-
         Group {
-            if useCompactLayout {
-                VStack(alignment: .leading, spacing: Spacing.m) {
-                    rangeLabel
-                    controls
-                }
+            if isAccessibilitySize {
+                dateRowControls(disabled: applyDisabled, compactLayout: true)
             } else {
-                HStack(spacing: Spacing.m) {
-                    rangeLabel
-                    Spacer()
-                    controls
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.m) {
+                        rangeLabel
+                        Spacer()
+                        dateRowControls(disabled: applyDisabled, compactLayout: false)
+                    }
+                    HStack(spacing: Spacing.m) {
+                        dateRowControls(disabled: applyDisabled, compactLayout: false)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    dateRowControls(disabled: applyDisabled, compactLayout: true)
                 }
             }
         }

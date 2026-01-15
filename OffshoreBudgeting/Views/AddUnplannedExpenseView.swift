@@ -167,9 +167,9 @@ struct AddUnplannedExpenseView: View {
                         .frame(maxWidth: .infinity)
                         .frame(minHeight: cardRowHeight)
                 } else if vm.allCards.isEmpty {
-                    VStack(spacing: DS.Spacing.m) {
+                    VStack(spacing: Spacing.m) {
                         Text("No cards yet. Add one to assign this expense.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Colors.styleSecondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .frame(minHeight: 44)
                             .fixedSize(horizontal: false, vertical: true)
@@ -180,7 +180,7 @@ struct AddUnplannedExpenseView: View {
                             fallbackAppearance: .neutral,
                             action: { isPresentingAddCard = true }
                         ) {
-                            Label("Add Card", systemImage: "plus")
+                            Label("Add Card", systemImage: Icons.sfPlus)
                         }
                         .accessibilityLabel("Add Card")
                     }
@@ -195,8 +195,8 @@ struct AddUnplannedExpenseView: View {
                 }
             } header: {
                 Text("Assign a Card to Expense")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
             }
 
             // MARK: Category Chips Row
@@ -205,8 +205,8 @@ struct AddUnplannedExpenseView: View {
                 .accessibilityElement(children: .contain)
             } header: {
                 Text("Category")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
             }
 //            .ub_formSectionClearBackground()
 
@@ -240,8 +240,8 @@ struct AddUnplannedExpenseView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
                 Text("Expense Description")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
             }
 
             // Amount
@@ -265,8 +265,8 @@ struct AddUnplannedExpenseView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
                 Text("Amount")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
             }
 
             // Transaction Date
@@ -277,8 +277,8 @@ struct AddUnplannedExpenseView: View {
                     .accessibilityLabel("Transaction Date")
             } header: {
                 Text("Transaction Date")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
             }
         }
         .listStyle(.insetGrouped)

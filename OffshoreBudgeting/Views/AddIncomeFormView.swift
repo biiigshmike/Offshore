@@ -109,7 +109,7 @@ struct AddIncomeFormView: View {
             if viewModel.isEditing && viewModel.isPartOfSeries {
                 Text("Editing a recurring income. Choosing \"Edit this and all future instances\" will create a new series. Changes from this point forward will be treated as a new series.")
                     .font(Typography.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Colors.styleSecondary)
                     .padding(.bottom, 4)
             }
             typeSection
@@ -134,7 +134,7 @@ struct AddIncomeFormView: View {
         } header: {
             Text("Type")
                 .font(Typography.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
                 .textCase(.uppercase)
         }
     }
@@ -167,7 +167,7 @@ struct AddIncomeFormView: View {
         } header: {
             Text("Source")
                 .font(Typography.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
                 .textCase(.uppercase)
         }
     }
@@ -196,7 +196,7 @@ struct AddIncomeFormView: View {
         } header: {
             Text("Amount")
                 .font(Typography.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
                 .textCase(.uppercase)
         }
     }
@@ -211,7 +211,7 @@ struct AddIncomeFormView: View {
         } header: {
             Text("Entry Date")
                 .font(Typography.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
                 .textCase(.uppercase)
         }
     }
@@ -223,7 +223,7 @@ struct AddIncomeFormView: View {
         } header: {
             Text("Recurrence")
                 .font(Typography.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Colors.styleSecondary)
                 .textCase(.uppercase)
         }
     }
@@ -251,7 +251,7 @@ struct AddIncomeFormView: View {
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(Typography.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Colors.styleSecondary)
             .textCase(.uppercase)
     }
 }

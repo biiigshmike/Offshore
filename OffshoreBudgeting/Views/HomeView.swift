@@ -6314,7 +6314,7 @@ struct PlannedRowsList: View {
     }
 
     private func rowAccessibilityID(for expense: PlannedExpense) -> String {
-        AccessibilityRowIdentifier.plannedRow(id: expense.value(forKey: "id") as? UUID)
+        AccessibilityID.Home.plannedRow(id: expense.value(forKey: "id") as? UUID)
     }
 
     private static func dateString(_ date: Date?) -> String {
@@ -6532,7 +6532,7 @@ struct VariableRowsList: View {
     }
 
     private func rowAccessibilityID(for expense: UnplannedExpense) -> String {
-        AccessibilityRowIdentifier.unplannedRow(id: expense.value(forKey: "id") as? UUID)
+        AccessibilityID.Home.unplannedRow(id: expense.value(forKey: "id") as? UUID)
     }
 
     private static func readUnplannedDescription(_ object: NSManagedObject) -> String? {

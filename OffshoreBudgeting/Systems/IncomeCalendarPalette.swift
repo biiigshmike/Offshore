@@ -122,7 +122,7 @@ struct UBDayView: DayView {
         if hasEvents {
             return AnyView(
                 content
-                    .accessibilityIdentifier("income_day_has_events_\(ymdString(date))")
+                    .accessibilityIdentifier(AccessibilityID.Income.CalendarDay.hasEvents(dateKey: ymdString(date)))
             )
         } else {
             return AnyView(content)

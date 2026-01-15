@@ -69,7 +69,7 @@ struct RootTabView: View {
                     Text("Seed Done")
                         .font(.caption2)
                         .opacity(0.01)
-                        .accessibilityIdentifier("uitest_seed_done")
+                        .accessibilityIdentifier(AccessibilityID.UITest.seedDone)
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: shouldUseCompactTabs)

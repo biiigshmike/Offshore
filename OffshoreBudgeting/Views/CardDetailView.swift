@@ -998,7 +998,7 @@ private struct ExpenseRow: View {
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier(AccessibilityRowIdentifier.cardExpenseRow(id: expense.uuid))
+        .accessibilityIdentifier(AccessibilityID.Cards.Detail.cardExpenseRow(id: expense.uuid))
     }
 }
 

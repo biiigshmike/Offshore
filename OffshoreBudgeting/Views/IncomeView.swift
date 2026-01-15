@@ -651,7 +651,7 @@ struct IncomeView: View {
     }
 
     private func rowAccessibilityID(for income: Income) -> String {
-        AccessibilityRowIdentifier.incomeRow(id: income.id)
+        AccessibilityID.Income.incomeRow(id: income.id)
     }
 
     private func totalsColumn(label: String, amount: Double, color: Color) -> some View {

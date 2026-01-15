@@ -133,15 +133,15 @@ struct AddBudgetView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
                 Text("Name")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
 
             // ---- Dates
             Section {
                 if isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: DS.Spacing.m) {
+                    VStack(alignment: .leading, spacing: Spacing.m) {
                         DatePicker("Start", selection: $vm.startDate, displayedComponents: [.date])
                             .labelsHidden()
                             .datePickerStyle(.compact)
@@ -150,7 +150,7 @@ struct AddBudgetView: View {
                             .datePickerStyle(.compact)
                     }
                 } else {
-                    HStack(spacing: DS.Spacing.m) {
+                    HStack(spacing: Spacing.m) {
                         DatePicker("Start", selection: $vm.startDate, displayedComponents: [.date])
                             .labelsHidden()
                             .datePickerStyle(.compact)
@@ -161,8 +161,8 @@ struct AddBudgetView: View {
                 }
             } header: {
                 Text("Dates")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
 
@@ -170,7 +170,7 @@ struct AddBudgetView: View {
             Section {
                 if vm.allCards.isEmpty {
                     Text("No cards yet. Add cards first to track expenses.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Colors.styleSecondary)
                 } else {
                     // Toggle All (button)
                     toggleAllRowButton(action: toggleAllCards)
@@ -191,8 +191,8 @@ struct AddBudgetView: View {
                 }
             } header: {
                 Text("Cards to Track")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
 
@@ -200,7 +200,7 @@ struct AddBudgetView: View {
             Section {
                 if vm.globalPlannedExpenseTemplates.isEmpty {
                     Text("No presets yet. You can add them later.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Colors.styleSecondary)
                 } else {
                     // Toggle All (button)
                     toggleAllRowButton(action: toggleAllPresets)
@@ -221,8 +221,8 @@ struct AddBudgetView: View {
                 }
             } header: {
                 Text("Preset Planned Expenses")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
             }
@@ -308,7 +308,7 @@ struct AddBudgetView: View {
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity)
             .frame(minHeight: toggleAllMinHeight)
-            .padding(.vertical, isAccessibilitySize ? DS.Spacing.xs : 0)
+            .padding(.vertical, isAccessibilitySize ? Spacing.xs : 0)
 
         if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
             Button(action: action) {

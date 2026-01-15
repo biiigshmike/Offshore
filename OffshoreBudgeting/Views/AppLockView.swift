@@ -50,7 +50,7 @@ public struct AppLockView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(viewModel.isAuthenticating)
-                .accessibilityIdentifier("btn_unlock")
+                .accessibilityIdentifier(AccessibilityID.AppLock.unlockButton)
 
                 if viewModel.isAuthenticating {
                     ProgressView("Authenticating…")
@@ -72,7 +72,7 @@ public struct AppLockView: View {
         }
         .accessibilityAddTraits(.isModal)
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("app_lock_screen")
+        .accessibilityIdentifier(AccessibilityID.AppLock.screen)
     }
 
 }

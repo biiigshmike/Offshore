@@ -117,9 +117,9 @@ struct AddPlannedExpenseView: View {
                         .frame(maxWidth: .infinity)
                         .frame(minHeight: cardRowHeight)
                 } else if vm.allCards.isEmpty {
-                    VStack(spacing: DS.Spacing.m) {
+                    VStack(spacing: Spacing.m) {
                         Text("No cards yet. Add one to assign this expense.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Colors.styleSecondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         GlassCTAButton(
                             maxWidth: .infinity,
@@ -128,7 +128,7 @@ struct AddPlannedExpenseView: View {
                             fallbackAppearance: .neutral,
                             action: { isPresentingAddCard = true }
                         ) {
-                            Label("Add Card", systemImage: "plus")
+                            Label("Add Card", systemImage: Icons.sfPlus)
                         }
                         .accessibilityLabel("Add Card")
                     }
@@ -143,8 +143,8 @@ struct AddPlannedExpenseView: View {
                 }
             } header: {
                 Text("Card")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
 
@@ -154,8 +154,8 @@ struct AddPlannedExpenseView: View {
                     Toggle("Select a Budget", isOn: $isAssigningToBudget)
                 } header: {
                     Text("Add to a budget now?")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.footnote)
+                        .foregroundStyle(Colors.styleSecondary)
                         .textCase(.uppercase)
                 }
                 if isAssigningToBudget {
@@ -203,8 +203,8 @@ struct AddPlannedExpenseView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
                 Text("Expense Description")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
 
@@ -229,8 +229,8 @@ struct AddPlannedExpenseView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
                 Text("Planned Amount")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
 
@@ -255,8 +255,8 @@ struct AddPlannedExpenseView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
                 Text("Actual Amount")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
 
@@ -269,8 +269,8 @@ struct AddPlannedExpenseView: View {
                     .accessibilityLabel("Transaction Date")
             } header: {
                 Text("Transaction Date")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
             // MARK: Use in future budgets?
@@ -283,8 +283,8 @@ struct AddPlannedExpenseView: View {
                 }
             } header: {
                 Text("Use in future budgets?")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             } footer: {
                 if vm.isEditingLinkedToTemplate {
@@ -508,7 +508,7 @@ struct AddPlannedExpenseView: View {
 
             if all.isEmpty {
                 Text("No matching budgets")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Colors.styleSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ForEach(visible, id: \.objectID) { budget in
@@ -537,11 +537,11 @@ struct AddPlannedExpenseView: View {
                     Button {
                         withAnimation(.easeInOut) { showAllBudgetsForEdit = true }
                     } label: {
-                        HStack(spacing: DS.Spacing.xs) {
+                        HStack(spacing: Spacing.xs) {
                             Text("Show All Budgets")
                             Text("\(remaining)")
                                 .font(Typography.captionSemibold)
-                                .padding(.horizontal, DS.Spacing.xs)
+                                .padding(.horizontal, Spacing.xs)
                                 .padding(.vertical, 2)
                                 .background(Capsule().fill(Color.secondary.opacity(0.15)))
                             Spacer(minLength: 0)
@@ -562,8 +562,8 @@ struct AddPlannedExpenseView: View {
             }
         } header: {
             Text("Choose Budget")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(Typography.footnote)
+                .foregroundStyle(Colors.styleSecondary)
                 .textCase(.uppercase)
         }
         .animation(.easeInOut, value: showAllBudgets)

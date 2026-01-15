@@ -100,12 +100,12 @@ struct AddCardFormView: View {
             // ---- Preview
             Section {
                 CardTileView(card: previewItem, enableMotionShine: true, showsEffectOverlay: true)
-                    .padding(.vertical, DS.Spacing.m)
+                    .padding(.vertical, Spacing.m)
             } header: {
                 // Gray, ALL CAPS, not bold — match Add Budget
                 Text("Preview")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
 
@@ -138,42 +138,42 @@ struct AddCardFormView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
                 Text("Name")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
 
             // ---- Effect
             Section {
-                let columns = [GridItem(.adaptive(minimum: 120), spacing: DS.Spacing.m)]
-                LazyVGrid(columns: columns, spacing: DS.Spacing.m) {
+                let columns = [GridItem(.adaptive(minimum: 120), spacing: Spacing.m)]
+                LazyVGrid(columns: columns, spacing: Spacing.m) {
                     ForEach(CardEffect.allCases) { effect in
                         EffectSwatch(effect: effect, theme: selectedTheme, isSelected: effect == selectedEffect)
                             .onTapGesture { selectedEffect = effect }
                     }
                 }
-                .padding(.vertical, DS.Spacing.s)
+                .padding(.vertical, Spacing.s)
             } header: {
                 Text("Effect")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
 
             // ---- Theme
             Section {
-                let columns = [GridItem(.adaptive(minimum: 120), spacing: DS.Spacing.m)]
-                LazyVGrid(columns: columns, spacing: DS.Spacing.m) {
+                let columns = [GridItem(.adaptive(minimum: 120), spacing: Spacing.m)]
+                LazyVGrid(columns: columns, spacing: Spacing.m) {
                     ForEach(CardTheme.allCases) { theme in
                         ThemeSwatch(theme: theme, isSelected: theme == selectedTheme)
                             .onTapGesture { selectedTheme = theme }
                     }
                 }
-                .padding(.vertical, DS.Spacing.s)
+                .padding(.vertical, Spacing.s)
             } header: {
                 Text("Theme")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Colors.styleSecondary)
                     .textCase(.uppercase)
             }
             }
@@ -261,7 +261,7 @@ private struct EffectSwatch: View {
                     enableMotion: false
                 )
                 RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                    .stroke(Colors.whiteOpacity006, lineWidth: 1)
             }
             .frame(minHeight: swatchMinHeight)
 
@@ -272,7 +272,7 @@ private struct EffectSwatch: View {
         }
         .overlay(
             RoundedRectangle(cornerRadius: Radius.card)
-                .stroke(isSelected ? theme.glowColor : Color.primary.opacity(0.15), lineWidth: isSelected ? 2 : 1)
+                .stroke(isSelected ? theme.glowColor : Colors.primaryOpacity015, lineWidth: isSelected ? 2 : 1)
                 .shadow(color: theme.glowColor.opacity(isSelected ? 0.55 : 0), radius: isSelected ? 12 : 0)
                 .shadow(color: theme.glowColor.opacity(isSelected ? 0.30 : 0), radius: isSelected ? 24 : 0)
                 .shadow(color: theme.glowColor.opacity(isSelected ? 0.18 : 0), radius: isSelected ? 36 : 0)
@@ -305,7 +305,7 @@ private struct ThemeSwatch: View {
                 RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(theme.adaptiveOverlay(for: colorScheme, isHighContrast: colorSchemeContrast == .increased))
                 RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                    .stroke(Colors.whiteOpacity006, lineWidth: 1)
             }
             .frame(minHeight: swatchMinHeight)
 
@@ -318,7 +318,7 @@ private struct ThemeSwatch: View {
         // Selection ring + color-matched glow
         .overlay(
             RoundedRectangle(cornerRadius: Radius.card)
-                .stroke(isSelected ? theme.glowColor : Color.primary.opacity(0.15), lineWidth: isSelected ? 2 : 1)
+                .stroke(isSelected ? theme.glowColor : Colors.primaryOpacity015, lineWidth: isSelected ? 2 : 1)
                 .shadow(color: theme.glowColor.opacity(isSelected ? 0.55 : 0), radius: isSelected ? 12 : 0)
                 .shadow(color: theme.glowColor.opacity(isSelected ? 0.30 : 0), radius: isSelected ? 24 : 0)
                 .shadow(color: theme.glowColor.opacity(isSelected ? 0.18 : 0), radius: isSelected ? 36 : 0)

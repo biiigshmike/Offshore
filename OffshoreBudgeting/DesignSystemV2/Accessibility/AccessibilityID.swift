@@ -4,6 +4,29 @@ import Foundation
 enum AccessibilityID {
     enum Home {
         static let screen = "home_screen"
+
+        static func plannedRow(id: UUID?) -> String {
+            guard let id else { return "planned_row_missing_uuid" }
+            return "planned_row_\(id.uuidString)"
+        }
+
+        static func unplannedRow(id: UUID?) -> String {
+            guard let id else { return "unplanned_row_missing_uuid" }
+            return "unplanned_row_\(id.uuidString)"
+        }
+    }
+
+    enum Onboarding {
+        static let screen = "onboarding_screen"
+    }
+
+    enum AppLock {
+        static let screen = "app_lock_screen"
+        static let unlockButton = "btn_unlock"
+    }
+
+    enum UITest {
+        static let seedDone = "uitest_seed_done"
     }
 
     enum Budgets {
@@ -21,12 +44,23 @@ enum AccessibilityID {
     enum Income {
         static let addButton = "btn_add_income"
 
+        static func incomeRow(id: UUID?) -> String {
+            guard let id else { return "row_income_missing_uuid" }
+            return "row_income_\(id.uuidString)"
+        }
+
         enum CalendarNav {
             static let previousMonthButton = "btn_income_calendar_previous_month"
             static let previousDayButton = "btn_income_calendar_previous_day"
             static let todayButton = "btn_income_calendar_today"
             static let nextDayButton = "btn_income_calendar_next_day"
             static let nextMonthButton = "btn_income_calendar_next_month"
+        }
+
+        enum CalendarDay {
+            static func hasEvents(dateKey: String) -> String {
+                "income_day_has_events_\(dateKey)"
+            }
         }
 
         enum UITest {
@@ -83,6 +117,11 @@ enum AccessibilityID {
 
         enum Detail {
             static let screen = "card_details_screen"
+
+            static func cardExpenseRow(id: UUID?) -> String {
+                guard let id else { return "card_expense_row_missing_uuid" }
+                return "card_expense_row_\(id.uuidString)"
+            }
         }
 
         enum List {

@@ -19,6 +19,7 @@ import SwiftUI
 
 // MARK: - UBEmptyState
 /// Standardized empty-state presentation with optional action buttons.
+@available(*, deprecated, message: "Use DesignSystemV2.EmptyState directly.")
 struct UBEmptyState: View {
 
     // MARK: Content

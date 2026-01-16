@@ -17,11 +17,13 @@ struct OffshoreBudgetingApp: App {
     // MARK: Dependencies
     @StateObject private var themeManager = ThemeManager()
     @StateObject private var cardPickerStore = CardPickerStore()
-    @StateObject private var appSettings = AppSettingsState(store: UserDefaultsAppSettingsStore())
-    @StateObject private var onboarding = OnboardingState()
+    @StateObject private var appSettings: AppSettingsState
+    @StateObject private var onboarding: OnboardingState
     @StateObject private var homeWidgetState = HomeWidgetState()
-    @StateObject private var uiTestingState = UITestingState()
+    @StateObject private var uiTestingState: UITestingState
     @State private var coreDataReady = false
+    @State private var didRunUITestBootstrap = false
+    @State private var didStartAppServices = false
     @State private var dataReady = false
     @State private var dataRevision: Int = 0
     @State private var dataChangeObserver: NSObjectProtocol?
@@ -38,13 +40,16 @@ struct OffshoreBudgetingApp: App {
 
     // MARK: Init
     init() {
+        Self.configureForUITestingIfNeeded()
+        _appSettings = StateObject(wrappedValue: AppSettingsState(store: UserDefaultsAppSettingsStore()))
+        _onboarding = StateObject(wrappedValue: OnboardingState())
+        _uiTestingState = StateObject(wrappedValue: UITestingState())
+
         let appLockState = AppLockState()
         _appLockState = StateObject(wrappedValue: appLockState)
         _appLockViewModel = StateObject(wrappedValue: AppLockViewModel(appLockState: appLockState))
 
         // Defer Core Data store loading and CardPickerStore start to onAppear
-        configureForUITestingIfNeeded()
-        configureAppLockForUITestingIfNeeded()
         logPlatformCapabilities()
         let labelAppearance = UILabel.appearance()
         labelAppearance.adjustsFontSizeToFitWidth = true
@@ -106,6 +111,7 @@ struct OffshoreBudgetingApp: App {
 #else
         let startRoute: String? = nil
 #endif
+        let shouldInjectManagedObjectContext = coreDataReady || testFlags.isUITesting
         let base = content()
             .environmentObject(themeManager)
             .environmentObject(cardPickerStore)
@@ -126,6 +132,11 @@ struct OffshoreBudgetingApp: App {
                 if testFlags.isUITesting, !testFlags.allowAppLock {
                     appLockViewModel.disableAppLockForUITests()
                 }
+#if DEBUG
+                if testFlags.isUITesting {
+                    configureAppLockForUITestingIfNeeded()
+                }
+#endif
                 themeManager.refreshSystemAppearance(systemColorScheme)
                 SystemThemeAdapter.applyGlobalChrome(
                     theme: themeManager.selectedTheme,
@@ -139,32 +150,10 @@ struct OffshoreBudgetingApp: App {
                     appLockViewModel.lock()
                     appLockViewModel.attemptUnlockWithBiometrics()
                 }
-
-                // Register for remote notifications so CloudKit can push changes.
-                UIApplication.shared.registerForRemoteNotifications()
-                Task { @MainActor in
-                    // Ensure stores are loaded in the background
-                    CoreDataService.shared.ensureLoaded()
-                    await CoreDataService.shared.waitUntilStoresLoaded()
-                    // Initialize workspace and reflect cloud flags
-                    if appSettings.enableCloudSync {
-                        if CloudDataProbe().hasAnyData() { UbiquitousFlags.setHasCloudDataTrue() }
-                    }
-                    await WorkspaceService.shared.initializeOnLaunch()
-
-                    // No BudgetPreferenceSync – budget period mirrors via Core Data (Workspace)
-                    cardPickerStore.start()
-                    coreDataReady = true
-                    startDataReadinessFlow()
-                    startObservingDataChanges()
-                    startObservingHomeReadiness()
-                    CloudSyncAccelerator.shared.nudgeOnForeground()
-                    #if DEBUG
-                    if ProcessInfo.processInfo.environment["INIT_CLOUDKIT_SCHEMA"] == "1" {
-                        await CoreDataService.shared.initializeCloudKitSchemaIfNeeded()
-                    }
-                    #endif
-                }
+                startAppServicesIfNeeded(testFlags: testFlags)
+            }
+            .onChange(of: onboarding.didCompleteOnboarding) { _ in
+                startAppServicesIfNeeded(testFlags: testFlags)
             }
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .active {
@@ -203,10 +192,54 @@ struct OffshoreBudgetingApp: App {
                 )
             }
             .modifier(TestUIOverridesModifier(overrides: overrides))
-            .if(coreDataReady) { view in
+            .if(shouldInjectManagedObjectContext) { view in
                 view.environment(\.managedObjectContext, CoreDataService.shared.viewContext)
             }
         return base
+    }
+
+    @MainActor
+    private func startAppServicesIfNeeded(testFlags: UITestingFlags) {
+        if didStartAppServices { return }
+#if DEBUG
+        if testFlags.isUITesting, !onboarding.didCompleteOnboarding {
+            return
+        }
+#endif
+        didStartAppServices = true
+
+        // Register for remote notifications so CloudKit can push changes.
+        UIApplication.shared.registerForRemoteNotifications()
+
+        Task { @MainActor in
+            // Ensure stores are loaded in the background
+            CoreDataService.shared.ensureLoaded()
+            await CoreDataService.shared.waitUntilStoresLoaded()
+#if DEBUG
+            if testFlags.isUITesting, !didRunUITestBootstrap {
+                didRunUITestBootstrap = true
+                await seedAndResetIfNeededForUITesting(env: ProcessInfo.processInfo.environment)
+            }
+#endif
+            // Initialize workspace and reflect cloud flags
+            if appSettings.enableCloudSync {
+                if CloudDataProbe().hasAnyData() { UbiquitousFlags.setHasCloudDataTrue() }
+            }
+            await WorkspaceService.shared.initializeOnLaunch()
+
+            // No BudgetPreferenceSync – budget period mirrors via Core Data (Workspace)
+            cardPickerStore.start()
+            coreDataReady = true
+            startDataReadinessFlow()
+            startObservingDataChanges()
+            startObservingHomeReadiness()
+            CloudSyncAccelerator.shared.nudgeOnForeground()
+            #if DEBUG
+            if ProcessInfo.processInfo.environment["INIT_CLOUDKIT_SCHEMA"] == "1" {
+                await CoreDataService.shared.initializeCloudKitSchemaIfNeeded()
+            }
+            #endif
+        }
     }
 
     @MainActor
@@ -270,7 +303,7 @@ struct OffshoreBudgetingApp: App {
 
 
     // MARK: UI Testing Helpers
-    private func configureForUITestingIfNeeded() {
+    private static func configureForUITestingIfNeeded() {
         #if DEBUG
         let processInfo = ProcessInfo.processInfo
         guard processInfo.arguments.contains("-ui-testing") else { return }
@@ -287,17 +320,6 @@ struct OffshoreBudgetingApp: App {
         }
         if env["UITEST_DISABLE_ANIMATIONS"] == "1" {
             UIView.setAnimationsEnabled(false)
-        }
-        if let seed = env["UITEST_SEED"], !seed.isEmpty {
-            Task { @MainActor in
-                await CoreDataService.shared.waitUntilStoresLoaded(timeout: 5.0)
-                if shouldResetState {
-                    do { try CoreDataService.shared.wipeAllData() } catch { /* non-fatal in UI tests */ }
-                }
-                await seedForUITests(scenario: seed)
-            }
-        } else if shouldResetState {
-            resetPersistentStateForUITests()
         }
 
         if cloudAvailabilityOverride == "existing_data" || cloudAvailabilityOverride == "no_icloud" {
@@ -317,15 +339,18 @@ struct OffshoreBudgetingApp: App {
         #endif
     }
 
-    private func resetPersistentStateForUITests() {
-        resetUserDefaultsForUITests()
-        Task { @MainActor in
-            await CoreDataService.shared.waitUntilStoresLoaded(timeout: 3.0)
+    @MainActor
+    private func seedAndResetIfNeededForUITesting(env: [String: String]) async {
+        let shouldResetState = env["UITEST_RESET_STATE"] == "1"
+        if shouldResetState {
             do { try CoreDataService.shared.wipeAllData() } catch { /* non-fatal in UI tests */ }
         }
+
+        guard let seed = env["UITEST_SEED"], !seed.isEmpty else { return }
+        await seedForUITests(scenario: seed)
     }
 
-    private func resetUserDefaultsForUITests() {
+    private static func resetUserDefaultsForUITests() {
         guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
         let defaults = UserDefaults.standard
         defaults.removePersistentDomain(forName: bundleIdentifier)
@@ -455,22 +480,33 @@ private extension OffshoreBudgetingApp {
         let biometricAuthResult = deviceAuthRaw
             .flatMap { UITestBiometricAuthResult(rawValue: $0.lowercased()) }
 
+        let injectedICloudState = env["UITEST_ICLOUD_STATE"]?.lowercased()
         let cloudAvailabilityOverride = env["UITEST_CLOUD_SYNC_AVAILABLE"]?.lowercased()
         let cloudAccountAvailableOverride: Bool?
         let cloudDataExistsOverride: Bool?
-        switch cloudAvailabilityOverride {
-        case "existing_data":
+        switch injectedICloudState {
+        case "found":
             cloudAccountAvailableOverride = true
             cloudDataExistsOverride = true
-        case "no_icloud":
-            cloudAccountAvailableOverride = false
-            cloudDataExistsOverride = false
-        case "local":
-            cloudAccountAvailableOverride = false
+        case "none":
+            // Deterministic "iCloud available, but no data present".
+            cloudAccountAvailableOverride = true
             cloudDataExistsOverride = false
         default:
-            cloudAccountAvailableOverride = parseUITestBool(env["UITEST_CLOUD_ACCOUNT_AVAILABLE"])
-            cloudDataExistsOverride = parseUITestBool(env["UITEST_CLOUD_DATA_EXISTS"])
+            switch cloudAvailabilityOverride {
+            case "existing_data":
+                cloudAccountAvailableOverride = true
+                cloudDataExistsOverride = true
+            case "no_icloud":
+                cloudAccountAvailableOverride = false
+                cloudDataExistsOverride = false
+            case "local":
+                cloudAccountAvailableOverride = false
+                cloudDataExistsOverride = false
+            default:
+                cloudAccountAvailableOverride = parseUITestBool(env["UITEST_CLOUD_ACCOUNT_AVAILABLE"])
+                cloudDataExistsOverride = parseUITestBool(env["UITEST_CLOUD_DATA_EXISTS"])
+            }
         }
 
         return UITestingFlags(

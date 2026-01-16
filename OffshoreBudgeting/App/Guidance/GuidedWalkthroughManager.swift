@@ -344,6 +344,7 @@ struct TipsAndHintsOverlayModifier: ViewModifier {
 
     @ObservedObject private var coordinator = TipsPresentationCoordinator.shared
     @EnvironmentObject private var settings: AppSettingsState
+    @Environment(\.uiTestingFlags) private var uiTestingFlags
     @State private var isPresented = false
     @State private var isVisible = false
 
@@ -371,6 +372,7 @@ struct TipsAndHintsOverlayModifier: ViewModifier {
     }
 
     private func maybeShow() {
+        guard !uiTestingFlags.isUITesting else { return }
         guard isVisible else { return }
         guard !isPresented else { return }
         guard !coordinator.isPresenting else { return }

@@ -32,6 +32,10 @@ final class OnboardingAndSecuritySmokeUITests: XCTestCase {
         app.launchEnvironment["UITEST_SKIP_ONBOARDING"] = skipOnboarding ? "1" : "0"
         app.launchEnvironment["UITEST_RESET_STATE"] = resetState ? "1" : "0"
         app.launchEnvironment["UITEST_DISABLE_ANIMATIONS"] = "1"
+        app.launchEnvironment["UITEST_STORE"] = "memory"
+        app.launchEnvironment["UITEST_RUN_ID"] = extraEnv["UITEST_RUN_ID"] ?? UUID().uuidString
+        app.launchEnvironment["UITEST_LOCALE"] = extraEnv["UITEST_LOCALE"] ?? "en_US"
+        app.launchEnvironment["UITEST_TIMEZONE"] = extraEnv["UITEST_TIMEZONE"] ?? "UTC"
         if let startTab {
             app.launchEnvironment["UITEST_START_TAB"] = startTab
         }
@@ -117,7 +121,7 @@ final class OnboardingAndSecuritySmokeUITests: XCTestCase {
         let homeScreen = app.otherElements["home_screen"]
         if homeScreen.waitForExistence(timeout: timeout) { return }
 
-        let homeTab = app.tabBars.buttons["tab_home"].firstMatch
+        let homeTab = app.descendants(matching: .any).matching(identifier: "tab_home").firstMatch
         if homeTab.waitForExistence(timeout: timeout) { return }
 
         let homeTabByTitle = app.tabBars.buttons["Home"].firstMatch
@@ -174,6 +178,24 @@ final class OnboardingAndSecuritySmokeUITests: XCTestCase {
 
     // MARK: - Tests
 
+    private func tapButtonLabeled(
+        _ label: String,
+        in app: XCUIApplication,
+        timeout: TimeInterval = Timeouts.elementExistence,
+        file: StaticString = #file,
+        line: UInt = #line
+    ) {
+        let direct = app.buttons[label].firstMatch
+        if direct.waitForExistence(timeout: timeout) {
+            direct.tap()
+            return
+        }
+        let predicate = NSPredicate(format: "label == %@", label)
+        let any = app.descendants(matching: .any).matching(predicate).firstMatch
+        XCTAssertTrue(any.waitForExistence(timeout: timeout), "Missing button: \(label)", file: file, line: line)
+        any.tap()
+    }
+
     func testAppLockToggleAndRelaunchGatesAccess() {
         let app = launchApp(
             skipOnboarding: true,
@@ -186,9 +208,14 @@ final class OnboardingAndSecuritySmokeUITests: XCTestCase {
             ]
         )
 
-        let privacyRow = app.cells.staticTexts["Privacy"].firstMatch
-        XCTAssertTrue(privacyRow.waitForExistence(timeout: Timeouts.elementExistence))
-        privacyRow.tap()
+        let privacyByID = app.descendants(matching: .any).matching(identifier: "nav_settings_privacy").firstMatch
+        if privacyByID.waitForExistence(timeout: Timeouts.elementExistence) {
+            privacyByID.tap()
+        } else {
+            let privacyRow = app.cells.staticTexts["Privacy"].firstMatch
+            XCTAssertTrue(privacyRow.waitForExistence(timeout: Timeouts.elementExistence))
+            privacyRow.tap()
+        }
 
         let appLockToggle = app.switches["toggle_app_lock"]
         ensureSwitchOn(appLockToggle)
@@ -196,8 +223,13 @@ final class OnboardingAndSecuritySmokeUITests: XCTestCase {
         let backButton = app.navigationBars.buttons["Settings"].firstMatch
         if backButton.exists { backButton.tap() }
 
-        let homeTab = app.tabBars.buttons["tab_home"].firstMatch
-        if homeTab.exists { homeTab.tap() }
+        let homeTab = app.descendants(matching: .any).matching(identifier: "tab_home").firstMatch
+        if homeTab.exists {
+            homeTab.tap()
+        } else {
+            let homeTabByTitle = app.tabBars.buttons["Home"].firstMatch
+            if homeTabByTitle.exists { homeTabByTitle.tap() }
+        }
 
         // True terminate before relaunch.
         app.terminate()
@@ -232,13 +264,11 @@ final class OnboardingAndSecuritySmokeUITests: XCTestCase {
             startTab: "home",
             extraEnv: [
                 "UITEST_ENABLE_CLOUD_SYNC": "1",
-                "UITEST_CLOUD_SYNC_AVAILABLE": "existing_data"
+                "UITEST_ICLOUD_STATE": "found"
             ]
         )
 
-        let alert = app.alerts["iCloud data found"].firstMatch
-        XCTAssertTrue(alert.waitForExistence(timeout: Timeouts.elementExistence))
-        alert.buttons["Use iCloud Data"].tap()
+        tapButtonLabeled("Use iCloud Data", in: app, timeout: Timeouts.elementExistence)
 
         waitForMainUI(in: app)
 
@@ -253,13 +283,11 @@ final class OnboardingAndSecuritySmokeUITests: XCTestCase {
             startTab: "home",
             extraEnv: [
                 "UITEST_ENABLE_CLOUD_SYNC": "1",
-                "UITEST_CLOUD_SYNC_AVAILABLE": "existing_data"
+                "UITEST_ICLOUD_STATE": "found"
             ]
         )
 
-        let alert = app.alerts["iCloud data found"].firstMatch
-        XCTAssertTrue(alert.waitForExistence(timeout: Timeouts.elementExistence))
-        alert.buttons["Start Fresh"].tap()
+        tapButtonLabeled("Start Fresh", in: app, timeout: Timeouts.elementExistence)
 
         let onboarding = app.otherElements["onboarding_screen"]
         XCTAssertTrue(onboarding.waitForExistence(timeout: Timeouts.elementExistence))

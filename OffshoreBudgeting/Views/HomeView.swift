@@ -773,6 +773,7 @@ struct HomeView: View {
             .clipShape(Capsule())
             .accessibilityLabel(isEditing ? "Done editing widgets" : "Edit widgets")
             .accessibilityHint("Reorder or add widgets.")
+            .accessibilityIdentifier(AccessibilityID.Home.editWidgetsButton)
         } else {
             Button(isEditing ? "Done" : "Edit") {
                 withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
@@ -789,6 +790,7 @@ struct HomeView: View {
             .clipShape(Capsule())
             .accessibilityLabel(isEditing ? "Done editing widgets" : "Edit widgets")
             .accessibilityHint("Reorder or add widgets.")
+            .accessibilityIdentifier(AccessibilityID.Home.editWidgetsButton)
         }
     }
 
@@ -6279,6 +6281,7 @@ struct PlannedRowsList: View {
                     onDelete: { onDelete(exp) }
                 )
                 .accessibilityIdentifier(rowAccessibilityID(for: exp))
+                .id(rowAccessibilityID(for: exp))
             }
         }
     }
@@ -6497,6 +6500,7 @@ struct VariableRowsList: View {
                     onDelete: { onDelete(exp) }
                 )
                 .accessibilityIdentifier(rowAccessibilityID(for: exp))
+                .id(rowAccessibilityID(for: exp))
             }
         }
     }

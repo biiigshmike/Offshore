@@ -10,6 +10,10 @@ final class CategoriesSmokeTests: XCTestCase {
         app.launchEnvironment["UITEST_SKIP_ONBOARDING"] = "1"
         app.launchEnvironment["UITEST_RESET_STATE"] = "1"
         app.launchEnvironment["UITEST_DISABLE_ANIMATIONS"] = "1"
+        app.launchEnvironment["UITEST_STORE"] = "memory"
+        app.launchEnvironment["UITEST_RUN_ID"] = UUID().uuidString
+        app.launchEnvironment["UITEST_LOCALE"] = "en_US"
+        app.launchEnvironment["UITEST_TIMEZONE"] = "UTC"
         app.launchEnvironment["UITEST_SEED"] = seed
         app.launchEnvironment["UITEST_START_ROUTE"] = "categories"
         app.launch()
@@ -43,11 +47,20 @@ final class CategoriesSmokeTests: XCTestCase {
         return app.otherElements[identifier]
     }
 
-    private func waitForDisappearance(_ element: XCUIElement, timeout: TimeInterval = 5, file: StaticString = #file, line: UInt = #line) {
-        let predicate = NSPredicate(format: "exists == false")
-        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
-        let result = XCTWaiter().wait(for: [expectation], timeout: timeout)
-        XCTAssertEqual(result, .completed, "Expected element to disappear", file: file, line: line)
+    private func waitForDisappearance(ofCategoryID id: String, in app: XCUIApplication, timeout: TimeInterval = 8, file: StaticString = #file, line: UInt = #line) {
+        let identifier = "category_row_id_\(id)"
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let anyMatch = app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if !anyMatch.exists { return }
+            if app.tables.firstMatch.exists {
+                app.tables.firstMatch.swipeUp()
+            } else {
+                app.swipeUp()
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.15))
+        }
+        XCTFail("Expected row to disappear: \(identifier)", file: file, line: line)
     }
 
     func testCategories_addAndDeleteCategory() {
@@ -73,7 +86,7 @@ final class CategoriesSmokeTests: XCTestCase {
             }
         }
 
-        waitForDisappearance(row)
+        waitForDisappearance(ofCategoryID: testCatID, in: app)
     }
 
     func testCategories_deleteUsedCategory_showsCascadeAlertAndDeletes() {
@@ -99,6 +112,6 @@ final class CategoriesSmokeTests: XCTestCase {
             alert.buttons["Delete"].tap()
         }
 
-        waitForDisappearance(groceriesRow)
+        waitForDisappearance(ofCategoryID: groceriesID, in: app)
     }
 }

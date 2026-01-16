@@ -4,6 +4,7 @@ import Foundation
 enum AccessibilityID {
     enum Home {
         static let screen = "home_screen"
+        static let editWidgetsButton = "btn_home_edit_widgets"
 
         static func plannedRow(id: UUID?) -> String {
             guard let id else { return "planned_row_missing_uuid" }
@@ -82,6 +83,10 @@ enum AccessibilityID {
     }
 
     enum Settings {
+        static let generalNavigation = "nav_settings_general"
+        static let privacyNavigation = "nav_settings_privacy"
+        static let notificationsNavigation = "nav_settings_notifications"
+        static let iCloudNavigation = "nav_settings_icloud"
         static let manageCategoriesNavigation = "nav_manage_categories"
         static let managePresetsNavigation = "nav_manage_presets"
 

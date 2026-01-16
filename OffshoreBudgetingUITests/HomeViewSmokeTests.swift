@@ -7,7 +7,8 @@ final class HomeViewSmokeTests: XCTestCase {
         resetState: Bool = true,
         startTab: String? = "home",
         sizeCategory: String? = nil,
-        storePath: String? = nil
+        storePath: String? = nil,
+        runID: String = UUID().uuidString
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
@@ -15,6 +16,7 @@ final class HomeViewSmokeTests: XCTestCase {
         app.launchEnvironment["UITEST_RESET_STATE"] = resetState ? "1" : "0"
         app.launchEnvironment["UITEST_DISABLE_ANIMATIONS"] = "1"
         app.launchEnvironment["UITEST_STORE"] = store
+        app.launchEnvironment["UITEST_RUN_ID"] = runID
         app.launchEnvironment["UITEST_LOCALE"] = "en_US"
         app.launchEnvironment["UITEST_TIMEZONE"] = "UTC"
         if let storePath {
@@ -51,6 +53,11 @@ final class HomeViewSmokeTests: XCTestCase {
         let labeledTab = app.tabBars.buttons[labelFallback]
         if labeledTab.exists {
             labeledTab.tap()
+            return
+        }
+        let anyMatch = app.descendants(matching: .any).matching(identifier: id).firstMatch
+        if anyMatch.exists {
+            anyMatch.tap()
             return
         }
         XCTFail("Tab not found: \(id)", file: file, line: line)
@@ -97,19 +104,24 @@ final class HomeViewSmokeTests: XCTestCase {
         XCTFail("Home content did not load", file: file, line: line)
     }
 
-    private func tapSettingsRow(_ label: String, in app: XCUIApplication, file: StaticString = #file, line: UInt = #line) {
-        let cell = app.cells.containing(.staticText, identifier: label).firstMatch
+    private func tapSettingsRow(_ identifier: String, in app: XCUIApplication, file: StaticString = #file, line: UInt = #line) {
+        let byID = app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        if byID.exists {
+            byID.tap()
+            return
+        }
+        let cell = app.cells.containing(.staticText, identifier: identifier).firstMatch
         if cell.exists {
             cell.tap()
             return
         }
-        let other = app.otherElements.containing(.staticText, identifier: label).firstMatch
+        let other = app.otherElements.containing(.staticText, identifier: identifier).firstMatch
         if other.exists {
             other.tap()
             return
         }
-        let fallback = elementByLabel(label, in: app)
-        XCTAssertTrue(fallback.waitForExistence(timeout: 6), "Missing settings row: \(label)", file: file, line: line)
+        let fallback = elementByLabel(identifier, in: app)
+        XCTAssertTrue(fallback.waitForExistence(timeout: 6), "Missing settings row: \(identifier)", file: file, line: line)
         fallback.tap()
     }
 
@@ -134,6 +146,8 @@ final class HomeViewSmokeTests: XCTestCase {
     }
 
     private func editWidgetsButton(in app: XCUIApplication) -> XCUIElement {
+        let byID = app.buttons["btn_home_edit_widgets"].firstMatch
+        if byID.exists { return byID }
         let labeled = elementByLabel("Edit widgets", in: app)
         if labeled.exists { return labeled }
         let fallback = elementByLabel("Edit", in: app)
@@ -142,6 +156,8 @@ final class HomeViewSmokeTests: XCTestCase {
     }
 
     private func doneEditingButton(in app: XCUIApplication) -> XCUIElement {
+        let byID = app.buttons["btn_home_edit_widgets"].firstMatch
+        if byID.exists { return byID }
         let labeled = elementByLabel("Done editing widgets", in: app)
         if labeled.exists { return labeled }
         let fallback = elementByLabel("Done", in: app)
@@ -279,8 +295,9 @@ final class HomeViewSmokeTests: XCTestCase {
     }
 
     func testHome_widgetOrder_persistsAcrossRelaunch() {
-        let storePath = NSTemporaryDirectory() + "offshore-homeview-persist.sqlite"
-        let app = launchApp(seed: HomeViewSeedData.seedMultiBudget, store: "temp", storePath: storePath)
+        let runID = UUID().uuidString
+        let storePath = NSTemporaryDirectory() + "offshore-homeview-persist-\(runID).sqlite"
+        let app = launchApp(seed: HomeViewSeedData.seedMultiBudget, store: "temp", storePath: storePath, runID: runID)
 
         waitForHomeContent(in: app)
         tapEditWidgetsButton(in: app)
@@ -307,7 +324,7 @@ final class HomeViewSmokeTests: XCTestCase {
 
         app.terminate()
 
-        let relaunched = launchApp(seed: nil, store: "temp", resetState: false, storePath: storePath)
+        let relaunched = launchApp(seed: nil, store: "temp", resetState: false, storePath: storePath, runID: runID)
         waitForHomeContent(in: relaunched)
         tapEditWidgetsButton(in: relaunched)
 
@@ -320,7 +337,7 @@ final class HomeViewSmokeTests: XCTestCase {
         let app = launchApp(seed: HomeViewSeedData.seedMultiBudget, store: "temp")
 
         tapTab("tab_settings", in: app)
-        tapSettingsRow("iCloud", in: app)
+        tapSettingsRow("nav_settings_icloud", in: app)
 
         let cloudToggle = app.switches["Enable iCloud Sync"].firstMatch
         XCTAssertTrue(cloudToggle.waitForExistence(timeout: 8))
@@ -369,7 +386,7 @@ final class HomeViewSmokeTests: XCTestCase {
         let app = launchApp(seed: HomeViewSeedData.seedMultiBudget, store: "temp")
 
         tapTab("tab_settings", in: app)
-        tapSettingsRow("iCloud", in: app)
+        tapSettingsRow("nav_settings_icloud", in: app)
 
         let cloudToggle = app.switches["Enable iCloud Sync"].firstMatch
         XCTAssertTrue(cloudToggle.waitForExistence(timeout: 8))

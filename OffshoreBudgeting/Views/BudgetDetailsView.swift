@@ -13,10 +13,12 @@ struct BudgetDetailsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.uiTestingFlags) private var uiTestingFlags
 
     @State private var segment: BudgetDetailsViewModel.Segment = .planned
     @State private var sort: BudgetDetailsViewModel.SortOption = .dateNewOld
     @State private var selectedCategoryURI: URL? = nil
+    @State private var didApplyUITestInitialScroll = false
 
     @State private var isPresentingAddPlanned = false
     @State private var isPresentingAddVariable = false
@@ -41,78 +43,104 @@ struct BudgetDetailsView: View {
     }
 
     var body: some View {
-        List {
-            Section { summaryCard }
-            if case .loaded = vm.loadState, let summary = vm.summary {
-                Section { statRow(for: summary) }
-                    .listRowInsets(Self.contentRowInsets)
+        ScrollViewReader { proxy in
+            List {
+                Section { summaryCard }
+                if case .loaded = vm.loadState, let summary = vm.summary {
+                    Section { statRow(for: summary) }
+                        .listRowInsets(Self.contentRowInsets)
+                }
+                Section { segmentRow }
+                Section { sortRow }
+                Section { categoryChipsRow }
+                Section { rowsSection }
             }
-            Section { segmentRow }
-            Section { sortRow }
-            Section { categoryChipsRow }
-            Section { rowsSection }
+            .listStyle(.insetGrouped)
+            .accessibilityIdentifier(AccessibilityID.Budgets.detailsScreen)
+            .navigationTitle(vm.budget?.name ?? "Budget")
+            .ub_windowTitle(vm.budget?.name ?? "Budget")
+            .task {
+                await vm.load()
+                segment = vm.selectedSegment
+                sort = vm.sort
+                refreshCapOverrides()
+                applyUITestInitialScrollIfNeeded(proxy: proxy)
+            }
+            .refreshable { await vm.refreshRows() }
+            .onChange(of: segment) { vm.selectedSegment = $0 }
+            .onChange(of: sort) { vm.sort = $0 }
+            .onChange(of: segment) { _ in
+                refreshCapOverrides()
+                applyUITestInitialScrollIfNeeded(proxy: proxy)
+            }
+            .onChange(of: vm.startDate) { _ in refreshCapOverrides() }
+            .onChange(of: vm.endDate) { _ in refreshCapOverrides() }
+            .onChange(of: vm.loadState) { state in
+                if case .loaded = state {
+                    refreshCapOverrides()
+                    applyUITestInitialScrollIfNeeded(proxy: proxy)
+                }
+            }
+            .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
+            .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
+            .sheet(isPresented: $isPresentingManageCards) { manageCardsSheet }
+            .sheet(isPresented: $isPresentingManagePresets) { managePresetsSheet }
+            .sheet(item: $editingBudgetBox) { box in
+                AddBudgetView(
+                    editingBudgetObjectID: box.id,
+                    fallbackStartDate: vm.startDate,
+                    fallbackEndDate: vm.endDate
+                ) { Task { await vm.load() } }
+            }
+            .sheet(item: $editingPlannedBox) { box in
+                AddPlannedExpenseView(
+                    plannedExpenseID: box.id,
+                    preselectedBudgetID: budgetID,
+                    onSaved: { Task { await vm.refreshRows() } }
+                )
+                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            }
+            .sheet(item: $editingUnplannedBox) { box in
+                AddUnplannedExpenseView(unplannedExpenseID: box.id, onSaved: { Task { await vm.refreshRows() } })
+                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+            }
+            .sheet(item: $capGaugeData) { data in
+                CategoryCapGaugeSheet(
+                    data: data,
+                    onDismiss: { capGaugeData = nil },
+                    onSave: { min, max in await saveCaps(for: data, min: min, max: max) }
+                )
+            }
+            .alert("Delete Budget?", isPresented: $isConfirmingDelete) {
+                Button("Delete", role: .destructive) { deleteBudget() }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This action cannot be undone.")
+            }
+            .alert("Error", isPresented: Binding(get: { deleteErrorMessage != nil }, set: { if !$0 { deleteErrorMessage = nil } })) {
+                Button("OK", role: .cancel) { deleteErrorMessage = nil }
+            } message: {
+                Text(deleteErrorMessage ?? "")
+            }
+            .toolbar { toolbarContent }
         }
-        .listStyle(.insetGrouped)
-        .accessibilityIdentifier(AccessibilityID.Budgets.detailsScreen)
-        .navigationTitle(vm.budget?.name ?? "Budget")
-        .ub_windowTitle(vm.budget?.name ?? "Budget")
-        .task {
-            await vm.load()
-            segment = vm.selectedSegment
-            sort = vm.sort
-            refreshCapOverrides()
+    }
+
+    private func applyUITestInitialScrollIfNeeded(proxy: ScrollViewProxy) {
+        guard uiTestingFlags.isUITesting else { return }
+        guard !didApplyUITestInitialScroll else { return }
+        guard segment == .planned else { return }
+        guard case .loaded = vm.loadState else { return }
+
+        guard let uuid = vm.firstPlannedExpenseUUID else { return }
+
+        didApplyUITestInitialScroll = true
+        let target = AccessibilityID.Home.plannedRow(id: uuid)
+        DispatchQueue.main.async {
+            withAnimation(nil) {
+                proxy.scrollTo(target, anchor: .top)
+            }
         }
-        .refreshable { await vm.refreshRows() }
-        .onChange(of: segment) { vm.selectedSegment = $0 }
-        .onChange(of: sort) { vm.sort = $0 }
-        .onChange(of: segment) { _ in refreshCapOverrides() }
-        .onChange(of: vm.startDate) { _ in refreshCapOverrides() }
-        .onChange(of: vm.endDate) { _ in refreshCapOverrides() }
-        .onChange(of: vm.loadState) { state in
-            if case .loaded = state { refreshCapOverrides() }
-        }
-        .sheet(isPresented: $isPresentingAddPlanned) { addPlannedSheet }
-        .sheet(isPresented: $isPresentingAddVariable) { addVariableSheet }
-        .sheet(isPresented: $isPresentingManageCards) { manageCardsSheet }
-        .sheet(isPresented: $isPresentingManagePresets) { managePresetsSheet }
-        .sheet(item: $editingBudgetBox) { box in
-            AddBudgetView(
-                editingBudgetObjectID: box.id,
-                fallbackStartDate: vm.startDate,
-                fallbackEndDate: vm.endDate
-            ) { Task { await vm.load() } }
-        }
-        .sheet(item: $editingPlannedBox) { box in
-            AddPlannedExpenseView(
-                plannedExpenseID: box.id,
-                preselectedBudgetID: budgetID,
-                onSaved: { Task { await vm.refreshRows() } }
-            )
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .sheet(item: $editingUnplannedBox) { box in
-            AddUnplannedExpenseView(unplannedExpenseID: box.id, onSaved: { Task { await vm.refreshRows() } })
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .sheet(item: $capGaugeData) { data in
-            CategoryCapGaugeSheet(
-                data: data,
-                onDismiss: { capGaugeData = nil },
-                onSave: { min, max in await saveCaps(for: data, min: min, max: max) }
-            )
-        }
-        .alert("Delete Budget?", isPresented: $isConfirmingDelete) {
-            Button("Delete", role: .destructive) { deleteBudget() }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("This action cannot be undone.")
-        }
-        .alert("Error", isPresented: Binding(get: { deleteErrorMessage != nil }, set: { if !$0 { deleteErrorMessage = nil } })) {
-            Button("OK", role: .cancel) { deleteErrorMessage = nil }
-        } message: {
-            Text(deleteErrorMessage ?? "")
-        }
-        .toolbar { toolbarContent }
     }
 
     @ViewBuilder
@@ -402,6 +430,8 @@ struct BudgetDetailsView: View {
                     .frame(width: 30, height: 30)
             }
             .accessibilityIdentifier(AccessibilityID.Budgets.overflowMenu)
+            .accessibilityLabel("More")
+            .accessibilityAddTraits(.isButton)
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
@@ -614,11 +644,7 @@ struct BudgetDetailsView: View {
     }
 
     private var plannedPlannedCapTotals: [String: Double] {
-        vm.plannedExpenses.reduce(into: [:]) { dict, exp in
-            guard let name = exp.expenseCategory?.name else { return }
-            let key = normalizedCategoryName(name)
-            dict[key, default: 0] += exp.plannedAmount
-        }
+        vm.summary?.plannedCategoryDefaultCaps ?? [:]
     }
 
     private func refreshCapOverrides() {

@@ -75,13 +75,12 @@ struct CloudSyncGateView: View {
         if uiTesting.isUITesting {
             if let accountAvailable = uiTesting.cloudAccountAvailableOverride,
                let cloudDataExists = uiTesting.cloudDataExistsOverride {
-                decideCloudOnboardingPath(
-                    checker: UITestCloudAvailabilityChecker(
-                        isCloudSyncEnabledSetting: settings.enableCloudSync,
-                        accountAvailable: accountAvailable,
-                        cloudDataExists: cloudDataExists
-                    )
-                )
+                // UI tests: keep the gate deterministic and avoid any system iCloud probes.
+                if accountAvailable, cloudDataExists, !onboarding.didChooseCloudDataOnboarding {
+                    showExistingDataPrompt = true
+                } else {
+                    shouldShowOnboarding = true
+                }
             } else {
                 shouldShowOnboarding = true
             }

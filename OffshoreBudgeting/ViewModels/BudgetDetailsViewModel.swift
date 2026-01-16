@@ -61,11 +61,12 @@ final class BudgetDetailsViewModel: ObservableObject {
     // MARK: Sort
     @Published var sort: SortOption = .dateNewOld
 
-    // MARK: Loaded data (raw)
-    @Published private(set) var plannedExpenses: [PlannedExpense] = []
-    @Published private(set) var unplannedExpenses: [UnplannedExpense] = []
+    // MARK: Loaded data (derived)
     @Published private(set) var loadState: LoadState = .idle
     @Published var alert: BudgetDetailsAlert?
+    @Published private(set) var summary: BudgetSummary?
+    @Published private(set) var incomeTotals: IncomeTotals = .zero
+    @Published private(set) var firstPlannedExpenseUUID: UUID?
 
     /// Tracks the first load to avoid resetting `loadState` if multiple observers request it simultaneously.
     private var isInitialLoadInFlight = false
@@ -78,205 +79,14 @@ final class BudgetDetailsViewModel: ObservableObject {
 
         static let zero = IncomeTotals(planned: 0, actual: 0)
     }
-    @Published private(set) var incomeTotals: IncomeTotals = .zero
 
-    // MARK: Summary
-    /// Computed summary of totals used by the header.
-    var summary: BudgetSummary? {
-        guard let budget else { return nil }
-
-        let plannedPlanned = plannedExpenses.reduce(0) { $0 + $1.plannedAmount }
-        let plannedActual  = plannedExpenses.reduce(0) { $0 + $1.actualAmount }
-
-        var variableTotal: Double = 0
-
-        // Build per‑segment category breakdowns (exclude Uncategorized)
-        var plannedCatMap: [String: (hex: String?, total: Double, uri: URL?)] = [:]
-        var plannedCapDefaults: [String: Double] = [:]
-        var variableCatMap: [String: (hex: String?, total: Double, uri: URL?)] = [:]
-
-        for e in plannedExpenses {
-            let amt = e.actualAmount
-            guard let name = (e.expenseCategory?.name?.trimmingCharacters(in: .whitespacesAndNewlines)), !name.isEmpty else { continue }
-            let hex = e.expenseCategory?.color
-            let uri = e.expenseCategory?.objectID.uriRepresentation()
-            let existing = plannedCatMap[name] ?? (hex: hex, total: 0, uri: uri)
-            plannedCatMap[name] = (hex: hex ?? existing.hex, total: existing.total + amt, uri: existing.uri ?? uri)
-            let norm = BudgetDetailsViewModel.normalizedCategoryName(name)
-            plannedCapDefaults[norm, default: 0] += e.plannedAmount
-        }
-
-        for e in unplannedExpenses {
-            let amt = e.amount
-            variableTotal += amt
-            guard let name = (e.expenseCategory?.name?.trimmingCharacters(in: .whitespacesAndNewlines)), !name.isEmpty else { continue }
-            let hex = e.expenseCategory?.color
-            let uri = e.expenseCategory?.objectID.uriRepresentation()
-            let existing = variableCatMap[name] ?? (hex: hex, total: 0, uri: uri)
-            variableCatMap[name] = (hex: hex ?? existing.hex, total: existing.total + amt, uri: existing.uri ?? uri)
-        }
-
-        // Include zero-amount categories by unioning with all ExpenseCategory records
-        let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
-        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
-        req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
-        let allCats = (try? context.fetch(req)) ?? []
-        for cat in allCats {
-            let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else { continue }
-            let uri = cat.objectID.uriRepresentation()
-            if plannedCatMap[name] == nil {
-                plannedCatMap[name] = (hex: cat.color, total: 0, uri: uri)
-            } else if plannedCatMap[name]?.uri == nil {
-                plannedCatMap[name]?.uri = uri
-            }
-            if variableCatMap[name] == nil {
-                variableCatMap[name] = (hex: cat.color, total: 0, uri: uri)
-            } else if variableCatMap[name]?.uri == nil {
-                variableCatMap[name]?.uri = uri
-            }
-        }
-
-        // Sort by amount desc, tie-break by name A–Z
-        let plannedBreakdown = plannedCatMap
-            .map { entry in
-                let uri = entry.value.uri ?? Self.fallbackCategoryURI(for: entry.key)
-                return BudgetSummary.CategorySpending(
-                    categoryURI: uri,
-                    categoryName: entry.key,
-                    hexColor: entry.value.hex,
-                    amount: entry.value.total
-                )
-            }
-            .sorted { lhs, rhs in
-                if lhs.amount == rhs.amount { return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending }
-                return lhs.amount > rhs.amount
-            }
-
-        let variableBreakdown = variableCatMap
-            .map { entry in
-                let uri = entry.value.uri ?? Self.fallbackCategoryURI(for: entry.key)
-                return BudgetSummary.CategorySpending(
-                    categoryURI: uri,
-                    categoryName: entry.key,
-                    hexColor: entry.value.hex,
-                    amount: entry.value.total
-                )
-            }
-            .sorted { lhs, rhs in
-                if lhs.amount == rhs.amount { return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending }
-                return lhs.amount > rhs.amount
-            }
-
-        // Combined (legacy)
-        let categoryBreakdown = (plannedBreakdown + variableBreakdown)
-            .reduce(into: [String: BudgetSummary.CategorySpending]()) { dict, item in
-                let existing = dict[item.categoryName]
-                let sum = (existing?.amount ?? 0) + item.amount
-                dict[item.categoryName] = BudgetSummary.CategorySpending(
-                    categoryURI: existing?.categoryURI ?? item.categoryURI,
-                    categoryName: item.categoryName,
-                    hexColor: existing?.hexColor ?? item.hexColor,
-                    amount: sum
-                )
-            }
-            .values
-            .sorted { $0.amount > $1.amount }
-
-        return BudgetSummary(
-            id: budget.objectID,
-            budgetName: budget.name ?? "Untitled",
-            periodStart: startDate,
-            periodEnd: endDate,
-            categoryBreakdown: categoryBreakdown,
-            plannedCategoryBreakdown: plannedBreakdown,
-            variableCategoryBreakdown: variableBreakdown,
-            plannedCategoryDefaultCaps: plannedCapDefaults,
-            variableExpensesTotal: variableTotal,
-            plannedExpensesPlannedTotal: plannedPlanned,
-            plannedExpensesActualTotal: plannedActual,
-            potentialIncomeTotal: incomeTotals.planned,
-            actualIncomeTotal: incomeTotals.actual
-        )
-    }
-
-    private static func normalizedCategoryName(_ name: String) -> String {
+    nonisolated private static func normalizedCategoryName(_ name: String) -> String {
         name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    private static func fallbackCategoryURI(for name: String) -> URL {
+    nonisolated private static func fallbackCategoryURI(for name: String) -> URL {
         let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? UUID().uuidString
         return URL(string: "offshore-local://category/\(encoded)") ?? URL(string: "offshore-local://category/unknown")!
-    }
-
-    // MARK: Derived filtered/sorted
-    var plannedFilteredSorted: [PlannedExpense] {
-        var rows = plannedExpenses
-
-        // Date filter (if a PlannedExpense lacks a date, include it)
-        rows = rows.filter { pe in
-            guard let d = pe.transactionDate else { return true }
-            return d >= startDate && d <= endDate
-        }
-
-        // Search filter
-        let q = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if !q.isEmpty {
-            rows = rows.filter { ($0.descriptionText ?? "").lowercased().contains(q) }
-        }
-
-        // Sort
-        switch sort {
-        case .titleAZ:
-            rows.sort {
-                ($0.descriptionText ?? "").localizedCaseInsensitiveCompare($1.descriptionText ?? "") == .orderedAscending
-            }
-        case .amountLowHigh:
-            rows.sort { $0.plannedAmount < $1.plannedAmount }
-        case .amountHighLow:
-            rows.sort { $0.plannedAmount > $1.plannedAmount }
-        case .dateOldNew:
-            rows.sort { ($0.transactionDate ?? .distantPast) < ($1.transactionDate ?? .distantPast) }
-        case .dateNewOld:
-            rows.sort { ($0.transactionDate ?? .distantPast) > ($1.transactionDate ?? .distantPast) }
-        }
-        return rows
-    }
-
-    var unplannedFilteredSorted: [UnplannedExpense] {
-        var rows = unplannedExpenses
-
-        // Date filter (unplanned has required transactionDate)
-        rows = rows.filter {
-            let d = $0.transactionDate ?? .distantPast
-            return d >= startDate && d <= endDate
-        }
-
-        // Search filter across description + category name
-        let q = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if !q.isEmpty {
-            rows = rows.filter {
-                ($0.descriptionText ?? "").lowercased().contains(q)
-                || ($0.expenseCategory?.name ?? "").lowercased().contains(q)
-            }
-        }
-
-        // Sort
-        switch sort {
-        case .titleAZ:
-            rows.sort {
-                ($0.descriptionText ?? "").localizedCaseInsensitiveCompare($1.descriptionText ?? "") == .orderedAscending
-            }
-        case .amountLowHigh:
-            rows.sort { $0.amount < $1.amount }
-        case .amountHighLow:
-            rows.sort { $0.amount > $1.amount }
-        case .dateOldNew:
-            rows.sort { ($0.transactionDate ?? .distantPast) < ($1.transactionDate ?? .distantPast) }
-        case .dateNewOld:
-            rows.sort { ($0.transactionDate ?? .distantPast) > ($1.transactionDate ?? .distantPast) }
-        }
-        return rows
     }
 
     // MARK: Init
@@ -379,22 +189,220 @@ final class BudgetDetailsViewModel: ObservableObject {
 
     /// Re-fetches rows for current filters (date window driven on fetch).
     func refreshRows() async {
-        let range = normalizedRange()
-        plannedExpenses = fetchPlannedExpenses(for: budget, in: range)
-        unplannedExpenses = fetchUnplannedExpenses(for: budget, in: range)
-
-        if let totals = try? BudgetIncomeCalculator.totals(
-            for: DateInterval(start: range.lowerBound, end: range.upperBound),
-            context: context,
-            workspaceID: WorkspaceService.shared.activeWorkspaceID
-        ) {
-            incomeTotals = IncomeTotals(planned: totals.planned, actual: totals.actual)
-        } else {
-            incomeTotals = .zero
+        struct CategoryRow {
+            let name: String
+            let hex: String?
+            let uri: URL
         }
-        AppLog.viewModel.debug(
-            "BudgetDetailsViewModel.refreshRows() updated – planned: \(self.plannedExpenses.count), unplanned: \(self.unplannedExpenses.count), incomeTotals: planned=\(self.incomeTotals.planned) actual=\(self.incomeTotals.actual)"
-        )
+        struct RefreshResult {
+            let summary: BudgetSummary?
+            let incomeTotals: IncomeTotals
+            let firstPlannedExpenseUUID: UUID?
+        }
+
+        let periodStart = self.startDate
+        let periodEnd = self.endDate
+        let range = normalizedRange()
+        let budgetObjectID = self.budgetObjectID
+        let sort = self.sort
+        let workspaceID = WorkspaceService.shared.activeWorkspaceID
+        let container = CoreDataService.shared.container
+        let bg = container.newBackgroundContext()
+
+        let result: RefreshResult = await bg.perform {
+            guard let budget = try? bg.existingObject(with: budgetObjectID) as? Budget else {
+                return RefreshResult(summary: nil, incomeTotals: .zero, firstPlannedExpenseUUID: nil)
+            }
+
+            let budgetName = budget.name ?? "Untitled"
+            let start = range.lowerBound
+            let end = range.upperBound
+
+            // Planned expenses (budget-linked)
+            let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+            plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "budget == %@", budget),
+                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate),
+                WorkspaceService.predicate(for: workspaceID)
+            ])
+            plannedReq.sortDescriptors = Self.plannedSortDescriptors(for: sort)
+            plannedReq.fetchBatchSize = 128
+            plannedReq.returnsObjectsAsFaults = true
+            let plannedRows = (try? bg.fetch(plannedReq)) ?? []
+
+            // Variable expenses (budget via ANY card.budget.id)
+            let variableReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
+            let budgetID = budget.value(forKey: "id") as? UUID
+            let budgetPredicate: NSPredicate = {
+                if let budgetID {
+                    return NSPredicate(format: "ANY card.budget.id == %@", budgetID as CVarArg)
+                } else {
+                    // Fallback: any card's budget relationship contains this budget object
+                    return NSPredicate(format: "ANY card.budget == %@", budget)
+                }
+            }()
+            variableReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", start as NSDate, end as NSDate),
+                budgetPredicate,
+                WorkspaceService.predicate(for: workspaceID)
+            ])
+            variableReq.fetchBatchSize = 128
+            variableReq.sortDescriptors = [NSSortDescriptor(key: "transactionDate", ascending: false)]
+            variableReq.returnsObjectsAsFaults = true
+            let variableRows = (try? bg.fetch(variableReq)) ?? []
+
+            // All categories (for zero rows)
+            let catReq = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+            catReq.predicate = WorkspaceService.predicate(for: workspaceID)
+            catReq.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+            let cats = (try? bg.fetch(catReq)) ?? []
+            let allCats: [CategoryRow] = cats.compactMap { cat in
+                let name = (cat.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else { return nil }
+                return CategoryRow(name: name, hex: cat.color, uri: cat.objectID.uriRepresentation())
+            }
+
+            // Income totals
+            let incomeTotals: IncomeTotals = {
+                if let totals = try? BudgetIncomeCalculator.totals(
+                    for: DateInterval(start: start, end: end),
+                    context: bg,
+                    workspaceID: workspaceID
+                ) {
+                    return IncomeTotals(planned: totals.planned, actual: totals.actual)
+                }
+                return .zero
+            }()
+
+            // First planned UUID (for UI-test scroll stabilization)
+            let firstPlannedUUID = plannedRows.first?.value(forKey: "id") as? UUID
+
+            // Build planned + variable breakdown maps (exclude Uncategorized)
+            var plannedCatMap: [String: (hex: String?, total: Double, uri: URL?)] = [:]
+            var plannedCapDefaults: [String: Double] = [:]
+            var variableCatMap: [String: (hex: String?, total: Double, uri: URL?)] = [:]
+
+            var plannedPlannedTotal: Double = 0
+            var plannedActualTotal: Double = 0
+            for e in plannedRows {
+                plannedPlannedTotal += e.plannedAmount
+                plannedActualTotal += e.actualAmount
+                guard let rawName = e.expenseCategory?.name else { continue }
+                let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else { continue }
+                let existing = plannedCatMap[name] ?? (hex: e.expenseCategory?.color, total: 0, uri: e.expenseCategory?.objectID.uriRepresentation())
+                plannedCatMap[name] = (
+                    hex: e.expenseCategory?.color ?? existing.hex,
+                    total: existing.total + e.actualAmount,
+                    uri: existing.uri ?? e.expenseCategory?.objectID.uriRepresentation()
+                )
+                let norm = Self.normalizedCategoryName(name)
+                plannedCapDefaults[norm, default: 0] += e.plannedAmount
+            }
+
+            var variableTotal: Double = 0
+            for e in variableRows {
+                variableTotal += e.amount
+                guard let rawName = e.expenseCategory?.name else { continue }
+                let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else { continue }
+                let existing = variableCatMap[name] ?? (hex: e.expenseCategory?.color, total: 0, uri: e.expenseCategory?.objectID.uriRepresentation())
+                variableCatMap[name] = (
+                    hex: e.expenseCategory?.color ?? existing.hex,
+                    total: existing.total + e.amount,
+                    uri: existing.uri ?? e.expenseCategory?.objectID.uriRepresentation()
+                )
+            }
+
+            // Union with all categories to ensure stable/complete breakdowns
+            for cat in allCats {
+                if plannedCatMap[cat.name] == nil {
+                    plannedCatMap[cat.name] = (hex: cat.hex, total: 0, uri: cat.uri)
+                } else if plannedCatMap[cat.name]?.uri == nil {
+                    plannedCatMap[cat.name]?.uri = cat.uri
+                }
+                if variableCatMap[cat.name] == nil {
+                    variableCatMap[cat.name] = (hex: cat.hex, total: 0, uri: cat.uri)
+                } else if variableCatMap[cat.name]?.uri == nil {
+                    variableCatMap[cat.name]?.uri = cat.uri
+                }
+            }
+
+            let plannedBreakdown = plannedCatMap
+                .map { entry in
+                    let uri = entry.value.uri ?? Self.fallbackCategoryURI(for: entry.key)
+                    return BudgetSummary.CategorySpending(
+                        categoryURI: uri,
+                        categoryName: entry.key,
+                        hexColor: entry.value.hex,
+                        amount: entry.value.total
+                    )
+                }
+                .sorted { lhs, rhs in
+                    if lhs.amount == rhs.amount {
+                        return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending
+                    }
+                    return lhs.amount > rhs.amount
+                }
+
+            let variableBreakdown = variableCatMap
+                .map { entry in
+                    let uri = entry.value.uri ?? Self.fallbackCategoryURI(for: entry.key)
+                    return BudgetSummary.CategorySpending(
+                        categoryURI: uri,
+                        categoryName: entry.key,
+                        hexColor: entry.value.hex,
+                        amount: entry.value.total
+                    )
+                }
+                .sorted { lhs, rhs in
+                    if lhs.amount == rhs.amount {
+                        return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending
+                    }
+                    return lhs.amount > rhs.amount
+                }
+
+            let categoryBreakdown = (plannedBreakdown + variableBreakdown)
+                .reduce(into: [String: BudgetSummary.CategorySpending]()) { dict, item in
+                    let existing = dict[item.categoryName]
+                    let sum = (existing?.amount ?? 0) + item.amount
+                    dict[item.categoryName] = BudgetSummary.CategorySpending(
+                        categoryURI: existing?.categoryURI ?? item.categoryURI,
+                        categoryName: item.categoryName,
+                        hexColor: existing?.hexColor ?? item.hexColor,
+                        amount: sum
+                    )
+                }
+                .values
+                .sorted { $0.amount > $1.amount }
+
+            let summary = BudgetSummary(
+                id: budgetObjectID,
+                budgetName: budgetName,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                categoryBreakdown: categoryBreakdown,
+                plannedCategoryBreakdown: plannedBreakdown,
+                variableCategoryBreakdown: variableBreakdown,
+                plannedCategoryDefaultCaps: plannedCapDefaults,
+                variableExpensesTotal: variableTotal,
+                plannedExpensesPlannedTotal: plannedPlannedTotal,
+                plannedExpensesActualTotal: plannedActualTotal,
+                potentialIncomeTotal: incomeTotals.planned,
+                actualIncomeTotal: incomeTotals.actual
+            )
+
+            return RefreshResult(
+                summary: summary,
+                incomeTotals: incomeTotals,
+                firstPlannedExpenseUUID: firstPlannedUUID
+            )
+        }
+
+        self.summary = result.summary
+        self.incomeTotals = result.incomeTotals
+        self.firstPlannedExpenseUUID = result.firstPlannedExpenseUUID
+        AppLog.viewModel.debug("BudgetDetailsViewModel.refreshRows() updated – incomeTotals: planned=\(self.incomeTotals.planned) actual=\(self.incomeTotals.actual)")
     }
 
     /// Resets the date window to the budget's own period.
@@ -459,6 +467,21 @@ final class BudgetDetailsViewModel: ObservableObject {
         let lower = min(startDate, endDate)
         let upper = max(startDate, endDate)
         return lower...upper
+    }
+
+    nonisolated private static func plannedSortDescriptors(for sort: SortOption) -> [NSSortDescriptor] {
+        switch sort {
+        case .titleAZ:
+            return [NSSortDescriptor(key: "descriptionText", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+        case .amountLowHigh:
+            return [NSSortDescriptor(key: "actualAmount", ascending: true)]
+        case .amountHighLow:
+            return [NSSortDescriptor(key: "actualAmount", ascending: false)]
+        case .dateOldNew:
+            return [NSSortDescriptor(key: "transactionDate", ascending: true)]
+        case .dateNewOld:
+            return [NSSortDescriptor(key: "transactionDate", ascending: false)]
+        }
     }
 
     var placeholderText: String {

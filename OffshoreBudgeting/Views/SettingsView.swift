@@ -197,6 +197,7 @@ struct SettingsView: View {
                     leadingFactory: settingsLeadingIcon
                 )
             }
+            .accessibilityIdentifier(AccessibilityID.Settings.generalNavigation)
             
             NavigationLink(value: SettingsRoute.privacy) {
                 DesignSystemV2.SettingsRow(
@@ -207,6 +208,7 @@ struct SettingsView: View {
                     leadingFactory: settingsLeadingIcon
                 )
             }
+            .accessibilityIdentifier(AccessibilityID.Settings.privacyNavigation)
             
             NavigationLink(value: SettingsRoute.notifications) {
                 DesignSystemV2.SettingsRow(
@@ -217,6 +219,7 @@ struct SettingsView: View {
                     leadingFactory: settingsLeadingIcon
                 )
             }
+            .accessibilityIdentifier(AccessibilityID.Settings.notificationsNavigation)
             
             NavigationLink(value: SettingsRoute.icloud) {
                 DesignSystemV2.SettingsRow(
@@ -227,6 +230,7 @@ struct SettingsView: View {
                     leadingFactory: settingsLeadingIcon
                 )
             }
+            .accessibilityIdentifier(AccessibilityID.Settings.iCloudNavigation)
         }
     }
     

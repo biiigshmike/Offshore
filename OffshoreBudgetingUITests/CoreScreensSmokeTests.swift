@@ -14,6 +14,10 @@ final class CoreScreensSmokeTests: XCTestCase {
         app.launchEnvironment["UITEST_SKIP_ONBOARDING"] = "1"
         app.launchEnvironment["UITEST_RESET_STATE"] = "1"
         app.launchEnvironment["UITEST_DISABLE_ANIMATIONS"] = "1"
+        app.launchEnvironment["UITEST_STORE"] = "memory"
+        app.launchEnvironment["UITEST_RUN_ID"] = UUID().uuidString
+        app.launchEnvironment["UITEST_LOCALE"] = "en_US"
+        app.launchEnvironment["UITEST_TIMEZONE"] = "UTC"
         app.launchEnvironment["UITEST_SEED"] = seed
         if let startTab {
             app.launchEnvironment["UITEST_START_TAB"] = startTab
@@ -164,7 +168,7 @@ final class CoreScreensSmokeTests: XCTestCase {
 
         waitForBudgetDetails(in: app)
 
-        let overflowMenu = firstById("budget_overflow_menu", in: app, timeout: 5)
+        let overflowMenu = app.buttons["budget_overflow_menu"].firstMatch
         XCTAssertTrue(overflowMenu.waitForExistence(timeout: 5))
         overflowMenu.tap()
 

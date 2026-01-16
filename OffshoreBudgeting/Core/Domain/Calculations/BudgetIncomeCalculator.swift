@@ -14,6 +14,7 @@ import CoreData
 struct BudgetIncomeCalculator {
 
     private static let sumKey = "totalAmount"
+    private static let groupByKey = #keyPath(Income.isPlanned)
 
     // MARK: Fetch
     /// Returns all incomes intersecting the given date range.
@@ -52,20 +53,34 @@ struct BudgetIncomeCalculator {
     static func totals(for range: DateInterval,
                        context: NSManagedObjectContext,
                        workspaceID: UUID) throws -> (planned: Double, actual: Double) {
+        if !supportsGroupByFetches(context: context) {
+            let incomes = try fetchIncomes(in: range, isPlanned: nil, context: context, workspaceID: workspaceID)
+            var planned: Double = 0
+            var actual: Double = 0
+            for income in incomes {
+                if income.isPlanned {
+                    planned += income.amount
+                } else {
+                    actual += income.amount
+                }
+            }
+            return (planned, actual)
+        }
+
         let request = NSFetchRequest<NSDictionary>(entityName: "Income")
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             predicate(for: range, isPlanned: nil),
             WorkspaceService.predicate(for: workspaceID)
         ])
         request.resultType = .dictionaryResultType
-        request.propertiesToGroupBy = [#keyPath(Income.isPlanned)]
+        request.propertiesToGroupBy = [groupByKey]
 
         let sumExpression = NSExpressionDescription()
         sumExpression.name = sumKey
         sumExpression.expression = NSExpression(forFunction: "sum:", arguments: [NSExpression(forKeyPath: #keyPath(Income.amount))])
         sumExpression.expressionResultType = .doubleAttributeType
 
-        request.propertiesToFetch = [#keyPath(Income.isPlanned), sumExpression]
+        request.propertiesToFetch = [groupByKey, sumExpression]
 
         let results = try context.fetch(request)
 
@@ -76,10 +91,10 @@ struct BudgetIncomeCalculator {
             let rawTotal = entry[sumKey]
             let total = (rawTotal as? Double) ?? (rawTotal as? NSNumber)?.doubleValue ?? 0
             let plannedValue: Bool = {
-                if let boolValue = entry[#keyPath(Income.isPlanned)] as? Bool {
+                if let boolValue = entry[groupByKey] as? Bool {
                     return boolValue
                 }
-                if let numberValue = entry[#keyPath(Income.isPlanned)] as? NSNumber {
+                if let numberValue = entry[groupByKey] as? NSNumber {
                     return numberValue.boolValue
                 }
                 return false
@@ -104,5 +119,10 @@ struct BudgetIncomeCalculator {
             predicates.append(NSPredicate(format: "isPlanned == %@", NSNumber(value: planned)))
         }
         return NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+    }
+
+    private static func supportsGroupByFetches(context: NSManagedObjectContext) -> Bool {
+        let stores = context.persistentStoreCoordinator?.persistentStores ?? []
+        return !stores.contains(where: { $0.type == NSInMemoryStoreType })
     }
 }

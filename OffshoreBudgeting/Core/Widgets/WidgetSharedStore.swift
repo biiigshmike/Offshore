@@ -6,6 +6,7 @@ import WidgetKit
 // Lightweight shared storage for WidgetKit snapshots.
 enum WidgetSharedStore {
     static let appGroupID = "group.com.mb.offshore-budgeting"
+    private static let uiTestSuitePrefix = "uitest.widget.sharedstore."
     private static let incomeKeyPrefix = "widget.income.snapshot."
     private static let incomeDefaultPeriodKey = "widget.income.defaultPeriod"
     static let incomeWidgetKind = "com.mb.offshore.income.widget"
@@ -31,6 +32,27 @@ enum WidgetSharedStore {
     private static let cardWidgetDefaultPeriodKey = "widget.card.defaultPeriod"
     private static let cardWidgetCardsKey = "widget.card.cards"
     static let cardWidgetKind = "com.mb.offshore.card.widget"
+
+    private static var isUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ui-testing")
+    }
+
+    private static var uiTestRunID: String {
+        let env = ProcessInfo.processInfo.environment
+        if let runID = env["UITEST_RUN_ID"], !runID.isEmpty { return runID }
+        return String(ProcessInfo.processInfo.processIdentifier)
+    }
+
+    private static var shouldReloadWidgetTimelines: Bool {
+        !isUITesting
+    }
+
+    private static func defaults() -> UserDefaults? {
+        if isUITesting {
+            return UserDefaults(suiteName: uiTestSuitePrefix + uiTestRunID)
+        }
+        return UserDefaults(suiteName: appGroupID)
+    }
 
     struct IncomeSnapshot: Codable, Equatable {
         let actualIncome: Double
@@ -138,23 +160,23 @@ enum WidgetSharedStore {
     }
 
     static func writeIncomeSnapshot(_ snapshot: IncomeSnapshot, periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: incomeKeyPrefix + periodRaw)
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadTimelines(ofKind: incomeWidgetKind)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: incomeWidgetKind) }
         #endif
     }
 
     static func writeIncomeDefaultPeriod(_ periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.set(periodRaw, forKey: incomeDefaultPeriodKey)
     }
 
     static func readIncomeSnapshot(periodRaw: String) -> IncomeSnapshot? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         guard let data = defaults.data(forKey: incomeKeyPrefix + periodRaw) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -162,28 +184,28 @@ enum WidgetSharedStore {
     }
 
     static func readIncomeDefaultPeriod() -> String? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         return defaults.string(forKey: incomeDefaultPeriodKey)
     }
 
     static func writeExpenseToIncomeSnapshot(_ snapshot: ExpenseToIncomeSnapshot, periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: expenseToIncomeKeyPrefix + periodRaw)
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadTimelines(ofKind: expenseToIncomeWidgetKind)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: expenseToIncomeWidgetKind) }
         #endif
     }
 
     static func writeExpenseToIncomeDefaultPeriod(_ periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.set(periodRaw, forKey: expenseToIncomeDefaultPeriodKey)
     }
 
     static func readExpenseToIncomeSnapshot(periodRaw: String) -> ExpenseToIncomeSnapshot? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         guard let data = defaults.data(forKey: expenseToIncomeKeyPrefix + periodRaw) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -191,28 +213,28 @@ enum WidgetSharedStore {
     }
 
     static func readExpenseToIncomeDefaultPeriod() -> String? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         return defaults.string(forKey: expenseToIncomeDefaultPeriodKey)
     }
 
     static func writeSavingsOutlookSnapshot(_ snapshot: SavingsOutlookSnapshot, periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: savingsOutlookKeyPrefix + periodRaw)
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadTimelines(ofKind: savingsOutlookWidgetKind)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: savingsOutlookWidgetKind) }
         #endif
     }
 
     static func writeSavingsOutlookDefaultPeriod(_ periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.set(periodRaw, forKey: savingsOutlookDefaultPeriodKey)
     }
 
     static func readSavingsOutlookSnapshot(periodRaw: String) -> SavingsOutlookSnapshot? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         guard let data = defaults.data(forKey: savingsOutlookKeyPrefix + periodRaw) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -220,28 +242,28 @@ enum WidgetSharedStore {
     }
 
     static func readSavingsOutlookDefaultPeriod() -> String? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         return defaults.string(forKey: savingsOutlookDefaultPeriodKey)
     }
 
     static func writeCategorySpotlightSnapshot(_ snapshot: CategorySpotlightSnapshot, periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: categorySpotlightKeyPrefix + periodRaw)
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadTimelines(ofKind: categorySpotlightWidgetKind)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: categorySpotlightWidgetKind) }
         #endif
     }
 
     static func writeCategorySpotlightDefaultPeriod(_ periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.set(periodRaw, forKey: categorySpotlightDefaultPeriodKey)
     }
 
     static func readCategorySpotlightSnapshot(periodRaw: String) -> CategorySpotlightSnapshot? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         guard let data = defaults.data(forKey: categorySpotlightKeyPrefix + periodRaw) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -249,28 +271,28 @@ enum WidgetSharedStore {
     }
 
     static func readCategorySpotlightDefaultPeriod() -> String? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         return defaults.string(forKey: categorySpotlightDefaultPeriodKey)
     }
 
     static func writeDayOfWeekSnapshot(_ snapshot: DayOfWeekSnapshot, periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: dayOfWeekKeyPrefix + periodRaw)
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadTimelines(ofKind: dayOfWeekWidgetKind)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: dayOfWeekWidgetKind) }
         #endif
     }
 
     static func writeDayOfWeekDefaultPeriod(_ periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.set(periodRaw, forKey: dayOfWeekDefaultPeriodKey)
     }
 
     static func readDayOfWeekSnapshot(periodRaw: String) -> DayOfWeekSnapshot? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         guard let data = defaults.data(forKey: dayOfWeekKeyPrefix + periodRaw) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -278,23 +300,23 @@ enum WidgetSharedStore {
     }
 
     static func readDayOfWeekDefaultPeriod() -> String? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         return defaults.string(forKey: dayOfWeekDefaultPeriodKey)
     }
 
     static func writeCategoryAvailabilitySnapshot(_ snapshot: CategoryAvailabilitySnapshot, periodRaw: String, segmentRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: categoryAvailabilityKeyPrefix + periodRaw + "." + segmentRaw)
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadTimelines(ofKind: categoryAvailabilityWidgetKind)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: categoryAvailabilityWidgetKind) }
         #endif
     }
 
     static func readCategoryAvailabilitySnapshot(periodRaw: String, segmentRaw: String) -> CategoryAvailabilitySnapshot? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         guard let data = defaults.data(forKey: categoryAvailabilityKeyPrefix + periodRaw + "." + segmentRaw) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -302,23 +324,23 @@ enum WidgetSharedStore {
     }
 
     static func writeCardWidgetSnapshot(_ snapshot: CardWidgetSnapshot, periodRaw: String, cardID: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: cardWidgetKeyPrefix + periodRaw + "." + cardID)
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadTimelines(ofKind: cardWidgetKind)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: cardWidgetKind) }
         #endif
     }
 
     static func writeCardWidgetDefaultPeriod(_ periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.set(periodRaw, forKey: cardWidgetDefaultPeriodKey)
     }
 
     static func readCardWidgetSnapshot(periodRaw: String, cardID: String) -> CardWidgetSnapshot? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         guard let data = defaults.data(forKey: cardWidgetKeyPrefix + periodRaw + "." + cardID) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -326,64 +348,64 @@ enum WidgetSharedStore {
     }
 
     static func readCardWidgetDefaultPeriod() -> String? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         return defaults.string(forKey: cardWidgetDefaultPeriodKey)
     }
 
     static func writeCardWidgetCards(_ cards: [CardWidgetCard]) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         let encoder = JSONEncoder()
         guard let data = try? encoder.encode(cards) else { return }
         defaults.set(data, forKey: cardWidgetCardsKey)
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadTimelines(ofKind: cardWidgetKind)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: cardWidgetKind) }
         #endif
     }
 
     static func readCardWidgetCards() -> [CardWidgetCard] {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return [] }
+        guard let defaults = defaults() else { return [] }
         guard let data = defaults.data(forKey: cardWidgetCardsKey) else { return [] }
         let decoder = JSONDecoder()
         return (try? decoder.decode([CardWidgetCard].self, from: data)) ?? []
     }
 
     static func writeCategoryAvailabilityDefaultPeriod(_ periodRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.set(periodRaw, forKey: categoryAvailabilityDefaultPeriodKey)
     }
 
     static func readCategoryAvailabilityDefaultPeriod() -> String? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         return defaults.string(forKey: categoryAvailabilityDefaultPeriodKey)
     }
 
     static func writeCategoryAvailabilityDefaultSegment(_ segmentRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.set(segmentRaw, forKey: categoryAvailabilityDefaultSegmentKey)
     }
 
     static func readCategoryAvailabilityDefaultSegment() -> String? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         return defaults.string(forKey: categoryAvailabilityDefaultSegmentKey)
     }
 
     static func writeCategoryAvailabilityDefaultSort(_ sortRaw: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.set(sortRaw, forKey: categoryAvailabilityDefaultSortKey)
     }
 
     static func readCategoryAvailabilityDefaultSort() -> String? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         return defaults.string(forKey: categoryAvailabilityDefaultSortKey)
     }
 
     static func writeCategoryAvailabilityCategories(_ categories: [String]) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.set(categories, forKey: categoryAvailabilityCategoriesKey)
     }
 
     static func readCategoryAvailabilityCategories() -> [String] {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return [] }
+        guard let defaults = defaults() else { return [] }
         return defaults.stringArray(forKey: categoryAvailabilityCategoriesKey) ?? []
     }
 
@@ -391,18 +413,18 @@ enum WidgetSharedStore {
     static let nextPlannedWidgetKind = "com.mb.offshore.nextPlannedExpense.widget"
 
     static func writeNextPlannedExpenseSnapshot(_ snapshot: NextPlannedExpenseSnapshot) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: nextPlannedKey)
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadTimelines(ofKind: nextPlannedWidgetKind)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: nextPlannedWidgetKind) }
         #endif
     }
 
     static func readNextPlannedExpenseSnapshot() -> NextPlannedExpenseSnapshot? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let defaults = defaults() else { return nil }
         guard let data = defaults.data(forKey: nextPlannedKey) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -410,10 +432,10 @@ enum WidgetSharedStore {
     }
 
     static func clearNextPlannedExpenseSnapshot() {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        guard let defaults = defaults() else { return }
         defaults.removeObject(forKey: nextPlannedKey)
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadTimelines(ofKind: nextPlannedWidgetKind)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: nextPlannedWidgetKind) }
         #endif
     }
 }

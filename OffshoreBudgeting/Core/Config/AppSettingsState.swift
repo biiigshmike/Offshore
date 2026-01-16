@@ -13,6 +13,8 @@ final class AppSettingsState: ObservableObject {
     @Published var calendarHorizontal: Bool { didSet { guard !isSyncingFromDefaults else { return }; store.set(calendarHorizontal, for: .calendarHorizontal) } }
     @Published var presetsDefaultUseInFutureBudgets: Bool { didSet { guard !isSyncingFromDefaults else { return }; store.set(presetsDefaultUseInFutureBudgets, for: .presetsDefaultUseInFutureBudgets) } }
     @Published var budgetPeriod: String { didSet { guard !isSyncingFromDefaults else { return }; store.set(budgetPeriod, for: .budgetPeriod) } }
+    @Published var rootNavigationUsesCompactTabs: Bool { didSet { guard !isSyncingFromDefaults else { return }; store.set(rootNavigationUsesCompactTabs, for: .rootNavigationUsesCompactTabs) } }
+    @Published var rootNavigationSplitViewVisibility: String { didSet { guard !isSyncingFromDefaults else { return }; store.set(rootNavigationSplitViewVisibility, for: .rootNavigationSplitViewVisibility) } }
     @Published var enableCloudSync: Bool { didSet { guard !isSyncingFromDefaults else { return }; store.set(enableCloudSync, for: .enableCloudSync) } }
     @Published var syncHomeWidgetsAcrossDevices: Bool { didSet { guard !isSyncingFromDefaults else { return }; store.set(syncHomeWidgetsAcrossDevices, for: .syncHomeWidgetsAcrossDevices) } }
     @Published var enableDailyReminder: Bool { didSet { guard !isSyncingFromDefaults else { return }; store.set(enableDailyReminder, for: .enableDailyReminder) } }
@@ -33,6 +35,8 @@ final class AppSettingsState: ObservableObject {
         self.calendarHorizontal = store.bool(for: .calendarHorizontal) ?? true
         self.presetsDefaultUseInFutureBudgets = store.bool(for: .presetsDefaultUseInFutureBudgets) ?? true
         self.budgetPeriod = store.string(for: .budgetPeriod) ?? BudgetPeriod.monthly.rawValue
+        self.rootNavigationUsesCompactTabs = store.bool(for: .rootNavigationUsesCompactTabs) ?? false
+        self.rootNavigationSplitViewVisibility = store.string(for: .rootNavigationSplitViewVisibility) ?? "all"
         self.enableCloudSync = store.bool(for: .enableCloudSync) ?? false
         self.syncHomeWidgetsAcrossDevices = store.bool(for: .syncHomeWidgetsAcrossDevices) ?? false
         self.enableDailyReminder = store.bool(for: .enableDailyReminder) ?? false
@@ -79,6 +83,8 @@ final class AppSettingsState: ObservableObject {
         calendarHorizontal = store.bool(for: .calendarHorizontal) ?? true
         presetsDefaultUseInFutureBudgets = store.bool(for: .presetsDefaultUseInFutureBudgets) ?? true
         budgetPeriod = store.string(for: .budgetPeriod) ?? BudgetPeriod.monthly.rawValue
+        rootNavigationUsesCompactTabs = store.bool(for: .rootNavigationUsesCompactTabs) ?? false
+        rootNavigationSplitViewVisibility = store.string(for: .rootNavigationSplitViewVisibility) ?? "all"
         enableCloudSync = store.bool(for: .enableCloudSync) ?? false
         syncHomeWidgetsAcrossDevices = store.bool(for: .syncHomeWidgetsAcrossDevices) ?? false
         enableDailyReminder = store.bool(for: .enableDailyReminder) ?? false

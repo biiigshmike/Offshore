@@ -23,6 +23,7 @@ import UIKit
 ///   and `ub_rootNavigationChrome()` to centralize OS 26 vs. classic styling.
 struct RootTabView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var settings: AppSettingsState
     @Environment(\.dataRevision) private var dataRevision
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -57,7 +58,6 @@ struct RootTabView: View {
     @State private var appliedStartRoute: Bool = false
     @State private var uiTestStartRoute: String? = nil
     @State private var sidebarSelection: SidebarItem? = .root(.home)
-    @State private var usesCompactTabsOverride: Bool = false
     @State private var recentBudgets: [Budget] = []
     @State private var sidebarPath = NavigationPath()
     private let budgetService = BudgetService()
@@ -85,11 +85,11 @@ struct RootTabView: View {
     }
     
     private var shouldUseCompactTabs: Bool {
-        prefersCompactTabs || usesCompactTabsOverride || isNarrowLayout
+        prefersCompactTabs || settings.rootNavigationUsesCompactTabs || isNarrowLayout
     }
     
     private var showsSidebarRestoreControl: Bool {
-        usesCompactTabsOverride && !prefersCompactTabs && !isNarrowLayout
+        settings.rootNavigationUsesCompactTabs && !prefersCompactTabs && !isNarrowLayout
     }
     
     private var isNarrowLayout: Bool {
@@ -101,6 +101,48 @@ struct RootTabView: View {
             return true
         }
         return false
+    }
+
+    private var shouldAllowPersistentNavigationMode: Bool {
+        !prefersCompactTabs && !isNarrowLayout
+    }
+
+    private func splitViewVisibilityFromStored(_ value: String) -> NavigationSplitViewVisibility {
+        switch value.lowercased() {
+        case "detailonly", "detail_only", "detail":
+            return .detailOnly
+        case "doublecolumn", "double_column", "double":
+            return .doubleColumn
+        case "all":
+            return .all
+        default:
+            return .all
+        }
+    }
+
+    private func storeValue(from visibility: NavigationSplitViewVisibility) -> String {
+        switch visibility {
+        case .all:
+            return "all"
+        case .doubleColumn:
+            return "doubleColumn"
+        case .detailOnly:
+            return "detailOnly"
+        default:
+            return "all"
+        }
+    }
+
+    private var splitViewVisibilityBinding: Binding<NavigationSplitViewVisibility> {
+        Binding(
+            get: {
+                splitViewVisibilityFromStored(settings.rootNavigationSplitViewVisibility)
+            },
+            set: { newValue in
+                guard shouldAllowPersistentNavigationMode else { return }
+                settings.rootNavigationSplitViewVisibility = storeValue(from: newValue)
+            }
+        )
     }
     
     @ViewBuilder
@@ -200,7 +242,7 @@ struct RootTabView: View {
     @ViewBuilder
     private var splitViewBody: some View {
         if #available(iOS 16.0, macCatalyst 16.0, macOS 13.0, *) {
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: splitViewVisibilityBinding) {
                 sidebarList
             } detail: {
                 NavigationStack(path: $sidebarPath) {
@@ -282,7 +324,9 @@ struct RootTabView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     withAnimation(.easeInOut(duration: 0.25)) {
-                        usesCompactTabsOverride = true
+                        if shouldAllowPersistentNavigationMode {
+                            settings.rootNavigationUsesCompactTabs = true
+                        }
                     }
                 } label: {
                     Image(systemName: Icons.sfInsetFilledTopthirdRectangle)
@@ -344,7 +388,9 @@ struct RootTabView: View {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.25)) {
-                                usesCompactTabsOverride = false
+                                if shouldAllowPersistentNavigationMode {
+                                    settings.rootNavigationUsesCompactTabs = false
+                                }
                             }
                         } label: {
                             Label("Show Sidebar", systemImage: Icons.sfSidebarLeading)

@@ -9,6 +9,8 @@ enum AppSettingsKeys: String {
     case calendarHorizontal
     case presetsDefaultUseInFutureBudgets
     case budgetPeriod
+    case rootNavigationUsesCompactTabs
+    case rootNavigationSplitViewVisibility
     case enableCloudSync
     case syncHomeWidgetsAcrossDevices
     case enableDailyReminder

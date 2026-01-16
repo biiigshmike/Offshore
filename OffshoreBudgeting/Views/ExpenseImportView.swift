@@ -30,6 +30,7 @@ struct ExpenseImportView: View {
     @State private var isNeedsExpanded = true
     @State private var isPaymentsExpanded = true
     @State private var isCreditsExpanded = true
+    @FocusState private var isKeyboardFocused: Bool
     @ScaledMetric private var categoryDotSize: CGFloat = 10
 
     @Environment(\.dismiss) private var dismiss
@@ -198,6 +199,9 @@ struct ExpenseImportView: View {
             }
 	        }
 	        .listStyle(.insetGrouped)
+#if os(iOS) || targetEnvironment(macCatalyst)
+            .scrollDismissesKeyboard(.interactively)
+#endif
 	        .accessibilityIdentifier(AccessibilityID.ExpenseImport.list)
 	    }
 
@@ -231,6 +235,7 @@ struct ExpenseImportView: View {
 	                TextField("Expense Description", text: row.descriptionText)
 	                    .autocorrectionDisabled(true)
 	                    .textInputAutocapitalization(.never)
+                        .focused($isKeyboardFocused)
                     .accessibilityLabel("Expense Description")
 
                     if !row.wrappedValue.originalDescriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -243,6 +248,7 @@ struct ExpenseImportView: View {
 
                 TextField("Amount", text: row.amountText)
                     .keyboardType(.decimalPad)
+                    .focused($isKeyboardFocused)
                     .accessibilityLabel("Amount")
 
                 DatePicker("Transaction Date", selection: bindingDate(for: row), displayedComponents: [.date])
@@ -342,6 +348,14 @@ struct ExpenseImportView: View {
                 .accessibilityLabel("Import Selected Expenses")
                 .accessibilityIdentifier(AccessibilityID.ExpenseImport.importButton)
         }
+
+#if os(iOS) || targetEnvironment(macCatalyst)
+        ToolbarItemGroup(placement: .keyboard) {
+            Spacer()
+            Button("Done") { isKeyboardFocused = false }
+                .accessibilityLabel("Dismiss keyboard")
+        }
+#endif
     }
 
     // MARK: Helpers

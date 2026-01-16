@@ -55,9 +55,6 @@ struct ExpenseImportView: View {
             pruneSelections()
             applyDefaultSelectionIfNeeded()
         }
-        .onChange(of: selectedIDs) { _ in
-            pruneSelections()
-        }
         .onChange(of: editMode) { mode in
             if mode == .active, selectedIDs.isEmpty, !lastKnownSelection.isEmpty {
                 selectedIDs = lastKnownSelection
@@ -236,6 +233,14 @@ struct ExpenseImportView: View {
 	                    .textInputAutocapitalization(.never)
                     .accessibilityLabel("Expense Description")
 
+                    if !row.wrappedValue.originalDescriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text("Original: \(row.wrappedValue.originalDescriptionText)")
+                            .font(Typography.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .accessibilityLabel("Original description")
+                    }
+
                 TextField("Amount", text: row.amountText)
                     .keyboardType(.decimalPad)
                     .accessibilityLabel("Amount")
@@ -278,6 +283,9 @@ struct ExpenseImportView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+
+                Toggle("Use this name next time", isOn: row.useNameNextTime)
+                    .accessibilityLabel("Use this name next time")
 
                 Toggle("Save as Preset Planned Expense?", isOn: row.isPreset)
                     .accessibilityLabel("Save as Preset Planned Expense")
@@ -360,7 +368,9 @@ struct ExpenseImportView: View {
     }
 
     private func pruneSelections() {
-        selectedIDs = selectedIDs.intersection(viewModel.selectableRowIDs)
+        let pruned = selectedIDs.intersection(viewModel.selectableRowIDs)
+        guard pruned != selectedIDs else { return }
+        selectedIDs = pruned
     }
 
     private func applyDefaultSelectionIfNeeded() {

@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreData
+import CryptoKit
 
 // MARK: - ExpenseImportViewModel
 @MainActor
@@ -47,6 +48,7 @@ final class ExpenseImportViewModel: ObservableObject {
     // MARK: - ImportRow
     struct ImportRow: Identifiable, Hashable {
         let id: UUID
+        var originalDescriptionText: String
         var descriptionText: String
         var transactionDate: Date?
         var amountText: String
@@ -58,6 +60,7 @@ final class ExpenseImportViewModel: ObservableObject {
         var sourceLine: Int
         var initialBucket: ImportBucket
         var isPossibleDuplicate: Bool
+        var useNameNextTime: Bool
 
         var amountValue: Double? {
             ExpenseImportViewModel.parseAmount(amountText)
@@ -106,6 +109,7 @@ final class ExpenseImportViewModel: ObservableObject {
     private let unplannedService = UnplannedExpenseService()
     private let plannedService = PlannedExpenseService()
     private let cardService = CardService()
+    private let nameLearningStore: ExpenseImportNameLearningStore
 
     // MARK: Init
     init(card: CardItem, fileURL: URL, context: NSManagedObjectContext = CoreDataService.shared.viewContext) {
@@ -113,6 +117,10 @@ final class ExpenseImportViewModel: ObservableObject {
         self.context = context
         self.cardUUID = card.uuid
         self.cardObjectID = card.objectID
+        self.nameLearningStore = ExpenseImportNameLearningStore(
+            defaults: .standard,
+            workspaceID: WorkspaceService.shared.activeWorkspaceID
+        )
     }
 
     // MARK: Load
@@ -125,7 +133,8 @@ final class ExpenseImportViewModel: ObservableObject {
 
         do {
             let parsedRows = try parseCSVFile(at: fileURL)
-            var updated = applyCategoryMatching(to: parsedRows)
+            var updated = applyDescriptionSuggestions(to: parsedRows)
+            updated = applyCategoryMatching(to: updated)
             if let cardID = resolveCardUUID() {
                 let existing = fetchExistingExpenses(for: cardID, rows: updated)
                 updated = applyDuplicateDetection(to: updated, existing: existing)
@@ -285,6 +294,10 @@ final class ExpenseImportViewModel: ObservableObject {
                     try context.save()
                 }
             }
+
+            if row.useNameNextTime {
+                nameLearningStore.savePreferredName(row.descriptionText, forOriginalDescription: row.originalDescriptionText)
+            }
         }
     }
 
@@ -373,7 +386,8 @@ final class ExpenseImportViewModel: ObservableObject {
             let candidates = grouped[calendar.startOfDay(for: rowDate)] ?? []
             guard !candidates.isEmpty else { return row }
 
-            let rowName = normalizedDescription(row.descriptionText)
+            let rowNameSource = row.originalDescriptionText.isEmpty ? row.descriptionText : row.originalDescriptionText
+            let rowName = normalizedDescription(rowNameSource)
             let hasName = !rowName.isEmpty
 
             let isDuplicate = candidates.contains { candidate in
@@ -405,6 +419,19 @@ final class ExpenseImportViewModel: ObservableObject {
 
     private func normalizedDescription(_ value: String) -> String {
         normalize(value)
+    }
+
+    private func applyDescriptionSuggestions(to rows: [ImportRow]) -> [ImportRow] {
+        rows.map { row in
+            var updated = row
+            let original = row.originalDescriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let learned = nameLearningStore.preferredName(forOriginalDescription: original) {
+                updated.descriptionText = learned
+                return updated
+            }
+            updated.descriptionText = Self.suggestedExpenseName(from: original)
+            return updated
+        }
     }
 
     private func applyCategoryMatch(for row: ImportRow) -> ImportRow {
@@ -572,6 +599,7 @@ final class ExpenseImportViewModel: ObservableObject {
 
             return ImportRow(
                 id: UUID(),
+                originalDescriptionText: description,
                 descriptionText: description,
                 transactionDate: date,
                 amountText: amountString,
@@ -582,7 +610,8 @@ final class ExpenseImportViewModel: ObservableObject {
                 importKind: kind,
                 sourceLine: line,
                 initialBucket: .needsMoreData,
-                isPossibleDuplicate: false
+                isPossibleDuplicate: false,
+                useNameNextTime: false
             )
         }
     }
@@ -744,5 +773,225 @@ final class ExpenseImportViewModel: ObservableObject {
         }
 
         return Double(normalized)
+    }
+
+    // MARK: Name Suggestion (Offline, On-Device)
+    nonisolated static func suggestedExpenseName(from raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+
+        var text = collapseWhitespace(trimmed)
+        text = removeLeadingPrefixes(from: text)
+        text = collapseWhitespace(
+            text.replacingOccurrences(of: "*", with: " ")
+                .replacingOccurrences(of: ".", with: " ")
+        )
+
+        let originalTokens = text.split(whereSeparator: { $0.isWhitespace }).map { String($0) }
+        let cleanedTokens = originalTokens.map { cleanDisplayToken($0) }
+
+        var removal = Set<Int>()
+
+        // Cut at common separators (ex: "... ACH DEBIT ...")
+        let cutIndex: Int? = cleanedTokens.firstIndex { token in
+            token.caseInsensitiveCompare("ACH") == .orderedSame
+        }
+
+        // NOTE: ArraySlice hack above is unsafe; build a safe slice below.
+        var indexedTokens: [(Int, String)] = []
+        if let cutIndex {
+            indexedTokens = Array(cleanedTokens.prefix(cutIndex)).enumerated().map { ($0.offset, $0.element) }
+        } else {
+            indexedTokens = cleanedTokens.enumerated().map { ($0.offset, $0.element) }
+        }
+
+        for (index, token) in indexedTokens {
+            if token.isEmpty { removal.insert(index); continue }
+            let upper = token.uppercased()
+            if defaultNoiseTokens.contains(upper) { removal.insert(index); continue }
+            if upper.hasPrefix("POS"), upper.range(of: #"\d"#, options: .regularExpression) != nil {
+                removal.insert(index); continue
+            }
+            if containsMaskedCardFragment(token) { removal.insert(index); continue }
+            if upper.range(of: #"\d{4,}"#, options: .regularExpression) != nil { removal.insert(index); continue }
+            if upper.range(of: #"^(X{2,}|\*{2,})$"#, options: [.regularExpression]) != nil { removal.insert(index); continue }
+            if token.count <= 2 { removal.insert(index); continue }
+        }
+
+        // Remove trailing state abbreviations, plus the immediately preceding token (usually a city/descriptor).
+        let stateIndices = indexedTokens.compactMap { (index, token) -> Int? in
+            let upper = token.uppercased()
+            return usStateAbbreviations.contains(upper) ? index : nil
+        }
+        for stateIndex in stateIndices {
+            removal.insert(stateIndex)
+            let previousIndex = stateIndex - 1
+            guard previousIndex >= 0, cleanedTokens.indices.contains(previousIndex) else { continue }
+            let prev = cleanedTokens[previousIndex]
+            if prev.range(of: #"^[A-Za-z]{3,}$"#, options: .regularExpression) != nil {
+                removal.insert(previousIndex)
+            }
+        }
+
+        var candidateTokens: [String] = []
+        candidateTokens.reserveCapacity(indexedTokens.count)
+        for (index, token) in indexedTokens where !removal.contains(index) {
+            candidateTokens.append(token)
+        }
+
+        // If we have a short acronym-like lead token that also appears as a prefix of a longer token,
+        // prefer the acronym to keep names compact (ex: "HPSO ... HPSOCOVER" -> "HPSO").
+        if let first = candidateTokens.first,
+           first.range(of: #"^[A-Za-z]{3,4}$"#, options: .regularExpression) != nil,
+           candidateTokens.dropFirst().contains(where: { $0.uppercased().hasPrefix(first.uppercased()) && $0.count > first.count }) {
+            return first
+        }
+
+        // Drop known "concatenated" tail tokens (e.g., "BURSTORALCA") when earlier words already represent the merchant.
+        if candidateTokens.count >= 3 {
+            let head = candidateTokens.prefix(3).joined(separator: " ").uppercased().replacingOccurrences(of: " ", with: "")
+            if let last = candidateTokens.last, last.count >= 8 {
+                let lastKey = last.uppercased()
+                if lastKey.hasPrefix(String(head.prefix(4))) {
+                    candidateTokens.removeLast()
+                }
+            }
+        }
+
+        candidateTokens = Array(candidateTokens.prefix(5))
+        var result = collapseWhitespace(candidateTokens.joined(separator: " "))
+        if result.count > 32, candidateTokens.count >= 2 {
+            result = collapseWhitespace(candidateTokens.prefix(2).joined(separator: " "))
+        }
+
+        if result.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return collapseWhitespace(trimmed)
+        }
+
+        return result
+    }
+
+    nonisolated static func signatureKey(forOriginalDescription raw: String) -> String {
+        let signature = canonicalSignature(forOriginalDescription: raw)
+        return sha256Hex(signature)
+    }
+
+    nonisolated static func canonicalSignature(forOriginalDescription raw: String) -> String {
+        let normalized = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return "" }
+        let tokens = normalizeForSignature(normalized)
+        return tokens.prefix(6).joined(separator: " ")
+    }
+
+    nonisolated private static func normalizeForSignature(_ raw: String) -> [String] {
+        let lowered = raw.lowercased()
+        let allowed = lowered.filter { $0.isLetter || $0.isNumber || $0 == " " }
+        let collapsed = allowed.replacingOccurrences(of: "  +", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let tokens = collapsed.split(separator: " ").map { String($0).uppercased() }
+        return tokens.filter { token in
+            if token.count <= 2 { return false }
+            if token.range(of: #"\d"#, options: .regularExpression) != nil { return false }
+            if defaultNoiseTokens.contains(token) { return false }
+            return true
+        }
+    }
+
+    nonisolated private static func collapseWhitespace(_ value: String) -> String {
+        value.replacingOccurrences(of: #"[\s\u{00A0}]+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    nonisolated private static func removeLeadingPrefixes(from value: String) -> String {
+        var result = collapseWhitespace(value)
+        while true {
+            let upper = result.uppercased()
+            guard let prefix = leadingNoisePrefixes.first(where: { upper.hasPrefix($0) }) else { break }
+            let dropCount = prefix.count
+            let index = result.index(result.startIndex, offsetBy: min(dropCount, result.count))
+            result = collapseWhitespace(String(result[index...]))
+        }
+        return result
+    }
+
+    nonisolated private static func cleanDisplayToken(_ token: String) -> String {
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        let filtered = trimmed.filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "&" }
+        return filtered.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    nonisolated private static func containsMaskedCardFragment(_ token: String) -> Bool {
+        let upper = token.uppercased()
+        if upper.range(of: #"^(X{2,}|\*{2,})\d{2,}$"#, options: .regularExpression) != nil { return true }
+        if upper.range(of: #"\b(X{2,}|\*{2,})\b"#, options: .regularExpression) != nil { return true }
+        if upper.range(of: #"^\w*(X{2,}|\*{2,})\d{2,}\w*$"#, options: .regularExpression) != nil { return true }
+        return false
+    }
+
+    nonisolated private static func sha256Hex(_ value: String) -> String {
+        let data = Data(value.utf8)
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    nonisolated private static let leadingNoisePrefixes: [String] = [
+        "RECURRING DEBIT CARD",
+        "DEBIT CARD PURCHASE",
+        "DEBIT CARD",
+        "CREDIT CARD PURCHASE",
+        "CARD PURCHASE"
+    ]
+
+    nonisolated private static let defaultNoiseTokens: Set<String> = [
+        "DEBIT", "CREDIT", "CARD", "PURCHASE", "RECURRING",
+        "PAYMENT", "PAYMENTS", "POS", "ONLINE", "TRANSFER", "TRANSFERS",
+        "ACH", "ATM", "P2P", "FEE", "INSURANCE"
+    ]
+
+    nonisolated private static let usStateAbbreviations: Set<String> = [
+        "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO",
+        "MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"
+    ]
+}
+
+// MARK: - ExpenseImportNameLearningStore (On-Device)
+struct ExpenseImportNameLearningStore {
+    private let defaults: UserDefaults
+    private let workspaceID: UUID
+
+    init(defaults: UserDefaults, workspaceID: UUID) {
+        self.defaults = defaults
+        self.workspaceID = workspaceID
+    }
+
+    func preferredName(forOriginalDescription original: String) -> String? {
+        let key = ExpenseImportViewModel.signatureKey(forOriginalDescription: original)
+        guard let map = loadMap() else { return nil }
+        return map[key]
+    }
+
+    func savePreferredName(_ preferred: String, forOriginalDescription original: String) {
+        let trimmed = preferred.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let key = ExpenseImportViewModel.signatureKey(forOriginalDescription: original)
+        var map = loadMap() ?? [:]
+        map[key] = trimmed
+        saveMap(map)
+    }
+
+    private func storageKey() -> String {
+        "expenseImport.nameLearning.v1.\(workspaceID.uuidString)"
+    }
+
+    private func loadMap() -> [String: String]? {
+        guard let data = defaults.data(forKey: storageKey()) else { return nil }
+        return (try? JSONDecoder().decode([String: String].self, from: data)) ?? nil
+    }
+
+    private func saveMap(_ map: [String: String]) {
+        guard let data = try? JSONEncoder().encode(map) else { return }
+        defaults.set(data, forKey: storageKey())
     }
 }

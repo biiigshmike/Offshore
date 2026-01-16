@@ -1369,5 +1369,5 @@ Use the following // MARK anchors to understand intent and safe insertion points
 
 ## Repository Tree
 
-** Can be found in /Offshore/OffshoreBudgeting/repository.txt**
+** Can be found in /Offshore/repository.txt**
 Use this if you cannot find a file. This was the most up-to-date tree overview as of 1/16/2026. Moving forward, if any updates are made to the repository, e.g. files moved/deleted/renamed, user advises you to also make those same changes to repository.txt for App to Tree consistency. 

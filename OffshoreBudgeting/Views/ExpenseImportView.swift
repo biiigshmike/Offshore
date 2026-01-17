@@ -232,6 +232,14 @@ struct ExpenseImportView: View {
 	
 	            VStack(alignment: .leading, spacing: Spacing.s) {
 	                badgeRow(for: row)
+
+                    Picker("Import As", selection: row.importAs) {
+                        Text("Expense").tag(ExpenseImportViewModel.ImportAs.expense)
+                        Text("Income").tag(ExpenseImportViewModel.ImportAs.income)
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityLabel("Import As")
+
 	                TextField("Expense Description", text: row.descriptionText)
 	                    .autocorrectionDisabled(true)
 	                    .textInputAutocapitalization(.never)
@@ -255,34 +263,36 @@ struct ExpenseImportView: View {
                     .datePickerStyle(.compact)
                     .accessibilityLabel("Transaction Date")
 
-                Menu {
-                    ForEach(viewModel.categories, id: \.objectID) { category in
-                        Button(category.name ?? "Untitled") {
-                            row.selectedCategoryID.wrappedValue = category.objectID
+                if row.wrappedValue.importAs == .expense {
+                    Menu {
+                        ForEach(viewModel.categories, id: \.objectID) { category in
+                            Button(category.name ?? "Untitled") {
+                                row.selectedCategoryID.wrappedValue = category.objectID
+                                row.matchQuality.wrappedValue = .none
+                            }
+                        }
+                        Button("Clear Category", role: .destructive) {
+                            row.selectedCategoryID.wrappedValue = nil
                             row.matchQuality.wrappedValue = .none
                         }
-                    }
-                    Button("Clear Category", role: .destructive) {
-                        row.selectedCategoryID.wrappedValue = nil
-                        row.matchQuality.wrappedValue = .none
-                    }
-	            } label: {
-	                menuLabel(
-	                    content: HStack(spacing: Spacing.s) {
-	                        Circle()
-	                            .fill(UBColorFromHex(selectedCategoryHex) ?? .secondary)
-	                            .frame(width: categoryDotSize, height: categoryDotSize)
-	                        Text(selectedCategoryName)
-	                            .font(.subheadline)
-		                        Image(systemName: Icons.sfChevronDown)
-	                            .font(Typography.captionSemibold)
-	                            .foregroundStyle(.secondary)
-	                    }
-	                )
-            }
-            .accessibilityLabel("Category")
-            .accessibilityIdentifier(AccessibilityID.ExpenseImport.rowCategoryMenu(id: row.wrappedValue.id))
-            .ub_menuButtonStyle()
+	                } label: {
+	                    menuLabel(
+	                        content: HStack(spacing: Spacing.s) {
+	                            Circle()
+	                                .fill(UBColorFromHex(selectedCategoryHex) ?? .secondary)
+	                                .frame(width: categoryDotSize, height: categoryDotSize)
+	                            Text(selectedCategoryName)
+	                                .font(.subheadline)
+		                            Image(systemName: Icons.sfChevronDown)
+	                                .font(Typography.captionSemibold)
+	                                .foregroundStyle(.secondary)
+	                        }
+	                    )
+                }
+                .accessibilityLabel("Category")
+                .accessibilityIdentifier(AccessibilityID.ExpenseImport.rowCategoryMenu(id: row.wrappedValue.id))
+                .ub_menuButtonStyle()
+                }
 
                 if !row.wrappedValue.categoryNameFromCSV.isEmpty {
                     Text("CSV Category: \(row.wrappedValue.categoryNameFromCSV)")
@@ -293,8 +303,10 @@ struct ExpenseImportView: View {
                 Toggle("Use this name next time", isOn: row.useNameNextTime)
                     .accessibilityLabel("Use this name next time")
 
-                Toggle("Save as Preset Planned Expense?", isOn: row.isPreset)
-                    .accessibilityLabel("Save as Preset Planned Expense")
+                if row.wrappedValue.importAs == .expense {
+                    Toggle("Save as Preset Planned Expense?", isOn: row.isPreset)
+                        .accessibilityLabel("Save as Preset Planned Expense")
+                }
 
             }
         }

@@ -45,6 +45,12 @@ final class ExpenseImportViewModel: ObservableObject {
         case payment
     }
 
+    // MARK: - ImportAs
+    enum ImportAs: Equatable {
+        case expense
+        case income
+    }
+
     // MARK: - ImportRow
     struct ImportRow: Identifiable, Hashable {
         let id: UUID
@@ -57,6 +63,7 @@ final class ExpenseImportViewModel: ObservableObject {
         var matchQuality: MatchQuality
         var isPreset: Bool
         var importKind: ImportKind
+        var importAs: ImportAs
         var sourceLine: Int
         var initialBucket: ImportBucket
         var isPossibleDuplicate: Bool
@@ -68,6 +75,7 @@ final class ExpenseImportViewModel: ObservableObject {
 
         var isCredit: Bool { importKind == .credit }
         var isPayment: Bool { importKind == .payment }
+        var requiresCategorySelection: Bool { importAs == .expense }
 
         var isMissingCoreFields: Bool {
             let trimmed = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -76,6 +84,7 @@ final class ExpenseImportViewModel: ObservableObject {
 
         var isMissingData: Bool {
             if isMissingCoreFields { return true }
+            if !requiresCategorySelection { return false }
             let isOther = categoryNameFromCSV.trimmingCharacters(in: .whitespacesAndNewlines)
                 .caseInsensitiveCompare("Other") == .orderedSame
             if isOther, selectedCategoryID == nil { return true }
@@ -90,6 +99,11 @@ final class ExpenseImportViewModel: ObservableObject {
             case .credit, .payment:
                 return -abs(value)
             }
+        }
+
+        var normalizedAmountForIncomeImport: Double? {
+            guard let value = amountValue else { return nil }
+            return abs(value)
         }
     }
 
@@ -109,6 +123,7 @@ final class ExpenseImportViewModel: ObservableObject {
     private let unplannedService = UnplannedExpenseService()
     private let plannedService = PlannedExpenseService()
     private let cardService = CardService()
+    private let incomeService = IncomeService()
     private let nameLearningStore: ExpenseImportNameLearningStore
 
     // MARK: Init
@@ -214,7 +229,7 @@ final class ExpenseImportViewModel: ObservableObject {
     var selectableRowIDs: Set<UUID> {
         let ids = rows.filter {
             !$0.isMissingData
-            && $0.selectedCategoryID != nil
+            && (!$0.requiresCategorySelection || $0.selectedCategoryID != nil)
         }.map { $0.id }
         return Set(ids)
     }
@@ -244,7 +259,7 @@ final class ExpenseImportViewModel: ObservableObject {
         let importable = rows.filter { ids.contains($0.id) }
         let rowsToImport = importable.filter {
             !$0.isMissingData
-            && $0.selectedCategoryID != nil
+            && (!$0.requiresCategorySelection || $0.selectedCategoryID != nil)
         }
 
         guard let cardID = resolveCardUUID() else {
@@ -253,45 +268,57 @@ final class ExpenseImportViewModel: ObservableObject {
 
         let card = try cardService.findCard(byID: cardID)
         for row in rowsToImport {
-            guard let amount = row.normalizedAmountForImport,
-                  let date = row.transactionDate
-            else { continue }
+            guard let date = row.transactionDate else { continue }
 
-            let categoryID: UUID? = {
-                guard let selected = row.selectedCategoryID,
-                      let category = try? context.existingObject(with: selected) as? ExpenseCategory
-                else { return nil }
-                return category.value(forKey: "id") as? UUID
-            }()
-            guard let categoryID else {
-                throw NSError(domain: "ExpenseImport", code: 5, userInfo: [NSLocalizedDescriptionKey: "Missing category selection."])
-            }
-
-            _ = try unplannedService.create(
-                descriptionText: row.descriptionText,
-                amount: amount,
-                date: date,
-                cardID: cardID,
-                categoryID: categoryID
-            )
-
-            if row.isPreset {
-                let template = try plannedService.createGlobalTemplate(
-                    titleOrDescription: row.descriptionText,
-                    plannedAmount: amount,
-                    actualAmount: amount,
-                    defaultTransactionDate: date
+            switch row.importAs {
+            case .income:
+                guard let amount = row.normalizedAmountForIncomeImport else { continue }
+                _ = try incomeService.createIncome(
+                    source: row.descriptionText,
+                    amount: amount,
+                    date: date,
+                    isPlanned: false
                 )
 
-                if let categoryObjectID = row.selectedCategoryID,
-                   let category = try? context.existingObject(with: categoryObjectID) as? ExpenseCategory {
-                    template.expenseCategory = category
+            case .expense:
+                guard let amount = row.normalizedAmountForImport else { continue }
+
+                let categoryID: UUID? = {
+                    guard let selected = row.selectedCategoryID,
+                          let category = try? context.existingObject(with: selected) as? ExpenseCategory
+                    else { return nil }
+                    return category.value(forKey: "id") as? UUID
+                }()
+                guard let categoryID else {
+                    throw NSError(domain: "ExpenseImport", code: 5, userInfo: [NSLocalizedDescriptionKey: "Missing category selection."])
                 }
-                if let card {
-                    template.card = card
-                }
-                if context.hasChanges {
-                    try context.save()
+
+                _ = try unplannedService.create(
+                    descriptionText: row.descriptionText,
+                    amount: amount,
+                    date: date,
+                    cardID: cardID,
+                    categoryID: categoryID
+                )
+
+                if row.isPreset {
+                    let template = try plannedService.createGlobalTemplate(
+                        titleOrDescription: row.descriptionText,
+                        plannedAmount: amount,
+                        actualAmount: amount,
+                        defaultTransactionDate: date
+                    )
+
+                    if let categoryObjectID = row.selectedCategoryID,
+                       let category = try? context.existingObject(with: categoryObjectID) as? ExpenseCategory {
+                        template.expenseCategory = category
+                    }
+                    if let card {
+                        template.card = card
+                    }
+                    if context.hasChanges {
+                        try context.save()
+                    }
                 }
             }
 
@@ -302,7 +329,12 @@ final class ExpenseImportViewModel: ObservableObject {
     }
 
     func hasMissingCategory(in ids: Set<UUID>) -> Bool {
-        rows.contains { ids.contains($0.id) && !$0.isMissingData && $0.selectedCategoryID == nil }
+        rows.contains {
+            ids.contains($0.id)
+            && $0.requiresCategorySelection
+            && !$0.isMissingData
+            && $0.selectedCategoryID == nil
+        }
     }
 
     func assignCategoryToAllSelected(ids: Set<UUID>, categoryID: NSManagedObjectID) {
@@ -596,6 +628,7 @@ final class ExpenseImportViewModel: ObservableObject {
             let date = parseDate(dateString)
 
             let kind = importKind(amountText: amountString, type: typeString, category: categoryName)
+            let importAs: ImportAs = (kind == .payment) ? .income : .expense
 
             return ImportRow(
                 id: UUID(),
@@ -608,6 +641,7 @@ final class ExpenseImportViewModel: ObservableObject {
                 matchQuality: .none,
                 isPreset: false,
                 importKind: kind,
+                importAs: importAs,
                 sourceLine: line,
                 initialBucket: .needsMoreData,
                 isPossibleDuplicate: false,
@@ -620,7 +654,7 @@ final class ExpenseImportViewModel: ObservableObject {
         for index in rows.indices {
             let row = rows[index]
             let bucket: ImportBucket
-            if row.isMissingData || row.selectedCategoryID == nil {
+            if row.isMissingData || (row.requiresCategorySelection && row.selectedCategoryID == nil) {
                 bucket = .needsMoreData
             } else if row.isPossibleDuplicate {
                 bucket = .possibleDuplicate

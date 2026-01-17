@@ -19,6 +19,14 @@ struct CloudSyncGateView: View {
     @State private var existingDataFound: Bool = false
     @State private var preparingWorkspace: Bool = false
 
+    private var shouldExerciseICloudPromptsInUITests: Bool {
+        uiTesting.isUITesting && (ProcessInfo.processInfo.environment["UITEST_EXERCISE_ICLOUD_PROMPTS"] == "1")
+    }
+
+    private var shouldBypassCloudImportWaitInUITests: Bool {
+        uiTesting.isUITesting && (ProcessInfo.processInfo.environment["UITEST_BYPASS_CLOUD_IMPORT_WAIT"] != "0")
+    }
+
     var body: some View {
         ZStack {
             themeManager.selectedTheme.background
@@ -73,6 +81,10 @@ struct CloudSyncGateView: View {
     // MARK: Flow Control
     private func presentIfNeeded() {
         if uiTesting.isUITesting {
+            if shouldExerciseICloudPromptsInUITests {
+                showFirstPrompt = true
+                return
+            }
             if let accountAvailable = uiTesting.cloudAccountAvailableOverride,
                let cloudDataExists = uiTesting.cloudDataExistsOverride {
                 // UI tests: keep the gate deterministic and avoid any system iCloud probes.
@@ -138,6 +150,11 @@ struct CloudSyncGateView: View {
         // Turn on Cloud sync up-front.
         settings.enableCloudSync = true
 
+        if shouldExerciseICloudPromptsInUITests {
+            showExistingDataPrompt = true
+            return
+        }
+
         // If any device previously indicated cloud data exists, verify remotely first.
         if UbiquitousFlags.hasCloudData() {
             scanningForExisting = true
@@ -185,13 +202,32 @@ struct CloudSyncGateView: View {
         // Prepare workspace and wait briefly for initial Cloud import to surface data.
         preparingWorkspace = true
         onboarding.didChooseCloudDataOnboarding = true
-        if uiTesting.isUITesting {
+        if shouldBypassCloudImportWaitInUITests {
             onboarding.didCompleteOnboarding = true
             return
         }
         Task { @MainActor in
-            // Kick off a short wait for import to finish; don't block forever.
-            _ = await CloudSyncMonitor.shared.awaitInitialImport(timeout: 10.0, pollInterval: 0.2)
+            // Ensure Core Data is loaded for probing/alignment before completing onboarding.
+            CoreDataService.shared.ensureLoaded()
+            await CoreDataService.shared.waitUntilStoresLoaded(timeout: 12.0)
+
+            // Ensure Cloud sync is enabled and the store is configured for CloudKit mode.
+            if !settings.enableCloudSync {
+                settings.enableCloudSync = true
+            }
+            await CoreDataService.shared.applyCloudSyncPreferenceChange(enableSync: true)
+
+            // Allow the app's workspace scaffolding to settle, then adopt whichever workspace
+            // actually has imported data. This prevents the "empty until relaunch" experience.
+            await WorkspaceService.shared.initializeOnLaunch()
+            WorkspaceService.shared.adoptWorkspaceWithMostDataIfNeeded()
+
+            // Wait briefly for import OR local visibility of key records.
+            // (Import events are not always a reliable proxy for "data is queryable".)
+            async let importDone: Bool = CloudSyncMonitor.shared.awaitInitialImport(timeout: 12.0, pollInterval: 0.2)
+            async let localVisible: Bool = CloudDataProbe().scanForExistingData(timeout: 12.0, pollInterval: 0.25)
+            _ = await importDone
+            _ = await localVisible
             onboarding.didCompleteOnboarding = true
         }
     }

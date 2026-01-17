@@ -309,6 +309,10 @@ struct OffshoreBudgetingApp: App {
         guard processInfo.arguments.contains("-ui-testing") else { return }
         let env = processInfo.environment
         let cloudAvailabilityOverride = env["UITEST_CLOUD_SYNC_AVAILABLE"]?.lowercased()
+        if let rawWorkspaceID = env["UITEST_ACTIVE_WORKSPACE_ID"], !rawWorkspaceID.isEmpty {
+            UserDefaults.standard.set(rawWorkspaceID, forKey: AppSettingsKeys.activeWorkspaceID.rawValue)
+            UserDefaults.standard.synchronize()
+        }
         if env["UITEST_SKIP_ONBOARDING"] == "1" {
             UserDefaults.standard.set(true, forKey: "didCompleteOnboarding")
             UserDefaults.standard.synchronize()
@@ -560,6 +564,7 @@ private extension OffshoreBudgetingApp {
             UserDefaults.standard.set(true, forKey: "uitest_seed_done")
             UserDefaults.standard.synchronize()
         }
+        let env = ProcessInfo.processInfo.environment
         let groceriesID = UUID(uuidString: "9B44A0A2-9E1E-4B1C-B8C9-2C7FD31F1E3A")!
         let testCatID = UUID(uuidString: "4E7B2C3F-6B1D-4F5F-AF6A-1D58D6F2A1D2")!
         let homeCategoryID = UUID(uuidString: "F6E9D6D1-7A68-4D65-AE7B-2B0F3E6E5A21")!
@@ -580,6 +585,64 @@ private extension OffshoreBudgetingApp {
         let homeQuarterlyPresetChildID = UUID(uuidString: "C4253647-5869-60AB-2345-06172839405C")!
         let homeYearlyPresetChildID = UUID(uuidString: "D5364758-697A-70BC-3456-17283940516D")!
         switch scenario.lowercased() {
+        case "cloud_workspace_mismatch":
+            // Intentionally create a dataset under a specific workspaceID WITHOUT
+            // updating the active workspace. This simulates a device where cloud
+            // data is present but the app initially points at the wrong workspace.
+            let fallbackWorkspaceID = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+            let seededWorkspaceID = env["UITEST_SEED_WORKSPACE_ID"]
+                .flatMap(UUID.init(uuidString:))
+                ?? fallbackWorkspaceID
+
+            // Ensure the backing Workspace row exists.
+            // NOTE: Avoid calling WorkspaceService's internal seeding helpers here
+            // so we don't unintentionally change the active workspace during this seed.
+            let workspace = Workspace(context: ctx)
+            workspace.id = seededWorkspaceID
+            workspace.name = "Personal"
+            if workspace.entity.attributesByName.keys.contains("isCloud") {
+                workspace.isCloud = true
+            }
+            if workspace.entity.attributesByName.keys.contains("color"),
+               (workspace.value(forKey: "color") as? String) == nil {
+                workspace.setValue(WorkspaceService.defaultNewWorkspaceColorHex, forKey: "color")
+            }
+
+            // A simple, recognizable record set.
+            let period = WorkspaceService.shared.currentBudgetPeriod(in: ctx)
+            let range = period.range(containing: Date())
+
+            let budget = Budget(context: ctx)
+            budget.setValue(UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!, forKey: "id")
+            budget.name = "Core Budget"
+            budget.startDate = range.start
+            budget.endDate = range.end
+            budget.isRecurring = false
+            budget.setValue(seededWorkspaceID, forKey: "workspaceID")
+
+            let card = Card(context: ctx)
+            card.setValue(UUID(uuidString: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF")!, forKey: "id")
+            card.name = "Core Card"
+            card.setValue(seededWorkspaceID, forKey: "workspaceID")
+            card.mutableSetValue(forKey: "budget").add(budget)
+
+            let category = ExpenseCategory(context: ctx)
+            category.setValue(UUID(uuidString: "CCCCCCCC-DDDD-EEEE-FFFF-000000000000")!, forKey: "id")
+            category.name = "Groceries"
+            category.color = "#4E9CFF"
+            category.setValue(seededWorkspaceID, forKey: "workspaceID")
+
+            let income = Income(context: ctx)
+            income.setValue(UUID(uuidString: "DDDDDDDD-EEEE-FFFF-0000-111111111111")!, forKey: "id")
+            income.source = "Seeded Actual Income"
+            income.amount = 101.33
+            income.date = range.start
+            income.isPlanned = false
+            income.setValue(seededWorkspaceID, forKey: "workspaceID")
+
+            try? ctx.save()
+            markSeedDone()
+            return
         case "core_universe":
             let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
             appSettings.activeWorkspaceID = workspaceID.uuidString

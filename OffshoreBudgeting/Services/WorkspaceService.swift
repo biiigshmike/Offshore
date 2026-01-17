@@ -100,6 +100,45 @@ final class WorkspaceService {
         await assignWorkspaceIDIfMissing(to: personalID)
         seedBudgetPeriodIfNeeded()
     }
+
+    /// Best-effort: if the active workspace contains no budgets but another workspace does,
+    /// switch the active workspace to the one with the most budgets.
+    ///
+    /// This is primarily to improve first-run iCloud restores where imported data exists
+    /// under a different workspace ID than the device's current active selection.
+    func adoptWorkspaceWithMostDataIfNeeded() {
+        let ctx = CoreDataService.shared.viewContext
+        let currentID = loadActiveWorkspaceID() ?? ensureActiveWorkspaceID()
+
+        func budgetCount(for workspaceID: UUID) -> Int {
+            let request = NSFetchRequest<NSNumber>(entityName: "Budget")
+            request.resultType = .countResultType
+            request.predicate = WorkspaceService.predicate(for: workspaceID)
+            return (try? ctx.fetch(request).first?.intValue) ?? 0
+        }
+
+        let currentCount = budgetCount(for: currentID)
+
+        let workspaces = fetchAllWorkspaces(in: ctx)
+        var best: (id: UUID, count: Int)? = nil
+        for ws in workspaces {
+            guard let id = ws.id else { continue }
+            let count = budgetCount(for: id)
+            guard count > 0 else { continue }
+            if let existing = best {
+                if count > existing.count {
+                    best = (id: id, count: count)
+                }
+            } else {
+                best = (id: id, count: count)
+            }
+        }
+
+        guard currentCount == 0, let best else { return }
+        if best.id != currentID {
+            setActiveWorkspaceID(best.id)
+        }
+    }
 }
 
 // MARK: - Workspace helpers (budget period persistence)

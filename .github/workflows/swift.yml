@@ -13,6 +13,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: xcodebuild -scheme OffshoreBudgeting -configuration Debug -allowProvisioningUpdates build
+      run: xcodebuild -scheme OffshoreBudgeting -configuration Debug -skipPackagePluginValidation CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO build
     - name: Run tests
-      run: xcodebuild -scheme OffshoreBudgeting -configuration Debug -allowProvisioningUpdates test
+      run: xcodebuild -scheme OffshoreBudgeting -configuration Debug -skipPackagePluginValidation CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO test

@@ -13,6 +13,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: xcodebuild -scheme OffshoreBudgeting -configuration Debug build
+      run: xcodebuild -scheme OffshoreBudgeting -configuration Debug -allowProvisioningUpdates build
     - name: Run tests
-      run: xcodebuild -scheme OffshoreBudgeting -configuration Debug test
+      run: xcodebuild -scheme OffshoreBudgeting -configuration Debug -allowProvisioningUpdates test

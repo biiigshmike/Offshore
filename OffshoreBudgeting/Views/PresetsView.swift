@@ -12,7 +12,9 @@ struct PresetsView: View {
 
     // MARK: Env
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var settings: AppSettingsState
+    @EnvironmentObject private var cardPickerStore: CardPickerStore
     
     // MARK: State
     @StateObject private var vm = PresetsViewModel()
@@ -92,10 +94,15 @@ struct PresetsView: View {
         .sheet(isPresented: $isPresentingAdd) {
             AddGlobalPresetSheet(onSaved: { vm.loadTemplates(using: viewContext) })
                 .environment(\.managedObjectContext, viewContext)
+                .environmentObject(themeManager)
+                .environmentObject(settings)
+                .environmentObject(cardPickerStore)
         }
         .sheet(item: $sheetTemplateToAssign) { template in
             PresetBudgetAssignmentSheet(template: template) { vm.loadTemplates(using: viewContext) }
                 .environment(\.managedObjectContext, viewContext)
+                .environmentObject(themeManager)
+                .environmentObject(settings)
         }
         .sheet(item: $editingTemplate) { template in
             AddPlannedExpenseView(
@@ -105,6 +112,8 @@ struct PresetsView: View {
                 onSaved: { vm.loadTemplates(using: viewContext) }
             )
             .environment(\.managedObjectContext, viewContext)
+            .environmentObject(cardPickerStore)
+            .environmentObject(settings)
         }
         .alert(item: $templateToDelete) { template in
             Alert(
@@ -143,7 +152,6 @@ struct PresetsView: View {
 // MARK: - AddGlobalPresetSheet (local)
 private struct AddGlobalPresetSheet: View {
     let onSaved: () -> Void
-    @Environment(\.dismiss) private var dismiss
     var body: some View {
         AddPlannedExpenseView(
             preselectedBudgetID: nil,
@@ -151,7 +159,6 @@ private struct AddGlobalPresetSheet: View {
             showAssignBudgetToggle: true,
             onSaved: {
                 onSaved()
-                dismiss()
             }
         )
     }

@@ -71,6 +71,7 @@ final class CardsViewModel: ObservableObject {
 
     // MARK: Init
     init(cardService: CardService = CardService()) {
+        UBPerfDI.resolve("Init.CardsViewModel", every: 1)
         self.cardService = cardService
 
     }
@@ -145,6 +146,7 @@ final class CardsViewModel: ObservableObject {
     // MARK: configureAndStartObserver()
     /// Builds the fetch request/observer and starts streaming updates.
     private func configureAndStartObserver() {
+        UBPerfDI.resolve("CardsViewModel.configureAndStartObserver", every: 10)
         let request: NSFetchRequest<Card> = Card.fetchRequest()
         request.predicate = WorkspaceService.shared.activeWorkspacePredicate()
         request.sortDescriptors = [
@@ -158,30 +160,32 @@ final class CardsViewModel: ObservableObject {
             guard let self else { return }
 
             // Map Core Data -> UI items (use stable objectID)
-            let mappedItems: [CardItem] = managedObjects.map { managedObject in
-                let uuid = managedObject.value(forKey: "id") as? UUID
-                // Prefer Core Data attribute first; fallback to legacy appearance store
-                let theme: CardTheme = {
-                    if managedObject.entity.attributesByName["theme"] != nil,
-                       let raw = managedObject.value(forKey: "theme") as? String,
-                       let t = CardTheme(rawValue: raw) { return t }
-                    // Default neutral theme if missing
-                    return .graphite
-                }()
+            let mappedItems: [CardItem] = UBPerf.measure("CardsViewModel.mapSnapshot") {
+                managedObjects.map { managedObject in
+                    let uuid = managedObject.value(forKey: "id") as? UUID
+                    // Prefer Core Data attribute first; fallback to legacy appearance store
+                    let theme: CardTheme = {
+                        if managedObject.entity.attributesByName["theme"] != nil,
+                           let raw = managedObject.value(forKey: "theme") as? String,
+                           let t = CardTheme(rawValue: raw) { return t }
+                        // Default neutral theme if missing
+                        return .graphite
+                    }()
 
-                let effect: CardEffect = {
-                    guard managedObject.entity.attributesByName["effect"] != nil else { return .plastic }
-                    let raw = managedObject.value(forKey: "effect") as? String
-                    return CardEffect.fromStoredValue(raw)
-                }()
+                    let effect: CardEffect = {
+                        guard managedObject.entity.attributesByName["effect"] != nil else { return .plastic }
+                        let raw = managedObject.value(forKey: "effect") as? String
+                        return CardEffect.fromStoredValue(raw)
+                    }()
 
-                return CardItem(
-                    objectID: managedObject.objectID,
-                    uuid: uuid,
-                    name: managedObject.name ?? "Untitled",
-                    theme: theme,
-                    effect: effect
-                )
+                    return CardItem(
+                        objectID: managedObject.objectID,
+                        uuid: uuid,
+                        name: managedObject.name ?? "Untitled",
+                        theme: theme,
+                        effect: effect
+                    )
+                }
             }
 
             // Debounce UI application to coalesce bursts during imports

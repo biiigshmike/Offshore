@@ -142,6 +142,7 @@ final class CardDetailViewModel: ObservableObject {
     
     // MARK: Init
     init(card: CardItem, allowedInterval: DateInterval? = nil, context: NSManagedObjectContext = CoreDataService.shared.viewContext) {
+        UBPerfDI.resolve("Init.CardDetailViewModel", every: 1)
         self.card = card
         // Default to current workspace budget period range if not provided
         if let allowedInterval {
@@ -156,6 +157,19 @@ final class CardDetailViewModel: ObservableObject {
     
     // MARK: load()
     func load() async {
+        let perfInterval = UBPerf.isEnabled ? UBPerf.signposter.beginInterval("CardDetailViewModel.load") : nil
+        let perfStart = UBPerf.isEnabled ? DispatchTime.now().uptimeNanoseconds : 0
+        defer {
+            if UBPerf.isEnabled {
+                if let perfInterval { UBPerf.signposter.endInterval("CardDetailViewModel.load", perfInterval) }
+                let end = DispatchTime.now().uptimeNanoseconds
+                let ms = Double(end &- perfStart) / 1_000_000.0
+                let line = "CardDetailViewModel.load total \(String(format: "%.2f", ms))ms"
+                UBPerf.logger.info("\(line, privacy: .public)")
+                UBPerf.emit(line)
+            }
+        }
+
         // Resolve a UUID for this card. If missing but we have an objectID,
         // attempt to read/write a UUID on the managed object so downstream
         // fetches can proceed.
@@ -185,55 +199,62 @@ final class CardDetailViewModel: ObservableObject {
         }
         if shouldShowLoadingState { state = .loading }
         do {
-            let unplanned = try unplannedService.fetchForCard(uuid, in: allowedInterval, sortedByDateAscending: false)
-            let planned: [PlannedExpense]
-            if let interval = allowedInterval {
-                planned = try plannedService.fetchForCard(uuid, in: interval, sortedByDateAscending: false)
-            } else {
-                planned = try plannedService.fetchForCard(uuid, sortedByDateAscending: false)
+            let unplanned = try UBPerf.measure("CardDetailViewModel.fetchUnplanned") {
+                try unplannedService.fetchForCard(uuid, in: allowedInterval, sortedByDateAscending: false)
+            }
+            let planned: [PlannedExpense] = try UBPerf.measure("CardDetailViewModel.fetchPlanned") {
+                if let interval = allowedInterval {
+                    return try plannedService.fetchForCard(uuid, in: interval, sortedByDateAscending: false)
+                } else {
+                    return try plannedService.fetchForCard(uuid, sortedByDateAscending: false)
+                }
             }
 
             // Map unplanned (variable) expenses – always actual spend
-            let mappedUnplanned: [CardExpense] = unplanned.map { exp in
-                let desc = (exp.value(forKey: "descriptionText") as? String)
-                    ?? (exp.value(forKey: "title") as? String) ?? ""
-                let uuid = exp.value(forKey: "id") as? UUID
-                let cat = exp.value(forKey: "expenseCategory") as? ExpenseCategory
-                return CardExpense(objectID: exp.objectID,
-                                   uuid: uuid,
-                                   description: desc,
-                                   amount: exp.value(forKey: "amount") as? Double ?? 0,
-                                   date: exp.value(forKey: "transactionDate") as? Date,
-                                   category: cat,
-                                   isPlanned: false,
-                                   isPreset: false)
+            let mappedUnplanned: [CardExpense] = UBPerf.measure("CardDetailViewModel.mapUnplanned") {
+                unplanned.map { exp in
+                    let desc = (exp.value(forKey: "descriptionText") as? String)
+                        ?? (exp.value(forKey: "title") as? String) ?? ""
+                    let uuid = exp.value(forKey: "id") as? UUID
+                    let cat = exp.value(forKey: "expenseCategory") as? ExpenseCategory
+                    return CardExpense(objectID: exp.objectID,
+                                       uuid: uuid,
+                                       description: desc,
+                                       amount: exp.value(forKey: "amount") as? Double ?? 0,
+                                       date: exp.value(forKey: "transactionDate") as? Date,
+                                       category: cat,
+                                       isPlanned: false,
+                                       isPreset: false)
+                }
             }
 
             // Split planned expenses into actuals vs upcoming, with duplicate guard
             // for template-children duplicated under the same budget.
             var seenPlannedKeys = Set<String>()
-            let plannedActuals: [CardExpense] = planned.compactMap { exp in
-                guard exp.actualAmount != 0 else { return nil }
-                // Build a strict key only when it's a template child; otherwise don't dedupe.
-                if let templateID = exp.globalTemplateID, let budget = exp.budget {
-                    let dateKey = String(format: "%.0f", (exp.transactionDate ?? .distantPast).timeIntervalSince1970)
-                    let key = "\(templateID.uuidString)|\(budget.objectID.uriRepresentation().absoluteString)|\(dateKey)|\(exp.actualAmount)|\(exp.plannedAmount)"
-                    if seenPlannedKeys.contains(key) { return nil }
-                    seenPlannedKeys.insert(key)
-                }
+            let plannedActuals: [CardExpense] = UBPerf.measure("CardDetailViewModel.mapPlanned") {
+                planned.compactMap { exp in
+                    guard exp.actualAmount != 0 else { return nil }
+                    // Build a strict key only when it's a template child; otherwise don't dedupe.
+                    if let templateID = exp.globalTemplateID, let budget = exp.budget {
+                        let dateKey = String(format: "%.0f", (exp.transactionDate ?? .distantPast).timeIntervalSince1970)
+                        let key = "\(templateID.uuidString)|\(budget.objectID.uriRepresentation().absoluteString)|\(dateKey)|\(exp.actualAmount)|\(exp.plannedAmount)"
+                        if seenPlannedKeys.contains(key) { return nil }
+                        seenPlannedKeys.insert(key)
+                    }
 
-                let desc = (exp.value(forKey: "descriptionText") as? String)
-                    ?? (exp.value(forKey: "title") as? String) ?? ""
-                let uuid = exp.value(forKey: "id") as? UUID
-                let cat = exp.expenseCategory
-                return CardExpense(objectID: exp.objectID,
-                                   uuid: uuid,
-                                   description: desc,
-                                   amount: exp.actualAmount,
-                                   date: exp.transactionDate,
-                                   category: cat,
-                                   isPlanned: true,
-                                   isPreset: false)
+                    let desc = (exp.value(forKey: "descriptionText") as? String)
+                        ?? (exp.value(forKey: "title") as? String) ?? ""
+                    let uuid = exp.value(forKey: "id") as? UUID
+                    let cat = exp.expenseCategory
+                    return CardExpense(objectID: exp.objectID,
+                                       uuid: uuid,
+                                       description: desc,
+                                       amount: exp.actualAmount,
+                                       date: exp.transactionDate,
+                                       category: cat,
+                                       isPlanned: true,
+                                       isPreset: false)
+                }
             }
 
             // Remove upcoming/planned-only and template mapping from card details

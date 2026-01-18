@@ -128,6 +128,7 @@ final class ExpenseImportViewModel: ObservableObject {
 
     // MARK: Init
     init(card: CardItem, fileURL: URL, context: NSManagedObjectContext = CoreDataService.shared.viewContext) {
+        UBPerfDI.resolve("Init.ExpenseImportViewModel", every: 1)
         self.fileURL = fileURL
         self.context = context
         self.cardUUID = card.uuid
@@ -140,22 +141,45 @@ final class ExpenseImportViewModel: ObservableObject {
 
     // MARK: Load
     func load() async {
+        let perfInterval = UBPerf.isEnabled ? UBPerf.signposter.beginInterval("ExpenseImportViewModel.load") : nil
+        let perfStart = UBPerf.isEnabled ? DispatchTime.now().uptimeNanoseconds : 0
+        defer {
+            if UBPerf.isEnabled {
+                if let perfInterval { UBPerf.signposter.endInterval("ExpenseImportViewModel.load", perfInterval) }
+                let end = DispatchTime.now().uptimeNanoseconds
+                let ms = Double(end &- perfStart) / 1_000_000.0
+                let line = "ExpenseImportViewModel.load total \(String(format: "%.2f", ms))ms rows=\(self.rows.count)"
+                UBPerf.logger.info("\(line, privacy: .public)")
+                UBPerf.emit(line)
+            }
+        }
+
         state = .loading
         if !CoreDataService.shared.storesLoaded {
             await CoreDataService.shared.waitUntilStoresLoaded()
         }
-        await refreshCategories()
+        await UBPerf.measureAsync("ExpenseImportViewModel.refreshCategories") { await refreshCategories() }
 
         do {
-            let parsedRows = try parseCSVFile(at: fileURL)
-            var updated = applyDescriptionSuggestions(to: parsedRows)
-            updated = applyCategoryMatching(to: updated)
+            let parsedRows: [ImportRow]
+            if UBPerfExperiments.importLoadOffMainActor {
+                let url = fileURL
+                parsedRows = try await UBPerf.measureAsync("ExpenseImport.parseCSVFile.detached") {
+                    try await Task.detached(priority: .userInitiated) {
+                        try ExpenseImportViewModel.parseCSVFileNonisolated(at: url)
+                    }.value
+                }
+            } else {
+                parsedRows = try UBPerf.measure("ExpenseImport.parseCSVFile") { try parseCSVFile(at: fileURL) }
+            }
+            var updated = UBPerf.measure("ExpenseImport.applyDescriptionSuggestions") { applyDescriptionSuggestions(to: parsedRows) }
+            updated = UBPerf.measure("ExpenseImport.applyCategoryMatching") { applyCategoryMatching(to: updated) }
             if let cardID = resolveCardUUID() {
-                let existing = fetchExistingExpenses(for: cardID, rows: updated)
-                updated = applyDuplicateDetection(to: updated, existing: existing)
+                let existing = UBPerf.measure("ExpenseImport.fetchExistingExpenses") { fetchExistingExpenses(for: cardID, rows: updated) }
+                updated = UBPerf.measure("ExpenseImport.applyDuplicateDetection") { applyDuplicateDetection(to: updated, existing: existing) }
             }
             rows = updated
-            assignInitialBuckets()
+            UBPerf.measure("ExpenseImport.assignInitialBuckets") { assignInitialBuckets() }
             state = .loaded
         } catch {
             state = .failed(error.localizedDescription)
@@ -256,6 +280,7 @@ final class ExpenseImportViewModel: ObservableObject {
 
     // MARK: Import
     func importRows(with ids: Set<UUID>) throws {
+        let importStart = UBPerf.isEnabled ? DispatchTime.now().uptimeNanoseconds : 0
         let importable = rows.filter { ids.contains($0.id) }
         let rowsToImport = importable.filter {
             !$0.isMissingData
@@ -273,12 +298,14 @@ final class ExpenseImportViewModel: ObservableObject {
             switch row.importAs {
             case .income:
                 guard let amount = row.normalizedAmountForIncomeImport else { continue }
-                _ = try incomeService.createIncome(
-                    source: row.descriptionText,
-                    amount: amount,
-                    date: date,
-                    isPlanned: false
-                )
+                _ = try UBPerf.measure("ExpenseImport.createIncome") {
+                    try incomeService.createIncome(
+                        source: row.descriptionText,
+                        amount: amount,
+                        date: date,
+                        isPlanned: false
+                    )
+                }
 
             case .expense:
                 guard let amount = row.normalizedAmountForImport else { continue }
@@ -293,21 +320,25 @@ final class ExpenseImportViewModel: ObservableObject {
                     throw NSError(domain: "ExpenseImport", code: 5, userInfo: [NSLocalizedDescriptionKey: "Missing category selection."])
                 }
 
-                _ = try unplannedService.create(
-                    descriptionText: row.descriptionText,
-                    amount: amount,
-                    date: date,
-                    cardID: cardID,
-                    categoryID: categoryID
-                )
+                _ = try UBPerf.measure("ExpenseImport.createUnplannedExpense") {
+                    try unplannedService.create(
+                        descriptionText: row.descriptionText,
+                        amount: amount,
+                        date: date,
+                        cardID: cardID,
+                        categoryID: categoryID
+                    )
+                }
 
                 if row.isPreset {
-                    let template = try plannedService.createGlobalTemplate(
-                        titleOrDescription: row.descriptionText,
-                        plannedAmount: amount,
-                        actualAmount: amount,
-                        defaultTransactionDate: date
-                    )
+                    let template = try UBPerf.measure("ExpenseImport.createPlannedTemplate") {
+                        try plannedService.createGlobalTemplate(
+                            titleOrDescription: row.descriptionText,
+                            plannedAmount: amount,
+                            actualAmount: amount,
+                            defaultTransactionDate: date
+                        )
+                    }
 
                     if let categoryObjectID = row.selectedCategoryID,
                        let category = try? context.existingObject(with: categoryObjectID) as? ExpenseCategory {
@@ -317,7 +348,7 @@ final class ExpenseImportViewModel: ObservableObject {
                         template.card = card
                     }
                     if context.hasChanges {
-                        try context.save()
+                        try UBPerf.measure("ExpenseImport.context.saveTemplate") { try context.save() }
                     }
                 }
             }
@@ -325,6 +356,14 @@ final class ExpenseImportViewModel: ObservableObject {
             if row.useNameNextTime {
                 nameLearningStore.savePreferredName(row.descriptionText, forOriginalDescription: row.originalDescriptionText)
             }
+        }
+
+        if UBPerf.isEnabled {
+            let end = DispatchTime.now().uptimeNanoseconds
+            let ms = Double(end &- importStart) / 1_000_000.0
+            let line = "ExpenseImport.importRows total \(String(format: "%.2f", ms))ms rows=\(rowsToImport.count)"
+            UBPerf.logger.info("\(line, privacy: .public)")
+            UBPerf.emit(line)
         }
     }
 
@@ -717,6 +756,160 @@ final class ExpenseImportViewModel: ObservableObject {
                     } else {
                         insideQuotes = false
                     }
+                } else {
+                    insideQuotes = true
+                }
+            case "," where !insideQuotes:
+                currentRow.append(currentField)
+                currentField = ""
+            case "\n" where !insideQuotes:
+                currentRow.append(currentField)
+                rows.append(currentRow)
+                currentRow = []
+                currentField = ""
+            case "\r":
+                continue
+            default:
+                currentField.append(char)
+            }
+        }
+
+        if !currentField.isEmpty || !currentRow.isEmpty {
+            currentRow.append(currentField)
+            rows.append(currentRow)
+        }
+
+        return rows.filter { row in
+            row.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        }
+    }
+
+    // MARK: CSV Parsing (nonisolated; perf experiment)
+    nonisolated static func parseCSVFileNonisolated(at url: URL) throws -> [ImportRow] {
+        let didAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if didAccess { url.stopAccessingSecurityScopedResource() }
+        }
+
+        let data = try Data(contentsOf: url)
+        let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) ?? ""
+        guard !text.isEmpty else {
+            throw NSError(domain: "ExpenseImport", code: 3, userInfo: [NSLocalizedDescriptionKey: "The CSV file is empty."])
+        }
+
+        let rows = parseCSVNonisolated(text)
+        guard rows.count > 1 else {
+            throw NSError(domain: "ExpenseImport", code: 4, userInfo: [NSLocalizedDescriptionKey: "No rows found in the CSV file."])
+        }
+
+        let headers = rows[0].map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+        let dataRows = rows.dropFirst()
+
+        let dateIndex = headerIndexNonisolated(in: headers, matching: ["transaction date", "date", "posted date", "clearing date"])
+        let descriptionIndex = headerIndexNonisolated(in: headers, matching: ["description", "merchant", "name", "details"])
+        let categoryIndex = headerIndexNonisolated(in: headers, matching: ["category"])
+        let typeIndex = headerIndexNonisolated(in: headers, matching: ["type", "transaction type"])
+        let amountIndex = headerIndexNonisolated(in: headers, matching: ["amount", "amount (usd)", "amount usd", "amount (us$)"])
+
+        return dataRows.enumerated().map { offset, row in
+            let line = offset + 2
+            let description = valueNonisolated(at: descriptionIndex, in: row)
+            let dateString = valueNonisolated(at: dateIndex, in: row)
+            let amountString = valueNonisolated(at: amountIndex, in: row)
+            let categoryName = valueNonisolated(at: categoryIndex, in: row)
+            let typeString = valueNonisolated(at: typeIndex, in: row)
+            let kind = importKindNonisolated(amountText: amountString, type: typeString, category: categoryName)
+            let importAs: ImportAs = (kind == .payment) ? .income : .expense
+            return ImportRow(
+                id: UUID(),
+                originalDescriptionText: description,
+                descriptionText: description,
+                transactionDate: parseDateNonisolated(dateString),
+                amountText: amountString,
+                categoryNameFromCSV: categoryName,
+                selectedCategoryID: nil,
+                matchQuality: .none,
+                isPreset: false,
+                importKind: kind,
+                importAs: importAs,
+                sourceLine: line,
+                initialBucket: .needsMoreData,
+                isPossibleDuplicate: false,
+                useNameNextTime: false
+            )
+        }
+    }
+
+    nonisolated private static func headerIndexNonisolated(in headers: [String], matching candidates: [String]) -> Int? {
+        for (idx, header) in headers.enumerated() {
+            for candidate in candidates {
+                if header == candidate { return idx }
+                if header.contains(candidate) { return idx }
+            }
+        }
+        return nil
+    }
+
+    nonisolated private static func valueNonisolated(at index: Int?, in row: [String]) -> String {
+        guard let index, index >= 0, index < row.count else { return "" }
+        return row[index]
+    }
+
+    nonisolated private static func parseDateNonisolated(_ value: String) -> Date? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let formats = [
+            "M/d/yyyy",
+            "MM/dd/yyyy",
+            "yyyy-MM-dd",
+            "yyyy/MM/dd",
+            "dd/MM/yyyy",
+            "dd-MM-yyyy"
+        ]
+        for format in formats {
+            let df = DateFormatter()
+            df.locale = Locale(identifier: "en_US_POSIX")
+            df.dateFormat = format
+            if let date = df.date(from: trimmed) {
+                return date
+            }
+        }
+
+        let iso = ISO8601DateFormatter()
+        if let date = iso.date(from: trimmed) { return date }
+
+        return nil
+    }
+
+    nonisolated private static func importKindNonisolated(amountText: String, type: String, category: String) -> ImportKind {
+        let combined = [type, category].joined(separator: " ").lowercased()
+        if combined.contains("payment") || combined.contains("payments") {
+            return .payment
+        }
+        if hasLeadingPlusNonisolated(amountText) { return .credit }
+        if combined.contains("credit") || combined.contains("refund") {
+            return .credit
+        }
+        return .debit
+    }
+
+    nonisolated private static func hasLeadingPlusNonisolated(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.hasPrefix("+")
+    }
+
+    nonisolated private static func parseCSVNonisolated(_ text: String) -> [[String]] {
+        var rows: [[String]] = []
+        var currentRow: [String] = []
+        var currentField = ""
+        var insideQuotes = false
+
+        for char in text {
+            switch char {
+            case "\"":
+                if insideQuotes {
+                    insideQuotes = false
                 } else {
                     insideQuotes = true
                 }

@@ -64,6 +64,8 @@ struct RootTabView: View {
     
     var body: some View {
         rootBody
+            .ub_perfRenderScope("RootTabView.body")
+            .ub_perfRenderCounter("RootTabView", every: 10)
             .overlay(alignment: .topLeading) {
                 if uiTestingFlags.isUITesting, uiTesting.seedDone {
                     Text("Seed Done")
@@ -73,6 +75,9 @@ struct RootTabView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: shouldUseCompactTabs)
+            .onChange(of: dataRevision) { newValue in
+                UBPerf.mark("RootTabView.dataRevision.changed", "value=\(newValue)")
+            }
     }
     
     // MARK: Body builders
@@ -426,16 +431,13 @@ struct RootTabView: View {
             HomeView()
                 .ub_windowTitle(Tab.home.title)
         case .budgets:
-            BudgetsView()
-                .id(dataRevision)
+            remountOnDataRevisionIfNeeded(BudgetsView())
                 .ub_windowTitle(Tab.budgets.title)
         case .income:
-            IncomeView()
-                .id(dataRevision)
+            remountOnDataRevisionIfNeeded(IncomeView())
                 .ub_windowTitle(Tab.income.title)
         case .cards:
-            CardsView()
-                .id(dataRevision)
+            remountOnDataRevisionIfNeeded(CardsView())
                 .ub_windowTitle(Tab.cards.title)
         case .settings:
             if uiTestingFlags.isUITesting, uiTestStartRoute == "categories", shouldUseCompactTabs {
@@ -445,6 +447,15 @@ struct RootTabView: View {
                 SettingsView()
                     .ub_windowTitle(Tab.settings.title)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func remountOnDataRevisionIfNeeded<V: View>(_ view: V) -> some View {
+        if UBPerfExperiments.disableTabRemountsOnDataRevision {
+            view
+        } else {
+            view.id(dataRevision)
         }
     }
     

@@ -81,11 +81,15 @@ struct CardDetailView: View {
     // MARK: Body
     var body: some View {
         navigationContent
+        .ub_perfRenderScope("CardDetailView.body")
+        .ub_perfRenderCounter("CardDetailView", every: 10)
         .ub_navigationBackground(
             theme: themeManager.selectedTheme,
             configuration: themeManager.glassConfiguration
         )
-        .task { await viewModel.load() }
+        .task { await UBPerf.measureAsync("CardDetailViewModel.load") { await viewModel.load() } }
+        .onAppear { UBPerf.mark("CardDetailView.onAppear", "card=\(card.uuid?.uuidString ?? card.id)") }
+        .onDisappear { UBPerf.mark("CardDetailView.onDisappear", "card=\(card.uuid?.uuidString ?? card.id)") }
         //.accentColor(themeManager.selectedTheme.tint)
         //.tint(themeManager.selectedTheme.tint)
         .sheet(isPresented: $isPresentingEditCard) {

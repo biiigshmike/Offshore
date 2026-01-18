@@ -45,13 +45,17 @@ struct ExpenseImportView: View {
     var body: some View {
         navigationContainer {
             content
+                .ub_perfRenderScope("ExpenseImportView.body")
+                .ub_perfRenderCounter("ExpenseImportView", every: 10)
                 .navigationTitle("Import Expenses")
                 .ub_windowTitle("Import Expenses")
                 .toolbar { toolbarContent }
         }
         .environment(\.editMode, $editMode)
         .applyDetentsIfAvailable(detents: [.large], selection: nil)
-        .task { await viewModel.load() }
+        .task { await UBPerf.measureAsync("ExpenseImportViewModel.load") { await viewModel.load() } }
+        .onAppear { UBPerf.mark("ExpenseImportView.onAppear") }
+        .onDisappear { UBPerf.mark("ExpenseImportView.onDisappear") }
         .onChange(of: viewModel.rows) { _ in
             pruneSelections()
             applyDefaultSelectionIfNeeded()

@@ -128,7 +128,10 @@ struct CardsView: View {
         .ub_windowTitle("Cards")
         .accessibilityIdentifier(AccessibilityID.Cards.screen)
         .toolbar { toolbarContent }
-        .onAppear { vm.startIfNeeded() }
+        .onAppear {
+            UBPerf.mark("CardsView.onAppear")
+            vm.startIfNeeded()
+        }
         .sheet(isPresented: $isPresentingAddCard) {
             AddCardFormView { newName, theme, effect in
                 Task { await vm.addCard(name: newName, theme: theme, effect: effect) }

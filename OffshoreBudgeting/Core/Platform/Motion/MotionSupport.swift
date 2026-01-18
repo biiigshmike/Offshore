@@ -24,6 +24,11 @@ final class MotionMonitor: ObservableObject {
     // MARK: Singleton
     static let shared = MotionMonitor()
 
+    // MARK: Perf
+    private var perfUpdateCount: Int = 0
+    private var perfMaxCallbackToMainMs: Double = 0
+    private var lastPublishedUptimeNs: UInt64 = 0
+
     // MARK: Raw Motion (unscaled)
     @Published private(set) var roll: Double = 0
     @Published private(set) var pitch: Double = 0
@@ -52,6 +57,7 @@ final class MotionMonitor: ObservableObject {
 
     // MARK: Init
     init(provider: UBMotionsProviding = UBPlatform.makeMotionProvider()) {
+        UBPerfDI.resolve("Init.MotionMonitor", every: 1)
         self.provider = provider
         setupLifecycleObservers()
         start()
@@ -69,15 +75,42 @@ final class MotionMonitor: ObservableObject {
     func start() {
         guard !isRunning else { return }
         isRunning = true
+        UBPerf.mark("MotionMonitor.start")
         provider.start { [weak self] r, p, y, gx, gy, gz in
+            let callbackAt = UBPerf.isEnabled ? DispatchTime.now().uptimeNanoseconds : 0
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                self.roll = r
-                self.pitch = p
-                self.yaw = y
-                self.gravityX = gx
-                self.gravityY = gy
-                self.gravityZ = gz
+
+                let throttleHz = UBPerfExperiments.motionThrottleHz
+                if throttleHz > 0 {
+                    let now = DispatchTime.now().uptimeNanoseconds
+                    let minInterval = UInt64(1_000_000_000 / max(1, throttleHz))
+                    if now &- self.lastPublishedUptimeNs < minInterval {
+                        return
+                    }
+                    self.lastPublishedUptimeNs = now
+                }
+
+                if UBPerf.isEnabled {
+                    let now = DispatchTime.now().uptimeNanoseconds
+                    let ms = Double(now &- callbackAt) / 1_000_000.0
+                    self.perfUpdateCount &+= 1
+                    self.perfMaxCallbackToMainMs = max(self.perfMaxCallbackToMainMs, ms)
+                    if self.perfUpdateCount == 1 || (self.perfUpdateCount % 120 == 0) {
+                        let message = "MotionMonitor updates=\(self.perfUpdateCount) maxCallbackToMain=\(String(format: "%.2f", self.perfMaxCallbackToMainMs))ms"
+                        UBPerf.motionLogger.info("\(message, privacy: .public)")
+                        UBPerf.emit(message)
+                        self.perfMaxCallbackToMainMs = 0
+                    }
+                }
+                if !UBPerfExperiments.motionReducePublishedRawFields {
+                    self.roll = r
+                    self.pitch = p
+                    self.yaw = y
+                    self.gravityX = gx
+                    self.gravityY = gy
+                    self.gravityZ = gz
+                }
 
                 self.smooth(r, into: &self.displayRoll, scale: self.amplitudeScale)
                 self.smooth(p, into: &self.displayPitch, scale: self.amplitudeScale)
@@ -104,6 +137,7 @@ final class MotionMonitor: ObservableObject {
     nonisolated func stop() {
         Task { @MainActor in
             guard self.isRunning else { return }
+            UBPerf.mark("MotionMonitor.stop")
             self.provider.stop()
             self.isRunning = false
         }

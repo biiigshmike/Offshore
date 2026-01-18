@@ -85,6 +85,26 @@
             value = "1"
             isEnabled = "YES">
          </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_NO_TAB_REMOUNT"
+            value = "1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_MOTION_REDUCE_RAW_PUBLISH"
+            value = "1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_MOTION_THROTTLE_HZ"
+            value = "30"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_OFF_MAIN"
+            value = "1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction

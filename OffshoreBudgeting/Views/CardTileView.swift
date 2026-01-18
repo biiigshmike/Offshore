@@ -64,6 +64,7 @@ struct CardTileView: View {
 
     // MARK: Body
     var body: some View {
+        let _ = UBPerf.tick("Render.CardTileView", every: 500, log: UBPerf.renderLogger)
         Group {
             if isInteractive {
                 Button(action: { onTap?() }) { tileVisual }

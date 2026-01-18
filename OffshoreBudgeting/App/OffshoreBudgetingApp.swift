@@ -112,6 +112,21 @@ struct OffshoreBudgetingApp: App {
         let startRoute: String? = nil
 #endif
         let shouldInjectManagedObjectContext = coreDataReady || testFlags.isUITesting
+        if shouldInjectManagedObjectContext {
+            UBPerfDI.resolve("Resolve.CoreDataService.shared.viewContext", every: 25)
+        }
+
+        if UBPerf.isEnabled {
+            UBPerfDI.inject("Env.ThemeManager", instance: themeManager)
+            UBPerfDI.inject("Env.CardPickerStore", instance: cardPickerStore)
+            UBPerfDI.inject("Env.AppSettingsState", instance: appSettings)
+            UBPerfDI.inject("Env.OnboardingState", instance: onboarding)
+            UBPerfDI.inject("Env.HomeWidgetState", instance: homeWidgetState)
+            UBPerfDI.inject("Env.UITestingState", instance: uiTestingState)
+            UBPerfDI.inject("Env.AppLockState", instance: appLockState)
+            UBPerfDI.inject("Env.AppLockViewModel", instance: appLockViewModel)
+        }
+
         let base = content()
             .environmentObject(themeManager)
             .environmentObject(cardPickerStore)
@@ -262,7 +277,10 @@ struct OffshoreBudgetingApp: App {
             let b = await localData
             let ok = a || b
             dataReady = ok
-            if ok { dataRevision &+= 1 }
+            if ok {
+                dataRevision &+= 1
+                UBPerf.mark("DataRevision.increment", "reason=dataReadiness ok new=\(dataRevision)")
+            }
             if ok { CloudSyncAccelerator.shared.nudgeOnForeground() }
         }
     }
@@ -281,6 +299,7 @@ struct OffshoreBudgetingApp: App {
         ) { _ in
             if !dataReady && !homeContentReady {
                 dataRevision &+= 1
+                UBPerf.mark("DataRevision.increment", "reason=dataStoreDidChange dataReady=\(dataReady) homeContentReady=\(homeContentReady) new=\(dataRevision)")
             }
         }
     }

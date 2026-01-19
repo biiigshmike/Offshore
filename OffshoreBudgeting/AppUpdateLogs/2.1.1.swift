@@ -16,12 +16,12 @@ enum AppUpdateLog_2_1_1 {
                     TipsItem(
                         symbolName: "dollarsign.bank.building",
                         title: "Behind the Vault Improvements",
-                        detail: "Worked on restructuring the app to prepare Offshore for the future of budgeting. Swept a few dead bugs off the vault floor to help make the app run faster."
+                        detail: "Reinforced the vault for Offshore’s future. Cleared out a few barnacles to help everything run faster."
                     ),
                     TipsItem(
                         symbolName: "creditcard.fill",
                         title: "Improvements to Importing Expenses",
-                        detail: "Import process now automatically parses long bank Transaction Description text into a cleaner expense name. If you enable the toggle to use the expense name next time, the app can also remember your preference, locally on your device. This will make future imports suggest the saved name next time it's encountered."
+                        detail: "Incoming transactions now come pre-loaded with cleaner names instead of long strings of bank text. You can store preferred names locally so future imports recognize the preferred name automatically."
                     )
                 ],
                 actionTitle: "Got It"

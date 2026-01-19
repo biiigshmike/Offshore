@@ -45,10 +45,16 @@ public struct AppLockView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                Button("Unlock") {
-                    viewModel.attemptUnlockWithDeviceAuth()
-                }
-                .buttonStyle(.borderedProminent)
+                DesignSystemV2.Buttons.PrimaryCTA(
+                    tint: .accentColor,
+                    action: { viewModel.attemptUnlockWithDeviceAuth() },
+                    label: { Text("Unlock") },
+                    legacyStyle: { button in
+                        button
+                            .buttonStyle(.borderedProminent)
+                            .tint(.accentColor)
+                    }
+                )
                 .disabled(viewModel.isAuthenticating)
                 .accessibilityIdentifier(AccessibilityID.AppLock.unlockButton)
 

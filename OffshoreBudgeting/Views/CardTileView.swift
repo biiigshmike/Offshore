@@ -8,7 +8,7 @@
 //  - Stronger, always-visible selection RING (2–3pt) inside the card bounds.
 //  - Soft outer GLOW remains for extra flair when not clipped.
 //  - Background gradient is STATIC (no device motion).
-//  - Metallic title text still shimmers (uses your existing holographic helper).
+//  - Metallic title text uses a static foil overlay (no Core Motion).
 //
 
 import SwiftUI
@@ -33,10 +33,7 @@ struct CardTileView: View {
     /// Keep this OFF for grids to avoid heavy per‑frame updates; turn ON for
     /// single, prominent tiles (e.g., detail header).
     var enableMotionShine: Bool = false
-    /// When true, allows the material background to respond to device motion.
-    var enableMaterialMotion: Bool = true
-
-    /// When true, applies the base neutral drop shadow beneath the card tile.
+	    /// When true, applies the base neutral drop shadow beneath the card tile.
     /// Set to false for flat presentations (e.g., pickers and grids) while
     /// retaining the selection glow.
     var showsBaseShadow: Bool = true
@@ -49,12 +46,11 @@ struct CardTileView: View {
     /// Optional tightening for the title when not in accessibility sizes.
     var nonAccessibilityTitleAllowsTightening: Bool = false
 
-    @EnvironmentObject private var themeManager: ThemeManager
-    @EnvironmentObject private var cardPickerStore: CardPickerStore
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+	    @EnvironmentObject private var themeManager: ThemeManager
+	    @EnvironmentObject private var cardPickerStore: CardPickerStore
+	    @Environment(\.colorScheme) private var colorScheme
+	    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+	    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     // MARK: Layout
     private let cornerRadius: CGFloat = Radius.card
@@ -115,14 +111,13 @@ private extension CardTileView {
 
                 // MARK: Card Background (material-aware)
                 ZStack {
-                    if showsEffectOverlay {
-                        CardMaterialBackground(
-                            theme: resolvedCard.theme,
-                            effect: resolvedCard.effect,
-                            cornerRadius: cornerRadius,
-                            enableMotion: enableMaterialMotion
-                        )
-                    } else {
+	                    if showsEffectOverlay {
+	                        CardMaterialBackground(
+	                            theme: resolvedCard.theme,
+	                            effect: resolvedCard.effect,
+	                            cornerRadius: cornerRadius
+	                        )
+	                    } else {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .fill(backgroundStyle)
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -229,15 +224,15 @@ private extension CardTileView {
     }
 
     // MARK: Title builder
-    var cardTitle: some View {
-        let titleFont = Font.system(.title, design: .rounded).weight(.semibold)
-        let titleColor: Color = isHighContrast ? .primary : UBTypography.cardTitleStatic
-        let allowMotionShine = enableMotionShine && !reduceMotion && !isHighContrast
-        let titleView = Group {
-            if allowMotionShine {
-                HolographicMetallicText(
-                    text: resolvedCard.name,
-                    titleFont: titleFont,
+	    var cardTitle: some View {
+	        let titleFont = Font.system(.title, design: .rounded).weight(.semibold)
+	        let titleColor: Color = isHighContrast ? .primary : UBTypography.cardTitleStatic
+	        let allowMetallicTitle = enableMotionShine && !isHighContrast
+	        let titleView = Group {
+	            if allowMetallicTitle {
+	                HolographicMetallicText(
+	                    text: resolvedCard.name,
+	                    titleFont: titleFont,
                     shimmerResponsiveness: 1.5,
                     maxMetallicOpacity: 0.6,
                     maxShineOpacity: 0.7
@@ -268,66 +263,118 @@ private extension CardTileView {
 }
 
 // MARK: - CardMaterialBackground
-struct CardMaterialBackground: View {
-    let theme: CardTheme
-    let effect: CardEffect
-    let cornerRadius: CGFloat
-    let enableMotion: Bool
-    @ObservedObject private var motion: MotionMonitor = MotionMonitor.shared
-    @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+	struct CardMaterialBackground: View {
+	    let theme: CardTheme
+	    let effect: CardEffect
+	    let cornerRadius: CGFloat
+
+	    var body: some View {
+	        CardMaterialBackgroundStatic(
+	            theme: theme,
+	            effect: effect,
+	            cornerRadius: cornerRadius
+	        )
+	    }
+	}
+
+// MARK: - CardMaterialBackground (shared helpers)
+fileprivate struct CardMaterialBackgroundGravitySample {
+    let x: Double
+    let y: Double
+    let z: Double
+}
+
+@MainActor
+fileprivate protocol CardMaterialBackgroundInputs {
+    var theme: CardTheme { get }
+    var effect: CardEffect { get }
+    var cornerRadius: CGFloat { get }
+    var enableMotion: Bool { get }
+
+    var themeManager: ThemeManager { get }
+    var colorScheme: ColorScheme { get }
+    var colorSchemeContrast: ColorSchemeContrast { get }
+    var reduceMotion: Bool { get }
+
+    var gravitySample: CardMaterialBackgroundGravitySample { get }
+}
+
+	@MainActor
+	fileprivate struct CardMaterialBackgroundStatic: View, CardMaterialBackgroundInputs {
+	    let theme: CardTheme
+	    let effect: CardEffect
+	    let cornerRadius: CGFloat
+	    let enableMotion: Bool = false
+
+	    @EnvironmentObject fileprivate var themeManager: ThemeManager
+	    @Environment(\.colorScheme) fileprivate var colorScheme
+	    @Environment(\.colorSchemeContrast) fileprivate var colorSchemeContrast
+    @Environment(\.accessibilityReduceMotion) fileprivate var reduceMotion
+
+    fileprivate var gravitySample: CardMaterialBackgroundGravitySample {
+        // Static gravity sample so all motion-driven parameters collapse to the
+        // legacy defaults without subscribing to motion updates.
+        CardMaterialBackgroundGravitySample(x: 0, y: 0, z: 1)
+    }
+
+    var body: some View {
+        CardMaterialBackgroundBody(inputs: self)
+    }
+}
+
+@MainActor
+fileprivate struct CardMaterialBackgroundBody<Inputs: CardMaterialBackgroundInputs>: View {
+    let inputs: Inputs
 
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
             ZStack {
-                if effect == .glass {
-                    glassSurface(for: size)
+                if inputs.effect == .glass {
+                    inputs.glassSurface(for: size)
                 } else {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(materialFill(for: size))
-                        .saturation(materialSaturation)
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(materialOverlayColor(for: size))
-                    if effect == .holographic && shouldUseMaterial {
-                        let ring = holographicRingMetrics(for: size)
-                        let ringShape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: inputs.cornerRadius, style: .continuous)
+                        .fill(inputs.materialFill(for: size))
+                        .saturation(inputs.materialSaturation)
+                    RoundedRectangle(cornerRadius: inputs.cornerRadius, style: .continuous)
+                        .fill(inputs.materialOverlayColor(for: size))
+                    if inputs.effect == .holographic && inputs.shouldUseMaterial {
+                        let ring = inputs.holographicRingMetrics(for: size)
+                        let ringShape = RoundedRectangle(cornerRadius: inputs.cornerRadius, style: .continuous)
                             .inset(by: ring.inset)
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(holographicFoilOverlay(for: size))
+                        RoundedRectangle(cornerRadius: inputs.cornerRadius, style: .continuous)
+                            .fill(inputs.holographicFoilOverlay(for: size))
                             .blendMode(.plusLighter)
-                            .opacity(holographicFoilOverlayOpacity(for: size))
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(holographicRainbowOverlay(for: size))
+                            .opacity(inputs.holographicFoilOverlayOpacity(for: size))
+                        RoundedRectangle(cornerRadius: inputs.cornerRadius, style: .continuous)
+                            .fill(inputs.holographicRainbowOverlay(for: size))
                             .blendMode(.softLight)
-                            .opacity(holographicRainbowOverlayOpacity(for: size))
+                            .opacity(inputs.holographicRainbowOverlayOpacity(for: size))
                         ringShape
-                            .strokeBorder(holographicFoilOverlay(for: size), lineWidth: ring.thickness)
+                            .strokeBorder(inputs.holographicFoilOverlay(for: size), lineWidth: ring.thickness)
                             .blendMode(.plusLighter)
-                            .opacity(holographicRingRimOpacity(for: size))
+                            .opacity(inputs.holographicRingRimOpacity(for: size))
                         ringShape
-                            .strokeBorder(holographicRainbowOverlay(for: size), lineWidth: ring.thickness * 2.2)
+                            .strokeBorder(inputs.holographicRainbowOverlay(for: size), lineWidth: ring.thickness * 2.2)
                             .blendMode(.softLight)
-                            .opacity(holographicRingFillOpacity(for: size))
+                            .opacity(inputs.holographicRingFillOpacity(for: size))
                             .blur(radius: ring.thickness * 0.35)
                     }
-                    if effect == .metal && shouldUseMaterial {
+                    if inputs.effect == .metal && inputs.shouldUseMaterial {
                         MetalAnisotropicBandingOverlay(
-                            cornerRadius: cornerRadius,
+                            cornerRadius: inputs.cornerRadius,
                             bandHeight: 1.6,
                             gap: 14.0,
-                            highlight: metalBandHighlight,
-                            shadow: metalBandShadow
+                            highlight: inputs.metalBandHighlight,
+                            shadow: inputs.metalBandShadow
                         )
                         .blendMode(.softLight)
                         .opacity(0.05)
                         MetalBrushedLinesOverlay(
-                            cornerRadius: cornerRadius,
+                            cornerRadius: inputs.cornerRadius,
                             spacing: 2.8,
                             thickness: 0.7,
-                            color: metalBrushColor
+                            color: inputs.metalBrushColor
                         )
                         .blendMode(.softLight)
                         .opacity(0.15)
@@ -339,7 +386,8 @@ struct CardMaterialBackground: View {
     }
 }
 
-private extension CardMaterialBackground {
+@MainActor
+fileprivate extension CardMaterialBackgroundInputs {
     var shouldUseMaterial: Bool {
         themeManager.selectedTheme.usesGlassMaterials && colorSchemeContrast != .increased
     }
@@ -834,20 +882,8 @@ private extension CardMaterialBackground {
 }
 
 // MARK: - Motion → Parameters
-private extension CardMaterialBackground {
-    struct GravitySample {
-        let x: Double
-        let y: Double
-        let z: Double
-    }
-
-    var gravitySample: GravitySample {
-        GravitySample(
-            x: motion.displayGravityX,
-            y: motion.displayGravityY,
-            z: motion.displayGravityZ
-        )
-    }
+@MainActor
+fileprivate extension CardMaterialBackgroundInputs {
 
     var horizontalMagnitude: Double {
         let g = gravitySample

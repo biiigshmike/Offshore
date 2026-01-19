@@ -1049,14 +1049,13 @@ struct HomeView: View {
         NavigationLink(value: card) {
             widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, span: WidgetSpan(width: 1, height: 2)) {
                 VStack(alignment: .leading, spacing: Spacing.s) {
-                    CardTileView(
-                        card: card,
-                        isInteractive: false,
-                        enableMotionShine: true,
-                        enableMaterialMotion: true,
-                        showsBaseShadow: false,
-                        showsEffectOverlay: true
-                    )
+	                    CardTileView(
+	                        card: card,
+	                        isInteractive: false,
+	                        enableMotionShine: true,
+	                        showsBaseShadow: false,
+	                        showsEffectOverlay: true
+	                    )
                         .frame(maxWidth: cardWidgetMaxWidth, alignment: .leading)
                     if let balance = card.balance {
                         Text("\(formatCurrency(balance))")
@@ -5243,14 +5242,13 @@ private struct NextPlannedExpenseWidgetRow: View {
     @ViewBuilder
     private var cardPreview: some View {
         if let cardItem {
-            CardTileView(
-                card: cardItem,
-                isInteractive: false,
-                enableMotionShine: false,
-                enableMaterialMotion: false,
-                showsBaseShadow: false,
-                showsEffectOverlay: true,
-                nonAccessibilityTitleLineLimit: 1,
+	            CardTileView(
+	                card: cardItem,
+	                isInteractive: false,
+	                enableMotionShine: false,
+	                showsBaseShadow: false,
+	                showsEffectOverlay: true,
+	                nonAccessibilityTitleLineLimit: 1,
                 nonAccessibilityTitleMinimumScaleFactor: 0.78,
                 nonAccessibilityTitleAllowsTightening: true
             )

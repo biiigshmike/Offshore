@@ -190,7 +190,9 @@ final class UnplannedExpenseService {
                 recurrenceEnd: Date? = nil,
                 secondBiMonthlyDay: Int16? = nil,
                 secondBiMonthlyDate: Date? = nil,
-                parentID: UUID? = nil) throws -> UnplannedExpense {
+                parentID: UUID? = nil,
+                saveImmediately: Bool = true,
+                emitSideEffects: Bool = true) throws -> UnplannedExpense {
         let cardBase = NSPredicate(format: "id == %@", cardID as CVarArg)
         let cardPredicate: NSPredicate = {
             guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return cardBase }
@@ -227,10 +229,14 @@ final class UnplannedExpenseService {
             WorkspaceService.applyWorkspaceIDIfPossible(on: exp)
         }
         
-        try expenseRepo.saveIfNeeded()
-        LocalNotificationScheduler.shared.recordExpenseAdded()
-        Task { await LocalNotificationScheduler.shared.refreshDailyReminder() }
-        WidgetRefreshCoordinator.refreshAllTimelines()
+        if saveImmediately {
+            try expenseRepo.saveIfNeeded()
+        }
+        if emitSideEffects {
+            LocalNotificationScheduler.shared.recordExpenseAdded()
+            Task { await LocalNotificationScheduler.shared.refreshDailyReminder() }
+            WidgetRefreshCoordinator.refreshAllTimelines()
+        }
         return expense
     }
     

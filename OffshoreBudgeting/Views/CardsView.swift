@@ -88,16 +88,17 @@ struct CardsView: View {
                                     let cardRowID = card.uuid?.uuidString
                                         ?? card.objectID?.uriRepresentation().absoluteString
                                         ?? card.id
+                                    let disableListMotion = UBPerfExperiments.disableListMotionEffects
                                     NavigationLink(value: card) {
-                                        CardTileView(
-                                            card: card,
-                                            isSelected: false,
-                                            onTap: { /* handled by NavigationLink */ },
-                                            isInteractive: false,
-                                            enableMotionShine: true,
-                                            showsBaseShadow: false,
-                                            showsEffectOverlay: true
-                                        )
+	                                        CardTileView(
+	                                            card: card,
+	                                            isSelected: false,
+	                                            onTap: { /* handled by NavigationLink */ },
+	                                            isInteractive: false,
+	                                            enableMotionShine: disableListMotion ? false : true,
+	                                            showsBaseShadow: false,
+	                                            showsEffectOverlay: true
+	                                        )
                                         .frame(maxWidth: usesSingleColumn ? .infinity : nil)
                                         .frame(minHeight: cardHeight)
                                     }

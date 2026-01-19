@@ -288,7 +288,8 @@ final class PlannedExpenseService {
     func createGlobalTemplate(titleOrDescription: String,
                               plannedAmount: Double,
                               actualAmount: Double = 0,
-                              defaultTransactionDate: Date = Date()) throws -> PlannedExpense {
+                              defaultTransactionDate: Date = Date(),
+                              saveImmediately: Bool = true) throws -> PlannedExpense {
         let template = expenseRepo.create { exp in
             exp.setValue(UUID(), forKey: "id")
             Self.setTitleOrDescription(on: exp, value: titleOrDescription)
@@ -301,7 +302,9 @@ final class PlannedExpenseService {
             exp.setValue(nil, forKey: "budget")
             WorkspaceService.applyWorkspaceIDIfPossible(on: exp)
         }
-        try expenseRepo.saveIfNeeded()
+        if saveImmediately {
+            try expenseRepo.saveIfNeeded()
+        }
         return template
     }
     

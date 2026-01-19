@@ -254,12 +254,11 @@ private struct EffectSwatch: View {
                 theme
                     .patternOverlay(cornerRadius: Radius.card)
                     .blendMode(.overlay)
-                CardMaterialBackground(
-                    theme: theme,
-                    effect: effect,
-                    cornerRadius: Radius.card,
-                    enableMotion: false
-                )
+	                CardMaterialBackground(
+	                    theme: theme,
+	                    effect: effect,
+	                    cornerRadius: Radius.card
+	                )
                 RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .stroke(Colors.whiteOpacity006, lineWidth: 1)
             }

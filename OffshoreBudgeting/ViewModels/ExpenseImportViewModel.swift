@@ -39,14 +39,14 @@ final class ExpenseImportViewModel: ObservableObject {
     }
 
     // MARK: - ImportKind
-    enum ImportKind: Equatable {
+    enum ImportKind: Hashable {
         case debit
         case credit
         case payment
     }
 
     // MARK: - ImportAs
-    enum ImportAs: Equatable {
+    enum ImportAs: Hashable {
         case expense
         case income
     }
@@ -292,23 +292,30 @@ final class ExpenseImportViewModel: ObservableObject {
         }
 
         let card = try cardService.findCard(byID: cardID)
+        let batchWrites = UBPerfExperiments.importBatchWrites
+        var createdAnyIncome = false
+        var createdAnyExpense = false
         for row in rowsToImport {
             guard let date = row.transactionDate else { continue }
 
             switch row.importAs {
             case .income:
                 guard let amount = row.normalizedAmountForIncomeImport else { continue }
+                createdAnyIncome = true
                 _ = try UBPerf.measure("ExpenseImport.createIncome") {
                     try incomeService.createIncome(
                         source: row.descriptionText,
                         amount: amount,
                         date: date,
-                        isPlanned: false
+                        isPlanned: false,
+                        saveImmediately: !batchWrites,
+                        notifyScheduleChanged: !batchWrites
                     )
                 }
 
             case .expense:
                 guard let amount = row.normalizedAmountForImport else { continue }
+                createdAnyExpense = true
 
                 let categoryID: UUID? = {
                     guard let selected = row.selectedCategoryID,
@@ -326,7 +333,9 @@ final class ExpenseImportViewModel: ObservableObject {
                         amount: amount,
                         date: date,
                         cardID: cardID,
-                        categoryID: categoryID
+                        categoryID: categoryID,
+                        saveImmediately: !batchWrites,
+                        emitSideEffects: !batchWrites
                     )
                 }
 
@@ -336,7 +345,8 @@ final class ExpenseImportViewModel: ObservableObject {
                             titleOrDescription: row.descriptionText,
                             plannedAmount: amount,
                             actualAmount: amount,
-                            defaultTransactionDate: date
+                            defaultTransactionDate: date,
+                            saveImmediately: !batchWrites
                         )
                     }
 
@@ -347,7 +357,7 @@ final class ExpenseImportViewModel: ObservableObject {
                     if let card {
                         template.card = card
                     }
-                    if context.hasChanges {
+                    if !batchWrites, context.hasChanges {
                         try UBPerf.measure("ExpenseImport.context.saveTemplate") { try context.save() }
                     }
                 }
@@ -356,6 +366,18 @@ final class ExpenseImportViewModel: ObservableObject {
             if row.useNameNextTime {
                 nameLearningStore.savePreferredName(row.descriptionText, forOriginalDescription: row.originalDescriptionText)
             }
+        }
+
+        if batchWrites, context.hasChanges {
+            try UBPerf.measure("ExpenseImport.context.saveBatch") { try context.save() }
+            if createdAnyExpense {
+                LocalNotificationScheduler.shared.recordExpenseAdded()
+                Task { await LocalNotificationScheduler.shared.refreshDailyReminder() }
+            }
+            if createdAnyIncome {
+                Task { await LocalNotificationScheduler.shared.refreshPlannedIncomeReminders() }
+            }
+            WidgetRefreshCoordinator.refreshAllTimelines()
         }
 
         if UBPerf.isEnabled {

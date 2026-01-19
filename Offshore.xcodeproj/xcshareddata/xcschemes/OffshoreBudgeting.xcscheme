@@ -83,7 +83,7 @@
          <EnvironmentVariable
             key = "RUN_CLOUD_SMOKE"
             value = "1"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "UB_PERF_EXPERIMENT_NO_TAB_REMOUNT"
@@ -93,17 +93,117 @@
          <EnvironmentVariable
             key = "UB_PERF_EXPERIMENT_MOTION_REDUCE_RAW_PUBLISH"
             value = "1"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "UB_PERF_EXPERIMENT_MOTION_THROTTLE_HZ"
-            value = "30"
-            isEnabled = "YES">
+            value = "5"
+            isEnabled = "NO">
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "UB_PERF_EXPERIMENT_IMPORT_OFF_MAIN"
             value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF"
+            value = "1"
             isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_STDOUT"
+            value = "1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_MOTION_DISABLE"
+            value = ""
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_DISABLE_LIST_MOTION_EFFECTS"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_STABILIZE_LIST"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_DEBOUNCE_PRUNE"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_DEBOUNCE_PRUNE_MS"
+            value = ""
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_AVOID_EDITMODE"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_DISABLE_ANIMATIONS"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_DEDUPE_TOGGLES"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_DEDUPE_TOGGLES_MS"
+            value = "100"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_STICKY_SELECTION"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_BATCH_WRITES"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_MOTION_SINGLE_PUBLISH"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_CHECKMARK_NO_HIGHLIGHT"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_MOTION_BACKGROUND_QUEUE"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_PAUSE_DETAIL_MOTION_DURING_IMPORT"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_SELECTALL_NO_ANIM"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "UB_PERF_EXPERIMENT_IMPORT_SELECTMODE_SCROLL"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "CG_NUMERICS_SHOW_BACKTRACE"
+            value = "1"
+            isEnabled = "NO">
          </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>

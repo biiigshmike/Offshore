@@ -47,19 +47,20 @@ struct CardPickerRow: View {
                         let item = CardItem(from: managedCard)
                         let isSelected = selectedCardID == managedCard.objectID
                         let idString = managedCard.objectID.uriRepresentation().absoluteString
+                        let disableListMotion = UBPerfExperiments.disableListMotionEffects
 
-                        CardTileView(
-                            card: item,
-                            isSelected: isSelected,
-                            onTap: {
+	                        CardTileView(
+	                            card: item,
+	                            isSelected: isSelected,
+	                            onTap: {
                                 // MARK: On Tap → Select for Expense
                                 withAnimation(.easeInOut) {
                                     selectedCardID = managedCard.objectID
                                 }
-                            },
-                            enableMotionShine: true,
-                            showsBaseShadow: false
-                        )
+	                            },
+	                            enableMotionShine: disableListMotion ? false : true,
+	                            showsBaseShadow: false
+	                        )
                         .frame(minHeight: tileHeight)
                         .id(idString)
                     }

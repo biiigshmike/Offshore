@@ -193,7 +193,7 @@ struct CardDetailView: View {
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
 #else
-        .sheet(item: $importSelection, onDismiss: { importSelection = nil }) { selection in
+        .fullScreenCover(item: $importSelection, onDismiss: { importSelection = nil }) { selection in
             ExpenseImportView(card: cardSnapshot, fileURL: selection.url) { refreshCardDetails() }
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
@@ -235,16 +235,24 @@ struct CardDetailView: View {
 
     @ViewBuilder
     private func detailsList(cardMaxWidth: CGFloat?) -> some View {
-        List {
-            Section {
-                let topPadding: CGFloat = uiTestingFlags.isUITesting ? Spacing.s : initialHeaderTopPadding
-                let bottomPadding: CGFloat = uiTestingFlags.isUITesting ? Spacing.xs : Spacing.m
+	        List {
+	            Section {
+	                let topPadding: CGFloat = uiTestingFlags.isUITesting ? Spacing.s : initialHeaderTopPadding
+	                let bottomPadding: CGFloat = uiTestingFlags.isUITesting ? Spacing.xs : Spacing.m
 
-                let tile = CardTileView(card: cardSnapshot, enableMotionShine: true, showsEffectOverlay: true)
-                    .frame(maxWidth: cardMaxWidth)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, topPadding)
-                    .padding(.bottom, bottomPadding)
+	                let isImportActive = isPresentingImportPicker || importSelection != nil
+	                let shouldPauseEffectsDuringImport = UBPerfExperiments.pauseDetailMotionDuringImport && isImportActive
+	                let tile = CardTileView(
+	                    card: cardSnapshot,
+	                    enableMotionShine: !shouldPauseEffectsDuringImport,
+	                    // Keep the visual renderer stable while pausing motion updates so the card
+	                    // doesn't “flip” between effect vs. fallback backgrounds when import UI appears.
+	                    showsEffectOverlay: true
+	                )
+	                    .frame(maxWidth: cardMaxWidth)
+	                    .frame(maxWidth: .infinity, alignment: .center)
+	                    .padding(.top, topPadding)
+	                    .padding(.bottom, bottomPadding)
 
                 if uiTestingFlags.isUITesting {
                     tile.frame(height: 180)

@@ -123,7 +123,9 @@ final class IncomeService {
                       isPlanned: Bool,
                       recurrence: String? = nil,
                       recurrenceEndDate: Date? = nil,
-                      secondBiMonthlyDay: Int16? = nil) throws -> Income {
+                      secondBiMonthlyDay: Int16? = nil,
+                      saveImmediately: Bool = true,
+                      notifyScheduleChanged: Bool = true) throws -> Income {
         let income = repo.create { inc in
             // ✅ Assign via KVC to avoid `.id` ambiguity.
             inc.setValue(UUID(), forKey: "id")
@@ -140,8 +142,12 @@ final class IncomeService {
             WorkspaceService.applyWorkspaceIDIfPossible(on: inc)
         }
         try RecurrenceEngine.regenerateIncomeRecurrences(base: income, in: repo.context, calendar: calendar)
-        try repo.saveIfNeeded()
-        notifyIncomeScheduleChanged()
+        if saveImmediately {
+            try repo.saveIfNeeded()
+        }
+        if notifyScheduleChanged {
+            notifyIncomeScheduleChanged()
+        }
         return income
     }
     

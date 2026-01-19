@@ -131,7 +131,9 @@ private final class UBPerfRenderCounterStore: ObservableObject {
     func bump() {
         count += 1
         if count == 1 || (count % every == 0) {
-            UBPerf.renderLogger.info("\(self.name, privacy: .public) renders=\(self.count, privacy: .public)")
+            let line = "\(self.name) renders=\(self.count)"
+            UBPerf.renderLogger.info("\(line, privacy: .public)")
+            UBPerf.emit(line)
         }
     }
 }
@@ -220,18 +222,102 @@ enum UBPerfExperiments {
         ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_NO_TAB_REMOUNT"] == "1"
     }
 
-    static var motionReducePublishedRawFields: Bool {
-        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_MOTION_REDUCE_RAW_PUBLISH"] == "1"
-    }
-
-    static var motionThrottleHz: Int {
-        guard let raw = ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_MOTION_THROTTLE_HZ"],
-              let value = Int(raw)
-        else { return 0 }
-        return max(0, value)
+    /// Diagnostic: disables the metallic title treatment for list/grid tiles (e.g., CardsView grid).
+    /// Default OFF.
+    static var disableListMotionEffects: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_DISABLE_LIST_MOTION_EFFECTS"] == "1"
     }
 
     static var importLoadOffMainActor: Bool {
         ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_OFF_MAIN"] == "1"
+    }
+
+    /// Diagnostic/perf: caches derived import-row data (selectable IDs, ID→index lookups)
+    /// to reduce repeated O(n) scans during SwiftUI list updates.
+    /// Default OFF to preserve current behavior/perf characteristics.
+    static var importStabilizeList: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_STABILIZE_LIST"] == "1"
+    }
+
+    /// Diagnostic/perf: debounces selection pruning on import list row updates to reduce
+    /// rapid select/deselect flicker when row validity changes transiently (e.g., while editing).
+    /// Default OFF to preserve current behavior.
+    static var importDebounceSelectionPrune: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_DEBOUNCE_PRUNE"] == "1"
+    }
+
+    /// Optional override (milliseconds). If unset or invalid, defaults to 250ms.
+    static var importDebounceSelectionPruneDelayMs: Int {
+        guard let raw = ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_DEBOUNCE_PRUNE_MS"],
+              let value = Int(raw)
+        else { return 250 }
+        return max(0, value)
+    }
+
+    /// Perf/flicker experiment: avoid putting the SwiftUI `List` into EditMode, which can enable
+    /// UIKit selection/highlight behaviors and expensive list coordinator updates.
+    /// Default OFF to preserve current behavior.
+    static var importAvoidListEditMode: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_AVOID_EDITMODE"] == "1"
+    }
+
+    /// Perf/flicker experiment: disables implicit animations within the Import screen.
+    /// Default OFF to preserve current behavior.
+    static var importDisableAnimations: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_DISABLE_ANIMATIONS"] == "1"
+    }
+
+    /// Fix A (Import flicker): dedupe rapid toggle events for the same row ID (e.g., duplicate tap delivery).
+    /// Default OFF to preserve current behavior.
+    static var importDedupeToggleEvents: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_DEDUPE_TOGGLES"] == "1"
+    }
+
+    /// Optional override (milliseconds). If unset or invalid, defaults to 100ms.
+    static var importDedupeToggleWindowMs: Int {
+        guard let raw = ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_DEDUPE_TOGGLES_MS"],
+              let value = Int(raw)
+        else { return 100 }
+        return max(0, value)
+    }
+
+    /// Fix B (Import flicker): do not prune selections while the user is actively selecting.
+    /// Default OFF to preserve current behavior.
+    static var importStickySelectionDuringSelectMode: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_STICKY_SELECTION"] == "1"
+    }
+
+    /// Fix C (Import speed): avoid per-row Core Data saves and external side-effects (widgets/reminders),
+    /// and instead perform a single save/refresh at the end.
+    /// Default OFF to preserve current behavior.
+    static var importBatchWrites: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_BATCH_WRITES"] == "1"
+    }
+
+    /// Fix D2 (Import flicker): apply selection set changes (default selection, select all, deselect all)
+    /// without implicit animations to reduce list cell highlight/tint churn.
+    /// Default OFF to preserve current behavior.
+    static var importSelectionSetNoAnimation: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_SELECTALL_NO_ANIM"] == "1"
+    }
+
+    /// Fix D3 (Import flicker): when in selection mode, render the rows using ScrollView/LazyVStack
+    /// instead of SwiftUI List (UIKit-backed) to avoid selection/highlight flicker.
+    /// Default OFF to preserve current behavior.
+    static var importSelectModeUsesScrollView: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_SELECTMODE_SCROLL"] == "1"
+    }
+
+    /// Fix D (Import flicker): suppress pressed/highlight visuals for the checkmark control
+    /// to reduce UIKit/SwiftUI tint/highlight flicker without changing selection state logic.
+    /// Default OFF to preserve current behavior.
+    static var importCheckmarkNoPressedHighlight: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_IMPORT_CHECKMARK_NO_HIGHLIGHT"] == "1"
+    }
+
+    /// Fix 1 (Motion vs Import): pause motion/effect updates in CardDetailView while the Import sheet/picker is active.
+    /// Default OFF to preserve current behavior.
+    static var pauseDetailMotionDuringImport: Bool {
+        ProcessInfo.processInfo.environment["UB_PERF_EXPERIMENT_PAUSE_DETAIL_MOTION_DURING_IMPORT"] == "1"
     }
 }

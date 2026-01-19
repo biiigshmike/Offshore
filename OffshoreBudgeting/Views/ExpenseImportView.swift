@@ -7,6 +7,9 @@
 
 import SwiftUI
 import CoreData
+#if os(iOS) || targetEnvironment(macCatalyst)
+import UIKit
+#endif
 
 // MARK: - ExpenseImportView
 struct ExpenseImportView: View {
@@ -16,24 +19,33 @@ struct ExpenseImportView: View {
 
     // MARK: State
     @StateObject private var viewModel: ExpenseImportViewModel
-    @State private var editMode: EditMode = .inactive
+    @State private var isSelectingOverride = false
     @State private var selectedIDs: Set<UUID> = []
     @State private var didApplyDefaultSelection = false
     @State private var isPresentingAddCategory = false
     @State private var isPresentingAssignCategory = false
     @State private var isShowingMissingCategoryAlert = false
     @State private var importError: ImportError?
-    @State private var lastKnownSelection: Set<UUID> = []
     @State private var isReadyExpanded = true
-    @State private var isPossibleExpanded = true
-    @State private var isDuplicatesExpanded = true
-    @State private var isNeedsExpanded = true
-    @State private var isPaymentsExpanded = true
-    @State private var isCreditsExpanded = true
+    @State private var isPossibleExpanded = false
+    @State private var isDuplicatesExpanded = false
+    @State private var isNeedsExpanded = false
+    @State private var isPaymentsExpanded = false
+    @State private var isCreditsExpanded = false
+    @State private var cachedSelectableRowIDs: Set<UUID> = []
+    @State private var rowIndexByID: [UUID: Int] = [:]
+    @State private var pendingPruneTask: Task<Void, Never>?
+    @State private var lastLoggedSelectedIDs: Set<UUID> = []
     @FocusState private var isKeyboardFocused: Bool
     @ScaledMetric private var categoryDotSize: CGFloat = 10
+    @ScaledMetric(relativeTo: .body) private var selectionIndicatorSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var selectionIndicatorStroke: CGFloat = 2
 
     @Environment(\.dismiss) private var dismiss
+
+    private var isSelecting: Bool {
+        isSelectingOverride
+    }
 
     // MARK: Init
     init(card: CardItem, fileURL: URL, onComplete: @escaping () -> Void) {
@@ -50,23 +62,48 @@ struct ExpenseImportView: View {
                 .navigationTitle("Import Expenses")
                 .ub_windowTitle("Import Expenses")
                 .toolbar { toolbarContent }
+                .safeAreaInset(edge: .bottom) {
+                    if case .loaded = viewModel.state {
+                        bottomActionBar
+                    }
+                }
         }
-        .environment(\.editMode, $editMode)
-        .applyDetentsIfAvailable(detents: [.large], selection: nil)
         .task { await UBPerf.measureAsync("ExpenseImportViewModel.load") { await viewModel.load() } }
         .onAppear { UBPerf.mark("ExpenseImportView.onAppear") }
-        .onDisappear { UBPerf.mark("ExpenseImportView.onDisappear") }
-        .onChange(of: viewModel.rows) { _ in
-            pruneSelections()
-            applyDefaultSelectionIfNeeded()
+        .onDisappear {
+            pendingPruneTask?.cancel()
+            pendingPruneTask = nil
+            UBPerf.mark("ExpenseImportView.onDisappear")
         }
-        .onChange(of: editMode) { mode in
-            if mode == .active, selectedIDs.isEmpty, !lastKnownSelection.isEmpty {
-                selectedIDs = lastKnownSelection
+        .onChange(of: viewModel.rows) { _ in
+            applyDefaultSelectionIfNeeded()
+            if UBPerfExperiments.importStabilizeList {
+                rowIndexByID = Dictionary(uniqueKeysWithValues: viewModel.rows.indices.map { idx in
+                    (viewModel.rows[idx].id, idx)
+                })
+                cachedSelectableRowIDs = viewModel.selectableRowIDs
             }
+            schedulePruneSelectionsIfNeeded()
+        }
+        .onChange(of: selectedIDs) { newValue in
+            guard UBPerf.isEnabled else { return }
+            let added = newValue.subtracting(lastLoggedSelectedIDs)
+            let removed = lastLoggedSelectedIDs.subtracting(newValue)
+            let addedPrefix = added.prefix(3).map { String($0.uuidString.prefix(8)) }.joined(separator: ",")
+            let removedPrefix = removed.prefix(3).map { String($0.uuidString.prefix(8)) }.joined(separator: ",")
+            let line = "ExpenseImportView.selectedIDs count=\(newValue.count) isSelecting=\(self.isSelecting) added=\(added.count) removed=\(removed.count) addedPrefix=[\(addedPrefix)] removedPrefix=[\(removedPrefix)]"
+            UBPerf.logger.info("\(line, privacy: .public)")
+            UBPerf.emit(line)
+            lastLoggedSelectedIDs = newValue
         }
         .onChange(of: viewModel.state) { _ in
             applyDefaultSelectionIfNeeded()
+        }
+        .onChange(of: isSelectingOverride) { newValue in
+            guard UBPerf.isEnabled else { return }
+            let line = "ExpenseImportView.isSelectingOverride \(newValue ? "ON" : "OFF") selected=\(selectedIDs.count)"
+            UBPerf.logger.info("\(line, privacy: .public)")
+            UBPerf.emit(line)
         }
         .sheet(isPresented: $isPresentingAddCategory) {
             ExpenseCategoryEditorSheet(
@@ -128,196 +165,388 @@ struct ExpenseImportView: View {
         }
     }
 
-    private var listContent: some View {
-        List {
-	            if !viewModel.readyRowIDs.isEmpty {
-	                Section(header: sectionHeader(title: "Ready for Import", isExpanded: $isReadyExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.readyForImportHeader)) {
-	                    if isReadyExpanded {
-	                        ForEach(viewModel.readyRowIDs, id: \.self) { id in
-	                            if let binding = binding(for: id) {
-	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-	                            }
-                        }
-                    }
-                }
-            }
+    private func performSelectionSetUpdate(_ update: () -> Void) {
+        var transaction = Transaction()
+        transaction.animation = nil
+        transaction.disablesAnimations = true
 
-	            if !viewModel.possibleMatchRowIDs.isEmpty {
-	                Section(header: sectionHeader(title: "Possible Matches", isExpanded: $isPossibleExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.possibleMatchesHeader)) {
-	                    if isPossibleExpanded {
-	                        ForEach(viewModel.possibleMatchRowIDs, id: \.self) { id in
-	                            if let binding = binding(for: id) {
-	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-	                            }
-                        }
-                    }
-                }
-            }
-
-	            if !viewModel.possibleDuplicateRowIDs.isEmpty {
-	                Section(header: sectionHeader(title: "Possible Duplicates", isExpanded: $isDuplicatesExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.possibleDuplicatesHeader)) {
-	                    if isDuplicatesExpanded {
-	                        ForEach(viewModel.possibleDuplicateRowIDs, id: \.self) { id in
-	                            if let binding = binding(for: id) {
-	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-	                            }
-                        }
-                    }
-                }
-            }
-
-	            if !viewModel.missingDataRowIDs.isEmpty {
-	                Section(header: sectionHeader(title: "Needs More Data", isExpanded: $isNeedsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.needsMoreDataHeader)) {
-	                    if isNeedsExpanded {
-	                        ForEach(viewModel.missingDataRowIDs, id: \.self) { id in
-	                            if let binding = binding(for: id) {
-	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-	                            }
-                        }
-                    }
-                }
-            }
-
-	            if !viewModel.paymentRowIDs.isEmpty {
-	                Section(header: sectionHeader(title: "Payments", isExpanded: $isPaymentsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.paymentsHeader)) {
-	                    if isPaymentsExpanded {
-	                        ForEach(viewModel.paymentRowIDs, id: \.self) { id in
-	                            if let binding = binding(for: id) {
-	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-	                            }
-                        }
-                    }
-                }
-            }
-
-	            if !viewModel.creditRowIDs.isEmpty {
-	                Section(header: sectionHeader(title: "Credits", isExpanded: $isCreditsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.creditsHeader)) {
-	                    if isCreditsExpanded {
-	                        ForEach(viewModel.creditRowIDs, id: \.self) { id in
-	                            if let binding = binding(for: id) {
-	                                importRowView(binding, isSelectable: viewModel.selectableRowIDs.contains(id))
-	                            }
-                        }
-                    }
-                }
-            }
-	        }
-	        .listStyle(.insetGrouped)
 #if os(iOS) || targetEnvironment(macCatalyst)
-            .scrollDismissesKeyboard(.interactively)
+        UIView.performWithoutAnimation {
+            withTransaction(transaction) { update() }
+        }
+#else
+        withTransaction(transaction) { update() }
 #endif
-	        .accessibilityIdentifier(AccessibilityID.ExpenseImport.list)
-	    }
+    }
+
+    @ViewBuilder
+    private var listContent: some View {
+        let selectableIDs = UBPerfExperiments.importStabilizeList ? cachedSelectableRowIDs : viewModel.selectableRowIDs
+        ScrollView(.vertical) {
+            LazyVStack(alignment: .leading, spacing: Spacing.m) {
+                importSections(selectableIDs: selectableIDs)
+            }
+            .padding(.horizontal, Spacing.l)
+            .padding(.vertical, Spacing.s)
+        }
+#if os(iOS) || targetEnvironment(macCatalyst)
+        .scrollDismissesKeyboard(.interactively)
+#endif
+        .transaction { t in
+            guard UBPerfExperiments.importDisableAnimations else { return }
+            t.animation = nil
+            t.disablesAnimations = true
+        }
+        .accessibilityIdentifier(AccessibilityID.ExpenseImport.list)
+    }
+
+    @ViewBuilder
+    private func importSections(selectableIDs: Set<UUID>) -> some View {
+        if !viewModel.possibleDuplicateRowIDs.isEmpty {
+            Section(header: sectionHeader(title: "Possible Duplicates", isExpanded: $isDuplicatesExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.possibleDuplicatesHeader)) {
+                if isDuplicatesExpanded {
+                    VStack(spacing: Spacing.s) {
+                        ForEach(viewModel.possibleDuplicateRowIDs, id: \.self) { id in
+                            if let binding = binding(for: id) {
+                                importRowView(binding, isSelectable: selectableIDs.contains(id))
+                            }
+                        }
+                    }
+                    .padding(.top, Spacing.xs)
+                }
+            }
+        }
+
+        if !viewModel.missingDataRowIDs.isEmpty {
+            Section(header: sectionHeader(title: "Needs More Data", isExpanded: $isNeedsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.needsMoreDataHeader)) {
+                if isNeedsExpanded {
+                    VStack(spacing: Spacing.s) {
+                        ForEach(viewModel.missingDataRowIDs, id: \.self) { id in
+                            if let binding = binding(for: id) {
+                                importRowView(binding, isSelectable: selectableIDs.contains(id))
+                            }
+                        }
+                    }
+                    .padding(.top, Spacing.xs)
+                }
+            }
+        }
+
+        if !viewModel.paymentRowIDs.isEmpty {
+            Section(header: sectionHeader(title: "Payments", isExpanded: $isPaymentsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.paymentsHeader)) {
+                if isPaymentsExpanded {
+                    VStack(spacing: Spacing.s) {
+                        ForEach(viewModel.paymentRowIDs, id: \.self) { id in
+                            if let binding = binding(for: id) {
+                                importRowView(binding, isSelectable: selectableIDs.contains(id))
+                            }
+                        }
+                    }
+                    .padding(.top, Spacing.xs)
+                }
+            }
+        }
+
+        if !viewModel.creditRowIDs.isEmpty {
+            Section(header: sectionHeader(title: "Credits", isExpanded: $isCreditsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.creditsHeader)) {
+                if isCreditsExpanded {
+                    VStack(spacing: Spacing.s) {
+                        ForEach(viewModel.creditRowIDs, id: \.self) { id in
+                            if let binding = binding(for: id) {
+                                importRowView(binding, isSelectable: selectableIDs.contains(id))
+                            }
+                        }
+                    }
+                    .padding(.top, Spacing.xs)
+                }
+            }
+        }
+
+        if !viewModel.possibleMatchRowIDs.isEmpty {
+            Section(header: sectionHeader(title: "Possible Matches", isExpanded: $isPossibleExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.possibleMatchesHeader)) {
+                if isPossibleExpanded {
+                    VStack(spacing: Spacing.s) {
+                        ForEach(viewModel.possibleMatchRowIDs, id: \.self) { id in
+                            if let binding = binding(for: id) {
+                                importRowView(binding, isSelectable: selectableIDs.contains(id))
+                            }
+                        }
+                    }
+                    .padding(.top, Spacing.xs)
+                }
+            }
+        }
+
+        if !viewModel.readyRowIDs.isEmpty {
+            Section(header: sectionHeader(title: "Ready for Import", isExpanded: $isReadyExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.readyForImportHeader)) {
+                if isReadyExpanded {
+                    VStack(spacing: Spacing.s) {
+                        ForEach(viewModel.readyRowIDs, id: \.self) { id in
+                            if let binding = binding(for: id) {
+                                importRowView(binding, isSelectable: selectableIDs.contains(id))
+                            }
+                        }
+                    }
+                    .padding(.top, Spacing.xs)
+                }
+            }
+        }
+    }
 
     @ViewBuilder
     private func importRowView(_ row: Binding<ExpenseImportViewModel.ImportRow>, isSelectable: Bool) -> some View {
         let selectedCategoryName = viewModel.categoryName(for: row.wrappedValue.selectedCategoryID)
-	        let selectedCategoryHex = viewModel.categoryHex(for: row.wrappedValue.selectedCategoryID)
-	        let isSelected = selectedIDs.contains(row.wrappedValue.id)
+		        let selectedCategoryHex = viewModel.categoryHex(for: row.wrappedValue.selectedCategoryID)
+		        let isSelected = selectedIDs.contains(row.wrappedValue.id)
 	
-	        HStack(alignment: .top, spacing: Spacing.m) {
-	            if editMode == .active {
-	                Button(action: { toggleSelection(for: row.wrappedValue.id, isSelectable: isSelectable) }) {
-		                    Image(systemName: isSelected ? Icons.sfCheckmarkCircleFill : "circle")
-	                        .font(.system(size: 18, weight: .semibold))
-	                        .foregroundStyle(isSelected ? Color.accentColor : (isSelectable ? Color.secondary : Color.secondary.opacity(0.4)))
-	                }
-	                .buttonStyle(.plain)
-	                .accessibilityLabel(isSelected ? "Selected" : (isSelectable ? "Not selected" : "Selection unavailable"))
-	                .padding(.top, Spacing.xxs)
-	                .disabled(!isSelectable)
-	            } else if isSelected, isSelectable {
-		                Image(systemName: Icons.sfCheckmarkCircleFill)
-	                    .font(.system(size: 18, weight: .semibold))
-	                    .foregroundStyle(Color.accentColor)
-	                    .accessibilityLabel("Selected")
-	                    .padding(.top, Spacing.xxs)
-	            }
-	
-	            VStack(alignment: .leading, spacing: Spacing.s) {
-	                badgeRow(for: row)
+        let canToggleSelection: Bool = {
+            guard isSelecting else { return false }
+            if isSelected { return true }
+            return isSelectable
+        }()
 
-                    Picker("Import As", selection: row.importAs) {
-                        Text("Expense").tag(ExpenseImportViewModel.ImportAs.expense)
-                        Text("Income").tag(ExpenseImportViewModel.ImportAs.income)
+        let inner = rowCard(isSelected: isSelected) {
+            HStack(alignment: .top, spacing: Spacing.m) {
+                selectionIndicator(isSelected: isSelected, isSelectable: isSelectable)
+                    .padding(.top, Spacing.xxs)
+
+                Group {
+                    if isSelecting {
+                        selectModeRowContent(
+                            row: row.wrappedValue,
+                            isSelectable: isSelectable,
+                            selectedCategoryName: selectedCategoryName,
+                            selectedCategoryHex: selectedCategoryHex
+                        )
+                    } else {
+                        editableRowContent(
+                            row: row,
+                            selectedCategoryName: selectedCategoryName,
+                            selectedCategoryHex: selectedCategoryHex
+                        )
                     }
-                    .pickerStyle(.segmented)
-                    .accessibilityLabel("Import As")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityIdentifier(AccessibilityID.ExpenseImport.row(id: row.wrappedValue.id))
 
-	                TextField("Expense Description", text: row.descriptionText)
-	                    .autocorrectionDisabled(true)
-	                    .textInputAutocapitalization(.never)
-                        .focused($isKeyboardFocused)
-                    .accessibilityLabel("Expense Description")
+        if isSelecting {
+            Button(action: { toggleSelection(for: row.wrappedValue.id, isSelectable: isSelectable) }) {
+                inner
+            }
+            .buttonStyle(UBNoHighlightButtonStyle())
+            .disabled(!canToggleSelection)
+            .accessibilityLabel(isSelected ? "Selected" : (isSelectable ? "Not selected" : "Selection unavailable"))
+        } else {
+            inner
+        }
+    }
 
-                    if !row.wrappedValue.originalDescriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text("Original: \(row.wrappedValue.originalDescriptionText)")
-                            .font(Typography.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                            .accessibilityLabel("Original description")
-                    }
+    private func editableRowContent(
+        row: Binding<ExpenseImportViewModel.ImportRow>,
+        selectedCategoryName: String,
+        selectedCategoryHex: String?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            badgeRow(for: row)
 
-                TextField("Amount", text: row.amountText)
-                    .keyboardType(.decimalPad)
-                    .focused($isKeyboardFocused)
-                    .accessibilityLabel("Amount")
+            Picker("Import As", selection: row.importAs) {
+                Text("Expense").tag(ExpenseImportViewModel.ImportAs.expense)
+                Text("Income").tag(ExpenseImportViewModel.ImportAs.income)
+            }
+            .pickerStyle(.segmented)
+            .tint(Colors.actualIncome)
+            .accessibilityLabel("Import As")
 
-                DatePicker("Transaction Date", selection: bindingDate(for: row), displayedComponents: [.date])
-                    .datePickerStyle(.compact)
-                    .accessibilityLabel("Transaction Date")
+            TextField("Expense Description", text: row.descriptionText)
+                .autocorrectionDisabled(true)
+                .textInputAutocapitalization(.never)
+                .focused($isKeyboardFocused)
+                .accessibilityLabel("Expense Description")
 
-                if row.wrappedValue.importAs == .expense {
-                    Menu {
-                        ForEach(viewModel.categories, id: \.objectID) { category in
-                            Button(category.name ?? "Untitled") {
-                                row.selectedCategoryID.wrappedValue = category.objectID
-                                row.matchQuality.wrappedValue = .none
-                            }
-                        }
-                        Button("Clear Category", role: .destructive) {
-                            row.selectedCategoryID.wrappedValue = nil
+            if !row.wrappedValue.originalDescriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("Original: \(row.wrappedValue.originalDescriptionText)")
+                    .font(Typography.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .accessibilityLabel("Original description")
+            }
+
+            TextField("Amount", text: row.amountText)
+                .keyboardType(.decimalPad)
+                .focused($isKeyboardFocused)
+                .accessibilityLabel("Amount")
+
+            DatePicker("Transaction Date", selection: bindingDate(for: row), displayedComponents: [.date])
+                .datePickerStyle(.compact)
+                .accessibilityLabel("Transaction Date")
+
+            if row.wrappedValue.importAs == .expense {
+                Menu {
+                    ForEach(viewModel.categories, id: \.objectID) { category in
+                        Button(category.name ?? "Untitled") {
+                            row.selectedCategoryID.wrappedValue = category.objectID
                             row.matchQuality.wrappedValue = .none
                         }
-	                } label: {
-	                    menuLabel(
-	                        content: HStack(spacing: Spacing.s) {
-	                            Circle()
-	                                .fill(UBColorFromHex(selectedCategoryHex) ?? .secondary)
-	                                .frame(width: categoryDotSize, height: categoryDotSize)
-	                            Text(selectedCategoryName)
-	                                .font(.subheadline)
-		                            Image(systemName: Icons.sfChevronDown)
-	                                .font(Typography.captionSemibold)
-	                                .foregroundStyle(.secondary)
-	                        }
-	                    )
+                    }
+                    Button("Clear Category", role: .destructive) {
+                        row.selectedCategoryID.wrappedValue = nil
+                        row.matchQuality.wrappedValue = .none
+                    }
+                } label: {
+                    menuLabel(
+                        content: HStack(spacing: Spacing.s) {
+                            Circle()
+                                .fill(UBColorFromHex(selectedCategoryHex) ?? .secondary)
+                                .frame(width: categoryDotSize, height: categoryDotSize)
+                            Text(selectedCategoryName)
+                                .font(.subheadline)
+                            Image(systemName: Icons.sfChevronDown)
+                                .font(Typography.captionSemibold)
+                                .foregroundStyle(.secondary)
+                        }
+                    )
                 }
                 .accessibilityLabel("Category")
                 .accessibilityIdentifier(AccessibilityID.ExpenseImport.rowCategoryMenu(id: row.wrappedValue.id))
                 .ub_menuButtonStyle()
-                }
+            }
 
-                if !row.wrappedValue.categoryNameFromCSV.isEmpty {
-                    Text("CSV Category: \(row.wrappedValue.categoryNameFromCSV)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            if !row.wrappedValue.categoryNameFromCSV.isEmpty {
+                Text("CSV Category: \(row.wrappedValue.categoryNameFromCSV)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
-                Toggle("Use this name next time", isOn: row.useNameNextTime)
-                    .accessibilityLabel("Use this name next time")
+            Toggle("Use this name next time", isOn: row.useNameNextTime)
+                .accessibilityLabel("Use this name next time")
 
-                if row.wrappedValue.importAs == .expense {
-                    Toggle("Save as Preset Planned Expense?", isOn: row.isPreset)
-                        .accessibilityLabel("Save as Preset Planned Expense")
-                }
-
+            if row.wrappedValue.importAs == .expense {
+                Toggle("Save as Preset Planned Expense?", isOn: row.isPreset)
+                    .accessibilityLabel("Save as Preset Planned Expense")
             }
         }
-        .padding(.vertical, 4)
-        .listRowBackground(isSelected ? Colors.secondaryOpacity008 : Color.clear)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier(AccessibilityID.ExpenseImport.row(id: row.wrappedValue.id))
+    }
+
+    private func selectModeRowContent(
+        row: ExpenseImportViewModel.ImportRow,
+        isSelectable: Bool,
+        selectedCategoryName: String,
+        selectedCategoryHex: String?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            selectionModeMetaLine(row: row, isSelectable: isSelectable)
+
+            Text(row.descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled" : row.descriptionText)
+                .font(.body.weight(.semibold))
+                .lineLimit(2)
+                .accessibilityLabel("Description")
+
+            HStack(spacing: Spacing.m) {
+                if let date = row.transactionDate {
+                    Text(date, style: .date)
+                } else {
+                    Text("No date")
+                }
+
+                Spacer(minLength: 0)
+
+                Text(row.amountText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "—" : row.amountText)
+                    .monospacedDigit()
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Date and amount")
+
+            if row.importAs == .expense {
+                HStack(spacing: Spacing.s) {
+                    Circle()
+                        .fill(UBColorFromHex(selectedCategoryHex) ?? .secondary)
+                        .frame(width: categoryDotSize, height: categoryDotSize)
+                    Text(selectedCategoryName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .accessibilityLabel("Category")
+            }
+        }
+    }
+
+    private func selectionModeMetaLine(row: ExpenseImportViewModel.ImportRow, isSelectable: Bool) -> some View {
+        let pieces: [String] = [
+            row.isPreset ? "Preset" : "Variable",
+            kindLabel(for: row.importKind),
+            row.importAs == .expense ? "Expense" : "Income",
+            row.isPossibleDuplicate ? "Duplicate" : nil,
+            isSelectable ? nil : "Needs Info",
+        ].compactMap { $0 }
+
+        return Text(pieces.joined(separator: " • "))
+            .font(Typography.captionSemibold)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .accessibilityLabel("Row details")
+    }
+
+    private func toggleSelection(for id: UUID, isSelectable: Bool) {
+        let isSelected = selectedIDs.contains(id)
+        if !isSelected, !isSelectable { return }
+
+        performSelectionSetUpdate {
+            if isSelected {
+                selectedIDs.remove(id)
+            } else {
+                selectedIDs.insert(id)
+            }
+        }
+    }
+
+    private func selectionIndicator(isSelected: Bool, isSelectable: Bool) -> some View {
+        // Force a stable, explicit tint for the selection affordance.
+        // Using `.accentColor`/environment tint can appear to “flip” between the app tint and
+        // the system default during heavy UI churn, which reads as flicker.
+        let tint = Colors.actualIncome
+        let strokeOpacity = isSelectable ? 0.35 : 0.18
+
+        return ZStack {
+            if isSelected {
+                Circle()
+                    .fill(tint)
+                Image(systemName: Icons.sfCheckmark)
+                    .font(.system(size: selectionIndicatorSize * 0.55, weight: .bold))
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(.white)
+            } else {
+                Circle()
+                    .strokeBorder(tint.opacity(strokeOpacity), lineWidth: selectionIndicatorStroke)
+            }
+        }
+        .frame(width: selectionIndicatorSize, height: selectionIndicatorSize)
+        .frame(width: 22, alignment: .leading)
+        .opacity(isSelecting ? 1 : 0)
+        .transaction { t in
+            t.animation = nil
+            t.disablesAnimations = true
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func rowCard<Content: View>(isSelected: Bool, @ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(.horizontal, Spacing.l)
+            .padding(.vertical, Spacing.m)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .fill(isSelected ? Colors.secondaryOpacity012 : Colors.containerBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .strokeBorder(Color.secondary.opacity(0.18), lineWidth: 1)
+            )
     }
 
     // MARK: Toolbar
@@ -325,13 +554,13 @@ struct ExpenseImportView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             Button("Cancel") {
-                if editMode == .active {
+                if isSelecting {
                     cancelSelection()
                 } else {
                     dismiss()
                 }
             }
-            .accessibilityLabel(editMode == .active ? "Cancel Selection" : "Cancel Import")
+            .accessibilityLabel(isSelecting ? "Cancel Selection" : "Cancel Import")
             .accessibilityIdentifier(AccessibilityID.ExpenseImport.cancelButton)
         }
 
@@ -343,40 +572,54 @@ struct ExpenseImportView: View {
             .accessibilityIdentifier(AccessibilityID.ExpenseImport.addCategoryButton)
         }
 
-        ToolbarItemGroup(placement: .bottomBar) {
-            if editMode == .inactive {
-                Button("Select") {
-                    lastKnownSelection = selectedIDs
-                    editMode = .active
-                }
+#if os(iOS) || targetEnvironment(macCatalyst)
+        if isKeyboardFocused {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { isKeyboardFocused = false }
+                    .accessibilityLabel("Dismiss keyboard")
+            }
+        }
+#endif
+    }
+
+    private var bottomActionBar: some View {
+        HStack(spacing: Spacing.m) {
+            if !isSelecting {
+                Button("Select") { enterSelectionMode() }
                     .accessibilityLabel("Select Expenses")
                     .accessibilityIdentifier(AccessibilityID.ExpenseImport.selectButton)
             } else {
                 Button("Select All") { selectAllEligible() }
                     .accessibilityLabel("Select All Expenses")
                     .accessibilityIdentifier(AccessibilityID.ExpenseImport.selectAllButton)
-                Button("Deselect All") { selectedIDs.removeAll() }
-                    .accessibilityLabel("Deselect All Expenses")
-                    .accessibilityIdentifier(AccessibilityID.ExpenseImport.deselectAllButton)
+                Button("Deselect All") {
+                    performSelectionSetUpdate { selectedIDs.removeAll() }
+                }
+                .accessibilityLabel("Deselect All Expenses")
+                .accessibilityIdentifier(AccessibilityID.ExpenseImport.deselectAllButton)
             }
+
+            Spacer(minLength: 0)
+
             Button("Import") { importSelected() }
+                .buttonStyle(.borderedProminent)
                 .disabled(selectedIDs.isEmpty)
                 .accessibilityLabel("Import Selected Expenses")
                 .accessibilityIdentifier(AccessibilityID.ExpenseImport.importButton)
         }
-
-#if os(iOS) || targetEnvironment(macCatalyst)
-        ToolbarItemGroup(placement: .keyboard) {
-            Spacer()
-            Button("Done") { isKeyboardFocused = false }
-                .accessibilityLabel("Dismiss keyboard")
+        .padding(.horizontal, Spacing.l)
+        .padding(.top, Spacing.s)
+        .padding(.bottom, Spacing.sPlus)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            Divider()
         }
-#endif
     }
 
     // MARK: Helpers
     private func importSelected() {
-        let validSelection = selectedIDs.intersection(viewModel.selectableRowIDs)
+        let validSelection = selectedIDs.intersection(currentSelectableRowIDs())
         guard !validSelection.isEmpty else { return }
 
         if viewModel.hasMissingCategory(in: validSelection) {
@@ -394,39 +637,118 @@ struct ExpenseImportView: View {
     }
 
     private func selectAllEligible() {
-        selectedIDs = viewModel.selectableRowIDs
+        performSelectionSetUpdate {
+            selectedIDs = currentSelectableRowIDs()
+        }
     }
 
-    private func pruneSelections() {
-        let pruned = selectedIDs.intersection(viewModel.selectableRowIDs)
+    private func schedulePruneSelectionsIfNeeded() {
+        // Avoid mutating selection during active list selection mode.
+        // The system manages selection visuals and frequent selection set changes can look like flicker.
+        if isSelecting {
+            UBPerf.tick("ExpenseImportView.pruneSelections.skippedSelecting", every: 10)
+            return
+        }
+        let selectable = currentSelectableRowIDs()
+        if UBPerfExperiments.importDebounceSelectionPrune {
+            pendingPruneTask?.cancel()
+            let delayMs = UBPerfExperiments.importDebounceSelectionPruneDelayMs
+            pendingPruneTask = Task { @MainActor in
+                if delayMs > 0 {
+                    try? await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)
+                }
+                pruneSelections(selectableRowIDs: currentSelectableRowIDs())
+            }
+        } else {
+            pruneSelections(selectableRowIDs: selectable)
+        }
+    }
+
+    private func pruneSelections(selectableRowIDs: Set<UUID>) {
+        guard !isSelecting else { return }
+        UBPerf.tick("ExpenseImportView.pruneSelections", every: 10)
+        let pruned = selectedIDs.intersection(selectableRowIDs)
         guard pruned != selectedIDs else { return }
-        selectedIDs = pruned
+        if UBPerf.isEnabled {
+            let removed = selectedIDs.subtracting(pruned).count
+            let line = "ExpenseImportView.pruneSelections removed=\(removed) selected=\(selectedIDs.count)->\(pruned.count)"
+            UBPerf.logger.info("\(line, privacy: .public)")
+            UBPerf.emit(line)
+        }
+        performSelectionSetUpdate {
+            selectedIDs = pruned
+        }
+    }
+
+    private func currentSelectableRowIDs() -> Set<UUID> {
+        if UBPerfExperiments.importStabilizeList {
+            return cachedSelectableRowIDs
+        }
+        return viewModel.selectableRowIDs
     }
 
     private func applyDefaultSelectionIfNeeded() {
         guard !didApplyDefaultSelection else { return }
         guard case .loaded = viewModel.state else { return }
-        selectedIDs = viewModel.defaultSelectedIDs
+        let selectable = currentSelectableRowIDs()
+        if UBPerf.isEnabled {
+            let line = "ExpenseImportView.applyDefaultSelection ids=\(viewModel.defaultSelectedIDs.count)"
+            UBPerf.logger.info("\(line, privacy: .public)")
+            UBPerf.emit(line)
+        }
+        performSelectionSetUpdate {
+            selectedIDs = viewModel.defaultSelectedIDs.intersection(selectable)
+        }
         didApplyDefaultSelection = true
     }
 
     private func cancelSelection() {
-        selectedIDs.removeAll()
-        editMode = .inactive
+        if UBPerf.isEnabled {
+            UBPerf.mark("ExpenseImportView.cancelSelection", "selected=\(selectedIDs.count)")
+        }
+        performSelectionSetUpdate { selectedIDs.removeAll() }
+        setSelecting(false)
+    }
+
+    private func enterSelectionMode() {
+        if UBPerf.isEnabled {
+            UBPerf.mark("ExpenseImportView.enterSelectionMode", "selected=\(selectedIDs.count)")
+        }
+        setSelecting(true)
+    }
+
+    private func setSelecting(_ newValue: Bool) {
+        if newValue {
+            pendingPruneTask?.cancel()
+            pendingPruneTask = nil
+        }
+        var transaction = Transaction()
+        transaction.animation = nil
+        transaction.disablesAnimations = true
+#if os(iOS) || targetEnvironment(macCatalyst)
+        UIView.performWithoutAnimation {
+            withTransaction(transaction) { isSelectingOverride = newValue }
+        }
+#else
+        withTransaction(transaction) { isSelectingOverride = newValue }
+#endif
     }
 
 	    private func sectionHeader(title: String, isExpanded: Binding<Bool>, accessibilityID: String) -> some View {
 	        Button(action: { isExpanded.wrappedValue.toggle() }) {
-	            HStack {
-	                Text(title)
-                Spacer()
-	                Image(systemName: "chevron.right")
-	                    .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
-	                    .font(Typography.captionSemibold)
-	                    .foregroundStyle(.secondary)
-	            }
+                rowCard(isSelected: false) {
+                    HStack {
+                        Text(title)
+                            .font(Typography.subheadlineSemibold)
+                        Spacer()
+                        Image(systemName: Icons.sfChevronRight)
+                            .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
+                            .font(Typography.captionSemibold)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 	        }
-	        .buttonStyle(.plain)
+	        .buttonStyle(UBNoHighlightButtonStyle())
         .accessibilityLabel(isExpanded.wrappedValue ? "Collapse \(title)" : "Expand \(title)")
         .accessibilityIdentifier(accessibilityID)
     }
@@ -513,18 +835,16 @@ struct ExpenseImportView: View {
         }
     }
 
-    private func toggleSelection(for id: UUID, isSelectable: Bool) {
-        guard editMode == .active, isSelectable else { return }
-        if selectedIDs.contains(id) {
-            selectedIDs.remove(id)
-        } else {
-            selectedIDs.insert(id)
-        }
-    }
-
     private func binding(for id: UUID) -> Binding<ExpenseImportViewModel.ImportRow>? {
-        guard let index = viewModel.rows.firstIndex(where: { $0.id == id }) else { return nil }
-        return $viewModel.rows[index]
+        if UBPerfExperiments.importStabilizeList,
+           let index = rowIndexByID[id],
+           viewModel.rows.indices.contains(index),
+           viewModel.rows[index].id == id {
+            return $viewModel.rows[index]
+        }
+
+        guard let fallback = viewModel.rows.firstIndex(where: { $0.id == id }) else { return nil }
+        return $viewModel.rows[fallback]
     }
 
     private func bindingDate(for row: Binding<ExpenseImportViewModel.ImportRow>) -> Binding<Date> {
@@ -541,6 +861,13 @@ struct ExpenseImportView: View {
         } else {
             NavigationView { content() }
         }
+    }
+}
+
+// MARK: - Button Styles
+private struct UBNoHighlightButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
     }
 }
 
@@ -579,18 +906,6 @@ private struct CategoryPickerSheet: View {
             }
         }
         .applyDetentsIfAvailable(detents: [.medium, .large], selection: nil)
-    }
-}
-
-// MARK: - Selection Disabled Compat
-private extension View {
-    @ViewBuilder
-    func applySelectionDisabledIfAvailable(_ disabled: Bool) -> some View {
-        if #available(iOS 17.0, macCatalyst 17.0, *) {
-            selectionDisabled(disabled)
-        } else {
-            self
-        }
     }
 }
 

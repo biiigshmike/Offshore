@@ -230,6 +230,7 @@ struct HomeView: View {
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @EnvironmentObject private var settings: AppSettingsState
     @EnvironmentObject private var homeWidgetState: HomeWidgetState
+    @EnvironmentObject private var themeManager: ThemeManager
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
 
@@ -490,9 +491,9 @@ struct HomeView: View {
             NextPlannedPresetsView(summaryID: route.budgetID, nextExpense: snapshot)
                 .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
         }
-        .navigationDestination(for: CardItem.self) { card in
-            CardDetailView(
-                card: card,
+        .navigationDestination(for: CardRoute.self) { route in
+            CardDetailDestinationView(
+                route: route,
                 isPresentingAddExpense: .constant(false),
                 onDone: {}
             )
@@ -1045,13 +1046,15 @@ struct HomeView: View {
         }
     }
 
+    @ViewBuilder
     private func cardWidget(card: CardItem, summary: BudgetSummary) -> some View {
-        NavigationLink(value: card) {
+        if let route = CardRoute(cardItem: card) {
+            NavigationLink(value: route) {
             widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, span: WidgetSpan(width: 1, height: 2)) {
                 VStack(alignment: .leading, spacing: Spacing.s) {
-	                    CardTileView(
-	                        card: card,
-	                        isInteractive: false,
+		                    CardTileView(
+		                        card: card,
+		                        isInteractive: false,
 	                        enableMotionShine: true,
 	                        showsBaseShadow: false,
 	                        showsEffectOverlay: true
@@ -1064,8 +1067,27 @@ struct HomeView: View {
                     }
                 }
             }
+            }
+            .buttonStyle(.plain)
+        } else {
+            widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, span: WidgetSpan(width: 1, height: 2)) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    CardTileView(
+                        card: card,
+                        isInteractive: false,
+                        enableMotionShine: true,
+                        showsBaseShadow: false,
+                        showsEffectOverlay: true
+                    )
+                    .frame(maxWidth: cardWidgetMaxWidth, alignment: .leading)
+                    if let balance = card.balance {
+                        Text("\(formatCurrency(balance))")
+                            .font(.title.weight(.bold))
+                            .fontDesign(.rounded)
+                    }
+                }
+            }
         }
-        .buttonStyle(.plain)
     }
 
     private func weekdayWidget(for summary: BudgetSummary) -> some View {
@@ -1520,12 +1542,20 @@ struct HomeView: View {
             if isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: Spacing.sPlus) {
-                        PillSegmentedControl(selection: availabilitySegmentBinding) {
-                            ForEach(CategoryAvailabilitySegment.allCases) { segment in
-                                Text(segment.title).tag(segment)
-                            }
-                        }
-                        .ubSegmentedGlassStyle()
+                        UBSegmentedControl(
+                            selection: availabilitySegmentBinding,
+                            segments: CategoryAvailabilitySegment.allCases.map {
+                                UBSegmentedControl<CategoryAvailabilitySegment>.Segment(
+                                    id: $0.rawValue,
+                                    title: $0.title,
+                                    value: $0
+                                )
+                            },
+                            selectedTint: themeManager.selectedTheme.resolvedTint.opacity(0.06),
+                            containerTint: .clear
+                        )
+                        .padding(.vertical, Spacing.xs)
+                        .padding(.horizontal, Spacing.s)
 
                         VStack(alignment: .leading, spacing: Spacing.xs) {
                             HStack(spacing: Spacing.xs) {
@@ -1593,12 +1623,20 @@ struct HomeView: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 0) {
-                    PillSegmentedControl(selection: availabilitySegmentBinding) {
-                        ForEach(CategoryAvailabilitySegment.allCases) { segment in
-                            Text(segment.title).tag(segment)
-                        }
-                    }
-                    .ubSegmentedGlassStyle()
+                    UBSegmentedControl(
+                        selection: availabilitySegmentBinding,
+                        segments: CategoryAvailabilitySegment.allCases.map {
+                            UBSegmentedControl<CategoryAvailabilitySegment>.Segment(
+                                id: $0.rawValue,
+                                title: $0.title,
+                                value: $0
+                            )
+                        },
+                        selectedTint: themeManager.selectedTheme.resolvedTint.opacity(0.06),
+                        containerTint: .clear
+                    )
+                    .padding(.vertical, Spacing.xs)
+                    .padding(.horizontal, Spacing.s)
                     .padding(.horizontal, 14)
                     .padding(.top, Spacing.sPlus)
                     .padding(.bottom, Spacing.sPlus)
@@ -2729,12 +2767,20 @@ private struct MetricDetailView: View {
                 .font(Typography.headlineSemibold)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
-            PillSegmentedControl(selection: detailAvailabilitySegmentBinding) {
-                ForEach(CategoryAvailabilitySegment.allCases) { segment in
-                    Text(segment.title).tag(segment)
-                }
-            }
-            .ubSegmentedGlassStyle()
+            UBSegmentedControl(
+                selection: detailAvailabilitySegmentBinding,
+                segments: CategoryAvailabilitySegment.allCases.map {
+                    UBSegmentedControl<CategoryAvailabilitySegment>.Segment(
+                        id: $0.rawValue,
+                        title: $0.title,
+                        value: $0
+                    )
+                },
+                selectedTint: themeManager.selectedTheme.resolvedTint.opacity(0.06),
+                containerTint: .clear
+            )
+            .padding(.vertical, Spacing.xs)
+            .padding(.horizontal, Spacing.s)
             .padding(.trailing, Spacing.xs)
             if filtered.isEmpty {
                 Text("No caps found for this range.")
@@ -2900,12 +2946,20 @@ private struct MetricDetailView: View {
         let rowSpacing: CGFloat = isAccessibilitySize ? 10 : 6
         let rowPadding: CGFloat = isAccessibilitySize ? 8 : 4
         return VStack(alignment: .leading, spacing: Spacing.m) {
-            PillSegmentedControl(selection: detailAvailabilitySegmentBinding) {
-                ForEach(CategoryAvailabilitySegment.allCases) { segment in
-                    Text(segment.title).tag(segment)
-                }
-            }
-            .ubSegmentedGlassStyle()
+            UBSegmentedControl(
+                selection: detailAvailabilitySegmentBinding,
+                segments: CategoryAvailabilitySegment.allCases.map {
+                    UBSegmentedControl<CategoryAvailabilitySegment>.Segment(
+                        id: $0.rawValue,
+                        title: $0.title,
+                        value: $0
+                    )
+                },
+                selectedTint: themeManager.selectedTheme.resolvedTint.opacity(0.06),
+                containerTint: .clear
+            )
+            .padding(.vertical, Spacing.xs)
+            .padding(.horizontal, Spacing.s)
             .padding(.trailing, Spacing.xs)
             if items.isEmpty {
                 Text("No categories or caps available.")

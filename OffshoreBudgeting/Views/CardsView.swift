@@ -89,26 +89,41 @@ struct CardsView: View {
                                         ?? card.objectID?.uriRepresentation().absoluteString
                                         ?? card.id
                                     let disableListMotion = UBPerfExperiments.disableListMotionEffects
-                                    NavigationLink(value: card) {
-	                                        CardTileView(
-	                                            card: card,
-	                                            isSelected: false,
-	                                            onTap: { /* handled by NavigationLink */ },
-	                                            isInteractive: false,
-	                                            enableMotionShine: disableListMotion ? false : true,
-	                                            showsBaseShadow: false,
-	                                            showsEffectOverlay: true
-	                                        )
+                                    if let route = CardRoute(cardItem: card) {
+                                        NavigationLink(value: route) {
+	                                            CardTileView(
+	                                                card: card,
+	                                                isSelected: false,
+	                                                onTap: { /* handled by NavigationLink */ },
+	                                                isInteractive: false,
+	                                                enableMotionShine: disableListMotion ? false : true,
+	                                                showsBaseShadow: false,
+	                                                showsEffectOverlay: true
+	                                            )
+                                            .frame(maxWidth: usesSingleColumn ? .infinity : nil)
+                                            .frame(minHeight: cardHeight)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityIdentifier(AccessibilityID.Cards.List.cardRow(id: cardRowID))
+                                        .contextMenu {
+                                            Button("Edit", systemImage: Icons.sfPencil) { editingCard = card }
+                                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                                vm.requestDelete(card: card)
+                                            }
+                                        }
+                                    } else {
+                                        CardTileView(
+                                            card: card,
+                                            isSelected: false,
+                                            onTap: {},
+                                            isInteractive: false,
+                                            enableMotionShine: disableListMotion ? false : true,
+                                            showsBaseShadow: false,
+                                            showsEffectOverlay: true
+                                        )
                                         .frame(maxWidth: usesSingleColumn ? .infinity : nil)
                                         .frame(minHeight: cardHeight)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityIdentifier(AccessibilityID.Cards.List.cardRow(id: cardRowID))
-                                    .contextMenu {
-                                        Button("Edit", systemImage: Icons.sfPencil) { editingCard = card }
-                                        Button("Delete", systemImage: "trash", role: .destructive) {
-                                            vm.requestDelete(card: card)
-                                        }
+                                        .accessibilityIdentifier(AccessibilityID.Cards.List.cardRow(id: cardRowID))
                                     }
                                 }
                             }
@@ -143,11 +158,11 @@ struct CardsView: View {
                 isPresentingCardVariableExpense = false
             }
         }
-        .alert(item: $vm.alert) { alert in
-            switch alert.kind {
-            case .error(let message):
-                return Alert(title: Text("Error"), message: Text(message), dismissButton: .default(Text("OK")))
-            case .confirmDelete(let card):
+	        .alert(item: $vm.alert) { alert in
+	            switch alert.kind {
+	            case .error(let message):
+	                return Alert(title: Text("Error"), message: Text(message), dismissButton: .default(Text("OK")))
+	            case .confirmDelete(let card):
                 return Alert(
                     title: Text("Delete “\(card.name)”?"),
                     message: Text("This will delete the card and all of its expenses."),
@@ -157,25 +172,25 @@ struct CardsView: View {
             case .rename:
                 return Alert(title: Text("Rename Card"), message: Text("Use Edit instead."), dismissButton: .default(Text("OK")))
             }
-        }
-        .navigationDestination(for: CardItem.self) { card in
-            CardDetailView(
-                card: card,
-                isPresentingAddExpense: $isPresentingCardVariableExpense,
-                onDone: { detailCard = nil }
-            )
-        }
-        .sheet(item: $editingCard) { card in
-            AddCardFormView(mode: .edit, editingCard: card) { name, theme, effect in
-                Task { await vm.edit(card: card, name: name, theme: theme, effect: effect) }
-            }
-        }
-    }
+	        }
+	        .navigationDestination(for: CardRoute.self) { route in
+                CardDetailDestinationView(
+                    route: route,
+                    isPresentingAddExpense: $isPresentingCardVariableExpense,
+                    onDone: { detailCard = nil }
+                )
+	        }
+	        .sheet(item: $editingCard) { card in
+	            AddCardFormView(mode: .edit, editingCard: card) { name, theme, effect in
+	                Task { await vm.edit(card: card, name: name, theme: theme, effect: effect) }
+	            }
+	        }
+	    }
 
-    // MARK: Toolbar
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
+	    // MARK: Toolbar
+	    @ToolbarContentBuilder
+	    private var toolbarContent: some ToolbarContent {
+	        ToolbarItem(placement: .primaryAction) {
             addButton
         }
     }

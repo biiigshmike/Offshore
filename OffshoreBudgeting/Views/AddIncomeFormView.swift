@@ -126,10 +126,15 @@ struct AddIncomeFormView: View {
     @ViewBuilder
     private var typeSection: some View {
         Section {
-            PillSegmentedControl(selection: $viewModel.isPlanned) {
-                Text("Planned").tag(true)
-                Text("Actual").tag(false)
-            }
+            UBSegmentedControl(
+                selection: $viewModel.isPlanned,
+                segments: [
+                    .init(id: "planned", title: "Planned", value: true),
+                    .init(id: "actual", title: "Actual", value: false)
+                ],
+                selectedTint: AppTheme.system.resolvedTint.opacity(0.06),
+                containerTint: .clear
+            )
             .accessibilityIdentifier(AccessibilityID.Income.Form.typeSegmentedControl)
         } header: {
             Text("Type")

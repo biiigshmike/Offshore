@@ -205,7 +205,7 @@ struct ExpenseImportView: View {
         if !viewModel.possibleDuplicateRowIDs.isEmpty {
             Section(header: sectionHeader(title: "Possible Duplicates", isExpanded: $isDuplicatesExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.possibleDuplicatesHeader)) {
                 if isDuplicatesExpanded {
-                    VStack(spacing: Spacing.s) {
+                    LazyVStack(spacing: Spacing.s) {
                         ForEach(viewModel.possibleDuplicateRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
                                 importRowView(binding, isSelectable: selectableIDs.contains(id))
@@ -220,7 +220,7 @@ struct ExpenseImportView: View {
         if !viewModel.missingDataRowIDs.isEmpty {
             Section(header: sectionHeader(title: "Needs More Data", isExpanded: $isNeedsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.needsMoreDataHeader)) {
                 if isNeedsExpanded {
-                    VStack(spacing: Spacing.s) {
+                    LazyVStack(spacing: Spacing.s) {
                         ForEach(viewModel.missingDataRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
                                 importRowView(binding, isSelectable: selectableIDs.contains(id))
@@ -235,7 +235,7 @@ struct ExpenseImportView: View {
         if !viewModel.paymentRowIDs.isEmpty {
             Section(header: sectionHeader(title: "Payments", isExpanded: $isPaymentsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.paymentsHeader)) {
                 if isPaymentsExpanded {
-                    VStack(spacing: Spacing.s) {
+                    LazyVStack(spacing: Spacing.s) {
                         ForEach(viewModel.paymentRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
                                 importRowView(binding, isSelectable: selectableIDs.contains(id))
@@ -250,7 +250,7 @@ struct ExpenseImportView: View {
         if !viewModel.creditRowIDs.isEmpty {
             Section(header: sectionHeader(title: "Credits", isExpanded: $isCreditsExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.creditsHeader)) {
                 if isCreditsExpanded {
-                    VStack(spacing: Spacing.s) {
+                    LazyVStack(spacing: Spacing.s) {
                         ForEach(viewModel.creditRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
                                 importRowView(binding, isSelectable: selectableIDs.contains(id))
@@ -265,7 +265,7 @@ struct ExpenseImportView: View {
         if !viewModel.possibleMatchRowIDs.isEmpty {
             Section(header: sectionHeader(title: "Possible Matches", isExpanded: $isPossibleExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.possibleMatchesHeader)) {
                 if isPossibleExpanded {
-                    VStack(spacing: Spacing.s) {
+                    LazyVStack(spacing: Spacing.s) {
                         ForEach(viewModel.possibleMatchRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
                                 importRowView(binding, isSelectable: selectableIDs.contains(id))
@@ -280,7 +280,7 @@ struct ExpenseImportView: View {
         if !viewModel.readyRowIDs.isEmpty {
             Section(header: sectionHeader(title: "Ready for Import", isExpanded: $isReadyExpanded, accessibilityID: AccessibilityID.ExpenseImport.Section.readyForImportHeader)) {
                 if isReadyExpanded {
-                    VStack(spacing: Spacing.s) {
+                    LazyVStack(spacing: Spacing.s) {
                         ForEach(viewModel.readyRowIDs, id: \.self) { id in
                             if let binding = binding(for: id) {
                                 importRowView(binding, isSelectable: selectableIDs.contains(id))
@@ -358,6 +358,14 @@ struct ExpenseImportView: View {
             .pickerStyle(.segmented)
             .tint(Colors.actualIncome)
             .accessibilityLabel("Import As")
+            .onChange(of: row.wrappedValue.importAs) { newValue in
+                guard UBPerf.isEnabled else { return }
+                let idPrefix = String(row.wrappedValue.id.uuidString.prefix(8))
+                let newLabel = (newValue == .expense) ? "expense" : "income"
+                let line = "ExpenseImport.row.importAs changed id=\(idPrefix) new=\(newLabel) keyboardFocused=\(isKeyboardFocused) selecting=\(isSelecting)"
+                UBPerf.logger.info("\(line, privacy: .public)")
+                UBPerf.emit(line)
+            }
 
             TextField("Expense Description", text: row.descriptionText)
                 .autocorrectionDisabled(true)
@@ -584,36 +592,90 @@ struct ExpenseImportView: View {
     }
 
     private var bottomActionBar: some View {
-        HStack(spacing: Spacing.m) {
-            if !isSelecting {
-                Button("Select") { enterSelectionMode() }
-                    .accessibilityLabel("Select Expenses")
-                    .accessibilityIdentifier(AccessibilityID.ExpenseImport.selectButton)
-            } else {
-                Button("Select All") { selectAllEligible() }
-                    .accessibilityLabel("Select All Expenses")
-                    .accessibilityIdentifier(AccessibilityID.ExpenseImport.selectAllButton)
-                Button("Deselect All") {
-                    performSelectionSetUpdate { selectedIDs.removeAll() }
+        Group {
+            HStack(spacing: Spacing.m) {
+                if !isSelecting {
+                    actionBarButton(title: "Select") { enterSelectionMode() }
+                        .accessibilityLabel("Select Expenses")
+                        .accessibilityIdentifier(AccessibilityID.ExpenseImport.selectButton)
+                } else {
+                    actionBarButton(title: "Select All") { selectAllEligible() }
+                        .accessibilityLabel("Select All Expenses")
+                        .accessibilityIdentifier(AccessibilityID.ExpenseImport.selectAllButton)
+
+                    actionBarButton(title: "Deselect All") {
+                        performSelectionSetUpdate { selectedIDs.removeAll() }
+                    }
+                    .accessibilityLabel("Deselect All Expenses")
+                    .accessibilityIdentifier(AccessibilityID.ExpenseImport.deselectAllButton)
                 }
-                .accessibilityLabel("Deselect All Expenses")
-                .accessibilityIdentifier(AccessibilityID.ExpenseImport.deselectAllButton)
+
+                Spacer(minLength: 0)
+
+                actionBarImportButton()
+                    .accessibilityLabel("Import Selected Expenses")
+                    .accessibilityIdentifier(AccessibilityID.ExpenseImport.importButton)
             }
-
-            Spacer(minLength: 0)
-
-            Button("Import") { importSelected() }
-                .buttonStyle(.borderedProminent)
-                .disabled(selectedIDs.isEmpty)
-                .accessibilityLabel("Import Selected Expenses")
-                .accessibilityIdentifier(AccessibilityID.ExpenseImport.importButton)
+            .padding(.horizontal, Spacing.m)
+            .padding(.vertical, Spacing.xs)
+            .frame(maxWidth: .infinity)
         }
+        .tint(Colors.actualIncome)
+        .background { actionBarBackground }
         .padding(.horizontal, Spacing.l)
         .padding(.top, Spacing.s)
         .padding(.bottom, Spacing.sPlus)
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .top) {
-            Divider()
+    }
+
+    @ViewBuilder
+    private func actionBarButton(title: String, action: @escaping () -> Void) -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button(action: action) { Text(title) }
+                .buttonStyle(.glass)
+                .buttonBorderShape(.capsule)
+                .font(Typography.subheadlineSemibold)
+                .frame(minWidth: 44, minHeight: 44)
+        } else {
+            Button(action: action) { Text(title) }
+                .buttonStyle(.bordered)
+                .font(Typography.subheadlineSemibold)
+                .frame(minWidth: 44, minHeight: 44)
+        }
+    }
+
+    @ViewBuilder
+    private func actionBarImportButton() -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Button("Import") { importSelected() }
+                .buttonStyle(.glassProminent)
+                .buttonBorderShape(.capsule)
+                .font(Typography.subheadlineSemibold)
+                .disabled(selectedIDs.isEmpty)
+                .frame(minWidth: 44, minHeight: 44)
+        } else {
+            Button("Import") { importSelected() }
+                .buttonStyle(.borderedProminent)
+                .font(Typography.subheadlineSemibold)
+                .disabled(selectedIDs.isEmpty)
+                .frame(minWidth: 44, minHeight: 44)
+        }
+    }
+
+    @ViewBuilder
+    private var actionBarBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+        if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular.tint(.clear).interactive(true), in: shape)
+                .opacity(0.94)
+                .shadow(color: .black.opacity(0.10), radius: 14, x: 0, y: 6)
+        } else {
+            shape
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    shape.stroke(Color.secondary.opacity(0.18), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.10), radius: 12, x: 0, y: 6)
         }
     }
 

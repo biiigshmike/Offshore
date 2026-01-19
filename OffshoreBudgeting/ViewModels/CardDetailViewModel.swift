@@ -90,9 +90,29 @@ final class CardDetailViewModel: ObservableObject {
     @Published var searchText: String = ""
     // Segment & sorting state
     enum Segment { case planned, variable, all }
-    @Published var segment: Segment = .planned
+    @Published var segment: Segment = .planned {
+        didSet {
+            guard UBPerf.isEnabled else { return }
+            let label: String
+            switch segment {
+            case .planned: label = "planned"
+            case .variable: label = "variable"
+            case .all: label = "all"
+            }
+            let line = "CardDetail.segment changed new=\(label)"
+            UBPerf.logger.info("\(line, privacy: .public)")
+            UBPerf.emit(line)
+        }
+    }
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
-    @Published var sort: Sort = .dateNewOld
+    @Published var sort: Sort = .dateNewOld {
+        didSet {
+            guard UBPerf.isEnabled else { return }
+            let line = "CardDetail.sort changed new=\(sort.rawValue)"
+            UBPerf.logger.info("\(line, privacy: .public)")
+            UBPerf.emit(line)
+        }
+    }
     // Category filter (by Core Data object identity when available)
     @Published var selectedCategoryID: NSManagedObjectID? = nil
 

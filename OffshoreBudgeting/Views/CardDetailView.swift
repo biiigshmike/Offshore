@@ -70,12 +70,14 @@ struct CardDetailView: View {
     // MARK: Init
     init(card: CardItem,
          isPresentingAddExpense: Binding<Bool>,
+         store: CardDetailViewModelStore? = nil,
          onDone: @escaping () -> Void) {
         self.card = card
         self._isPresentingAddExpense = isPresentingAddExpense
         self.onDone = onDone
+        let resolvedStore = store ?? CardDetailViewModelStore.shared
         _cardSnapshot = State(initialValue: card)
-        _viewModel = StateObject(wrappedValue: CardDetailViewModel(card: card))
+        _viewModel = StateObject(wrappedValue: resolvedStore.viewModel(for: card))
     }
     
     // MARK: Body
@@ -351,25 +353,33 @@ struct CardDetailView: View {
 
             // Segment Picker
             Section {
-                Picker("", selection: $viewModel.segment) {
-                    Text("Planned").tag(CardDetailViewModel.Segment.planned)
-                    Text("Variable").tag(CardDetailViewModel.Segment.variable)
-                    Text("Unified").tag(CardDetailViewModel.Segment.all)
-                }
-                .pickerStyle(.segmented)
+                UBSegmentedControl(
+                    selection: $viewModel.segment,
+                    segments: [
+                        .init(id: "planned", title: "Planned", value: CardDetailViewModel.Segment.planned),
+                        .init(id: "variable", title: "Variable", value: CardDetailViewModel.Segment.variable),
+                        .init(id: "unified", title: "Unified", value: CardDetailViewModel.Segment.all)
+                    ],
+                    selectedTint: themeManager.selectedTheme.resolvedTint.opacity(0.06),
+                    containerTint: .clear
+                )
             }
 
             if !uiTestingFlags.isUITesting {
                 // Sort Bar
                 Section {
-                    Picker("Sort", selection: $viewModel.sort) {
-                        Text("A–Z").tag(CardDetailViewModel.Sort.titleAZ)
-                        Text("$↓").tag(CardDetailViewModel.Sort.amountLowHigh)
-                        Text("$↑").tag(CardDetailViewModel.Sort.amountHighLow)
-                        Text("Date ↑").tag(CardDetailViewModel.Sort.dateOldNew)
-                        Text("Date ↓").tag(CardDetailViewModel.Sort.dateNewOld)
-                    }
-                    .pickerStyle(.segmented)
+                    UBSegmentedControl(
+                        selection: $viewModel.sort,
+                        segments: [
+                            .init(id: "az", title: "A–Z", value: CardDetailViewModel.Sort.titleAZ),
+                            .init(id: "lowhigh", title: "$↓", value: CardDetailViewModel.Sort.amountLowHigh),
+                            .init(id: "highlow", title: "$↑", value: CardDetailViewModel.Sort.amountHighLow),
+                            .init(id: "dateoldnew", title: "Date ↑", value: CardDetailViewModel.Sort.dateOldNew),
+                            .init(id: "datenewold", title: "Date ↓", value: CardDetailViewModel.Sort.dateNewOld)
+                        ],
+                        selectedTint: themeManager.selectedTheme.resolvedTint.opacity(0.06),
+                        containerTint: .clear
+                    )
                 }
             }
 

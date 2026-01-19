@@ -163,7 +163,7 @@ struct OffshoreBudgetingApp: App {
                 if appLockViewModel.shouldRequireAuthentication, !didTriggerInitialAppLock {
                     didTriggerInitialAppLock = true
                     appLockViewModel.lock()
-                    appLockViewModel.attemptUnlockWithBiometrics()
+                    appLockViewModel.attemptUnlockWithDeviceAuth()
                 }
                 startAppServicesIfNeeded(testFlags: testFlags)
             }
@@ -182,7 +182,7 @@ struct OffshoreBudgetingApp: App {
                         && appLockViewModel.isLocked
                         && !appLockViewModel.isAuthenticating
                     {
-                        appLockViewModel.attemptUnlockWithBiometrics()
+                        appLockViewModel.attemptUnlockWithDeviceAuth()
                     }
                 } else if newPhase == .background {
                     // Centralize background locking here to avoid races

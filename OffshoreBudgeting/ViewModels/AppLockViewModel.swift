@@ -24,7 +24,7 @@ import AppKit
 /// Controls whether the UI is locked behind Face ID / Touch ID.
 /// - Use `isLockEnabled` to gate behavior via user settings.
 /// - Call `lock()` when app enters background or on cold start.
-/// - Call `attemptUnlockWithBiometrics()` from App.swift (cold start / foreground).
+/// - Call `attemptUnlockWithDeviceAuth()` from App.swift (cold start / foreground).
 @MainActor
 public final class AppLockViewModel: ObservableObject {
 
@@ -86,7 +86,7 @@ public final class AppLockViewModel: ObservableObject {
     /// Attempts to unlock via device-owner authentication (biometrics or device passcode).
     /// Safe to call repeatedly; internal debounce prevents double prompts.
     /// - Parameter reason: Message for system prompt.
-    public func attemptUnlockWithBiometrics(reason: String = "Unlock Offshore Budgeting") {
+    public func attemptUnlockWithDeviceAuth(reason: String = "Unlock Offshore Budgeting") {
 #if DEBUG
         configureForUITestingIfNeeded()
 #endif

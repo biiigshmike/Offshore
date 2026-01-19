@@ -46,7 +46,7 @@ public struct AppLockView: View {
                     .foregroundStyle(.secondary)
 
                 Button("Unlock") {
-                    viewModel.attemptUnlockWithBiometrics()
+                    viewModel.attemptUnlockWithDeviceAuth()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(viewModel.isAuthenticating)

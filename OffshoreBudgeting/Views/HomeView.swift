@@ -336,6 +336,23 @@ struct HomeView: View {
         static let cards   = Color(red: 0.97, green: 0.62, blue: 0.25)
     }
 
+    // MARK: Date Formatting (cached)
+    private enum CachedFormatters {
+        static let mediumDate: DateFormatter = {
+            let f = DateFormatter()
+            f.dateStyle = .medium
+            f.timeStyle = .none
+            return f
+        }()
+    }
+
+    fileprivate static func formatMediumDate(_ date: Date) -> String {
+        #if DEBUG
+        precondition(Thread.isMainThread, "DateFormatter cache is main-thread only.")
+        #endif
+        return CachedFormatters.mediumDate.string(from: date)
+    }
+
     enum HomeWidgetKind: Hashable {
         case budgets, income, presets, cards
         case dayOfWeek, caps, availability, scenario
@@ -984,7 +1001,7 @@ struct HomeView: View {
                     NextPlannedExpenseWidgetRow(
                         cardItem: cardItem,
                         title: snapshot.title,
-                        dateText: shortDate(snapshot.date),
+                        dateText: snapshot.dateText,
                         plannedText: "Planned: \(formatCurrency(snapshot.plannedAmount))",
                         actualText: "Actual: \(formatCurrency(snapshot.actualAmount))"
                     )
@@ -2069,7 +2086,7 @@ struct HomeView: View {
         let selectedDate = await MainActor.run { vm.selectedDate }
         let anchorDate = nextExpenseAnchorDate(for: range, selectedDate: selectedDate)
         let bgContext = CoreDataService.shared.newBackgroundContext()
-        let snapshot: PlannedExpenseSnapshot? = await bgContext.perform {
+        let raw: PlannedExpenseSnapshot? = await bgContext.perform {
             guard let budget = try? bgContext.existingObject(with: summary.id) as? Budget else { return nil }
             let fetch = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
             let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
@@ -2110,6 +2127,7 @@ struct HomeView: View {
                 plannedAmount: next.plannedAmount,
                 actualAmount: next.actualAmount,
                 date: date,
+                dateText: "",
                 cardUUID: cardUUID,
                 cardName: cardName,
                 cardThemeRawValue: cardThemeRawValue,
@@ -2117,6 +2135,25 @@ struct HomeView: View {
             )
         }
         await MainActor.run {
+            let snapshot: PlannedExpenseSnapshot?
+            if let raw {
+                let dateText = HomeView.formatMediumDate(raw.date)
+                snapshot = PlannedExpenseSnapshot(
+                    budgetID: raw.budgetID,
+                    expenseURI: raw.expenseURI,
+                    title: raw.title,
+                    plannedAmount: raw.plannedAmount,
+                    actualAmount: raw.actualAmount,
+                    date: raw.date,
+                    dateText: dateText,
+                    cardUUID: raw.cardUUID,
+                    cardName: raw.cardName,
+                    cardThemeRawValue: raw.cardThemeRawValue,
+                    cardEffectRawValue: raw.cardEffectRawValue
+                )
+            } else {
+                snapshot = nil
+            }
             nextPlannedSnapshot = snapshot
             updateNextPlannedExpenseWidget(snapshot: snapshot)
         }
@@ -2371,6 +2408,7 @@ struct HomeView: View {
         let plannedAmount: Double
         let actualAmount: Double
         let date: Date
+        let dateText: String
         let cardUUID: UUID?
         let cardName: String?
         let cardThemeRawValue: String?
@@ -4590,9 +4628,7 @@ fileprivate func encodeScenarioAllocations(_ values: [String: Double]) -> String
     }
 
     private func shortDate(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        return f.string(from: date)
+        HomeView.formatMediumDate(date)
     }
 
     // MARK: Income Helpers
@@ -5185,7 +5221,7 @@ private struct NextPlannedDetailRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                     cardIndicator
                         .frame(width: symbolWidth, alignment: .leading)
-                    Text(shortDate(snapshot.date))
+                    Text(snapshot.dateText)
                         .font(Typography.subheadline)
                         .foregroundStyle(Colors.styleSecondary)
                 }
@@ -5370,9 +5406,7 @@ private struct NextPlannedExpenseWidgetRow: View {
 }
 
 private func shortDate(_ date: Date) -> String {
-    let f = DateFormatter()
-    f.dateStyle = .medium
-    return f.string(from: date)
+    HomeView.formatMediumDate(date)
 }
 
 // MARK: - Next Planned + Presets Detail

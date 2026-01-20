@@ -197,19 +197,14 @@ final class ExpenseImportViewModel: ObservableObject {
     }
 
     func addCategory(name: String, hex: String) {
-        let new = ExpenseCategory(context: context)
-        new.id = UUID()
-        new.name = name
-        new.color = hex
-        WorkspaceService.shared.applyWorkspaceID(on: new)
         do {
-            try context.save()
+            _ = try categoryService.addCategory(name: name, color: hex, ensureUniqueName: true)
             Task { @MainActor in
                 await refreshCategories()
                 applyCategoryMatchesAfterCategoryInsert()
             }
         } catch {
-            if context.hasChanges { context.rollback() }
+            // Keep import flow resilient; the UI will surface the error via lack of insertion.
         }
     }
 
@@ -291,7 +286,6 @@ final class ExpenseImportViewModel: ObservableObject {
             throw NSError(domain: "ExpenseImport", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing card identifier."])
         }
 
-        let card = try cardService.findCard(byID: cardID)
         let batchWrites = UBPerfExperiments.importBatchWrites
         var createdAnyIncome = false
         var createdAnyExpense = false
@@ -340,25 +334,16 @@ final class ExpenseImportViewModel: ObservableObject {
                 }
 
                 if row.isPreset {
-                    let template = try UBPerf.measure("ExpenseImport.createPlannedTemplate") {
+                    _ = try UBPerf.measure("ExpenseImport.createPlannedTemplate") {
                         try plannedService.createGlobalTemplate(
                             titleOrDescription: row.descriptionText,
                             plannedAmount: amount,
                             actualAmount: amount,
                             defaultTransactionDate: date,
+                            categoryID: categoryID,
+                            cardID: cardID,
                             saveImmediately: !batchWrites
                         )
-                    }
-
-                    if let categoryObjectID = row.selectedCategoryID,
-                       let category = try? context.existingObject(with: categoryObjectID) as? ExpenseCategory {
-                        template.expenseCategory = category
-                    }
-                    if let card {
-                        template.card = card
-                    }
-                    if !batchWrites, context.hasChanges {
-                        try UBPerf.measure("ExpenseImport.context.saveTemplate") { try context.save() }
                     }
                 }
             }

@@ -272,7 +272,7 @@ extension PlannedExpenseService {
                                 plannedAmount: Double? = nil,
                                 actualAmount: Double? = nil,
                                 transactionDate: Date? = nil,
-                                in context: NSManagedObjectContext) {
+                                in context: NSManagedObjectContext) throws {
         let workspaceID = (expense.value(forKey: "workspaceID") as? UUID)
             ?? WorkspaceService.activeWorkspaceIDFromDefaults()
         let template: PlannedExpense?
@@ -300,6 +300,54 @@ extension PlannedExpenseService {
         }
 
         guard let template, let workspaceID else { return }
+
+        // If a global template's identity-defining fields changed, update its deterministic ID
+        // and propagate the new template ID into all children (globalTemplateID references).
+        if template.isGlobal {
+            let oldTemplateID = template.id
+            let titleForID = template.descriptionText ?? ""
+            let plannedForID = template.plannedAmount
+            let categoryID = template.expenseCategory?.id ?? (template.expenseCategory?.value(forKey: "id") as? UUID)
+            let cardID = (template.card?.value(forKey: "id") as? UUID)
+            let newTemplateID = DeterministicID.presetTemplateID(
+                workspaceID: workspaceID,
+                title: titleForID,
+                plannedAmount: plannedForID,
+                categoryID: categoryID,
+                cardID: cardID
+            )
+
+            if oldTemplateID != newTemplateID {
+                let dupeReq: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
+                dupeReq.fetchLimit = 1
+                dupeReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                    NSPredicate(format: "isGlobal == YES"),
+                    NSPredicate(format: "id == %@", newTemplateID as CVarArg),
+                    WorkspaceService.predicate(for: workspaceID)
+                ])
+                if let existing = try? context.fetch(dupeReq).first, existing.objectID != template.objectID {
+                    throw NSError(domain: "SoFar.Presets", code: 2002, userInfo: [
+                        NSLocalizedDescriptionKey: "A preset with the same card, category, title, and planned amount already exists."
+                    ])
+                }
+
+                // Update the template's ID, then rewrite any children that reference the old template ID.
+                template.id = newTemplateID
+                if let oldTemplateID {
+                    let childReq: NSFetchRequest<PlannedExpense> = PlannedExpense.fetchRequest()
+                    childReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                        NSPredicate(format: "isGlobal == NO"),
+                        NSPredicate(format: "globalTemplateID == %@", oldTemplateID as CVarArg),
+                        WorkspaceService.predicate(for: workspaceID)
+                    ])
+                    let childrenToUpdate = (try? context.fetch(childReq)) ?? []
+                    for child in childrenToUpdate {
+                        child.globalTemplateID = newTemplateID
+                    }
+                }
+            }
+        }
+
         let children = fetchChildren(of: template, in: context, workspaceID: workspaceID)
         for child in children {
             if child == expense { continue }

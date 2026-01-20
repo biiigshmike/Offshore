@@ -246,6 +246,9 @@ struct OffshoreBudgetingApp: App {
                 if CloudDataProbe().hasAnyData() { UbiquitousFlags.setHasCloudDataTrue() }
             }
             await WorkspaceService.shared.initializeOnLaunch()
+            if !appSettings.enableCloudSync {
+                await DeterministicIdentityMigrationService.shared.runIfNeeded(reason: "local-only")
+            }
 
             // No BudgetPreferenceSync – budget period mirrors via Core Data (Workspace)
             cardPickerStore.start()
@@ -285,6 +288,9 @@ struct OffshoreBudgetingApp: App {
             if ok {
                 dataRevision &+= 1
                 UBPerf.mark("DataRevision.increment", "reason=dataReadiness ok new=\(dataRevision)")
+                Task { @MainActor in
+                    await DeterministicIdentityMigrationService.shared.runIfNeeded(reason: "data-ready")
+                }
             }
             if ok { CloudSyncAccelerator.shared.nudgeOnForeground() }
         }

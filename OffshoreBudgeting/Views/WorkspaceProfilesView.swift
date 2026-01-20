@@ -32,7 +32,9 @@ struct WorkspaceMenuButton: View {
             Button("Add New Profile") { showAdd = true }
             Button("Manage Profiles") { showManage = true }
         }
-        .task { _ = WorkspaceService.shared.ensureActiveWorkspaceID() }
+        .task {
+            await WorkspaceService.shared.initializeOnLaunch()
+        }
         .sheet(isPresented: $showAdd) {
             WorkspaceEditorView(mode: .add)
                 .environment(\.managedObjectContext, viewContext)
@@ -46,7 +48,7 @@ struct WorkspaceMenuButton: View {
     @ViewBuilder
     private var workspaceListSection: some View {
         let activeID = UUID(uuidString: settings.activeWorkspaceID)
-        ForEach(workspaces) { workspace in
+        ForEach(workspaces, id: \.objectID) { workspace in
             let colorHex = WorkspaceService.shared.colorHex(for: workspace)
             let rowTint = UBColorFromHex(colorHex) ?? .accentColor
             Button {
@@ -116,7 +118,7 @@ struct WorkspaceManagerView: View {
         NavigationStack {
             List {
                 Section {
-                    ForEach(workspaces) { workspace in
+                    ForEach(workspaces, id: \.objectID) { workspace in
                         workspaceRow(for: workspace)
                     }
                 }

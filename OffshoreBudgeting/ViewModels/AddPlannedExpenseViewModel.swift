@@ -222,7 +222,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                 // Editing a parent template; keep it global and unattached.
                 existing.isGlobal = true
                 existing.budget = nil
-                templateService.updateTemplateHierarchy(
+                try templateService.updateTemplateHierarchy(
                     for: existing,
                     scope: scope,
                     title: trimmed,
@@ -313,7 +313,7 @@ final class AddPlannedExpenseViewModel: ObservableObject {
                 }
 
                 if existing.globalTemplateID != nil {
-                    templateService.updateTemplateHierarchy(
+                    try templateService.updateTemplateHierarchy(
                         for: existing,
                         scope: scope,
                         title: trimmed,
@@ -333,24 +333,20 @@ final class AddPlannedExpenseViewModel: ObservableObject {
             }
 
             if saveAsGlobalPreset {
-                // Create a global parent template
-                let parent = PlannedExpense(context: context)
-                parent.id = parent.id ?? UUID()
-                parent.descriptionText = trimmed
-                parent.plannedAmount = plannedAmt
-                // Preserve any actual amount entered when creating the preset so it
-                // can be edited later and displayed in PresetsView
-                parent.actualAmount = actualAmt
-                parent.transactionDate = transactionDate
-                parent.isGlobal = true
-                parent.budget = nil
-                parent.expenseCategory = category
-                parent.card = selectedCard
-                WorkspaceService.shared.applyWorkspaceID(on: parent)
+                let categoryUUID = category.id ?? (category.value(forKey: "id") as? UUID)
+                let cardUUID = selectedCard.value(forKey: "id") as? UUID
+                let parent = try PlannedExpenseService.shared.createGlobalTemplate(
+                    titleOrDescription: trimmed,
+                    plannedAmount: plannedAmt,
+                    actualAmount: actualAmt,
+                    defaultTransactionDate: transactionDate,
+                    categoryID: categoryUUID,
+                    cardID: cardUUID,
+                    saveImmediately: false
+                )
 
                 let budgetTargets = resolveSelectedBudgets()
-                let parentID = parent.id ?? UUID()
-                parent.id = parentID
+                let parentID = (parent.value(forKey: "id") as? UUID) ?? UUID()
                 for targetBudget in budgetTargets {
                     let workspaceID = (targetBudget.value(forKey: "workspaceID") as? UUID)
                         ?? WorkspaceService.shared.activeWorkspaceID

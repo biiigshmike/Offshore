@@ -14,6 +14,21 @@ import CoreData
 // MARK: - ExpenseCategoryService
 /// Public API to manage `ExpenseCategory` records.
 final class ExpenseCategoryService {
+
+    // MARK: - Errors
+    enum ExpenseCategoryServiceError: LocalizedError {
+        case emptyName
+        case duplicateName(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .emptyName:
+                return "Please enter a category name."
+            case .duplicateName(let name):
+                return "A category named “\(name)” already exists."
+            }
+        }
+    }
     
     // MARK: Properties
     /// Generic repository for ExpenseCategory entity.
@@ -86,13 +101,29 @@ final class ExpenseCategoryService {
     func addCategory(name: String,
                      color: String,
                      ensureUniqueName: Bool = true) throws -> ExpenseCategory {
-        if ensureUniqueName, let existing = try findCategory(named: name) {
-            return existing
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw ExpenseCategoryServiceError.emptyName }
+
+        if ensureUniqueName {
+            let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() ?? UUID()
+            let desiredID = DeterministicID.categoryID(workspaceID: workspaceID, name: trimmed)
+
+            if let existing = try? findCategory(byID: desiredID) {
+                return existing
+            }
+            if let existing = try? findCategory(named: trimmed) {
+                return existing
+            }
         }
+
         let category = repo.create { cat in
-            // ✅ Assign via KVC to avoid `.id` ambiguity.
-            cat.setValue(UUID(), forKey: "id")
-            cat.name = name
+            let id: UUID = {
+                guard ensureUniqueName else { return UUID() }
+                let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() ?? UUID()
+                return DeterministicID.categoryID(workspaceID: workspaceID, name: trimmed)
+            }()
+            cat.setValue(id, forKey: "id")
+            cat.name = trimmed
             cat.color = color
             WorkspaceService.applyWorkspaceIDIfPossible(on: cat)
         }
@@ -109,7 +140,23 @@ final class ExpenseCategoryService {
     func updateCategory(_ category: ExpenseCategory,
                         name: String? = nil,
                         color: String? = nil) throws {
-        if let name { category.name = name }
+        if let name {
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { throw ExpenseCategoryServiceError.emptyName }
+
+            let base = NSPredicate(format: "name =[c] %@", trimmed)
+            let predicate: NSPredicate = {
+                guard let ws = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+                return WorkspaceService.combinedPredicate(base, workspaceID: ws)
+            }()
+            if let other = try? repo.fetchFirst(predicate: predicate),
+               other.objectID != category.objectID
+            {
+                throw ExpenseCategoryServiceError.duplicateName(trimmed)
+            }
+
+            category.name = trimmed
+        }
         if let color { category.color = color }
         try repo.saveIfNeeded()
     }

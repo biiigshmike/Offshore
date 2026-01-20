@@ -275,7 +275,7 @@ final class PlannedExpenseService {
         return expense
     }
     
-    // MARK: createGlobalTemplate(titleOrDescription:plannedAmount:defaultTransactionDate:)
+    // MARK: createGlobalTemplate(titleOrDescription:plannedAmount:defaultTransactionDate:categoryID:cardID:)
     /// Create a **global template** (not linked to any budget).
     /// - Parameters:
     ///   - titleOrDescription: Display text.
@@ -283,15 +283,70 @@ final class PlannedExpenseService {
     ///   - actualAmount: Optional actual amount (defaults to 0).
     ///   - defaultTransactionDate: Some UIs want a default date (e.g., next due date). If your model
     ///                             makes this non-optional, pass something meaningful (default = now).
+    ///   - categoryID: Optional category to associate (part of deterministic preset identity).
+    ///   - cardID: Optional card to associate (part of deterministic preset identity).
     /// - Returns: The template PlannedExpense (isGlobal = true).
     @discardableResult
     func createGlobalTemplate(titleOrDescription: String,
                               plannedAmount: Double,
                               actualAmount: Double = 0,
                               defaultTransactionDate: Date = Date(),
+                              categoryID: UUID? = nil,
+                              cardID: UUID? = nil,
                               saveImmediately: Bool = true) throws -> PlannedExpense {
+        let ctx = expenseRepo.context
+        let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults()
+            ?? UUID()
+
+        let desiredID = DeterministicID.presetTemplateID(
+            workspaceID: workspaceID,
+            title: titleOrDescription,
+            plannedAmount: plannedAmount,
+            categoryID: categoryID,
+            cardID: cardID
+        )
+
+        let existing = try expenseRepo.fetchFirst(predicate: {
+            let base = NSPredicate(format: "id == %@ AND isGlobal == YES", desiredID as CVarArg)
+            if let ws = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                return WorkspaceService.combinedPredicate(base, workspaceID: ws)
+            }
+            return base
+        }())
+        if existing != nil {
+            throw NSError(domain: "PlannedExpenseService", code: 2001, userInfo: [
+                NSLocalizedDescriptionKey: "A preset with the same card, category, title, and planned amount already exists."
+            ])
+        }
+
+        let resolvedCategory: ExpenseCategory? = {
+            guard let categoryID else { return nil }
+            let req = NSFetchRequest<ExpenseCategory>(entityName: "ExpenseCategory")
+            req.fetchLimit = 1
+            let base = NSPredicate(format: "id == %@", categoryID as CVarArg)
+            if let ws = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                req.predicate = WorkspaceService.combinedPredicate(base, workspaceID: ws)
+            } else {
+                req.predicate = base
+            }
+            return try? ctx.fetch(req).first
+        }()
+
+        let resolvedCard: Card? = {
+            guard let cardID else { return nil }
+            let req = NSFetchRequest<Card>(entityName: "Card")
+            req.fetchLimit = 1
+            let base = NSPredicate(format: "id == %@", cardID as CVarArg)
+            if let ws = WorkspaceService.activeWorkspaceIDFromDefaults() {
+                req.predicate = WorkspaceService.combinedPredicate(base, workspaceID: ws)
+            } else {
+                req.predicate = base
+            }
+            return try? ctx.fetch(req).first
+        }()
+
         let template = expenseRepo.create { exp in
-            exp.setValue(UUID(), forKey: "id")
+            exp.setValue(desiredID, forKey: "id")
             Self.setTitleOrDescription(on: exp, value: titleOrDescription)
             exp.plannedAmount   = plannedAmount
             exp.actualAmount    = actualAmount
@@ -300,6 +355,8 @@ final class PlannedExpenseService {
             exp.globalTemplateID = nil
             // No budget for global templates
             exp.setValue(nil, forKey: "budget")
+            if let resolvedCategory { exp.expenseCategory = resolvedCategory }
+            if let resolvedCard { exp.card = resolvedCard }
             WorkspaceService.applyWorkspaceIDIfPossible(on: exp)
         }
         if saveImmediately {

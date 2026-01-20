@@ -108,7 +108,10 @@ struct SettingsView: View {
                         .ub_windowTitle("Presets")
                 }
             }
-            .task { await cloudDiag.refresh() }
+            .task {
+                await cloudDiag.refresh()
+                await WorkspaceService.shared.initializeOnLaunch()
+            }
             .alert("Merge Local Data into iCloud?", isPresented: $showMergeConfirm) {
                 Button("Merge", role: .none) { runMerge() }
                 Button("Cancel", role: .cancel) {}

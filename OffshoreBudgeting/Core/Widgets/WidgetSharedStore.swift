@@ -369,6 +369,57 @@ enum WidgetSharedStore {
         return (try? decoder.decode([CardWidgetCard].self, from: data)) ?? []
     }
 
+    // MARK: - Migrations
+    /// Best-effort migration for Card widget cached snapshots when a Card's UUID changes
+    /// (e.g., deterministic IDs after an update or renaming when IDs are name-derived).
+    static func migrateCardWidgetSnapshots(cardIDMap: [String: String]) {
+        guard !cardIDMap.isEmpty else { return }
+        guard let defaults = defaults() else { return }
+
+        let all = defaults.dictionaryRepresentation()
+        for (key, value) in all {
+            guard key.hasPrefix(cardWidgetKeyPrefix) else { continue }
+            guard let data = value as? Data else { continue }
+
+            // Key format: "widget.card.snapshot.<periodRaw>.<cardID>"
+            guard let lastDot = key.lastIndex(of: ".") else { continue }
+            let oldCardID = String(key[key.index(after: lastDot)...])
+            guard let newCardID = cardIDMap[oldCardID], newCardID != oldCardID else { continue }
+
+            let newKey = String(key[..<key.index(after: lastDot)]) + newCardID
+            defaults.set(data, forKey: newKey)
+            defaults.removeObject(forKey: key)
+        }
+
+        // Also migrate the card list used by the picker.
+        if let data = defaults.data(forKey: cardWidgetCardsKey) {
+            let decoder = JSONDecoder()
+            if let cards = try? decoder.decode([CardWidgetCard].self, from: data) {
+                let updated = cards.map { card -> CardWidgetCard in
+                    if let mapped = cardIDMap[card.id] {
+                        return CardWidgetCard(
+                            id: mapped,
+                            name: card.name,
+                            themeName: card.themeName,
+                            primaryHex: card.primaryHex,
+                            secondaryHex: card.secondaryHex,
+                            patternName: card.patternName
+                        )
+                    }
+                    return card
+                }
+                let encoder = JSONEncoder()
+                if let updatedData = try? encoder.encode(updated) {
+                    defaults.set(updatedData, forKey: cardWidgetCardsKey)
+                }
+            }
+        }
+
+        #if canImport(WidgetKit)
+        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: cardWidgetKind) }
+        #endif
+    }
+
     static func writeCategoryAvailabilityDefaultPeriod(_ periodRaw: String) {
         guard let defaults = defaults() else { return }
         defaults.set(periodRaw, forKey: categoryAvailabilityDefaultPeriodKey)

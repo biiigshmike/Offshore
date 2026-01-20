@@ -235,12 +235,11 @@ struct ExpenseCategoryManagerView: View {
     
     // MARK: - CRUD
     private func addCategory(name: String, hex: String) {
-        let new = ExpenseCategory(context: viewContext)
-        new.id = UUID()
-        new.name = name
-        new.color = hex
-        WorkspaceService.shared.applyWorkspaceID(on: new)
-        saveContext()
+        do {
+            _ = try ExpenseCategoryService().addCategory(name: name, color: hex, ensureUniqueName: true)
+        } catch {
+            AppLog.ui.error("\(error.localizedDescription)")
+        }
     }
     
     private func deleteCategory(_ cat: ExpenseCategory) {

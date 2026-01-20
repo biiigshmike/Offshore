@@ -146,8 +146,23 @@ final class AddBudgetViewModel: ObservableObject {
 
     // MARK: - Private (ADD)
     private func createNewBudget() throws {
+        let workspaceID = WorkspaceService.shared.ensureActiveWorkspaceID()
+        let desiredID = DeterministicID.budgetID(workspaceID: workspaceID, startDate: startDate, endDate: endDate)
+
+        let dupReq = NSFetchRequest<Budget>(entityName: "Budget")
+        dupReq.fetchLimit = 1
+        dupReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "id == %@", desiredID as CVarArg),
+            WorkspaceService.predicate(for: workspaceID)
+        ])
+        if (try? context.fetch(dupReq))?.first != nil {
+            throw NSError(domain: "SoFar.AddBudget", code: 20, userInfo: [
+                NSLocalizedDescriptionKey: "A budget already exists for this date range."
+            ])
+        }
+
         let newBudget = Budget(context: context)
-        newBudget.id = newBudget.id ?? UUID()
+        newBudget.id = desiredID
         newBudget.name = budgetName.trimmingCharacters(in: .whitespacesAndNewlines)
         newBudget.startDate = startDate
         newBudget.endDate = endDate
@@ -161,10 +176,10 @@ final class AddBudgetViewModel: ObservableObject {
 
         // Clone selected PlannedExpense templates (global)
         let templates = globalPlannedExpenseTemplates.filter { selectedTemplateObjectIDs.contains($0.objectID) }
-        let workspaceID = (newBudget.value(forKey: "workspaceID") as? UUID)
+        let assignmentWorkspaceID = (newBudget.value(forKey: "workspaceID") as? UUID)
             ?? WorkspaceService.shared.activeWorkspaceID
         for template in templates {
-            PlannedExpenseService.shared.ensureChild(from: template, attachedTo: newBudget, in: context, workspaceID: workspaceID)
+            PlannedExpenseService.shared.ensureChild(from: template, attachedTo: newBudget, in: context, workspaceID: assignmentWorkspaceID)
         }
 
         try context.save()
@@ -176,6 +191,23 @@ final class AddBudgetViewModel: ObservableObject {
             throw NSError(domain: "SoFar.EditBudget", code: 1, userInfo: [NSLocalizedDescriptionKey: "Budget not found."])
         }
 
+        let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+            ?? WorkspaceService.shared.ensureActiveWorkspaceID()
+        let desiredID = DeterministicID.budgetID(workspaceID: workspaceID, startDate: startDate, endDate: endDate)
+
+        let dupReq = NSFetchRequest<Budget>(entityName: "Budget")
+        dupReq.fetchLimit = 1
+        dupReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "id == %@", desiredID as CVarArg),
+            WorkspaceService.predicate(for: workspaceID)
+        ])
+        if let existing = (try? context.fetch(dupReq))?.first, existing.objectID != budget.objectID {
+            throw NSError(domain: "SoFar.EditBudget", code: 20, userInfo: [
+                NSLocalizedDescriptionKey: "A budget already exists for this date range."
+            ])
+        }
+
+        budget.setValue(desiredID, forKey: "id")
         budget.name = budgetName.trimmingCharacters(in: .whitespacesAndNewlines)
         budget.startDate = startDate
         budget.endDate = endDate
@@ -190,7 +222,7 @@ final class AddBudgetViewModel: ObservableObject {
         }
         // Handle preset planned expense templates
         let existingInstances = fetchPlannedExpenses(for: budget)
-        let workspaceID = (budget.value(forKey: "workspaceID") as? UUID)
+        let assignmentWorkspaceID = (budget.value(forKey: "workspaceID") as? UUID)
             ?? WorkspaceService.shared.activeWorkspaceID
 
         // Add instances for newly selected templates
@@ -199,7 +231,7 @@ final class AddBudgetViewModel: ObservableObject {
             let tid = template.id
             let already = existingInstances.contains { $0.globalTemplateID == tid }
             if !already {
-                PlannedExpenseService.shared.ensureChild(from: template, attachedTo: budget, in: context, workspaceID: workspaceID)
+                PlannedExpenseService.shared.ensureChild(from: template, attachedTo: budget, in: context, workspaceID: assignmentWorkspaceID)
             }
         }
 

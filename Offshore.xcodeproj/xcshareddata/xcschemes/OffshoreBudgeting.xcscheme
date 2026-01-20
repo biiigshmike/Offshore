@@ -88,7 +88,7 @@
          <EnvironmentVariable
             key = "UB_PERF_EXPERIMENT_NO_TAB_REMOUNT"
             value = "1"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "UB_PERF_EXPERIMENT_MOTION_REDUCE_RAW_PUBLISH"
@@ -108,12 +108,12 @@
          <EnvironmentVariable
             key = "UB_PERF"
             value = "1"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "UB_PERF_STDOUT"
             value = "1"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "UB_PERF_EXPERIMENT_MOTION_DISABLE"

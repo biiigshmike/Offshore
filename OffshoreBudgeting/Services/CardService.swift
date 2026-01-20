@@ -27,6 +27,21 @@ import CoreData
 // MARK: - CardService
 /// Public API to manage `Card` records.
 final class CardService {
+
+    // MARK: Errors
+    enum CardServiceError: LocalizedError {
+        case emptyName
+        case duplicateName(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .emptyName:
+                return "Please enter a card name."
+            case .duplicateName(let name):
+                return "A card named “\(name)” already exists."
+            }
+        }
+    }
     
     // MARK: Properties
     /// Repository scoped to Card entity.
@@ -111,28 +126,40 @@ final class CardService {
     /// Create a new card, optionally ensuring unique name and attaching to budgets.
     /// - Parameters:
     ///   - name: Display name for the card.
-    ///   - ensureUniqueName: If true, will return the existing card when a case-insensitive name match exists.
+    ///   - ensureUniqueName: If true, prevents duplicate names (case-insensitive) and throws on conflict.
     ///   - attachToBudgetIDs: Optional list of Budget IDs to link this card to.
-    /// - Returns: The created (or existing) Card.
+    /// - Returns: The created Card.
     @discardableResult
     func createCard(name: String,
                     ensureUniqueName: Bool = true,
                     attachToBudgetIDs: [UUID] = []) throws -> Card {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw CardServiceError.emptyName }
+
+        let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults()
+            ?? UUID()
+        let desiredID = DeterministicID.cardID(workspaceID: workspaceID, name: trimmed)
+
         if ensureUniqueName {
-            let existing = try cardRepo.fetchFirst(
+            if let existing = try findCard(byID: desiredID) {
+                throw CardServiceError.duplicateName(existing.name ?? trimmed)
+            }
+            let existingByName = try cardRepo.fetchFirst(
                 predicate: {
-                    let base = NSPredicate(format: "name =[c] %@", name)
-                    guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
-                    return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+                    let base = NSPredicate(format: "name =[c] %@", trimmed)
+                    guard let ws = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+                    return WorkspaceService.combinedPredicate(base, workspaceID: ws)
                 }()
             )
-            if let existing { return existing }
+            if existingByName != nil {
+                throw CardServiceError.duplicateName(trimmed)
+            }
         }
         
         let card = cardRepo.create { c in
             // Assign via KVC to avoid `.id` ambiguity when Identifiable is also present.
-            c.setValue(UUID(), forKey: "id")
-            c.name = name
+            c.setValue(desiredID, forKey: "id")
+            c.name = trimmed
             WorkspaceService.applyWorkspaceIDIfPossible(on: c)
         }
         
@@ -150,7 +177,21 @@ final class CardService {
     ///   - card: The managed `Card` instance to rename.
     ///   - newName: New display name.
     func renameCard(_ card: Card, to newName: String) throws {
-        card.name = newName
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw CardServiceError.emptyName }
+
+        let base = NSPredicate(format: "name =[c] %@", trimmed)
+        let predicate: NSPredicate = {
+            guard let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: workspaceID)
+        }()
+        if let other = try? cardRepo.fetchFirst(predicate: predicate),
+           other.objectID != card.objectID
+        {
+            throw CardServiceError.duplicateName(trimmed)
+        }
+
+        card.name = trimmed
         try cardRepo.saveIfNeeded()
     }
     

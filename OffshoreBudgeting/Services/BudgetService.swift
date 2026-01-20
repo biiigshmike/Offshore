@@ -17,6 +17,18 @@ import CoreData
 // MARK: - BudgetService
 /// Public API for managing `Budget` entities.
 final class BudgetService {
+
+    // MARK: - Errors
+    enum BudgetServiceError: LocalizedError {
+        case duplicateBudget
+
+        var errorDescription: String? {
+            switch self {
+            case .duplicateBudget:
+                return "A budget already exists for this date range."
+            }
+        }
+    }
     
     // MARK: Properties
     /// Generic repository for Budget entity.
@@ -90,9 +102,24 @@ final class BudgetService {
                       recurrenceType: String? = nil,
                       recurrenceEndDate: Date? = nil,
                       parentID: UUID? = nil) throws -> Budget {
+        let workspaceID = WorkspaceService.activeWorkspaceIDFromDefaults()
+            ?? UUID()
+        let desiredID = DeterministicID.budgetID(workspaceID: workspaceID, startDate: startDate, endDate: endDate)
+
+        let existing = try repo.fetchFirst(predicate: {
+            let base = NSPredicate(format: "(%K == %@) AND (%K == %@)",
+                                   #keyPath(Budget.startDate), startDate as CVarArg,
+                                   #keyPath(Budget.endDate), endDate as CVarArg)
+            guard let ws = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+            return WorkspaceService.combinedPredicate(base, workspaceID: ws)
+        }())
+        if existing != nil {
+            throw BudgetServiceError.duplicateBudget
+        }
+
         let budget = repo.create { b in
             // ✅ Assign via KVC to avoid `.id` ambiguity.
-            b.setValue(UUID(), forKey: "id")
+            b.setValue(desiredID, forKey: "id")
             b.name = name
             b.startDate = startDate
             b.endDate = endDate
@@ -127,6 +154,19 @@ final class BudgetService {
                       parentID: UUID? = nil) throws {
         if let name { budget.name = name }
         if let dates {
+            let base = NSPredicate(format: "(%K == %@) AND (%K == %@)",
+                                   #keyPath(Budget.startDate), dates.start as CVarArg,
+                                   #keyPath(Budget.endDate), dates.end as CVarArg)
+            let predicate: NSPredicate = {
+                guard let ws = WorkspaceService.activeWorkspaceIDFromDefaults() else { return base }
+                return WorkspaceService.combinedPredicate(base, workspaceID: ws)
+            }()
+            if let other = try? repo.fetchFirst(predicate: predicate),
+               other.objectID != budget.objectID
+            {
+                throw BudgetServiceError.duplicateBudget
+            }
+
             budget.startDate = dates.start
             budget.endDate = dates.end
         }

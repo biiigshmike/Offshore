@@ -46,6 +46,7 @@ struct AddUnplannedExpenseView: View {
 
     @State private var isPresentingNewCategory = false
     @State private var addCategorySheetInstanceID = UUID()
+    @State private var categoryCreateErrorMessage: String?
     
     // MARK: - Layout
     /// Height of the card picker row.  This matches the tile height defined in
@@ -158,6 +159,15 @@ struct AddUnplannedExpenseView: View {
                 }
             }
         }
+        .alert("Couldn’t Create Category", isPresented: Binding(get: {
+            categoryCreateErrorMessage != nil
+        }, set: { isPresented in
+            if !isPresented { categoryCreateErrorMessage = nil }
+        })) {
+            Button("OK", role: .cancel) { categoryCreateErrorMessage = nil }
+        } message: {
+            Text(categoryCreateErrorMessage ?? "")
+        }
     }
 
     // MARK: Navigation container
@@ -233,17 +243,15 @@ struct AddUnplannedExpenseView: View {
                         initialName: "",
                         initialHex: "#4E9CFF"
                     ) { name, hex in
-                        let category = ExpenseCategory(context: viewContext)
-                        category.id = UUID()
-                        category.name = name
-                        category.color = hex
-                        WorkspaceService.shared.applyWorkspaceID(on: category)
                         do {
-                            try viewContext.obtainPermanentIDs(for: [category])
-                            try viewContext.save()
+                            let category = try ExpenseCategoryService().addCategory(
+                                name: name,
+                                color: hex,
+                                ensureUniqueName: true
+                            )
                             vm.selectedCategoryID = category.objectID
                         } catch {
-                            AppLog.ui.error("Failed to create category: \(error.localizedDescription)")
+                            categoryCreateErrorMessage = error.localizedDescription
                         }
                     }
                     .environment(\.managedObjectContext, viewContext)

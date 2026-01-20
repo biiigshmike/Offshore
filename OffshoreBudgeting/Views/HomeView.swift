@@ -378,16 +378,6 @@ struct HomeView: View {
         }
     }
 
-    private struct HomeMetricRoute: Hashable {
-        let budgetID: NSManagedObjectID
-        let title: String
-        let kind: HomeWidgetKind
-    }
-
-    private struct NextPlannedRoute: Hashable {
-        let budgetID: NSManagedObjectID
-    }
-
     private enum WidgetID: Hashable {
         case income
         case expenseToIncome
@@ -479,41 +469,107 @@ struct HomeView: View {
             vm.cancelWidgetSnapshotRefresh()
         }
         .alert(item: $vm.alert, content: alert(for:))
-        .navigationDestination(for: HomeMetricRoute.self) { route in
-            if let summary = summaries.first(where: { $0.id == route.budgetID }) {
-                let topCategory = summary.categoryBreakdown.first ?? summary.plannedCategoryBreakdown.first ?? summary.categoryBreakdown.first
-                MetricDetailView(
-                    title: route.title,
-                    kind: route.kind,
-                    range: currentRange,
-                    period: vm.period,
-                    summary: summary,
-                    nextExpense: nil,
-                    topCategory: route.kind == .presets ? topCategory : nil,
-                    capStatuses: CategoryAvailabilitySegment.allCases.flatMap { vm.capStatusesBySegment[$0] ?? [] },
-                    availabilityBySegment: vm.categoryAvailabilityBySegment,
-                    capsCacheIsLoading: vm.capsCacheIsLoading
+        .navigationDestination(for: AppRoute.self) { route in
+            switch route {
+            case .homeIncome(let budgetID):
+                metricDetailDestination(
+                    title: "Income",
+                    kind: .income,
+                    budgetID: budgetID
                 )
-            } else {
-                Colors.clear
-                    .navigationTitle(route.title)
-                    .ub_windowTitle(route.title)
+
+            case .homeExpenseToIncome(let budgetID):
+                metricDetailDestination(
+                    title: "Expense to Income",
+                    kind: .expenseToIncome,
+                    budgetID: budgetID
+                )
+
+            case .homeSavingsOutlook(let budgetID):
+                metricDetailDestination(
+                    title: "Savings Outlook",
+                    kind: .savingsOutlook,
+                    budgetID: budgetID
+                )
+
+            case .homeCategorySpotlight(let budgetID):
+                metricDetailDestination(
+                    title: "Category Spotlight",
+                    kind: .presets,
+                    budgetID: budgetID
+                )
+
+            case .homeDayOfWeek(let budgetID):
+                metricDetailDestination(
+                    title: "Day of Week Spend",
+                    kind: .dayOfWeek,
+                    budgetID: budgetID
+                )
+
+            case .homeCategoryAvailability(let budgetID):
+                metricDetailDestination(
+                    title: "Category Availability",
+                    kind: .availability,
+                    budgetID: budgetID
+                )
+
+            case .homeScenario(let budgetID):
+                metricDetailDestination(
+                    title: "What If?",
+                    kind: .scenario,
+                    budgetID: budgetID
+                )
+
+            case .nextPlanned(let budgetID):
+                let snapshot = (nextPlannedSnapshot?.budgetID == budgetID) ? nextPlannedSnapshot : nil
+                NextPlannedPresetsView(summaryID: budgetID, nextExpense: snapshot)
+                    .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
+
+            case .cardUUID(let uuid):
+                CardDetailDestinationView(
+                    route: CardRoute(uuid: uuid),
+                    isPresentingAddExpense: .constant(false),
+                    onDone: {}
+                )
+
+            case .cardObjectIDURI(let url):
+                let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
+                if let objectID = coordinator.managedObjectID(forURIRepresentation: url) {
+                    CardDetailDestinationView(
+                        route: CardRoute(objectID: objectID),
+                        isPresentingAddExpense: .constant(false),
+                        onDone: {}
+                    )
+                } else {
+                    Colors.clear
+                }
             }
-        }
-        .navigationDestination(for: NextPlannedRoute.self) { route in
-            let snapshot = (nextPlannedSnapshot?.budgetID == route.budgetID) ? nextPlannedSnapshot : nil
-            NextPlannedPresetsView(summaryID: route.budgetID, nextExpense: snapshot)
-                .environment(\.managedObjectContext, CoreDataService.shared.viewContext)
-        }
-        .navigationDestination(for: CardRoute.self) { route in
-            CardDetailDestinationView(
-                route: route,
-                isPresentingAddExpense: .constant(false),
-                onDone: {}
-            )
         }
         .tipsAndHintsOverlay(for: .home)
         .tipsAndHintsOverlay(for: .home, kind: .whatsNew, versionToken: whatsNewVersionToken)
+    }
+
+    @ViewBuilder
+    private func metricDetailDestination(title: String, kind: HomeWidgetKind, budgetID: NSManagedObjectID) -> some View {
+        if let summary = summaries.first(where: { $0.id == budgetID }) {
+            let topCategory = summary.categoryBreakdown.first ?? summary.plannedCategoryBreakdown.first ?? summary.categoryBreakdown.first
+            MetricDetailView(
+                title: title,
+                kind: kind,
+                range: currentRange,
+                period: vm.period,
+                summary: summary,
+                nextExpense: nil,
+                topCategory: kind == .presets ? topCategory : nil,
+                capStatuses: CategoryAvailabilitySegment.allCases.flatMap { vm.capStatusesBySegment[$0] ?? [] },
+                availabilityBySegment: vm.categoryAvailabilityBySegment,
+                capsCacheIsLoading: vm.capsCacheIsLoading
+            )
+        } else {
+            Colors.clear
+                .navigationTitle(title)
+                .ub_windowTitle(title)
+        }
     }
 
     // MARK: Content
@@ -994,7 +1050,7 @@ struct HomeView: View {
 
     private func nextPlannedExpenseWidget(for summary: BudgetSummary) -> some View {
         let snapshot = (nextPlannedSnapshot?.budgetID == summary.id) ? nextPlannedSnapshot : nil
-        return NavigationLink(value: NextPlannedRoute(budgetID: summary.id)) {
+        return NavigationLink(value: AppRoute.nextPlanned(budgetID: summary.id)) {
             widgetCard(title: "Next Planned Expense", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .cards, span: WidgetSpan(width: 1, height: 1)) {
                 if let snapshot {
                     let cardItem = snapshotCardItem(snapshot)
@@ -1058,24 +1114,32 @@ struct HomeView: View {
     @ViewBuilder
     private func cardWidget(card: CardItem, summary: BudgetSummary) -> some View {
         if let route = CardRoute(cardItem: card) {
-            NavigationLink(value: route) {
-            widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, span: WidgetSpan(width: 1, height: 2)) {
-                VStack(alignment: .leading, spacing: Spacing.s) {
-		                    CardTileView(
-		                        card: card,
-		                        isInteractive: false,
-	                        enableMotionShine: true,
-	                        showsBaseShadow: false,
-	                        showsEffectOverlay: true
-	                    )
+            let appRoute: AppRoute = {
+                switch route.key {
+                case .objectIDURI(let url):
+                    return .cardObjectIDURI(url)
+                case .uuid(let uuid):
+                    return .cardUUID(uuid)
+                }
+            }()
+            NavigationLink(value: appRoute) {
+                widgetCard(title: card.name, subtitle: "Tap to view", kind: .cards, span: WidgetSpan(width: 1, height: 2)) {
+                    VStack(alignment: .leading, spacing: Spacing.s) {
+                        CardTileView(
+                            card: card,
+                            isInteractive: false,
+                            enableMotionShine: true,
+                            showsBaseShadow: false,
+                            showsEffectOverlay: true
+                        )
                         .frame(maxWidth: cardWidgetMaxWidth, alignment: .leading)
-                    if let balance = card.balance {
-                        Text("\(formatCurrency(balance))")
-                            .font(.title.weight(.bold))
-                            .fontDesign(.rounded)
+                        if let balance = card.balance {
+                            Text("\(formatCurrency(balance))")
+                                .font(.title.weight(.bold))
+                                .fontDesign(.rounded)
+                        }
                     }
                 }
-            }
             }
             .buttonStyle(.plain)
         } else {
@@ -1802,7 +1866,28 @@ struct HomeView: View {
         capStatuses: [CapStatus]? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
-        NavigationLink(value: HomeMetricRoute(budgetID: summary.id, title: title, kind: kind)) {
+        let route: AppRoute = {
+            switch kind {
+            case .income:
+                return .homeIncome(budgetID: summary.id)
+            case .expenseToIncome:
+                return .homeExpenseToIncome(budgetID: summary.id)
+            case .savingsOutlook:
+                return .homeSavingsOutlook(budgetID: summary.id)
+            case .presets:
+                return .homeCategorySpotlight(budgetID: summary.id)
+            case .dayOfWeek:
+                return .homeDayOfWeek(budgetID: summary.id)
+            case .availability:
+                return .homeCategoryAvailability(budgetID: summary.id)
+            case .scenario:
+                return .homeScenario(budgetID: summary.id)
+            case .budgets, .cards, .caps:
+                // Not used by Home metric widgets.
+                return .homeIncome(budgetID: summary.id)
+            }
+        }()
+        return NavigationLink(value: route) {
             widgetCard(title: title, subtitle: subtitle, subtitleColor: subtitleColor, kind: kind, span: span, content: content)
         }
         .buttonStyle(.plain)

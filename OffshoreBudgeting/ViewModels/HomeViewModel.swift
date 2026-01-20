@@ -204,6 +204,8 @@ final class HomeViewModel: ObservableObject {
     private var activeWorkspaceID: UUID { WorkspaceService.shared.activeWorkspaceID }
     private var workspaceObserver: NSObjectProtocol?
     private var widgetRefreshTask: Task<Void, Never>?
+    private var widgetRefreshInFlight: Bool = false
+    private var widgetRefreshToken = UUID()
     private var lastWidgetRefreshAt: Date?
     private let widgetRefreshMinimumInterval: TimeInterval = 20.0
     private var capsCacheTask: Task<Void, Never>?
@@ -304,6 +306,9 @@ final class HomeViewModel: ObservableObject {
 
         isRefreshing = true
         AppLog.viewModel.debug("HomeViewModel.refresh() started – current state: \(String(describing: self.state))")
+        // Cancel any in-flight widget snapshot refresh so it can't overlap with the next load.
+        widgetRefreshToken = UUID()
+        widgetRefreshTask?.cancel()
         if !CoreDataService.shared.storesLoaded {
             AppLog.viewModel.debug("HomeViewModel.refresh() awaiting persistent stores…")
             await CoreDataService.shared.waitUntilStoresLoaded()
@@ -707,27 +712,79 @@ final class HomeViewModel: ObservableObject {
             return
         }
 
+        // Strict coalescing gate: widgets refresh should never overlap.
+        if widgetRefreshInFlight {
+            #if DEBUG
+            AppLog.viewModel.debug("HomeViewModel.widgetRefresh skipped – refresh already in flight")
+            #endif
+            return
+        }
+
         widgetRefreshTask?.cancel()
-        widgetRefreshTask = Task { [weak self] in
+        widgetRefreshToken = UUID()
+        let token = widgetRefreshToken
+        widgetRefreshTask = Task(priority: .utility) { [weak self] in
             guard let self else { return }
             if preferDeferred {
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
             }
             if Task.isCancelled { return }
+            guard self.widgetRefreshToken == token else { return }
             if let last = self.lastWidgetRefreshAt, Date().timeIntervalSince(last) < self.widgetRefreshMinimumInterval {
                 return
             }
+            self.widgetRefreshInFlight = true
+            defer { self.widgetRefreshInFlight = false }
             self.lastWidgetRefreshAt = Date()
+
+            #if DEBUG
+            AppLog.viewModel.debug("HomeViewModel.widgetRefresh started")
+            #endif
+
             let widgetPeriod: BudgetPeriod = self.period == .custom ? .monthly : self.period
             let targetPeriods = [widgetPeriod]
-            await self.updateIncomeWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods)
-            await self.updateExpenseToIncomeWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods)
-            await self.updateSavingsOutlookWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods)
-            await self.updateCategorySpotlightWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods)
-            await self.updateCategoryAvailabilityWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods)
+
+            // Load summaries once and reuse across widget snapshot updates.
+            let range = widgetPeriod.range(containing: referenceDate)
+            let (summaries, _) = await self.loadSummaries(period: widgetPeriod, dateRange: range.start...range.end)
+            if Task.isCancelled { return }
+            guard self.widgetRefreshToken == token else { return }
+
+            await self.updateIncomeWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods, summariesOverride: summaries)
+            if Task.isCancelled { return }
+            guard self.widgetRefreshToken == token else { return }
+
+            await self.updateExpenseToIncomeWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods, summariesOverride: summaries)
+            if Task.isCancelled { return }
+            guard self.widgetRefreshToken == token else { return }
+
+            await self.updateSavingsOutlookWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods, summariesOverride: summaries)
+            if Task.isCancelled { return }
+            guard self.widgetRefreshToken == token else { return }
+
+            await self.updateCategorySpotlightWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods, summariesOverride: summaries)
+            if Task.isCancelled { return }
+            guard self.widgetRefreshToken == token else { return }
+
+            await self.updateCategoryAvailabilityWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods, summariesOverride: summaries)
+            if Task.isCancelled { return }
+            guard self.widgetRefreshToken == token else { return }
+
             await self.updateDayOfWeekWidgetsForAllPeriods(referenceDate: Date(), periods: targetPeriods)
-            await self.updateCardWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods)
+            if Task.isCancelled { return }
+            guard self.widgetRefreshToken == token else { return }
+
+            await self.updateCardWidgetsForAllPeriods(referenceDate: referenceDate, periods: targetPeriods, summariesOverride: summaries)
+
+            #if DEBUG
+            AppLog.viewModel.debug("HomeViewModel.widgetRefresh finished")
+            #endif
         }
+    }
+
+    func cancelWidgetSnapshotRefresh() {
+        widgetRefreshToken = UUID()
+        widgetRefreshTask?.cancel()
     }
 
     private func updateIncomeWidget(from summaries: [BudgetSummary], period: BudgetPeriod) {
@@ -817,50 +874,78 @@ final class HomeViewModel: ObservableObject {
 
 
     private func updateIncomeWidgetsForAllPeriods(referenceDate: Date,
-                                                  periods: [BudgetPeriod] = BudgetPeriod.selectableCases) async {
+                                                  periods: [BudgetPeriod] = BudgetPeriod.selectableCases,
+                                                  summariesOverride: [BudgetSummary]? = nil) async {
         let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
         WidgetSharedStore.writeIncomeDefaultPeriod(defaultPeriod.rawValue)
         for period in periods {
             let range = period.range(containing: referenceDate)
-            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
-            guard !summaries.isEmpty else { continue }
-            updateIncomeWidget(from: summaries, period: period)
+            let resolvedSummaries: [BudgetSummary]
+            if let summariesOverride {
+                resolvedSummaries = summariesOverride
+            } else {
+                let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+                resolvedSummaries = summaries
+            }
+            guard !resolvedSummaries.isEmpty else { continue }
+            updateIncomeWidget(from: resolvedSummaries, period: period)
         }
     }
 
     private func updateExpenseToIncomeWidgetsForAllPeriods(referenceDate: Date,
-                                                           periods: [BudgetPeriod] = BudgetPeriod.selectableCases) async {
+                                                           periods: [BudgetPeriod] = BudgetPeriod.selectableCases,
+                                                           summariesOverride: [BudgetSummary]? = nil) async {
         let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
         WidgetSharedStore.writeExpenseToIncomeDefaultPeriod(defaultPeriod.rawValue)
         for period in periods {
             let range = period.range(containing: referenceDate)
-            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
-            guard !summaries.isEmpty else { continue }
-            updateExpenseToIncomeWidget(from: summaries, period: period)
+            let resolvedSummaries: [BudgetSummary]
+            if let summariesOverride {
+                resolvedSummaries = summariesOverride
+            } else {
+                let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+                resolvedSummaries = summaries
+            }
+            guard !resolvedSummaries.isEmpty else { continue }
+            updateExpenseToIncomeWidget(from: resolvedSummaries, period: period)
         }
     }
 
     private func updateSavingsOutlookWidgetsForAllPeriods(referenceDate: Date,
-                                                          periods: [BudgetPeriod] = BudgetPeriod.selectableCases) async {
+                                                          periods: [BudgetPeriod] = BudgetPeriod.selectableCases,
+                                                          summariesOverride: [BudgetSummary]? = nil) async {
         let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
         WidgetSharedStore.writeSavingsOutlookDefaultPeriod(defaultPeriod.rawValue)
         for period in periods {
             let range = period.range(containing: referenceDate)
-            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
-            guard !summaries.isEmpty else { continue }
-            updateSavingsOutlookWidget(from: summaries, period: period)
+            let resolvedSummaries: [BudgetSummary]
+            if let summariesOverride {
+                resolvedSummaries = summariesOverride
+            } else {
+                let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+                resolvedSummaries = summaries
+            }
+            guard !resolvedSummaries.isEmpty else { continue }
+            updateSavingsOutlookWidget(from: resolvedSummaries, period: period)
         }
     }
 
     private func updateCategorySpotlightWidgetsForAllPeriods(referenceDate: Date,
-                                                             periods: [BudgetPeriod] = BudgetPeriod.selectableCases) async {
+                                                             periods: [BudgetPeriod] = BudgetPeriod.selectableCases,
+                                                             summariesOverride: [BudgetSummary]? = nil) async {
         let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
         WidgetSharedStore.writeCategorySpotlightDefaultPeriod(defaultPeriod.rawValue)
         for period in periods {
             let range = period.range(containing: referenceDate)
-            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
-            guard !summaries.isEmpty else { continue }
-            updateCategorySpotlightWidget(from: summaries, period: period)
+            let resolvedSummaries: [BudgetSummary]
+            if let summariesOverride {
+                resolvedSummaries = summariesOverride
+            } else {
+                let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+                resolvedSummaries = summaries
+            }
+            guard !resolvedSummaries.isEmpty else { continue }
+            updateCategorySpotlightWidget(from: resolvedSummaries, period: period)
         }
     }
 
@@ -877,7 +962,8 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func updateCategoryAvailabilityWidgetsForAllPeriods(referenceDate: Date,
-                                                                periods: [BudgetPeriod] = BudgetPeriod.selectableCases) async {
+                                                                periods: [BudgetPeriod] = BudgetPeriod.selectableCases,
+                                                                summariesOverride: [BudgetSummary]? = nil) async {
         let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
         WidgetSharedStore.writeCategoryAvailabilityDefaultPeriod(defaultPeriod.rawValue)
         WidgetSharedStore.writeCategoryAvailabilityDefaultSegment(CategoryAvailabilitySegment.combined.rawValue)
@@ -886,8 +972,14 @@ final class HomeViewModel: ObservableObject {
         var categoryNames: Set<String> = []
         for period in periods {
             let range = period.range(containing: referenceDate)
-            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
-            guard let summary = summaries.first else { continue }
+            let summary: BudgetSummary?
+            if let summariesOverride {
+                summary = summariesOverride.first
+            } else {
+                let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+                summary = summaries.first
+            }
+            guard let summary else { continue }
             let caps = await fetchCategoryCaps(for: summary)
             for segment in CategoryAvailabilitySegment.allCases {
                 let items = computeCategoryAvailabilityWidget(summary: summary, caps: caps, segment: segment)
@@ -914,7 +1006,8 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func updateCardWidgetsForAllPeriods(referenceDate: Date,
-                                                periods: [BudgetPeriod] = BudgetPeriod.selectableCases) async {
+                                                periods: [BudgetPeriod] = BudgetPeriod.selectableCases,
+                                                summariesOverride: [BudgetSummary]? = nil) async {
         let defaultPeriod: BudgetPeriod = period == .custom ? .monthly : period
         WidgetSharedStore.writeCardWidgetDefaultPeriod(defaultPeriod.rawValue)
 
@@ -927,8 +1020,14 @@ final class HomeViewModel: ObservableObject {
         for period in periods {
             let range = period.range(containing: referenceDate)
             let interval = DateInterval(start: range.start, end: range.end)
-            let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
-            guard let summary = summaries.first else { continue }
+            let summary: BudgetSummary?
+            if let summariesOverride {
+                summary = summariesOverride.first
+            } else {
+                let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
+                summary = summaries.first
+            }
+            guard let summary else { continue }
 
             guard let budgetUUID = resolveBudgetUUID(for: summary.id, context: context) else { continue }
             let cards = (try? cardService.fetchCards(forBudgetID: budgetUUID)) ?? []

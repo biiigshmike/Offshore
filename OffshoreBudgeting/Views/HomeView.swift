@@ -457,7 +457,10 @@ struct HomeView: View {
         .onReceive(vm.$customDateRange) { _ in syncPickers(with: vm.currentDateRange) }
         .onChange(of: vm.state) { _ in Task { await stateDidChange() } }
         .onChange(of: shouldSyncWidgets) { _ in handleWidgetSyncPreferenceChange() }
-        .onDisappear { stopObservingWidgetSync() }
+        .onDisappear {
+            stopObservingWidgetSync()
+            vm.cancelWidgetSnapshotRefresh()
+        }
         .alert(item: $vm.alert, content: alert(for:))
         .navigationDestination(for: HomeMetricRoute.self) { route in
             if let summary = summaries.first(where: { $0.id == route.budgetID }) {

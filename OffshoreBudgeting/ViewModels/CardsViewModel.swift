@@ -63,8 +63,7 @@ final class CardsViewModel: ObservableObject {
     private var pendingApply: DispatchWorkItem?
     private var latestSnapshot: [CardItem] = []
     private var lastLoadedAt: Date? = nil
-    
-    private var dataStoreObserver: NSObjectProtocol?
+    private var workspaceObserver: NSObjectProtocol?
 
     // MARK: Combine
     
@@ -112,12 +111,11 @@ final class CardsViewModel: ObservableObject {
             self.configureAndStartObserver()
         }
 
-        // Also listen for broad data store changes (e.g., remote CloudKit imports),
-        // and force a refresh so deletions from other devices disappear without
-        // requiring an app restart.
-        if dataStoreObserver == nil {
-            dataStoreObserver = NotificationCenter.default.addObserver(
-                forName: .dataStoreDidChange,
+        // Workspace switching changes the active predicate; rebuild the observer
+        // so the Cards list updates immediately.
+        if workspaceObserver == nil {
+            workspaceObserver = NotificationCenter.default.addObserver(
+                forName: .workspaceDidChange,
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
@@ -365,6 +363,6 @@ final class CardsViewModel: ObservableObject {
     }
 
     deinit {
-        if let observer = dataStoreObserver { NotificationCenter.default.removeObserver(observer) }
+        if let observer = workspaceObserver { NotificationCenter.default.removeObserver(observer) }
     }
 }

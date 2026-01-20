@@ -165,7 +165,12 @@ struct OffshoreBudgetingApp: App {
                     appLockViewModel.lock()
                     appLockViewModel.attemptUnlockWithDeviceAuth()
                 }
-                startAppServicesIfNeeded(testFlags: testFlags)
+                // Yield once so the first frame (including AppLock overlay) can render
+                // before kicking off heavy store loading and Cloud probes.
+                Task { @MainActor in
+                    await Task.yield()
+                    startAppServicesIfNeeded(testFlags: testFlags)
+                }
             }
             .onChange(of: onboarding.didCompleteOnboarding) { _ in
                 startAppServicesIfNeeded(testFlags: testFlags)

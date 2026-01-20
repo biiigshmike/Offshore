@@ -177,7 +177,11 @@ final class CoreDataService: ObservableObject {
 
         if loadingTask != nil { return }
 
-        loadingTask = Task { @MainActor [weak self] in
+        // Ensure the container itself is initialized on the main actor to avoid
+        // concurrent first access to the lazy `container` from multiple threads.
+        _ = container
+
+        loadingTask = Task { [weak self] in
             guard let self else { return }
             await self.loadStores(file: file, line: line)
         }
@@ -406,29 +410,40 @@ private extension CoreDataService {
         return provider
     }
 
-    @MainActor
     func loadStores(file: StaticString, line: UInt) async {
-        defer { loadingTask = nil }
+        defer {
+            Task { @MainActor [weak self] in
+                self?.loadingTask = nil
+            }
+        }
 
         do {
             // Avoid double-adding the same store if already attached.
-            let psc = container.persistentStoreCoordinator
-            if !psc.persistentStores.isEmpty {
-                if AppLog.isVerbose {
-                    let urls = psc.persistentStores.compactMap { $0.url?.lastPathComponent }.joined(separator: ", ")
-                    AppLog.coreData.debug("Skipping loadPersistentStores() – stores already attached: \(urls)")
+            let shouldLoad: Bool = await MainActor.run {
+                let psc = container.persistentStoreCoordinator
+                if !psc.persistentStores.isEmpty {
+                    if AppLog.isVerbose {
+                        let urls = psc.persistentStores.compactMap { $0.url?.lastPathComponent }.joined(separator: ", ")
+                        AppLog.coreData.debug("Skipping loadPersistentStores() – stores already attached: \(urls)")
+                    }
+                    return false
                 }
-            } else {
-                try await loadPersistentStores()
+                return true
             }
 
-            postLoadConfiguration()
-            storesLoaded = true
+            if shouldLoad {
+                try await loadPersistentStoresOffMain()
+            }
 
-            let urls = container.persistentStoreCoordinator.persistentStores.compactMap { $0.url }
-            let names = urls.map { $0.lastPathComponent }.joined(separator: ", ")
-            if AppLog.isVerbose {
-                AppLog.coreData.info("Core Data stores loaded (\(urls.count)): \(names)")
+            await MainActor.run {
+                postLoadConfiguration()
+                storesLoaded = true
+
+                let urls = container.persistentStoreCoordinator.persistentStores.compactMap { $0.url }
+                let names = urls.map { $0.lastPathComponent }.joined(separator: ", ")
+                if AppLog.isVerbose {
+                    AppLog.coreData.info("Core Data stores loaded (\(urls.count)): \(names)")
+                }
             }
         } catch {
             let nsError = error as NSError
@@ -436,13 +451,16 @@ private extension CoreDataService {
         }
     }
 
-    func loadPersistentStores() async throws {
+    func loadPersistentStoresOffMain() async throws {
+        let container = self.container
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            container.loadPersistentStores { _, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: ())
+            DispatchQueue.global(qos: .userInitiated).async {
+                container.loadPersistentStores { _, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume(returning: ())
+                    }
                 }
             }
         }
@@ -524,7 +542,7 @@ private extension CoreDataService {
         container.persistentStoreDescriptions = [description]
 
         do {
-            try await loadPersistentStores()
+            try await loadPersistentStoresOffMain()
             _currentMode = mode
             postLoadConfiguration()
             storesLoaded = true

@@ -21,7 +21,9 @@ struct PresetsView: View {
     @State private var isPresentingAdd = false
     @State private var sheetTemplateToAssign: PlannedExpense? = nil
     @State private var editingTemplate: PlannedExpense? = nil
-    @State private var templateToDelete: PlannedExpense? = nil
+    @State private var isConfirmingDeletePreset = false
+    @State private var pendingDeletePresetObjectID: NSManagedObjectID?
+    @State private var pendingDeletePresetName: String = ""
 
     // Guided walkthrough removed
 
@@ -60,7 +62,7 @@ struct PresetsView: View {
                                     onEdit: { editingTemplate = item.template },
                                     onDelete: {
                                         if settings.confirmBeforeDelete {
-                                            templateToDelete = item.template
+                                            requestDeletePreset(item.template)
                                         } else {
                                             delete(template: item.template)
                                         }
@@ -71,7 +73,7 @@ struct PresetsView: View {
                         .onDelete { indexSet in
                             let targets = indexSet.compactMap { vm.items[safe: $0]?.template }
                             if settings.confirmBeforeDelete, let first = targets.first {
-                                templateToDelete = first
+                                requestDeletePreset(first)
                             } else {
                                 targets.forEach(delete(template:))
                             }
@@ -111,17 +113,27 @@ struct PresetsView: View {
                 defaultSaveAsGlobalPreset: true,
                 onSaved: { vm.loadTemplates(using: viewContext) }
             )
-            .environment(\.managedObjectContext, viewContext)
-            .environmentObject(cardPickerStore)
-            .environmentObject(settings)
+                .environment(\.managedObjectContext, viewContext)
+                .environmentObject(cardPickerStore)
+                .environmentObject(settings)
         }
-        .alert(item: $templateToDelete) { template in
-            Alert(
-                title: Text("Delete \(template.descriptionText ?? "Preset")?"),
-                message: Text("This will remove the preset and its assignments."),
-                primaryButton: .destructive(Text("Delete")) { delete(template: template) },
-                secondaryButton: .cancel()
-            )
+        .alert(deletePresetAlertTitle, isPresented: $isConfirmingDeletePreset) {
+            Button("Delete", role: .destructive) {
+                let objectID = pendingDeletePresetObjectID
+                clearPendingPresetDelete()
+                guard let objectID else { return }
+                Task { @MainActor in
+                    await Task.yield()
+                    if let template = try? viewContext.existingObject(with: objectID) as? PlannedExpense {
+                        delete(template: template)
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                clearPendingPresetDelete()
+            }
+        } message: {
+            Text("This will remove the preset and its assignments.")
         }
     }
 
@@ -142,6 +154,23 @@ struct PresetsView: View {
         } catch {
             viewContext.rollback()
         }
+    }
+
+    private var deletePresetAlertTitle: String {
+        let name = pendingDeletePresetName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return "Delete \(name.isEmpty ? "Preset" : name)?"
+    }
+
+    private func requestDeletePreset(_ template: PlannedExpense) {
+        pendingDeletePresetObjectID = template.objectID
+        pendingDeletePresetName = template.descriptionText ?? "Preset"
+        isConfirmingDeletePreset = true
+    }
+
+    private func clearPendingPresetDelete() {
+        pendingDeletePresetObjectID = nil
+        pendingDeletePresetName = ""
+        isConfirmingDeletePreset = false
     }
 
     // Guided walkthrough removed

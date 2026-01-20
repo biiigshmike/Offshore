@@ -6,7 +6,6 @@ import CoreData
 struct BudgetsView: View {
     // MARK: State
     @StateObject private var budgetsViewState = BudgetsViewState()
-    @State private var isLoading = false
     @State private var alert: AlertItem?
     @State private var isPresentingAddBudget = false
     @State private var isSearching = false
@@ -36,19 +35,14 @@ struct BudgetsView: View {
             .navigationDestination(for: NSManagedObjectID.self) { budgetID in
                 BudgetDetailsView(budgetID: budgetID)
             }
-            .task { await loadBudgetsIfNeeded() }
-            .refreshable { await loadBudgets() }
-            .onReceive(
-                NotificationCenter.default
-                    .publisher(for: .dataStoreDidChange)
-                    .debounce(for: .milliseconds(DataChangeDebounce.milliseconds()), scheduler: RunLoop.main)
-            ) { _ in
-                Task { await loadBudgets() }
+            .refreshable {
+                // Pull-to-refresh: nudge CloudKit and let @FetchRequest update naturally.
+                CloudSyncAccelerator.shared.nudgeOnForeground()
+                await Task.yield()
             }
             .onAppear {
                 loadExpansionState()
                 startObservingUbiquitousChangesIfNeeded()
-                syncBudgetsFromFetch()
             }
             .onDisappear {
                 stopObservingUbiquitousChanges()
@@ -59,17 +53,11 @@ struct BudgetsView: View {
                       dismissButton: .default(Text("OK")))
             }
             .tipsAndHintsOverlay(for: .budgets)
-            .onChange(of: fetchedBudgetIDs) { _ in
-                syncBudgetsFromFetch()
-            }
     }
 
     @ViewBuilder
     private var content: some View {
-        if isLoading {
-            ProgressView("Loading Budgets…")
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        } else if !isSearchActive && activeBudgets.isEmpty && upcomingBudgets.isEmpty && pastBudgets.isEmpty {
+        if !isSearchActive && activeBudgets.isEmpty && upcomingBudgets.isEmpty && pastBudgets.isEmpty {
             DesignSystemV2.EmptyState(message: "No budgets found. Tap + to create a budget.")
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .sheet(isPresented: $isPresentingAddBudget) { addBudgetSheet }
@@ -117,7 +105,10 @@ struct BudgetsView: View {
         return AddBudgetView(
             initialStartDate: defaults.start,
             initialEndDate: defaults.end,
-            onSaved: { Task { await loadBudgets() } }
+            onSaved: {
+                isPresentingAddBudget = false
+                CloudSyncAccelerator.shared.nudgeOnForeground()
+            }
         )
     }
 
@@ -138,25 +129,6 @@ struct BudgetsView: View {
         return filteredBudgets
             .filter { ($0.startDate ?? .distantFuture) > now }
             .sorted { ($0.startDate ?? .distantFuture) < ($1.startDate ?? .distantFuture) }
-    }
-
-    // MARK: Data Loading
-    private func loadBudgetsIfNeeded() async {
-        guard fetchedBudgets.isEmpty else {
-            await MainActor.run {
-                isLoading = false
-            }
-            return
-        }
-        await loadBudgets()
-    }
-
-    private func loadBudgets() async {
-        await MainActor.run { isLoading = true }
-        await MainActor.run {
-            syncBudgetsFromFetch()
-            isPresentingAddBudget = false
-        }
     }
 
     private func isActive(_ budget: Budget, on date: Date) -> Bool {
@@ -493,14 +465,6 @@ struct BudgetsView: View {
             NotificationCenter.default.removeObserver(observer)
             ubiquitousObserver = nil
         }
-    }
-
-    private func syncBudgetsFromFetch() {
-        isLoading = false
-    }
-
-    private var fetchedBudgetIDs: [NSManagedObjectID] {
-        fetchedBudgets.map(\.objectID)
     }
 
     private func budgetUUID(for budget: Budget) -> UUID? {

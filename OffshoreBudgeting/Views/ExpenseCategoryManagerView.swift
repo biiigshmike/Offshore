@@ -38,7 +38,10 @@ struct ExpenseCategoryManagerView: View {
     // Force a fresh sheet instance each presentation (fixes Mac Catalyst state reuse)
     @State private var addSheetInstanceID = UUID()
     @State private var categoryToEdit: ExpenseCategory?
-    @State private var categoryToDelete: ExpenseCategory?
+    @State private var isConfirmingDeleteCategory = false
+    @State private var pendingDeleteCategoryObjectID: NSManagedObjectID?
+    @State private var pendingDeleteCategoryName: String = ""
+    @State private var isDeletingCategory = false
     let wrapsInNavigation: Bool
 
     init(wrapsInNavigation: Bool = true) {
@@ -110,24 +113,23 @@ struct ExpenseCategoryManagerView: View {
                 }
             )
         }
-        .alert(item: $categoryToDelete) { cat in
-            let counts = usageCounts(for: cat)
-            let title = Text(#"Delete \#(cat.name ?? "Category")?"#)
-            let message: Text = {
-                if counts.total > 0 {
-                    return Text(#"This category is used by \#(counts.planned) planned and \#(counts.unplanned) variable expenses. Deleting it will also delete those expenses."#)
-                } else {
-                    return Text("This will remove the category.")
-                }
-            }()
-            return Alert(
-                title: title,
-                message: message,
-                primaryButton: .destructive(Text(counts.total > 0 ? "Delete Category & Expenses" : "Delete")) { deleteCategory(cat) },
-                secondaryButton: .cancel()
-            )
-        }
         .tipsAndHintsOverlay(for: .categories)
+        .alert(deleteCategoryAlertTitle, isPresented: $isConfirmingDeleteCategory) {
+            Button("Delete", role: .destructive) {
+                let objectID = pendingDeleteCategoryObjectID
+                clearPendingCategoryDelete()
+                guard let objectID else { return }
+                Task { @MainActor in
+                    await Task.yield()
+                    await deleteCategory(objectID: objectID)
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                clearPendingCategoryDelete()
+            }
+        } message: {
+            Text("This will delete the category and any expenses assigned to it. This action cannot be undone.")
+        }
     }
 
     private var filteredCategories: [ExpenseCategory] {
@@ -157,11 +159,7 @@ struct ExpenseCategoryManagerView: View {
                         .onDelete { offsets in
                             let targets = offsets.map { filteredCategories[$0] }
                             if settings.confirmBeforeDelete {
-                                if let used = targets.first(where: { usageCounts(for: $0).total > 0 }) {
-                                    categoryToDelete = used
-                                } else if let first = targets.first {
-                                    categoryToDelete = first
-                                }
+                                if let first = targets.first { requestDelete(first) }
                             } else {
                                 // Strictly delete with no alerts when confirmations are disabled
                                 targets.forEach(deleteCategory(_:))
@@ -198,7 +196,7 @@ struct ExpenseCategoryManagerView: View {
             onDelete: {
                 if settings.confirmBeforeDelete {
                     // Show confirmation (with cascade details if in use)
-                    categoryToDelete = category
+                    requestDelete(category)
                 } else {
                     // Strictly delete without any alert
                     deleteCategory(category)
@@ -246,39 +244,67 @@ struct ExpenseCategoryManagerView: View {
     }
     
     private func deleteCategory(_ cat: ExpenseCategory) {
-        // Fetch and delete all expenses referencing this category (planned and variable).
-        let reqP = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-        reqP.predicate = NSPredicate(format: "expenseCategory == %@", cat)
-        let planned = (try? viewContext.fetch(reqP)) ?? []
-        
-        let reqU = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
-        reqU.predicate = NSPredicate(format: "expenseCategory == %@", cat)
-        let unplanned = (try? viewContext.fetch(reqU)) ?? []
-        
-        planned.forEach { viewContext.delete($0) }
-        unplanned.forEach { viewContext.delete($0) }
-        viewContext.delete(cat)
-        saveContext()
+        let objectID = cat.objectID
+        Task { @MainActor in
+            guard !isDeletingCategory else { return }
+            isDeletingCategory = true
+            defer { isDeletingCategory = false }
+            await deleteCategory(objectID: objectID)
+        }
     }
-    
-    // MARK: Usage counting (excludes global templates to match user-visible "in use")
-    private func usageCounts(for category: ExpenseCategory) -> (planned: Int, unplanned: Int, total: Int) {
-        // Planned: exclude isGlobal == true (templates)
-        let reqP = NSFetchRequest<NSNumber>(entityName: "PlannedExpense")
-        reqP.resultType = .countResultType
-        reqP.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "expenseCategory == %@", category),
-            NSPredicate(format: "isGlobal == NO")
-        ])
-        let plannedCount = (try? viewContext.count(for: reqP)) ?? 0
-        
-        // Unplanned: count all
-        let reqU = NSFetchRequest<NSNumber>(entityName: "UnplannedExpense")
-        reqU.resultType = .countResultType
-        reqU.predicate = NSPredicate(format: "expenseCategory == %@", category)
-        let unplannedCount = (try? viewContext.count(for: reqU)) ?? 0
-        
-        return (plannedCount, unplannedCount, plannedCount + unplannedCount)
+
+    private var deleteCategoryAlertTitle: String {
+        let name = pendingDeleteCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return "Delete \(name.isEmpty ? "Category" : name)?"
+    }
+
+    private func requestDelete(_ category: ExpenseCategory) {
+        pendingDeleteCategoryObjectID = category.objectID
+        pendingDeleteCategoryName = category.name ?? "Category"
+        isConfirmingDeleteCategory = true
+    }
+
+    private func clearPendingCategoryDelete() {
+        pendingDeleteCategoryObjectID = nil
+        pendingDeleteCategoryName = ""
+        isConfirmingDeleteCategory = false
+    }
+
+    @MainActor
+    private func deleteCategory(objectID: NSManagedObjectID) async {
+        let bg = CoreDataService.shared.newBackgroundContext()
+        var deletedObjectIDs: [NSManagedObjectID] = []
+        do {
+            deletedObjectIDs = try await bg.perform {
+                guard let category = try? bg.existingObject(with: objectID) as? ExpenseCategory else { return [] }
+
+                func executeBatchDelete(entityName: String, predicate: NSPredicate) throws -> [NSManagedObjectID] {
+                    let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+                    fetch.predicate = predicate
+                    let delete = NSBatchDeleteRequest(fetchRequest: fetch)
+                    delete.resultType = .resultTypeObjectIDs
+                    let result = try bg.execute(delete) as? NSBatchDeleteResult
+                    return (result?.result as? [NSManagedObjectID]) ?? []
+                }
+
+                var ids: [NSManagedObjectID] = []
+                // Delete dependent expenses first to avoid constraint issues.
+                ids.append(contentsOf: try executeBatchDelete(entityName: "PlannedExpense", predicate: NSPredicate(format: "expenseCategory == %@", category)))
+                ids.append(contentsOf: try executeBatchDelete(entityName: "UnplannedExpense", predicate: NSPredicate(format: "expenseCategory == %@", category)))
+                ids.append(contentsOf: try executeBatchDelete(entityName: "ExpenseCategory", predicate: NSPredicate(format: "self == %@", category)))
+
+                if !bg.registeredObjects.isEmpty {
+                    bg.reset()
+                }
+                return ids
+            }
+        } catch {
+            AppLog.ui.error("Failed to delete category: \(error.localizedDescription)")
+        }
+
+        guard !deletedObjectIDs.isEmpty else { return }
+        let changes: [AnyHashable: Any] = [NSDeletedObjectsKey: deletedObjectIDs]
+        NSManagedObjectContext.mergeChanges(fromRemoteContextSave: changes, into: [viewContext])
     }
     
     private func saveContext() {

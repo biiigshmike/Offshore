@@ -494,7 +494,6 @@ struct CardDetailView: View {
 
             do {
                 try await viewModel.delete(expense: expense)
-                NotificationCenter.default.post(name: .dataStoreDidChange, object: nil)
                 await viewModel.load()
             } catch {
                 if viewContext.hasChanges { viewContext.rollback() }

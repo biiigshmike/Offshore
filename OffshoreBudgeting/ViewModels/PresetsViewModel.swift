@@ -51,7 +51,7 @@ struct PresetListItem: Identifiable, Equatable {
 final class PresetsViewModel: ObservableObject {
     @Published private(set) var items: [PresetListItem] = []
     private var changeMonitor: CoreDataEntityChangeMonitor?
-    private var dataStoreObserver: NSObjectProtocol?
+    private var workspaceObserver: NSObjectProtocol?
     private var pendingApply: DispatchWorkItem?
     private var lastLoadedAt: Date? = nil
 
@@ -68,9 +68,9 @@ final class PresetsViewModel: ObservableObject {
                 self.loadTemplates(using: context)
             }
         }
-        if dataStoreObserver == nil {
-            dataStoreObserver = NotificationCenter.default.addObserver(
-                forName: .dataStoreDidChange,
+        if workspaceObserver == nil {
+            workspaceObserver = NotificationCenter.default.addObserver(
+                forName: .workspaceDidChange,
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
@@ -151,7 +151,7 @@ final class PresetsViewModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delayMS), execute: work)
     }
     deinit {
-        if let observer = dataStoreObserver { NotificationCenter.default.removeObserver(observer) }
+        if let observer = workspaceObserver { NotificationCenter.default.removeObserver(observer) }
     }
 }
 

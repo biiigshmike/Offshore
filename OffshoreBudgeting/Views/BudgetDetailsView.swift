@@ -488,7 +488,6 @@ struct BudgetDetailsView: View {
         guard let budget = vm.budget else { return }
         do {
             try budgetService.deleteBudget(budget)
-            NotificationCenter.default.post(name: .dataStoreDidChange, object: nil)
             dismiss()
         } catch {
             // Simple fallback alert; could be expanded for user messaging.

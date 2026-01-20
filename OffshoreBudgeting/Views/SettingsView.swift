@@ -18,7 +18,6 @@ struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettingsState
     
     // MARK: State
-    @State private var showResetAlert = false
     @State private var showMergeConfirm = false
     @State private var showForceReuploadConfirm = false
     @State private var showForceReuploadResult = false
@@ -70,7 +69,7 @@ struct SettingsView: View {
                         .ub_windowTitle("Help")
                 case .general:
                     GeneralSettingsView(
-                        showResetAlert: $showResetAlert
+                        onConfirmDataWipe: performDataWipe
                     )
                     .ub_windowTitle("General")
                 case .privacy:
@@ -88,9 +87,15 @@ struct SettingsView: View {
                     ICloudSettingsView(
                         cloudToggle: cloudToggleBinding,
                         widgetSyncToggle: $settings.syncHomeWidgetsAcrossDevices,
+                        showDisableCloudOptions: $showDisableCloudOptions,
+                        onDisableCloudKeepData: { disableCloud(eraseLocal: false) },
+                        onDisableCloudRemoveFromDevice: { disableCloud(eraseLocal: true) },
                         isForceReuploading: isForceReuploading,
                         isReconfiguringStores: isReconfiguringStores,
-                        onForceRefresh: { showForceReuploadConfirm = true }
+                        showForceReuploadConfirm: $showForceReuploadConfirm,
+                        showForceReuploadResult: $showForceReuploadResult,
+                        forceReuploadMessage: $forceReuploadMessage,
+                        onRunForceReupload: forceReupload
                     )
                     .ub_windowTitle("iCloud")
                 case .categories:
@@ -104,19 +109,6 @@ struct SettingsView: View {
                 }
             }
             .task { await cloudDiag.refresh() }
-            .confirmationDialog("Turn Off iCloud Sync?", isPresented: $showDisableCloudOptions, titleVisibility: .visible) {
-                Button("Switch to Local (Keep Data)", role: .destructive) { disableCloud(eraseLocal: false) }
-                Button("Remove from This Device", role: .destructive) { disableCloud(eraseLocal: true) }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("Choose what to do with your data on this device.")
-            }
-            .alert("Erase All Data?", isPresented: $showResetAlert) {
-                Button("Remove Data & Reset App", role: .destructive) { performDataWipe() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will remove all budgets, cards, incomes, and expenses. This action cannot be undone.")
-            }
             .alert("Merge Local Data into iCloud?", isPresented: $showMergeConfirm) {
                 Button("Merge", role: .none) { runMerge() }
                 Button("Cancel", role: .cancel) {}
@@ -127,17 +119,6 @@ struct SettingsView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("Your data has been merged. If you still see duplicates, you can run the merge again or contact support.")
-            }
-            .alert("Force iCloud Sync Refresh?", isPresented: $showForceReuploadConfirm) {
-                Button("Run Refresh", role: .destructive) { forceReupload() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will mark all budgets, incomes, and expenses as updated so they re-export to iCloud. Use for troubleshooting only.")
-            }
-            .alert("Sync Refresh Finished", isPresented: $showForceReuploadResult) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(forceReuploadMessage)
             }
             .overlay(alignment: .center) {
                 if let overlayLabel = overlayStatusLabel {
@@ -695,8 +676,10 @@ private struct ReleaseLogItemRow: View {
 private struct GeneralSettingsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var settings: AppSettingsState
-    @Binding var showResetAlert: Bool
+    let onConfirmDataWipe: () -> Void
     @State private var selectedBudgetPeriod: BudgetPeriod = .monthly
+    @State private var showDataWipeAlert = false
+    @State private var showTipsResetAlert = false
     
     var body: some View {
         List {
@@ -719,7 +702,7 @@ private struct GeneralSettingsView: View {
 
                 DesignSystemV2.Buttons.DestructiveCTA(
                     tint: .red,
-                    action: { showResetAlert = true },
+                    action: { showDataWipeAlert = true },
                     label: { label },
                     legacyStyle: { button in
                         button
@@ -750,6 +733,20 @@ private struct GeneralSettingsView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("General")
         .ub_windowTitle("General")
+        .alert("Reset Tips & Hints?", isPresented: $showTipsResetAlert) {
+            Button("Reset Tips & Hints", role: .destructive) {
+                TipsAndHintsStore.shared.resetAllTips()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will show tips again across the app.")
+        }
+        .alert("Erase All Data?", isPresented: $showDataWipeAlert) {
+            Button("Remove Data & Reset App", role: .destructive) { onConfirmDataWipe() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will remove all budgets, cards, incomes, and expenses. This action cannot be undone.")
+        }
         .onAppear {
             selectedBudgetPeriod = WorkspaceService.shared.currentBudgetPeriod(in: viewContext)
         }
@@ -767,7 +764,7 @@ private struct GeneralSettingsView: View {
 
         DesignSystemV2.Buttons.PrimaryCTA(
             tint: .orange,
-            action: { TipsAndHintsStore.shared.resetAllTips() },
+            action: { showTipsResetAlert = true },
             label: { label },
             legacyStyle: { button in
                 button.buttonStyle(.plain)
@@ -1039,9 +1036,15 @@ private struct NotificationsSettingsView: View {
 private struct ICloudSettingsView: View {
     @Binding var cloudToggle: Bool
     @Binding var widgetSyncToggle: Bool
+    @Binding var showDisableCloudOptions: Bool
+    let onDisableCloudKeepData: () -> Void
+    let onDisableCloudRemoveFromDevice: () -> Void
     let isForceReuploading: Bool
     let isReconfiguringStores: Bool
-    let onForceRefresh: () -> Void
+    @Binding var showForceReuploadConfirm: Bool
+    @Binding var showForceReuploadResult: Bool
+    @Binding var forceReuploadMessage: String
+    let onRunForceReupload: () -> Void
     @Environment(\.platformCapabilities) private var capabilities
     
     var body: some View {
@@ -1062,6 +1065,24 @@ private struct ICloudSettingsView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("iCloud")
         .ub_windowTitle("iCloud")
+        .confirmationDialog("Turn Off iCloud Sync?", isPresented: $showDisableCloudOptions, titleVisibility: .visible) {
+            Button("Switch to Local (Keep Data)", role: .destructive) { onDisableCloudKeepData() }
+            Button("Remove from This Device", role: .destructive) { onDisableCloudRemoveFromDevice() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Choose what to do with your data on this device.")
+        }
+        .alert("Force iCloud Sync Refresh?", isPresented: $showForceReuploadConfirm) {
+            Button("Run Refresh", role: .destructive) { onRunForceReupload() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will mark all budgets, incomes, and expenses as updated so they re-export to iCloud. Use for troubleshooting only.")
+        }
+        .alert("Sync Refresh Finished", isPresented: $showForceReuploadResult) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(forceReuploadMessage)
+        }
     }
     
     @ViewBuilder
@@ -1079,7 +1100,7 @@ private struct ICloudSettingsView: View {
             DesignSystemV2.Buttons.DestructiveCTA(
                 tint: .red,
                 useGlassIfAvailable: capabilities.supportsOS26Translucency,
-                action: onForceRefresh,
+                action: { showForceReuploadConfirm = true },
                 label: { label },
                 legacyStyle: { button in
                     button

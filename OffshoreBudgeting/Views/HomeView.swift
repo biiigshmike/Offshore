@@ -457,14 +457,6 @@ struct HomeView: View {
         .onReceive(vm.$customDateRange) { _ in syncPickers(with: vm.currentDateRange) }
         .onChange(of: vm.state) { _ in Task { await stateDidChange() } }
         .onChange(of: shouldSyncWidgets) { _ in handleWidgetSyncPreferenceChange() }
-        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave, object: CoreDataService.shared.viewContext)) { _ in
-            switch vm.state {
-            case .loaded, .empty:
-                Task { await loadAllCards() }
-            case .initial, .loading:
-                break
-            }
-        }
         .onDisappear { stopObservingWidgetSync() }
         .alert(item: $vm.alert, content: alert(for:))
         .navigationDestination(for: HomeMetricRoute.self) { route in
@@ -2245,38 +2237,79 @@ struct HomeView: View {
     @MainActor
     private func loadAllCards() async {
         let range = currentRange
-        let ctx = CoreDataService.shared.viewContext
-        let req = NSFetchRequest<Card>(entityName: "Card")
-        req.predicate = WorkspaceService.shared.activeWorkspacePredicate()
-        req.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
-        let fetched = (try? ctx.fetch(req)) ?? []
-        let items: [CardItem] = fetched.map { card in
-            var item = CardItem(from: card)
-            // Aggregate unplanned + planned actual expenses in the current range as balance.
-            let expenseReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
-            expenseReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                NSPredicate(format: "card == %@", card),
-                NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", range.lowerBound as NSDate, range.upperBound as NSDate),
-                WorkspaceService.shared.activeWorkspacePredicate()
-            ])
-            if let expenses = try? ctx.fetch(expenseReq) {
-                let variableTotal = expenses.reduce(0) { $0 + $1.amount }
-                var plannedTotal: Double = 0
-                if let cardUUID = card.value(forKey: "id") as? UUID {
-                    let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
-                    plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                        NSPredicate(format: "card.id == %@ AND isGlobal == NO AND transactionDate >= %@ AND transactionDate <= %@",
-                                    cardUUID as CVarArg, range.lowerBound as NSDate, range.upperBound as NSDate),
-                        WorkspaceService.shared.activeWorkspacePredicate()
-                    ])
-                    if let planned = try? ctx.fetch(plannedReq) {
-                        plannedTotal = planned.reduce(0) { $0 + $1.actualAmount }
+        let workspaceID = WorkspaceService.shared.activeWorkspaceID
+        let container = CoreDataService.shared.container
+        let bg = container.newBackgroundContext()
+        let rangeStart = range.lowerBound
+        let rangeEnd = range.upperBound
+
+        let items: [CardItem] = await bg.perform {
+            let workspacePredicate = WorkspaceService.predicate(for: workspaceID)
+            let cardsReq = NSFetchRequest<Card>(entityName: "Card")
+            cardsReq.predicate = workspacePredicate
+            cardsReq.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
+            let cards = (try? bg.fetch(cardsReq)) ?? []
+
+            // Aggregate spend across all cards in one pass per entity (avoid N+1 fetches).
+            var variableTotals: [NSManagedObjectID: Double] = [:]
+            var plannedTotals: [NSManagedObjectID: Double] = [:]
+
+            if !cards.isEmpty {
+                let unplannedReq = NSFetchRequest<UnplannedExpense>(entityName: "UnplannedExpense")
+                unplannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                    NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", rangeStart as NSDate, rangeEnd as NSDate),
+                    workspacePredicate
+                ])
+                if let expenses = try? bg.fetch(unplannedReq) {
+                    for expense in expenses {
+                        guard let card = expense.card else { continue }
+                        variableTotals[card.objectID, default: 0] += expense.amount
                     }
                 }
-                item.balance = variableTotal + plannedTotal
+
+                let plannedReq = NSFetchRequest<PlannedExpense>(entityName: "PlannedExpense")
+                plannedReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                    NSPredicate(format: "isGlobal == NO"),
+                    NSPredicate(format: "card != nil"),
+                    NSPredicate(format: "transactionDate >= %@ AND transactionDate <= %@", rangeStart as NSDate, rangeEnd as NSDate),
+                    workspacePredicate
+                ])
+                if let expenses = try? bg.fetch(plannedReq) {
+                    for expense in expenses {
+                        guard let card = expense.card else { continue }
+                        plannedTotals[card.objectID, default: 0] += expense.actualAmount
+                    }
+                }
             }
-            return item
+
+            return cards.map { card in
+                let uuid: UUID? = (card.entity.attributesByName["id"] != nil) ? (card.value(forKey: "id") as? UUID) : nil
+                let theme: CardTheme = {
+                    guard card.entity.attributesByName["theme"] != nil else { return .graphite }
+                    let raw = card.value(forKey: "theme") as? String
+                    return raw.flatMap(CardTheme.init(rawValue:)) ?? .graphite
+                }()
+                let effect: CardEffect = {
+                    guard card.entity.attributesByName["effect"] != nil else { return .plastic }
+                    let raw = card.value(forKey: "effect") as? String
+                    return CardEffect.fromStoredValue(raw)
+                }()
+
+                var item = CardItem(
+                    objectID: card.objectID,
+                    uuid: uuid,
+                    name: card.name ?? "Untitled",
+                    theme: theme,
+                    effect: effect,
+                    balance: nil
+                )
+                let variable = variableTotals[card.objectID] ?? 0
+                let planned = plannedTotals[card.objectID] ?? 0
+                item.balance = variable + planned
+                return item
+            }
         }
+
         cardWidgets = items
     }
 

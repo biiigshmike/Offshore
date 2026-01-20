@@ -219,7 +219,7 @@ struct HomeView: View {
     @State private var nextPlannedSnapshot: PlannedExpenseSnapshot?
     @State private var widgetBuckets: [SpendBucket] = []
     @State private var weekdayRangeOverride: ClosedRange<Date>? = nil
-    @State private var capStatuses: [CapStatus] = []
+    @State private var weekdayRangeOverrideLabel: String? = nil
     @State private var availabilityPage: Int = 0
     @State private var startDateSelection: Date = Date()
     @State private var endDateSelection: Date = Date()
@@ -470,7 +470,9 @@ struct HomeView: View {
                     summary: summary,
                     nextExpense: nil,
                     topCategory: route.kind == .presets ? topCategory : nil,
-                    capStatuses: nil
+                    capStatuses: CategoryAvailabilitySegment.allCases.flatMap { vm.capStatusesBySegment[$0] ?? [] },
+                    availabilityBySegment: vm.categoryAvailabilityBySegment,
+                    capsCacheIsLoading: vm.capsCacheIsLoading
                 )
             } else {
                 Colors.clear
@@ -546,7 +548,7 @@ struct HomeView: View {
     @ViewBuilder
     private var dateRow: some View {
         let applyDisabled = startDateSelection > endDateSelection
-        let rangeLabel = Text(rangeDescription(currentRange))
+        let rangeLabel = Text(vm.cachedRangeLabel)
             .font(Typography.headlineSemibold)
             .lineLimit(1)
             .multilineTextAlignment(.leading)
@@ -975,8 +977,7 @@ struct HomeView: View {
         return NavigationLink(value: NextPlannedRoute(budgetID: summary.id)) {
             widgetCard(title: "Next Planned Expense", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .cards, span: WidgetSpan(width: 1, height: 1)) {
                 if let snapshot {
-                    let expense = fetchPlannedExpense(from: snapshot.expenseURI)
-                    let cardItem = detachedCardItem(from: expense?.card)
+                    let cardItem = snapshotCardItem(snapshot)
                     NextPlannedExpenseWidgetRow(
                         cardItem: cardItem,
                         title: snapshot.title,
@@ -995,15 +996,11 @@ struct HomeView: View {
     }
 
     // MARK: - Next Planned Expense Helpers
-    private func fetchPlannedExpense(from uri: URL) -> PlannedExpense? {
-        let coordinator = CoreDataService.shared.container.persistentStoreCoordinator
-        guard let id = coordinator.managedObjectID(forURIRepresentation: uri) else { return nil }
-        return try? CoreDataService.shared.viewContext.existingObject(with: id) as? PlannedExpense
-    }
-
-    private func detachedCardItem(from card: Card?) -> CardItem? {
-        guard let card else { return nil }
-        return CardItem(from: card)
+    private func snapshotCardItem(_ snapshot: PlannedExpenseSnapshot) -> CardItem? {
+        guard let cardName = snapshot.cardName else { return nil }
+        let theme = snapshot.cardThemeRawValue.flatMap(CardTheme.init(rawValue:)) ?? .graphite
+        let effect = CardEffect.fromStoredValue(snapshot.cardEffectRawValue)
+        return CardItem(objectID: nil, uuid: snapshot.cardUUID, name: cardName, theme: theme, effect: effect, balance: nil)
     }
 
     private func categorySpotlightWidget(for summary: BudgetSummary) -> some View {
@@ -1518,8 +1515,8 @@ struct HomeView: View {
 
         return widgetLink(title: "Category Availability", subtitle: widgetRangeLabel, subtitleColor: .primary, kind: .availability, span: WidgetSpan(width: 1, height: 3), summary: summary) {
             let segment = availabilitySegment
-            let items = categoryAvailability(for: summary, segment: segment)
-            let statuses = capStatuses.filter { $0.segment == segment }
+            let items = vm.categoryAvailabilityBySegment[segment] ?? []
+            let statuses = vm.capStatusesBySegment[segment] ?? []
             let overCount = statuses.filter { $0.over }.count
             let nearCount = statuses.filter { $0.near && !$0.over }.count
             let pages = stride(from: 0, to: items.count, by: pageSize).map { idx in
@@ -1571,11 +1568,17 @@ struct HomeView: View {
                         .opacity(0.35)
 
                     if pageItems.isEmpty {
-                        Text("No categories yet.")
-                            .foregroundStyle(Colors.styleSecondary)
-                            .font(Typography.footnote)
-                            .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
-                            .padding(.vertical, tabPadding)
+                        if vm.capsCacheIsLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
+                                .padding(.vertical, tabPadding)
+                        } else {
+                            Text("No categories yet.")
+                                .foregroundStyle(Colors.styleSecondary)
+                                .font(Typography.footnote)
+                                .frame(maxWidth: .infinity, minHeight: rowHeight * 2, alignment: .center)
+                                .padding(.vertical, tabPadding)
+                        }
                     } else {
                         VStack(spacing: rowSpacing) {
                             ForEach(pageItems) { item in
@@ -1857,12 +1860,12 @@ struct HomeView: View {
     }
 
     private var widgetRangeLabel: String {
-        return rangeDescription(currentRange)
+        vm.cachedRangeLabel
     }
 
     private var weekdayRangeLabel: String {
-        if let override = weekdayRangeOverride {
-            return rangeDescription(override)
+        if let weekdayRangeOverrideLabel {
+            return weekdayRangeOverrideLabel
         }
         return widgetRangeLabel
     }
@@ -1913,16 +1916,6 @@ struct HomeView: View {
         await loadNextPlannedExpense(for: summary)
         await loadWidgetBuckets(for: summary)
         await loadAllCards()
-        await loadCaps(for: summary)
-    }
-
-    private func rangeDescription(_ range: ClosedRange<Date>) -> String {
-        let f = DateFormatter()
-        f.locale = Locale.current
-        f.dateFormat = "MMM d, yyyy"
-        let start = f.string(from: range.lowerBound)
-        let end = f.string(from: range.upperBound)
-        return "\(start) - \(end)"
     }
 
     private var dateActionSymbolFont: Font {
@@ -2094,13 +2087,30 @@ struct HomeView: View {
             guard let next else { return nil }
             let title = HomeView.readPlannedDescription(next) ?? "Expense"
             let date = next.transactionDate ?? range.upperBound
+            let card = next.card
+            let cardUUID = card?.value(forKey: "id") as? UUID
+            let cardName = card?.name ?? (card?.value(forKey: "name") as? String)
+            let cardThemeRawValue: String? = {
+                guard let card else { return nil }
+                guard card.entity.attributesByName["theme"] != nil else { return nil }
+                return card.value(forKey: "theme") as? String
+            }()
+            let cardEffectRawValue: String? = {
+                guard let card else { return nil }
+                guard card.entity.attributesByName["effect"] != nil else { return nil }
+                return card.value(forKey: "effect") as? String
+            }()
             return PlannedExpenseSnapshot(
                 budgetID: summary.id,
                 expenseURI: next.objectID.uriRepresentation(),
                 title: title,
                 plannedAmount: next.plannedAmount,
                 actualAmount: next.actualAmount,
-                date: date
+                date: date,
+                cardUUID: cardUUID,
+                cardName: cardName,
+                cardThemeRawValue: cardThemeRawValue,
+                cardEffectRawValue: cardEffectRawValue
             )
         }
         await MainActor.run {
@@ -2114,18 +2124,17 @@ struct HomeView: View {
             WidgetSharedStore.clearNextPlannedExpenseSnapshot()
             return
         }
-        let expense = fetchPlannedExpense(from: snapshot.expenseURI)
-        let cardItem = detachedCardItem(from: expense?.card)
-        let themeColors = cardItem?.theme.colors
-        let primaryHex = themeColors.flatMap { colorToHex($0.0) }
-        let secondaryHex = themeColors.flatMap { colorToHex($0.1) }
+        let theme = snapshot.cardThemeRawValue.flatMap(CardTheme.init(rawValue:)) ?? .graphite
+        let themeColors = theme.colors
+        let primaryHex = colorToHex(themeColors.0)
+        let secondaryHex = colorToHex(themeColors.1)
         let widgetSnapshot = WidgetSharedStore.NextPlannedExpenseSnapshot(
             title: snapshot.title,
             plannedAmount: snapshot.plannedAmount,
             actualAmount: snapshot.actualAmount,
             date: snapshot.date,
-            cardName: cardItem?.name,
-            cardThemeName: cardItem?.theme.rawValue,
+            cardName: snapshot.cardName,
+            cardThemeName: theme.rawValue,
             cardPrimaryHex: primaryHex,
             cardSecondaryHex: secondaryHex,
             cardPattern: nil,
@@ -2184,6 +2193,7 @@ struct HomeView: View {
             await MainActor.run {
                 widgetBuckets = []
                 weekdayRangeOverride = nil
+                weekdayRangeOverrideLabel = nil
             }
             return
         }
@@ -2216,6 +2226,7 @@ struct HomeView: View {
         await MainActor.run {
             widgetBuckets = buckets
             weekdayRangeOverride = range
+            weekdayRangeOverrideLabel = vm.cachedRangeLabel
         }
     }
 
@@ -2313,19 +2324,6 @@ struct HomeView: View {
         cardWidgets = items
     }
 
-    private func loadCaps(for summary: BudgetSummary?) async {
-        guard let summary else {
-            await MainActor.run { capStatuses = [] }
-            return
-        }
-        let caps = await fetchCapStatuses(for: summary)
-        await MainActor.run { capStatuses = caps }
-    }
-
-    private func categoryAvailability(for summary: BudgetSummary, segment: CategoryAvailabilitySegment) -> [CategoryAvailability] {
-        computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary), segment: segment)
-    }
-
     fileprivate static func readPlannedDescription(_ object: NSManagedObject) -> String? {
         let keys = object.entity.attributesByName.keys
         if keys.contains("descriptionText") {
@@ -2370,6 +2368,10 @@ struct HomeView: View {
         let plannedAmount: Double
         let actualAmount: Double
         let date: Date
+        let cardUUID: UUID?
+        let cardName: String?
+        let cardThemeRawValue: String?
+        let cardEffectRawValue: String?
     }
 }
 
@@ -2383,6 +2385,8 @@ private struct MetricDetailView: View {
     let nextExpense: HomeView.PlannedExpenseSnapshot?
     let topCategory: BudgetSummary.CategorySpending?
     let capStatuses: [CapStatus]?
+    let availabilityBySegment: [CategoryAvailabilitySegment: [CategoryAvailability]]
+    let capsCacheIsLoading: Bool
 
     // MARK: Local UI State
     @State private var showAllCategories: Bool = false
@@ -2975,7 +2979,7 @@ private struct MetricDetailView: View {
 
     private var availabilityContent: some View {
         let segment = detailAvailabilitySegment
-        let items = computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary), segment: segment)
+        let items = availabilityBySegment[segment] ?? []
         let rowSpacing: CGFloat = isAccessibilitySize ? 10 : 6
         let rowPadding: CGFloat = isAccessibilitySize ? 8 : 4
         return VStack(alignment: .leading, spacing: Spacing.m) {
@@ -2995,9 +2999,14 @@ private struct MetricDetailView: View {
             .padding(.horizontal, Spacing.s)
             .padding(.trailing, Spacing.xs)
             if items.isEmpty {
-                Text("No categories or caps available.")
-                    .font(Typography.body)
-                    .foregroundStyle(Colors.styleSecondary)
+                if capsCacheIsLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text("No categories or caps available.")
+                        .font(Typography.body)
+                        .foregroundStyle(Colors.styleSecondary)
+                }
             } else {
                 VStack(spacing: rowSpacing) {
                     ForEach(items) { item in
@@ -3032,13 +3041,18 @@ private struct MetricDetailView: View {
 
     private var scenarioContent: some View {
         let segment = CategoryAvailabilitySegment.variable
-        let items = computeCategoryAvailability(summary: summary, caps: categoryCaps(for: summary), segment: segment)
+        let items = availabilityBySegment[segment] ?? []
         let remainingIncome = summary.actualSavingsTotal
         return VStack(alignment: .leading, spacing: Spacing.m) {
             if items.isEmpty {
-                Text("No categories or caps available.")
-                    .font(Typography.body)
-                    .foregroundStyle(Colors.styleSecondary)
+                if capsCacheIsLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text("No categories or caps available.")
+                        .font(Typography.body)
+                        .foregroundStyle(Colors.styleSecondary)
+                }
             } else {
                 scenarioPlanner(items: items, remainingIncome: remainingIncome, segment: segment)
             }
@@ -5864,161 +5878,9 @@ private extension Color {
     }
 }
 
-private func fetchCapStatuses(for summary: BudgetSummary) async -> [CapStatus] {
-    let caps = categoryCaps(for: summary)
-    return CategoryAvailabilitySegment.allCases.flatMap {
-        computeCapStatuses(summary: summary, caps: caps, segment: $0)
-    }
-}
-
-private func capsPeriodKey(start: Date, end: Date, segment: String) -> String {
-    let f = DateFormatter()
-    f.calendar = Calendar(identifier: .gregorian)
-    f.locale = Locale(identifier: "en_US_POSIX")
-    f.timeZone = TimeZone(secondsFromGMT: 0)
-    f.dateFormat = "yyyy-MM-dd"
-    let s = f.string(from: start)
-    let e = f.string(from: end)
-    return "\(s)|\(e)|\(segment)"
-}
-
 // MARK: - Shared helpers
 fileprivate func normalizeCategoryName(_ name: String) -> String {
     name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-}
-
-fileprivate func categoryCaps(for summary: BudgetSummary) -> [String: (planned: Double?, variable: Double?)] {
-    let ctx = CoreDataService.shared.viewContext
-    var map: [String: (planned: Double?, variable: Double?)] = [:]
-
-    func fetchCaps(segment: String) {
-        let key = capsPeriodKey(start: summary.periodStart, end: summary.periodEnd, segment: segment)
-        let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
-        fetch.predicate = NSPredicate(format: "period == %@", key)
-        let results = (try? ctx.fetch(fetch)) ?? []
-        for cap in results {
-            guard let category = cap.category,
-                  let name = category.name else { continue }
-            let norm = normalizeCategoryName(name)
-            var entry = map[norm] ?? (planned: nil, variable: nil)
-            if (cap.expenseType ?? "").lowercased() == "max" {
-                if segment == "planned" { entry.planned = cap.amount } else { entry.variable = cap.amount }
-                map[norm] = entry
-            }
-        }
-    }
-
-    fetchCaps(segment: "planned")
-    fetchCaps(segment: "variable")
-    return map
-}
-
-fileprivate func computeCategoryAvailability(summary: BudgetSummary, caps: [String: (planned: Double?, variable: Double?)], segment: CategoryAvailabilitySegment) -> [CategoryAvailability] {
-    let remainingIncome = max(summary.actualIncomeTotal - (summary.plannedExpensesActualTotal + summary.variableExpensesTotal), 0)
-    let breakdown: [BudgetSummary.CategorySpending]
-    switch segment {
-    case .combined:
-        breakdown = summary.categoryBreakdown
-    case .planned:
-        breakdown = summary.plannedCategoryBreakdown
-    case .variable:
-        breakdown = summary.variableCategoryBreakdown
-    }
-
-    let availabilities: [CategoryAvailability] = breakdown.map { cat in
-        let norm = normalizeCategoryName(cat.categoryName)
-        let capTuple = caps[norm]
-        let plannedDefault = summary.plannedCategoryDefaultCaps[norm]
-        let capValue: Double?
-        switch segment {
-        case .combined:
-            let plannedCap = capTuple?.planned ?? plannedDefault
-            let variableCap = capTuple?.variable
-            let combined = (plannedCap ?? 0) + (variableCap ?? 0)
-            capValue = combined > 0 ? combined : nil
-        case .planned:
-            capValue = capTuple?.planned ?? plannedDefault
-        case .variable:
-            capValue = capTuple?.variable
-        }
-        let hasCap = capValue != nil
-        let capAmount = capValue ?? 0
-        let capRemaining = max(capAmount - cat.amount, 0)
-        let available = hasCap ? capRemaining : remainingIncome
-        let color = UBColorFromHex(cat.hexColor) ?? Color.accentColor
-        let over = hasCap && cat.amount >= capAmount
-        let near = hasCap && cat.amount >= capAmount * 0.85 && cat.amount < capAmount
-        return CategoryAvailability(
-            name: cat.categoryName,
-            spent: cat.amount,
-            cap: capValue,
-            available: available,
-            color: color,
-            over: over,
-            near: near
-        )
-    }
-
-    return availabilities
-        .sorted { lhs, rhs in
-            if lhs.spent == rhs.spent { return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending }
-            return lhs.spent > rhs.spent
-        }
-}
-
-fileprivate func computeCapStatuses(summary: BudgetSummary, caps: [String: (planned: Double?, variable: Double?)], segment: CategoryAvailabilitySegment) -> [CapStatus] {
-    let breakdown: [BudgetSummary.CategorySpending]
-    switch segment {
-    case .combined:
-        breakdown = summary.categoryBreakdown
-    case .planned:
-        breakdown = summary.plannedCategoryBreakdown
-    case .variable:
-        breakdown = summary.variableCategoryBreakdown
-    }
-
-    let statuses: [CapStatus] = breakdown.compactMap { cat in
-        let norm = normalizeCategoryName(cat.categoryName)
-        let overrides = caps[norm]
-        let plannedDefault = summary.plannedCategoryDefaultCaps[norm]
-        let plannedComponent = max((overrides?.planned ?? plannedDefault ?? 0), 0)
-        let variableComponent = max(overrides?.variable ?? 0, 0)
-
-        let capAmount: Double
-        switch segment {
-        case .combined:
-            capAmount = plannedComponent + variableComponent
-        case .planned:
-            capAmount = plannedComponent
-        case .variable:
-            capAmount = variableComponent
-        }
-
-        guard capAmount > 0 else { return nil }
-        let color = UBColorFromHex(cat.hexColor) ?? HomeView.HomePalette.presets
-        let over = cat.amount >= capAmount
-        let near = !over && cat.amount >= capAmount * 0.85
-
-        return CapStatus(
-            name: cat.categoryName,
-            amount: cat.amount,
-            cap: capAmount,
-            color: color,
-            near: near,
-            over: over,
-            segment: segment
-        )
-    }
-
-    return statuses.sorted { lhs, rhs in
-        if lhs.over != rhs.over { return lhs.over && !rhs.over }
-        let lhsRatio = lhs.cap > 0 ? lhs.amount / lhs.cap : 0
-        let rhsRatio = rhs.cap > 0 ? rhs.amount / rhs.cap : 0
-        if lhsRatio == rhsRatio {
-            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-        }
-        return lhsRatio > rhsRatio
-    }
 }
 
 // MARK: - Typography Helpers

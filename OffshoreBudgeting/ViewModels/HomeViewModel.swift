@@ -164,6 +164,7 @@ final class HomeViewModel: ObservableObject {
     @Published var selectedDate: Date = BudgetPeriod.monthly.start(of: Date()) {
         didSet {
             guard selectedDate != oldValue else { return }
+            updateCachedDateRangeAndLabel()
             Task { [weak self] in
                 await self?.refresh()
             }
@@ -173,6 +174,20 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var state: BudgetLoadState = .initial
     @Published private(set) var loadedBudgetIDs: [NSManagedObjectID] = []
     @Published var alert: HomeViewAlert?
+
+    // MARK: Date Range Cache
+    // Keep Calendar/ICU work out of SwiftUI render paths by caching the current range + label.
+    @Published private(set) var cachedDateRange: ClosedRange<Date> = Date()...Date()
+    @Published private(set) var cachedRangeLabel: String = ""
+
+    // MARK: Render Caches (HomeView)
+    // IMPORTANT: SwiftUI may evaluate `HomeView.body` frequently during scroll.
+    // Absolutely no Core Data fetches (or heavy aggregation) may be reachable from
+    // that rendering path. HomeView reads these caches only.
+    @Published private(set) var capsBySegment: [CategoryAvailabilitySegment: [String: Double]] = [:]
+    @Published private(set) var categoryAvailabilityBySegment: [CategoryAvailabilitySegment: [CategoryAvailability]] = [:]
+    @Published private(set) var capStatusesBySegment: [CategoryAvailabilitySegment: [CapStatus]] = [:]
+    @Published private(set) var capsCacheIsLoading: Bool = false
 
     // MARK: Dependencies
     private let context: NSManagedObjectContext
@@ -191,6 +206,8 @@ final class HomeViewModel: ObservableObject {
     private var widgetRefreshTask: Task<Void, Never>?
     private var lastWidgetRefreshAt: Date?
     private let widgetRefreshMinimumInterval: TimeInterval = 20.0
+    private var capsCacheTask: Task<Void, Never>?
+    private var capsCacheToken = UUID()
 
     // MARK: init()
     /// - Parameter context: The Core Data context to use (defaults to main viewContext).
@@ -198,6 +215,8 @@ final class HomeViewModel: ObservableObject {
         self.context = context
         self.period = WorkspaceService.shared.currentBudgetPeriod(in: context)
         self.selectedDate = period.start(of: Date())
+        self.cachedDateRange = Self.computeDateRange(period: self.period, selectedDate: self.selectedDate, custom: nil)
+        self.cachedRangeLabel = Self.formatRangeLabel(self.cachedDateRange)
 
         workspaceObserver = NotificationCenter.default.addObserver(
             forName: .workspaceDidChange,
@@ -209,12 +228,37 @@ final class HomeViewModel: ObservableObject {
     }
 
     var currentDateRange: ClosedRange<Date> {
-        if let customDateRange { return customDateRange }
+        cachedDateRange
+    }
+
+    var isUsingCustomRange: Bool { customDateRange != nil }
+
+    // MARK: Date range caching
+    private static func computeDateRange(period: BudgetPeriod, selectedDate: Date, custom: ClosedRange<Date>?) -> ClosedRange<Date> {
+        if let custom { return custom }
         let bounds = period.range(containing: selectedDate)
         return bounds.start...bounds.end
     }
 
-    var isUsingCustomRange: Bool { customDateRange != nil }
+    private static func formatRangeLabel(_ range: ClosedRange<Date>) -> String {
+        let f = DateFormatter()
+        f.locale = Locale.current
+        f.dateFormat = "MMM d, yyyy"
+        let start = f.string(from: range.lowerBound)
+        let end = f.string(from: range.upperBound)
+        return "\(start) - \(end)"
+    }
+
+    private func updateCachedDateRangeAndLabel() {
+        // Must remain fast + deterministic; no fetches. Calendar work happens only on selection changes.
+        let nextRange = Self.computeDateRange(period: period, selectedDate: selectedDate, custom: customDateRange)
+        if cachedDateRange.lowerBound != nextRange.lowerBound || cachedDateRange.upperBound != nextRange.upperBound {
+            cachedDateRange = nextRange
+            cachedRangeLabel = Self.formatRangeLabel(nextRange)
+        } else if cachedRangeLabel.isEmpty {
+            cachedRangeLabel = Self.formatRangeLabel(nextRange)
+        }
+    }
 
     // MARK: startIfNeeded()
     /// Starts loading budgets exactly once.
@@ -268,6 +312,7 @@ final class HomeViewModel: ObservableObject {
 
         // Refresh local period from Workspace in case it changed remotely
         self.period = WorkspaceService.shared.currentBudgetPeriod(in: context)
+        updateCachedDateRangeAndLabel()
         let requestedPeriod = period
         let requestedDate = selectedDate
         let requestedRange: ClosedRange<Date>
@@ -280,6 +325,8 @@ final class HomeViewModel: ObservableObject {
 
         let (summaries, budgetIDs) = await loadSummaries(period: requestedPeriod, dateRange: requestedRange)
         AppLog.viewModel.debug("HomeViewModel.refresh() finished fetching summaries – count: \(summaries.count)")
+
+        scheduleCapsCacheRefresh(summaries: summaries, requestedRange: requestedRange)
 
         // Even if this task was cancelled (for example, by a rapid burst of
         // .dataStoreDidChange notifications), finalize the UI state once we
@@ -318,6 +365,273 @@ final class HomeViewModel: ObservableObject {
         }
 
         scheduleWidgetSnapshotRefresh(referenceDate: requestedDate, preferDeferred: state == .initial || state == .loading)
+    }
+
+    // MARK: - Caps/Availability cache (HomeView)
+    private func scheduleCapsCacheRefresh(summaries: [BudgetSummary], requestedRange: ClosedRange<Date>) {
+        capsCacheTask?.cancel()
+        capsCacheToken = UUID()
+        let token = capsCacheToken
+
+        guard let summary = Self.primarySummary(from: summaries, requestedRange: requestedRange) else {
+            capsCacheIsLoading = false
+            capsBySegment = [:]
+            categoryAvailabilityBySegment = [:]
+            capStatusesBySegment = [:]
+            return
+        }
+
+        // Keep prior values in place while we refresh (prevents empty-state flicker),
+        // but expose a loading flag so the view can show lightweight placeholders.
+        capsCacheIsLoading = true
+
+        capsCacheTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            let computed = await self.computeCapsAndAvailability(for: summary)
+            if Task.isCancelled { return }
+            guard self.capsCacheToken == token else { return }
+            self.capsBySegment = computed.capsBySegment
+            self.categoryAvailabilityBySegment = computed.categoryAvailabilityBySegment
+            self.capStatusesBySegment = computed.capStatusesBySegment
+            self.capsCacheIsLoading = false
+        }
+    }
+
+    private static func primarySummary(from summaries: [BudgetSummary], requestedRange: ClosedRange<Date>) -> BudgetSummary? {
+        guard !summaries.isEmpty else { return nil }
+        let cal = Calendar.current
+        if let exact = summaries.first(where: {
+            cal.isDate($0.periodStart, inSameDayAs: requestedRange.lowerBound) &&
+            cal.isDate($0.periodEnd, inSameDayAs: requestedRange.upperBound)
+        }) {
+            return exact
+        }
+        return summaries.first
+    }
+
+    private struct CategoryAvailabilityPayload: Sendable {
+        let name: String
+        let spent: Double
+        let cap: Double?
+        let available: Double
+        let hexColor: String?
+        let over: Bool
+        let near: Bool
+    }
+
+    private struct CapStatusPayload: Sendable {
+        let name: String
+        let amount: Double
+        let cap: Double
+        let hexColor: String?
+        let near: Bool
+        let over: Bool
+        let segmentRaw: String
+    }
+
+    private struct CapsAndAvailabilityComputation {
+        let capsBySegment: [CategoryAvailabilitySegment: [String: Double]]
+        let categoryAvailabilityBySegment: [CategoryAvailabilitySegment: [CategoryAvailability]]
+        let capStatusesBySegment: [CategoryAvailabilitySegment: [CapStatus]]
+    }
+
+    private func computeCapsAndAvailability(for summary: BudgetSummary) async -> CapsAndAvailabilityComputation {
+        let bgContext = CoreDataService.shared.newBackgroundContext()
+
+        let (capsBySegmentRaw, availabilityRaw, statusesRaw): (
+            capsBySegmentRaw: [String: [String: Double]],
+            availabilityRaw: [String: [CategoryAvailabilityPayload]],
+            statusesRaw: [String: [CapStatusPayload]]
+        ) = await bgContext.perform {
+            #if DEBUG
+            precondition(!Thread.isMainThread, "Category caps/availability computation must not run on the main thread.")
+            #endif
+
+            var caps: [String: (planned: Double?, variable: Double?)] = [:]
+
+            func fetchCaps(segment: String) {
+                let key = capsPeriodKey(start: summary.periodStart, end: summary.periodEnd, segment: segment)
+                let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+                fetch.predicate = NSPredicate(format: "period == %@", key)
+                let results = (try? bgContext.fetch(fetch)) ?? []
+                for cap in results {
+                    guard let category = cap.category,
+                          let name = category.name else { continue }
+                    let norm = normalizedCategoryName(name)
+                    var entry = caps[norm] ?? (planned: nil, variable: nil)
+                    if (cap.expenseType ?? "").lowercased() == "max" {
+                        if segment == "planned" { entry.planned = cap.amount } else { entry.variable = cap.amount }
+                        caps[norm] = entry
+                    }
+                }
+            }
+
+            fetchCaps(segment: "planned")
+            fetchCaps(segment: "variable")
+
+            func capValue(for norm: String, segment: CategoryAvailabilitySegment) -> Double? {
+                let overrides = caps[norm]
+                let plannedDefault = summary.plannedCategoryDefaultCaps[norm]
+                switch segment {
+                case .combined:
+                    let plannedCap = overrides?.planned ?? plannedDefault
+                    let variableCap = overrides?.variable
+                    let combined = (plannedCap ?? 0) + (variableCap ?? 0)
+                    return combined > 0 ? combined : nil
+                case .planned:
+                    return overrides?.planned ?? plannedDefault
+                case .variable:
+                    return overrides?.variable
+                }
+            }
+
+            let remainingIncome = max(summary.actualIncomeTotal - (summary.plannedExpensesActualTotal + summary.variableExpensesTotal), 0)
+
+            var capsBySegmentRaw: [String: [String: Double]] = [:]
+            var availabilityBySegmentRaw: [String: [CategoryAvailabilityPayload]] = [:]
+            var statusesBySegmentRaw: [String: [CapStatusPayload]] = [:]
+
+            for segment in CategoryAvailabilitySegment.allCases {
+                let breakdown: [BudgetSummary.CategorySpending]
+                switch segment {
+                case .combined:
+                    breakdown = summary.categoryBreakdown
+                case .planned:
+                    breakdown = summary.plannedCategoryBreakdown
+                case .variable:
+                    breakdown = summary.variableCategoryBreakdown
+                }
+
+                var segmentCaps: [String: Double] = [:]
+                var availabilities: [CategoryAvailabilityPayload] = []
+                var statuses: [CapStatusPayload] = []
+
+                for cat in breakdown {
+                    let norm = normalizedCategoryName(cat.categoryName)
+                    let cap = capValue(for: norm, segment: segment)
+                    if let cap, cap > 0 {
+                        segmentCaps[norm] = cap
+                    }
+
+                    let hasCap = cap != nil
+                    let capAmount = cap ?? 0
+                    let capRemaining = max(capAmount - cat.amount, 0)
+                    let available = hasCap ? capRemaining : remainingIncome
+                    let over = hasCap && cat.amount >= capAmount
+                    let near = hasCap && cat.amount >= capAmount * 0.85 && cat.amount < capAmount
+                    availabilities.append(
+                        CategoryAvailabilityPayload(
+                            name: cat.categoryName,
+                            spent: cat.amount,
+                            cap: cap,
+                            available: available,
+                            hexColor: cat.hexColor,
+                            over: over,
+                            near: near
+                        )
+                    )
+
+                    let overrides = caps[norm]
+                    let plannedDefault = summary.plannedCategoryDefaultCaps[norm]
+                    let plannedComponent = max((overrides?.planned ?? plannedDefault ?? 0), 0)
+                    let variableComponent = max(overrides?.variable ?? 0, 0)
+                    let capAmountForStatus: Double
+                    switch segment {
+                    case .combined:
+                        capAmountForStatus = plannedComponent + variableComponent
+                    case .planned:
+                        capAmountForStatus = plannedComponent
+                    case .variable:
+                        capAmountForStatus = variableComponent
+                    }
+                    if capAmountForStatus > 0 {
+                        let overStatus = cat.amount >= capAmountForStatus
+                        let nearStatus = !overStatus && cat.amount >= capAmountForStatus * 0.85
+                        statuses.append(
+                            CapStatusPayload(
+                                name: cat.categoryName,
+                                amount: cat.amount,
+                                cap: capAmountForStatus,
+                                hexColor: cat.hexColor,
+                                near: nearStatus,
+                                over: overStatus,
+                                segmentRaw: segment.rawValue
+                            )
+                        )
+                    }
+                }
+
+                // Match HomeView sorting
+                availabilities.sort { lhs, rhs in
+                    if lhs.spent == rhs.spent { return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending }
+                    return lhs.spent > rhs.spent
+                }
+
+                statuses.sort { lhs, rhs in
+                    if lhs.over != rhs.over { return lhs.over && !rhs.over }
+                    let lhsRatio = lhs.cap > 0 ? lhs.amount / lhs.cap : 0
+                    let rhsRatio = rhs.cap > 0 ? rhs.amount / rhs.cap : 0
+                    if lhsRatio == rhsRatio {
+                        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                    }
+                    return lhsRatio > rhsRatio
+                }
+
+                capsBySegmentRaw[segment.rawValue] = segmentCaps
+                availabilityBySegmentRaw[segment.rawValue] = availabilities
+                statusesBySegmentRaw[segment.rawValue] = statuses
+            }
+
+            return (capsBySegmentRaw: capsBySegmentRaw, availabilityRaw: availabilityBySegmentRaw, statusesRaw: statusesBySegmentRaw)
+        }
+
+        // Final mapping to UI models happens on MainActor (Color/SwiftUI types).
+        var capsBySegment: [CategoryAvailabilitySegment: [String: Double]] = [:]
+        for segment in CategoryAvailabilitySegment.allCases {
+            capsBySegment[segment] = capsBySegmentRaw[segment.rawValue] ?? [:]
+        }
+
+        func colorFromHex(_ hex: String?) -> Color {
+            UBColorFromHex(hex) ?? HomeView.HomePalette.presets
+        }
+
+        var availabilityBySegment: [CategoryAvailabilitySegment: [CategoryAvailability]] = [:]
+        for segment in CategoryAvailabilitySegment.allCases {
+            let payloads = availabilityRaw[segment.rawValue] ?? []
+            availabilityBySegment[segment] = payloads.map {
+                CategoryAvailability(
+                    name: $0.name,
+                    spent: $0.spent,
+                    cap: $0.cap,
+                    available: $0.available,
+                    color: colorFromHex($0.hexColor),
+                    over: $0.over,
+                    near: $0.near
+                )
+            }
+        }
+
+        var statusBySegment: [CategoryAvailabilitySegment: [CapStatus]] = [:]
+        for segment in CategoryAvailabilitySegment.allCases {
+            let payloads = statusesRaw[segment.rawValue] ?? []
+            statusBySegment[segment] = payloads.map {
+                CapStatus(
+                    name: $0.name,
+                    amount: $0.amount,
+                    cap: $0.cap,
+                    color: colorFromHex($0.hexColor),
+                    near: $0.near,
+                    over: $0.over,
+                    segment: segment
+                )
+            }
+        }
+
+        return CapsAndAvailabilityComputation(
+            capsBySegment: capsBySegment,
+            categoryAvailabilityBySegment: availabilityBySegment,
+            capStatusesBySegment: statusBySegment
+        )
     }
 
     // MARK: - Debounced state emission
@@ -574,7 +888,7 @@ final class HomeViewModel: ObservableObject {
             let range = period.range(containing: referenceDate)
             let (summaries, _) = await loadSummaries(period: period, dateRange: range.start...range.end)
             guard let summary = summaries.first else { continue }
-            let caps = categoryCapsWidget(for: summary)
+            let caps = await fetchCategoryCaps(for: summary)
             for segment in CategoryAvailabilitySegment.allCases {
                 let items = computeCategoryAvailabilityWidget(summary: summary, caps: caps, segment: segment)
                 let snapshot = WidgetSharedStore.CategoryAvailabilitySnapshot(
@@ -764,30 +1078,35 @@ final class HomeViewModel: ObservableObject {
         let hex: String
     }
 
-    private func categoryCapsWidget(for summary: BudgetSummary) -> [String: (planned: Double?, variable: Double?)] {
-        let ctx = CoreDataService.shared.viewContext
-        var map: [String: (planned: Double?, variable: Double?)] = [:]
+    private func fetchCategoryCaps(for summary: BudgetSummary) async -> [String: (planned: Double?, variable: Double?)] {
+        let bgContext = CoreDataService.shared.newBackgroundContext()
+        return await bgContext.perform {
+            #if DEBUG
+            precondition(!Thread.isMainThread, "Category caps fetch must not run on the main thread.")
+            #endif
+            var map: [String: (planned: Double?, variable: Double?)] = [:]
 
-        func fetchCaps(segment: String) {
-            let key = capsPeriodKey(start: summary.periodStart, end: summary.periodEnd, segment: segment)
-            let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
-            fetch.predicate = NSPredicate(format: "period == %@", key)
-            let results = (try? ctx.fetch(fetch)) ?? []
-            for cap in results {
-                guard let category = cap.category,
-                      let name = category.name else { continue }
-                let norm = normalizedCategoryName(name)
-                var entry = map[norm] ?? (planned: nil, variable: nil)
-                if (cap.expenseType ?? "").lowercased() == "max" {
-                    if segment == "planned" { entry.planned = cap.amount } else { entry.variable = cap.amount }
-                    map[norm] = entry
+            func fetchCaps(segment: String) {
+                let key = capsPeriodKey(start: summary.periodStart, end: summary.periodEnd, segment: segment)
+                let fetch = NSFetchRequest<CategorySpendingCap>(entityName: "CategorySpendingCap")
+                fetch.predicate = NSPredicate(format: "period == %@", key)
+                let results = (try? bgContext.fetch(fetch)) ?? []
+                for cap in results {
+                    guard let category = cap.category,
+                          let name = category.name else { continue }
+                    let norm = normalizedCategoryName(name)
+                    var entry = map[norm] ?? (planned: nil, variable: nil)
+                    if (cap.expenseType ?? "").lowercased() == "max" {
+                        if segment == "planned" { entry.planned = cap.amount } else { entry.variable = cap.amount }
+                        map[norm] = entry
+                    }
                 }
             }
-        }
 
-        fetchCaps(segment: "planned")
-        fetchCaps(segment: "variable")
-        return map
+            fetchCaps(segment: "planned")
+            fetchCaps(segment: "variable")
+            return map
+        }
     }
 
     private func computeCategoryAvailabilityWidget(summary: BudgetSummary, caps: [String: (planned: Double?, variable: Double?)], segment: CategoryAvailabilitySegment) -> [WidgetSharedStore.CategoryAvailabilitySnapshot.Item] {
@@ -1183,6 +1502,7 @@ final class HomeViewModel: ObservableObject {
     func applyCustomRange(start: Date, end: Date) {
         guard let normalized = Self.normalizedRange(start: start, end: end) else { return }
         customDateRange = normalized
+        updateCachedDateRangeAndLabel()
         Task { [weak self] in
             await self?.refresh()
         }
@@ -1191,6 +1511,7 @@ final class HomeViewModel: ObservableObject {
     func clearCustomRange() {
         guard customDateRange != nil else { return }
         customDateRange = nil
+        updateCachedDateRangeAndLabel()
         Task { [weak self] in
             await self?.refresh()
         }
@@ -1221,6 +1542,7 @@ final class HomeViewModel: ObservableObject {
         self.period = newPeriod
         selectedDate = desiredStart
         customDateRange = nil
+        updateCachedDateRangeAndLabel()
         Task { [weak self] in
             await self?.refresh()
         }

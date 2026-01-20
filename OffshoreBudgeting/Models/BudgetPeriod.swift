@@ -40,7 +40,9 @@ enum BudgetPeriod: String, CaseIterable, Identifiable {
             let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
             return cal.date(from: comps) ?? date
         case .biWeekly:
-            return BudgetPeriod.weekly.start(of: date)
+            // Same anchor as `.weekly` (end date differs).
+            let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+            return cal.date(from: comps) ?? date
         case .monthly:
             let comps = cal.dateComponents([.year, .month], from: date)
             return cal.date(from: comps) ?? date
@@ -60,7 +62,28 @@ enum BudgetPeriod: String, CaseIterable, Identifiable {
     /// Returns the inclusive start and end dates for the period containing `date`.
     func range(containing date: Date) -> (start: Date, end: Date) {
         let cal = Calendar.current
-        let startDate = start(of: date)
+        // Inline start computation to avoid extra Calendar/ICU work on hot paths.
+        let startDate: Date
+        switch self {
+        case .daily:
+            startDate = cal.startOfDay(for: date)
+        case .weekly, .biWeekly:
+            let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+            startDate = cal.date(from: comps) ?? date
+        case .monthly:
+            let comps = cal.dateComponents([.year, .month], from: date)
+            startDate = cal.date(from: comps) ?? date
+        case .quarterly:
+            let year = cal.component(.year, from: date)
+            let month = cal.component(.month, from: date)
+            let startMonth = ((month - 1) / 3) * 3 + 1
+            startDate = cal.date(from: DateComponents(year: year, month: startMonth, day: 1)) ?? date
+        case .yearly:
+            let comps = cal.dateComponents([.year], from: date)
+            startDate = cal.date(from: comps) ?? date
+        case .custom:
+            startDate = date
+        }
         let endDate: Date
         switch self {
         case .daily:
@@ -147,4 +170,3 @@ enum BudgetPeriod: String, CaseIterable, Identifiable {
         }
     }
 }
-

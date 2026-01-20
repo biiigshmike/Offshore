@@ -212,17 +212,17 @@ private struct WidgetGridLayout: Layout {
 }
 
 // MARK: - HomeView – Widget Feed
-struct HomeView: View {
+	struct HomeView: View {
 
-    @StateObject private var vm = HomeViewModel()
+	    @StateObject private var vm = HomeViewModel()
 
-    @State private var nextPlannedSnapshot: PlannedExpenseSnapshot?
-    @State private var widgetBuckets: [SpendBucket] = []
-    @State private var weekdayRangeOverride: ClosedRange<Date>? = nil
-    @State private var weekdayRangeOverrideLabel: String? = nil
-    @State private var availabilityPage: Int = 0
-    @State private var startDateSelection: Date = Date()
-    @State private var endDateSelection: Date = Date()
+	    @State private var nextPlannedSnapshot: PlannedExpenseSnapshot?
+	    @State private var widgetBuckets: [SpendBucket] = []
+	    @State private var weekdayRangeOverride: ClosedRange<Date>? = nil
+	    @State private var weekdayRangeOverrideLabel: String? = nil
+	    @State private var availabilityPage: Int = 0
+	    @State private var startDateSelection: Date = Date()
+	    @State private var endDateSelection: Date = Date()
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.platformCapabilities) private var capabilities
@@ -234,23 +234,39 @@ struct HomeView: View {
 
     enum Sort: String, CaseIterable, Identifiable { case titleAZ, amountLowHigh, amountHighLow, dateOldNew, dateNewOld; var id: String { rawValue } }
 
-    private static let defaultWidgets: [WidgetID] = [
-        .income, .expenseToIncome, .savings, .nextPlanned, .categorySpotlight, .dayOfWeek, .availability, .scenario
-    ]
+	    private static let defaultWidgets: [WidgetID] = [
+	        .income, .expenseToIncome, .savings, .nextPlanned, .categorySpotlight, .dayOfWeek, .availability, .scenario
+	    ]
+	    private static let kvsBootTime = Date()
+	    private static let kvsExternallyChangedIgnoreWindowSeconds: TimeInterval = 0.75
 
-    private enum WidgetStorageKey {
-        static let pinnedLocal = "homePinnedWidgetIDs"
-        static let pinnedCloud = "homePinnedWidgetIDs.cloud"
-        static let orderLocal = "homeWidgetOrderIDs"
-        static let orderCloud = "homeWidgetOrderIDs.cloud"
+	    private enum WidgetStorageKey {
+	        static let pinnedLocal = "homePinnedWidgetIDs"
+	        static let pinnedCloud = "homePinnedWidgetIDs.cloud"
+	        static let orderLocal = "homeWidgetOrderIDs"
+	        static let orderCloud = "homeWidgetOrderIDs.cloud"
     }
 
-    @State private var pinnedIDs: [WidgetID] = []
-    @State private var widgetOrder: [WidgetID] = []
-    @State private var isEditing: Bool = false
-    @State private var draggingID: WidgetID?
-    @State private var ubiquitousObserver: NSObjectProtocol?
-    @State private var storageRefreshToken = UUID()
+	    @State private var pinnedIDs: [WidgetID] = []
+	    @State private var widgetOrder: [WidgetID] = []
+	    @State private var isEditing: Bool = false
+	    @State private var draggingID: WidgetID?
+	    @State private var ubiquitousObserver: NSObjectProtocol?
+	    @State private var storageRefreshToken = UUID()
+	    @State private var storageRefreshTokenFlipPending: Bool = false
+
+	    /// Coalesce multiple requests into at most one `storageRefreshToken` flip per run loop.
+	    /// This reduces "Update NavigationRequestObserver tried to update multiple times per frame"
+	    /// by avoiding multiple state invalidations in a single frame.
+	    @MainActor
+	    private func requestStorageRefreshTokenFlip() {
+	        guard !storageRefreshTokenFlipPending else { return }
+	        storageRefreshTokenFlipPending = true
+	        DispatchQueue.main.async {
+	            storageRefreshToken = UUID()
+	            storageRefreshTokenFlipPending = false
+	        }
+	    }
 
     @ScaledMetric(relativeTo: .body) private var gridSpacing: CGFloat = 18
     @ScaledMetric(relativeTo: .body) private var gridRowHeight: CGFloat = 170
@@ -1523,27 +1539,33 @@ struct HomeView: View {
         kv.synchronize()
     }
 
-    private func handleWidgetSyncPreferenceChange() {
-        if shouldSyncWidgets {
-            refreshWidgetStorageFromCloudIfNeeded()
-            startObservingWidgetSyncIfNeeded()
-            storageRefreshToken = UUID()
-        } else {
-            stopObservingWidgetSync()
-        }
-    }
+	    private func handleWidgetSyncPreferenceChange() {
+	        if shouldSyncWidgets {
+	            refreshWidgetStorageFromCloudIfNeeded()
+	            startObservingWidgetSyncIfNeeded()
+	            requestStorageRefreshTokenFlip()
+	        } else {
+	            stopObservingWidgetSync()
+	        }
+	    }
 
-    private func startObservingWidgetSyncIfNeeded() {
-        guard shouldSyncWidgets, ubiquitousObserver == nil else { return }
-        ubiquitousObserver = NotificationCenter.default.addObserver(
-            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
-            object: NSUbiquitousKeyValueStore.default,
-            queue: .main
-        ) { _ in
-            refreshWidgetStorageFromCloudIfNeeded()
-            storageRefreshToken = UUID()
-        }
-    }
+	    private func startObservingWidgetSyncIfNeeded() {
+	        guard shouldSyncWidgets, ubiquitousObserver == nil else { return }
+	        ubiquitousObserver = NotificationCenter.default.addObserver(
+	            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+	            object: NSUbiquitousKeyValueStore.default,
+	            queue: .main
+	        ) { _ in
+	            let sinceBoot = Date().timeIntervalSince(Self.kvsBootTime)
+	            if sinceBoot < Self.kvsExternallyChangedIgnoreWindowSeconds {
+	                return
+	            }
+	            refreshWidgetStorageFromCloudIfNeeded()
+	            Task { @MainActor in
+	                requestStorageRefreshTokenFlip()
+	            }
+	        }
+	    }
 
     private func stopObservingWidgetSync() {
         if let observer = ubiquitousObserver {

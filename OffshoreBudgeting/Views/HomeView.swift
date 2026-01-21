@@ -474,11 +474,23 @@ private struct WidgetGridLayout: Layout {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(AccessibilityID.Home.screen)
         .refreshable { await vm.refresh() }
-        .task { await onAppearTask() }
+        .task {
+            // Yield once so NavigationStack can settle before we kick off
+            // state changes and background fetches that would otherwise thrash
+            // SwiftUI navigation observers during the first frame.
+            await Task.yield()
+            await onAppearTask()
+        }
         .onChange(of: vm.period) { _ in syncPickers(with: vm.currentDateRange) }
         .onChange(of: vm.selectedDate) { _ in syncPickers(with: vm.currentDateRange) }
         .onReceive(vm.$customDateRange) { _ in syncPickers(with: vm.currentDateRange) }
-        .onChange(of: vm.state) { _ in Task { await stateDidChange() } }
+        .onChange(of: vm.state) { _ in
+            Task {
+                // Avoid stacking multiple navigation updates in the same frame during load bursts.
+                await Task.yield()
+                await stateDidChange()
+            }
+        }
         .onChange(of: shouldSyncWidgets) { _ in handleWidgetSyncPreferenceChange() }
         .onDisappear {
             stopObservingWidgetSync()

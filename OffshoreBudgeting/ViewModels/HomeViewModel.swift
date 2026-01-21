@@ -285,6 +285,7 @@ final class HomeViewModel: ObservableObject {
         // we transition to the `loading` state.
         Task {
             try? await Task.sleep(nanoseconds: 200_000_000)
+            guard self.isRefreshing else { return }
             if case .initial = self.state {
                 self.state = .loading
             }
@@ -316,7 +317,10 @@ final class HomeViewModel: ObservableObject {
         }
 
         // Refresh local period from Workspace in case it changed remotely
-        self.period = WorkspaceService.shared.currentBudgetPeriod(in: context)
+        let workspacePeriod = WorkspaceService.shared.currentBudgetPeriod(in: context)
+        if self.period != workspacePeriod {
+            self.period = workspacePeriod
+        }
         updateCachedDateRangeAndLabel()
         let requestedPeriod = period
         let requestedDate = selectedDate
@@ -348,7 +352,9 @@ final class HomeViewModel: ObservableObject {
         } else {
             let newState: BudgetLoadState = summaries.isEmpty ? .empty : .loaded(summaries)
             emitStateDebounced(newState)
-            self.loadedBudgetIDs = budgetIDs
+            if self.loadedBudgetIDs != budgetIDs {
+                self.loadedBudgetIDs = budgetIDs
+            }
         }
 
         isRefreshing = false

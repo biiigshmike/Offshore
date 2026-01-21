@@ -54,6 +54,32 @@ enum WidgetSharedStore {
         return UserDefaults(suiteName: appGroupID)
     }
 
+#if canImport(WidgetKit)
+    // MARK: - Timeline Reload Coalescing
+    /// Coalesces multiple reload requests into a single per-runloop flush to avoid spamming
+    /// WidgetCenter during bursty snapshot writes (e.g., Home widget refresh).
+    @MainActor
+    private static var pendingReloadKinds: Set<String> = []
+    @MainActor
+    private static var isReloadFlushScheduled: Bool = false
+
+    private static func scheduleTimelineReload(kind: String) {
+        guard shouldReloadWidgetTimelines else { return }
+        Task { @MainActor in
+            pendingReloadKinds.insert(kind)
+            guard !isReloadFlushScheduled else { return }
+            isReloadFlushScheduled = true
+            await Task.yield()
+            isReloadFlushScheduled = false
+            let kinds = pendingReloadKinds
+            pendingReloadKinds.removeAll()
+            for kind in kinds {
+                WidgetCenter.shared.reloadTimelines(ofKind: kind)
+            }
+        }
+    }
+#endif
+
     struct IncomeSnapshot: Codable, Equatable {
         let actualIncome: Double
         let plannedIncome: Double
@@ -166,7 +192,7 @@ enum WidgetSharedStore {
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: incomeKeyPrefix + periodRaw)
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: incomeWidgetKind) }
+        scheduleTimelineReload(kind: incomeWidgetKind)
         #endif
     }
 
@@ -195,7 +221,7 @@ enum WidgetSharedStore {
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: expenseToIncomeKeyPrefix + periodRaw)
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: expenseToIncomeWidgetKind) }
+        scheduleTimelineReload(kind: expenseToIncomeWidgetKind)
         #endif
     }
 
@@ -224,7 +250,7 @@ enum WidgetSharedStore {
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: savingsOutlookKeyPrefix + periodRaw)
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: savingsOutlookWidgetKind) }
+        scheduleTimelineReload(kind: savingsOutlookWidgetKind)
         #endif
     }
 
@@ -253,7 +279,7 @@ enum WidgetSharedStore {
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: categorySpotlightKeyPrefix + periodRaw)
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: categorySpotlightWidgetKind) }
+        scheduleTimelineReload(kind: categorySpotlightWidgetKind)
         #endif
     }
 
@@ -282,7 +308,7 @@ enum WidgetSharedStore {
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: dayOfWeekKeyPrefix + periodRaw)
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: dayOfWeekWidgetKind) }
+        scheduleTimelineReload(kind: dayOfWeekWidgetKind)
         #endif
     }
 
@@ -311,7 +337,7 @@ enum WidgetSharedStore {
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: categoryAvailabilityKeyPrefix + periodRaw + "." + segmentRaw)
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: categoryAvailabilityWidgetKind) }
+        scheduleTimelineReload(kind: categoryAvailabilityWidgetKind)
         #endif
     }
 
@@ -330,7 +356,7 @@ enum WidgetSharedStore {
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: cardWidgetKeyPrefix + periodRaw + "." + cardID)
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: cardWidgetKind) }
+        scheduleTimelineReload(kind: cardWidgetKind)
         #endif
     }
 
@@ -358,7 +384,7 @@ enum WidgetSharedStore {
         guard let data = try? encoder.encode(cards) else { return }
         defaults.set(data, forKey: cardWidgetCardsKey)
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: cardWidgetKind) }
+        scheduleTimelineReload(kind: cardWidgetKind)
         #endif
     }
 
@@ -416,7 +442,7 @@ enum WidgetSharedStore {
         }
 
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: cardWidgetKind) }
+        scheduleTimelineReload(kind: cardWidgetKind)
         #endif
     }
 
@@ -470,7 +496,7 @@ enum WidgetSharedStore {
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: nextPlannedKey)
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: nextPlannedWidgetKind) }
+        scheduleTimelineReload(kind: nextPlannedWidgetKind)
         #endif
     }
 
@@ -486,7 +512,7 @@ enum WidgetSharedStore {
         guard let defaults = defaults() else { return }
         defaults.removeObject(forKey: nextPlannedKey)
         #if canImport(WidgetKit)
-        if shouldReloadWidgetTimelines { WidgetCenter.shared.reloadTimelines(ofKind: nextPlannedWidgetKind) }
+        scheduleTimelineReload(kind: nextPlannedWidgetKind)
         #endif
     }
 }

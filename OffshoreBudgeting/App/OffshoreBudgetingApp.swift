@@ -29,6 +29,7 @@ struct OffshoreBudgetingApp: App {
     @State private var dataChangeObserver: NSObjectProtocol?
     @State private var homeContentReady = false
     @State private var homeDataObserver: NSObjectProtocol?
+    @State private var isDataRevisionBumpScheduled = false
     @State private var didTriggerInitialAppLock = false
     private let platformCapabilities = PlatformCapabilities.current
     @Environment(\.colorScheme) private var systemColorScheme
@@ -308,10 +309,25 @@ struct OffshoreBudgetingApp: App {
             object: nil,
             queue: .main
         ) { _ in
-            if !dataReady && !homeContentReady {
-                dataRevision &+= 1
-                UBPerf.mark("DataRevision.increment", "reason=dataStoreDidChange dataReady=\(dataReady) homeContentReady=\(homeContentReady) new=\(dataRevision)")
+            Task { @MainActor in
+                scheduleDataRevisionBumpIfNeeded(reason: "dataStoreDidChange")
             }
+        }
+    }
+
+    /// Coalesces high-frequency Core Data change bursts into a single `dataRevision` bump per run loop.
+    /// This reduces redundant SwiftUI navigation/list updates during CloudKit imports and background merges.
+    @MainActor
+    private func scheduleDataRevisionBumpIfNeeded(reason: String) {
+        guard !dataReady && !homeContentReady else { return }
+        guard !isDataRevisionBumpScheduled else { return }
+        isDataRevisionBumpScheduled = true
+        Task { @MainActor in
+            await Task.yield()
+            isDataRevisionBumpScheduled = false
+            guard !dataReady && !homeContentReady else { return }
+            dataRevision &+= 1
+            UBPerf.mark("DataRevision.increment", "reason=\(reason) (coalesced) dataReady=\(dataReady) homeContentReady=\(homeContentReady) new=\(dataRevision)")
         }
     }
 

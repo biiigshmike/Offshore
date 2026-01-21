@@ -21,6 +21,7 @@ final class CloudDiagnostics: ObservableObject {
 
     // MARK: Private
     private var cloudEventObserver: NSObjectProtocol?
+    private var isRefreshing: Bool = false
 
     // MARK: Init
     private init() {
@@ -58,11 +59,20 @@ final class CloudDiagnostics: ObservableObject {
     // MARK: Public API
     /// Refreshes all diagnostic fields.
     func refresh() async {
-        // Store mode
-        storeMode = CoreDataService.shared.storeModeDescription
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
 
         // Named-container reachability (also validates Production schema presence)
+        let nextStoreMode = CoreDataService.shared.storeModeDescription
         let reachable = await CloudAccountStatusProvider.shared.resolveAvailability(forceRefresh: true)
-        containerReachable = reachable
+
+        // Assign only when changed to reduce redundant SwiftUI invalidations during navigation.
+        if storeMode != nextStoreMode {
+            storeMode = nextStoreMode
+        }
+        if containerReachable != reachable {
+            containerReachable = reachable
+        }
     }
 }

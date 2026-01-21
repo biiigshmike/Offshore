@@ -109,8 +109,10 @@ struct SettingsView: View {
                 }
             }
             .task {
+                // Yield once so the navigation transition can complete before we
+                // trigger diagnostic refreshes that may emit multiple changes quickly.
+                await Task.yield()
                 await cloudDiag.refresh()
-                await WorkspaceService.shared.initializeOnLaunch()
             }
             .alert("Merge Local Data into iCloud?", isPresented: $showMergeConfirm) {
                 Button("Merge", role: .none) { runMerge() }
